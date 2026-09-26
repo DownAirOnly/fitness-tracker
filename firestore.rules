@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/state/main {
+      function owner() {
+        return request.auth != null && request.auth.uid == uid
+          && request.auth.token.email_verified == true;
+      }
+      function validState() {
+        return request.resource.data.keys().hasAll(['schemaVersion','revision','payload','updatedAt'])
+          && request.resource.data.keys().hasOnly(['schemaVersion','revision','payload','updatedAt'])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.revision is int
+          && request.resource.data.payload is string
+          && request.resource.data.payload.size() <= 800000
+          && request.resource.data.updatedAt == request.time;
+      }
+      allow get: if owner();
+      allow create: if owner() && validState() && request.resource.data.revision == 1;
+      allow update: if owner() && validState()
+        && request.resource.data.revision == resource.data.revision + 1;
+      // No collection listing, other users' data, or direct deletion.
+    }
+  }
+}

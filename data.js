@@ -66,6 +66,7 @@ export function normalizeData(input) {
   for(const e of data.foodEntries) if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0) throw new Error('Backup has an invalid food entry.');
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0)) throw new Error('Backup has an invalid lift.');
+  for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1||l.difficulty>10)) throw new Error('Backup has an invalid difficulty.');
   data.promptDate=validDate(input.promptDate)?input.promptDate:'';
   return data;
 }

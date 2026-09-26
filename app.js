@@ -1,19 +1,32 @@
-import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,templateExercises,round} from './data.js';
+import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,templateExercises,round,emptyData} from './data.js';
 
-let data=load(), page='home', chosenDate=localDate(), workout='Upper', pendingImport=null;
+import {hasRecords,mergeDeviceData} from './cloud-model.js';
+
+let deviceData=load();
+let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
+let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage='Connecting account service…', cloudReady=false, authChecked=false;
+let data=deviceData, page='home', chosenDate=localDate(), workout='Upper', pendingImport=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,'');
 const button=(label,action,cls='',attrs='')=>`<button type="button" class="${cls}" data-action="${action}" ${attrs}>${label}</button>`;
 const input=(label,name,value='',type='text',extra='')=>`<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const empty=message=>`<p class="empty">${message}</p>`;
-const persist=()=>{try{save(data);render();return true;}catch{alert('Your device could not save this change. Export a backup and check available storage.');return false;}};
+const persist=async()=>{
+  if(!account){try{save(data);deviceData=structuredClone(data);render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
+  if(!session?.ready || cloudBusy) return false;
+  const active=session;cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';render();
+  try{await active.save(data);if(session!==active)return false;cloudPending=false;cloudMessage='Saved to your account';return true;}
+  catch(error){if(session===active){cloudMessage=describeCloudError(error);cloudPending=true;}return false;}
+  finally{if(session===active){cloudBusy=false;render();}}
+};
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
 function shell(content) {
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(localDate())} <span>↗</span></button></header><main>${content}</main><nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(localDate())} <span>↗</span></button></header>${accountBanner()}<main>${content}</main><nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
+  if(!authChecked || (account && !session?.ready)){shell(`<section class="panel"><h2>${account?'Loading your account':'Connecting…'}</h2><p class="body-copy">${esc(cloudMessage)}</p>${account&&!cloudBusy?button('Retry loading','cloud-load','primary'):''}</section>`);return;}
   const views={home,food,gym,progress,history,settings};
   shell(views[page]?.()||home());
 }
@@ -44,7 +57,7 @@ function history() {
   return `<div class="page-head"><p class="eyebrow">EVERY DAY COUNTS</p><h1>History<span class="accent">.</span></h1><p>Choose any date to view or correct what you logged.</p></div><div class="date-row">${input('Jump to date','date',chosenDate,'date','required')}${button('Open food','food','outline small')}</div>${dates.length?dates.map(date=>{const t=dailyTotals(data.foodEntries,date), lifts=data.lifts.filter(x=>x.date===date).length, w=data.weights.find(x=>x.date===date);return `<button class="history-day" data-action="go-date" data-date="${date}"><strong>${niceDate(date)}</strong><span>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g protein<br>${lifts} lift${lifts===1?'':'s'}${w?` · ${fmt(w.value)} ${data.settings.unit}`:''}</span><b>↗</b></button>`}).join(''):empty('Your logged days will show up here.')}`;
 }
 function settings() {
-  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>Your data stays in this browser on this device. Export backups regularly.</p></div><section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section><section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button('Export JSON backup','export','outline')}${button('Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Stored locally, available offline after first load, and installable from your browser’s Share menu. No account or cloud sync is included. Safari may clear site data, so save a backup outside this app.</p></section>`;
+  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.'} Export backups regularly.</p></div>${accountPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section><section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button('Export JSON backup','export','outline')}${button('Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves your records to a private Firebase account space. Cloud viewing and saving require a connection; signed-in fitness records are not kept in browser storage. Device mode still works offline. Export backups for an independent copy. This version supports up to about 800 KB of logs per account.</p></section>`;
 }
 function modal(title,body) {document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal input:not([type=hidden])')?.focus();}
 function close() {document.querySelector('#overlay').innerHTML='';pendingImport=null;}
@@ -60,8 +73,20 @@ function weightForm(w=null) {modal(w?'Edit weigh-in':'Log your weight',`<form cl
 function importModal(kind) {modal(kind==='csv'?'Import food CSV':'Restore backup',`<form class="form" data-form="import"><input type="hidden" name="kind" value="${kind}"><label class="field"><span>${kind==='csv'?'Choose a .csv file':'Choose an Everyday .json backup'}</span><input type="file" name="file" accept="${kind==='csv'?'.csv,text/csv':'.json,application/json'}" required></label><button type="submit" class="primary">Preview import</button></form><div id="preview"></div>`);}
 
 app.addEventListener('change',event=>{if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
-app.addEventListener('click',event=>{
+app.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;
+  if(action==='sign-in'){if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
+  if(action==='sign-out'){if(cloudBusy||cloudPending)return alert('Finish saving, or export your changes and load cloud data, before signing out.');try{await cloudApi.signOut();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
+  if(action==='account'){page='settings';render();return;}
+  if(action==='cloud-load'){if(cloudBusy)return;if(cloudPending&&!confirm('Discard these unsaved changes and load the latest cloud version? Export first if you want to keep them.'))return;await loadAccount();return;}
+  if(action==='cloud-retry'){await persist();return;}
+  if(action==='migrate-device'){
+    if(!session?.ready||cloudBusy||cloudPending)return;
+    if(!confirm(`Copy this device’s original logs into ${account.email}? Existing cloud entries with the same ID and same-day cloud weigh-ins will be kept.`))return;
+    data=mergeDeviceData(data,deviceData);
+    if(await persist()){try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}render();}return;
+  }
+  if(account&&(cloudBusy||cloudPending||!session?.ready)&&!['home','food','gym','progress','history','settings','account','export','close'].includes(action))return;
   if(['home','food','gym','progress','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
   if(action==='today'){chosenDate=localDate();render();return;}
@@ -83,17 +108,44 @@ app.addEventListener('click',event=>{
   if(action==='import-csv'){importModal('csv');return;}
   if(action==='restore'){importModal('json');return;}
   if(action==='export'){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`everyday-backup-${localDate()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);return;}
-  if(action==='commit-import') {if(!pendingImport)return;if(pendingImport.kind==='json'){data=pendingImport.data;}else{for(const e of pendingImport.entries){data.foodEntries.push(e);if(!data.foods.some(f=>f.name.toLowerCase()===e.name.toLowerCase()))data.foods.push({id:id(),name:e.name,calories:e.calories,protein:e.protein,lastUsed:e.date});}}const count=pendingImport.kind==='csv'?pendingImport.entries.length:null;close();persist();alert(count===null?'Backup restored.':`${count} food row${count===1?'':'s'} imported.`);return;}
+  if(action==='commit-import') {if(!pendingImport)return;if(pendingImport.kind==='json'){data=pendingImport.data;}else{for(const e of pendingImport.entries){data.foodEntries.push(e);if(!data.foods.some(f=>f.name.toLowerCase()===e.name.toLowerCase()))data.foods.push({id:id(),name:e.name,calories:e.calories,protein:e.protein,lastUsed:e.date});}}const count=pendingImport.kind==='csv'?pendingImport.entries.length:null;close();if(await persist())alert(count===null?'Backup restored.':`${count} food row${count===1?'':'s'} imported.`);return;}
 });
 app.addEventListener('submit',async event=>{
-  const form=event.target;if(!form.dataset.form)return;event.preventDefault();const v=Object.fromEntries(new FormData(form));
+  const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(account&&(cloudBusy||cloudPending||!session?.ready))return;const v=Object.fromEntries(new FormData(form));
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){const factor=v.unit==='kg'?1/2.2046226218:2.2046226218;data.weights.forEach(w=>w.value=round(w.value*factor));data.lifts.forEach(l=>l.sets.forEach(s=>s.weight=round(s.weight*factor)));}data.settings={calories,protein,heightInches,unit:v.unit};persist();return;}
   if(form.dataset.form==='food') {const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),quantity=Number(v.quantity||1);if(!name||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||(!v.cardOnly&&!/^\d{4}-\d{2}-\d{2}$/.test(v.date)))return alert('Check the food values and date.');const card=data.foods.find(x=>x.id===v.cardId) || data.foods.find(x=>x.name.toLowerCase()===name.toLowerCase());if(card){if(v.cardOnly || !v.entryId){card.name=name;card.calories=calories;card.protein=protein;card.lastUsed=new Date().toISOString();}}else if(!v.entryId && !v.cardOnly)data.foods.push({id:id(),name,calories,protein,lastUsed:new Date().toISOString()});if(!v.cardOnly){const item=data.foodEntries.find(x=>x.id===v.entryId);if(item)Object.assign(item,{name,calories,protein,quantity,date:v.date});else data.foodEntries.push({id:id(),name,calories,protein,quantity,date:v.date});chosenDate=v.date;}close();persist();return;}
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>({weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)}));if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1)||v.difficulty && (Number(v.difficulty)<1||Number(v.difficulty)>10))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),date:v.date,sets,difficulty:v.difficulty?Number(v.difficulty):null,notes:v.notes.trim()};if(item)Object.assign(item,record);else data.lifts.push({id:id(),...record});chosenDate=v.date;close();persist();return;}
   if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);if(item)Object.assign(item,{date:v.date,value});else data.weights.push({id:id(),date:v.date,value});data.promptDate=localDate();close();persist();return;}
-  if(form.dataset.form==='import') {const file=form.querySelector('[name=file]').files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('The file must be under 5 MB.');const raw=await file.text();if(v.kind==='csv'){const result=parseFoodCSV(raw);if(result.errors.length)throw Error(result.errors.slice(0,5).join('\n')+(result.errors.length>5?`\n…and ${result.errors.length-5} more.`:''));if(!result.entries.length)throw Error('No food rows found.');pendingImport={kind:'csv',entries:result.entries};document.querySelector('#preview').innerHTML=`<div class="import-preview"><strong>${result.entries.length} rows ready</strong><p>${esc(result.entries.slice(0,3).map(e=>`${e.date}: ${e.name} (${e.calories} cal, ${e.protein}g × ${e.quantity})`).join(' · '))}</p>${button('Import these rows','commit-import','primary')}</div>`;}else{const restored=normalizeData(JSON.parse(raw));pendingImport={kind:'json',data:restored};document.querySelector('#preview').innerHTML=`<div class="import-preview"><strong>Replace current data?</strong><p>Backup contains ${restored.foodEntries.length} food logs, ${restored.lifts.length} lifts and ${restored.weights.length} weigh-ins. This replaces all data on this device. Export your current backup first if needed.</p>${button('Replace with backup','commit-import','danger filled')}</div>`;}}catch(error){pendingImport=null;document.querySelector('#preview').textContent=error.message;}return;}
+  if(form.dataset.form==='import') {const file=form.querySelector('[name=file]').files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('The file must be under 5 MB.');const raw=await file.text();if(v.kind==='csv'){const result=parseFoodCSV(raw);if(result.errors.length)throw Error(result.errors.slice(0,5).join('\n')+(result.errors.length>5?`\n…and ${result.errors.length-5} more.`:''));if(!result.entries.length)throw Error('No food rows found.');pendingImport={kind:'csv',entries:result.entries};document.querySelector('#preview').innerHTML=`<div class="import-preview"><strong>${result.entries.length} rows ready</strong><p>${esc(result.entries.slice(0,3).map(e=>`${e.date}: ${e.name} (${e.calories} cal, ${e.protein}g × ${e.quantity})`).join(' · '))}</p>${button('Import these rows','commit-import','primary')}</div>`;}else{const restored=normalizeData(JSON.parse(raw));pendingImport={kind:'json',data:restored};document.querySelector('#preview').innerHTML=`<div class="import-preview"><strong>Replace current data?</strong><p>Backup contains ${restored.foodEntries.length} food logs, ${restored.lifts.length} lifts and ${restored.weights.length} weigh-ins. This replaces the logs currently shown, including cloud logs when signed in. Export your current backup first if needed.</p>${button('Replace with backup','commit-import','danger filled')}</div>`;}}catch(error){pendingImport=null;document.querySelector('#preview').textContent=error.message;}return;}
 });
 
 render();
-if(shouldPrompt(data))setTimeout(()=>{if(!document.querySelector('.modal'))weightForm();},300);
+startCloud();
 if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+function accountBanner(){
+  return `<div class="account-banner" role="status"><span>${esc(account?account.email:'Device mode')}<small>${esc(cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):''}</div>${account&&cloudPending&&!cloudBusy?`<div class="save-warning" role="alert"><strong>Changes are not saved online.</strong><p>${esc(cloudMessage)}</p>${button('Retry save','cloud-retry','outline small')}${button('Export unsaved backup','export','outline small')}${button('Load latest cloud data','cloud-load','outline small')}</div>`:''}`;
+}
+function accountPanel(){
+  let migrated=false;try{migrated=localStorage.getItem('everyday-migrated:'+account?.uid)==='yes';}catch{}
+  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasRecords(deviceData)&&!migrated?`<p class="body-copy">Original device logs found. You can copy them into this account. This keeps the device copy as a backup.</p>${button('Copy device logs to this account','migrate-device','primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs; other app users cannot access them when the private database rules are installed. Your browser remembers your sign-in until you sign out.</p></section>`;
+}
+async function loadAccount(){
+  const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
+  try{const loaded=await active.load();if(session!==active)return;data=loaded;cloudPending=false;cloudMessage='Loaded from your account';}
+  catch(error){if(session===active)cloudMessage=describeCloudError(error);}
+  finally{if(session===active){cloudBusy=false;render();if(active.ready)promptWeight();}}
+}
+function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
+async function startCloud(){
+  try{
+    const cloud=await import('./cloud.js');describeCloudError=cloud.cloudError;
+    cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
+      session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
+      data=user?emptyData():structuredClone(deviceData);
+      if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';render();promptWeight();}
+    });
+    cloudReady=true;render();
+  }catch(error){authChecked=true;cloudMessage='Cloud login unavailable. Device logs still work. Reload to retry.';render();promptWeight();}
+}
+window.addEventListener('beforeunload',event=>{if(cloudPending||cloudBusy){event.preventDefault();event.returnValue='';}});
