@@ -3,3 +3,30 @@
 @media(max-width:440px){.shell{padding-left:16px;padding-right:16px}.hero{padding:31px 25px;min-height:250px}.home-actions{gap:9px}.big-action{padding:15px;min-height:155px}.big-action strong{font-size:18px}.big-action small{font-size:10px}.today-card{padding:19px}.metric-row{gap:16px}.summary{gap:12px}.food-grid{gap:8px}.food-main{padding:14px}.history-day strong{width:75px}}
 
 .account-banner{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#eaf0e5;border-radius:14px;padding:12px 15px;margin-bottom:16px;font-size:12px}.account-banner span{overflow-wrap:anywhere;min-width:0}.account-banner small{display:block;color:#647b68;font-size:10px;margin-top:4px}.save-warning{background:#fff0de;border:1px solid #dfbc86;border-radius:14px;padding:16px;margin-bottom:18px;font-size:12px}.save-warning p{line-height:1.5}.save-warning button,.panel>.outline{margin:4px 4px 4px 0}
+
+/* Device-aware appearance; all surfaces, forms and overlays share the palette. */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark;color:#e4eee6;background:#101914}
+[data-theme="dark"] :is(.brand,.top-date,.food-main,.exercise,.day-link,.history-day){color:#e4eee6}
+[data-theme="dark"] :is(.today-card,.panel,.food-card,.exercise,.day-link,.history-day,.nav){background:#1b2821;border-color:#34483a;box-shadow:none}
+[data-theme="dark"] .modal{background:#1b2821;box-shadow:0 20px 70px #0008}
+[data-theme="dark"] :is(.field input,.field select,.outline,.workout-tabs button){background:#152019;color:#e4eee6;border-color:#48614e}
+[data-theme="dark"] :is(.primary,.workout-tabs .selected){background:#b5d58d;border-color:#b5d58d;color:#172c23}
+[data-theme="dark"] :is(.text-btn,.food-main span,.exercise b,.nav button.active,.accent,.brand-dot){color:#b5d58d}
+[data-theme="dark"] :is(.hint,.metric-row small,.weight-strip small,.page-head>p:last-child,.field span,.food-main small,.card-edit,.empty,.list-row small,.week-row small,.exercise small,.history-day span,.body-copy,.account-banner small,.set-row>span){color:#a9bcad}
+[data-theme="dark"] .eyebrow{color:#a8c793}
+[data-theme="dark"] .nav button{color:#9aac9e}
+[data-theme="dark"] :is(.list-row,.week-row,.empty){border-color:#3c5042}
+[data-theme="dark"] :is(.small-icon,.close-btn,.spaced code,.account-banner){background:#293b2e;color:#d9e8d8}
+[data-theme="dark"] :is(.prior,.import-preview){background:#293b2e;color:#d9e8d8}
+[data-theme="dark"] .import-preview p{color:#bacdbd}
+[data-theme="dark"] .bar{background:#35493c}
+[data-theme="dark"] .food-action{background:#34452a;color:#e8f2d9}
+[data-theme="dark"] .lift-action{background:#29453b;color:#e0f0e9}
+[data-theme="dark"] .big-action small{opacity:1;color:#bdcfbd}
+[data-theme="dark"] .save-warning{background:#3a2b19;border-color:#947446;color:#ffe0b2}
+[data-theme="dark"] .danger{background:#30221e;color:#ffc0ad;border-color:#8c5748}
+[data-theme="dark"] .danger.filled{background:#8c3c2b;color:#fff}
+[data-theme="dark"] .remove-set{color:#ffc0ad}
+[data-theme="dark"] .scrim{background:#000b}
+[data-theme="dark"] :is(button,input,select):focus-visible{outline-color:#c5e6a0}
