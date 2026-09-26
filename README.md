@@ -19,7 +19,7 @@ Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install
 - Dated CSV food import, preview and validation, dated edits, and a complete JSON backup/restore.
 - Upper, lower, and full-body starter exercise lists, custom exercises, sets/reps/weight, difficulty, notes, and last-time reference.
 - Weigh-ins, individual BMI, and Monday-start weekly average weight/BMI. Height starts at 68 inches and is editable.
-- Entirely local browser storage. Export JSON regularly; clearing Safari website data or switching devices loses local records without a backup. There is no account or sync in this version.
+- Google sign-in with private Firestore account storage, save status, conflict protection, and explicit migration from device logs. Signed-in records require an internet connection and stay only in memory on the device. Device-only mode remains available. See FIREBASE_SETUP.md before enabling cloud accounts. Export JSON regularly for an independent backup.
 
 ## CSV format
 
@@ -32,3 +32,7 @@ date,name,calories,protein,quantity
 ```
 
 For a full-device migration, export JSON from Settings and restore it on the other device. JSON restore replaces all existing local data after a preview.
+
+## Cloud account setup
+
+Follow [FIREBASE_SETUP.md](FIREBASE_SETUP.md), publish [firestore.rules](firestore.rules), and verify the backend before deploying this branch.
