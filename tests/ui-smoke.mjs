@@ -5,7 +5,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'everyday-ui-'));
-const dom=new JSDOM('<div id="app"></div>',{url:'http://localhost/fitness-tracker/'});
+const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
+const initialHome=['.home-actions','.today-card','.weight-strip'].map(selector=>{
+ const element=dom.window.document.querySelector(selector);assert.ok(element,'present before JavaScript: '+selector);return element.outerHTML;
+});
+assert.ok(dom.window.document.querySelector('.home-actions button').disabled);
+assert.ok(!dom.window.document.body.textContent.includes('Goals are guides, not grades'));
 for(const key of ['window','document','localStorage','navigator'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
 globalThis.alert=()=>{};globalThis.confirm=()=>true;
 const fixture=join(temp,'cloud.mjs');
@@ -30,6 +35,7 @@ try{
  const {state}=await import(pathToFileURL(fixture));
  assert.ok(document.querySelector('.home-actions'),'Home cards exist before auth finishes');
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'true');
+ for(const [i,selector] of ['.home-actions','.today-card','.weight-strip'].entries())assert.equal(document.querySelector(selector).outerHTML,initialHome[i],'initial HTML matches pending layout');
  assert.equal(document.querySelector('.metric-row b').textContent,'—');
  assert.ok(document.querySelector('.home-actions button').disabled);
  assert.ok(!document.querySelector('main').textContent.includes('Connecting'));
