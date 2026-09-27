@@ -22,8 +22,8 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-for(const name of ['data.js','cloud-model.js'])source=source.replaceAll(`'./${name}'`,`'${new URL(name,root)}'`);
-source=source.replace("'./cloud.js'",`'${pathToFileURL(fixture)}'`);
+for(const name of ['data.js','cloud-model.js'])source=source.replaceAll(`'./${name}?v=10'`,`'${new URL(name,root)}'`);
+source=source.replace("'./cloud.js?v=10'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};

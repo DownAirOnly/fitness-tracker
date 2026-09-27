@@ -1,6 +1,6 @@
-import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js';
+import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=10';
 
-import {hasRecords,mergeDeviceData} from './cloud-model.js';
+import {hasRecords,mergeDeviceData} from './cloud-model.js?v=10';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
@@ -162,7 +162,7 @@ async function loadAccount(){
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=10');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       data=user?emptyData():structuredClone(deviceData);
