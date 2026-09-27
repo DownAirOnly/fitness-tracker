@@ -75,5 +75,31 @@ try{
  Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=>JSON.stringify(backup)}]});
  form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
  assert.deepEqual(JSON.parse(state.records.get('bob').payload),backup,'JSON restore preserves the exported snapshot');
- console.log('UI smoke passed: home hierarchy, dialog focus, dates, food, lifting, progress, CSV/JSON import/export, account transitions, migration and save recovery.');
+ // Pass 2: selected-day preview and full log share the same entries/totals.
+ await click('food');
+ const setDate=async value=>{const field=document.querySelector('.tracking-date input');field.value=value;field.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();};
+ await setDate('2025-01-02');
+ assert.ok(document.querySelector('.food-preview-empty'));
+ assert.ok(document.querySelector('.food-day').nextElementSibling.textContent.includes('Saved foods'));
+ await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,0);await click('close');
+ for(let i=1;i<=5;i++){
+  await click('new-food');await submit('food',{name:'History food '+i,calories:'100',protein:'10',quantity:'2'});
+  assert.equal(document.querySelectorAll('.food-preview-row').length,Math.min(i,3));
+  assert.equal(document.querySelector('.food-total-number strong').textContent,String(i*200));
+ }
+ assert.deepEqual([...document.querySelectorAll('.food-preview-row strong')].map(e=>e.textContent),['History food 5','History food 4','History food 3']);
+ await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,5);
+ assert.ok(document.querySelector('.modal').textContent.includes('2025-01-02'));
+ await click('edit-entry');await submit('food',{name:'Edited historical food',calories:'150',protein:'15',quantity:'2'});
+ assert.equal(document.querySelector('.food-total-number strong').textContent,'1100');
+ await click('food-log');await click('edit-entry');await click('delete-entry');
+ assert.equal(document.querySelector('.food-total-number strong').textContent,'800');
+ assert.equal(document.querySelectorAll('.food-preview-row').length,3);
+ await click('add-saved');
+ let current=JSON.parse(state.records.get('bob').payload);assert.equal(current.foodEntries.at(-1).date,'2025-01-02');
+ await click('today');assert.ok(document.querySelector('.food-main span').textContent.includes('Add to today'));
+ assert.ok(!document.querySelector('.food-preview').textContent.includes('History food'));
+ await click('add-saved');current=JSON.parse(state.records.get('bob').payload);
+ assert.equal(current.foodEntries.at(-1).date,document.querySelector('.tracking-date input').value);
+ console.log('UI smoke passed: Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, progress, CSV/JSON import/export, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}
