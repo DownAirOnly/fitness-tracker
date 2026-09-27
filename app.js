@@ -1,11 +1,12 @@
 import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=10';
 
-import {hasRecords,mergeDeviceData} from './cloud-model.js?v=10';
+import {prepareImport,importSections} from './import-model.js?v=11';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=10';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage='Connecting account service…', cloudReady=false, authChecked=false;
-let modalBack=null;
+let modalBack=null, importReadToken=0, importSaving=false;
 let data=deviceData, page='home', chosenDate=localDate(), workout='Upper', pendingImport=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -28,7 +29,7 @@ function shell(content) {
   app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(localDate())} <span>↗</span></button></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
-  modalBack=null;
+  modalBack=null;pendingImport=null;importReadToken++;
   if(isLoading()){
     const error=account&&!cloudBusy?`<section class="panel" role="alert"><p class="body-copy">${esc(cloudMessage)}</p>${button('Retry loading','cloud-load','primary')}</section>`:'';
     shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+error);return;
@@ -77,7 +78,7 @@ function settings() {
   return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.'} Export backups regularly.</p></div>${accountPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section><section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button('Export JSON backup','export','outline')}${button('Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves your records to a private Firebase account space. Cloud viewing and saving require a connection; signed-in fitness records are not kept in browser storage. Device mode still works offline. Export backups for an independent copy. This version supports up to about 800 KB of logs per account.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
-function close(all=false) {const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
+function close(all=false) {importReadToken++;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
 function foodForm(entry=null,card=null) {
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   modal(entry?'Edit food log':card?'Edit saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><input type="hidden" name="cardOnly" value="${card && !entry?'yes':''}">${input('Food name','name',entry?.name||card?.name||'','text','maxlength="100" required') }<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??'','number','min="0" step="0.1" required')}</div>${card&&!entry?'':`<div class="form-grid">${input('Servings','quantity',entry?.quantity??1,'number','min="0.01" step="0.01" required')}${input('Date','date',entry?.date||chosenDate,'date','required')}</div>`}<div class="form-actions"><button class="primary" type="submit">${card&&!entry?'Save card':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):card?button('Delete card','delete-card','danger',`data-id="${esc(card.id)}"`):''}</div></form><p class="hint">Saved cards remember these per-serving values. Earlier entries keep their original values when a card changes.</p>`,onBack);
@@ -88,12 +89,12 @@ function liftForm(lift=null,name='') {
 }
 function setRow(i,s={weight:'',reps:''}) {return `<div class="set-row"><span>${i+1}</span>${input('Weight ('+data.settings.unit+')','weight',s.weight,'number','min="0" step="0.5" required')}${input('Reps','reps',s.reps,'number','min="1" step="1" required')}${button('−','remove-set','remove-set','aria-label="Remove set"')}</div>`;}
 function weightForm(w=null) {modal(w?'Edit weigh-in':'Log your weight',`<form class="form" data-form="weight"><input type="hidden" name="weightId" value="${esc(w?.id||'')}">${input(`Weight (${data.settings.unit})`,'value',w?.value??'','number','min="1" step="0.1" required')}${input('Date','date',w?.date||localDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save weigh-in</button>${w?button('Delete','delete-weight','danger',`data-id="${esc(w.id)}"`):button('Enter later','later','outline')}</div></form><p class="hint">Same-day weigh-ins replace the earlier value. Your weekly average and BMI update automatically.</p>`);}
-function importModal(kind) {modal(kind==='csv'?'Import food CSV':'Restore backup',`<form class="form" data-form="import"><input type="hidden" name="kind" value="${kind}"><label class="field"><span>${kind==='csv'?'Choose a .csv file':'Choose an Everyday .json backup'}</span><input type="file" name="file" accept="${kind==='csv'?'.csv,text/csv':'.json,application/json'}" required></label><button type="submit" class="primary">Preview import</button></form><div id="preview"></div>`);}
+function importModal(kind) {pendingImport=null;importReadToken++;modal(kind==='csv'?'Import food CSV':'Restore backup',`<form class="form" data-form="import"><input type="hidden" name="kind" value="${kind}"><label class="field"><span>${kind==='csv'?'Choose a .csv file':'Choose an Everyday .json backup'}</span><input type="file" name="file" accept="${kind==='csv'?'.csv,text/csv':'.json,application/json'}" required></label><button type="submit" class="primary">Preview import</button></form><div id="preview" role="status"></div>`);}
 
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
-app.addEventListener('change',event=>{if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
+app.addEventListener('change',event=>{if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 app.addEventListener('click',async event=>{
-  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if(!authChecked)return;
+  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if(!authChecked||importSaving)return;
   if(action==='sign-in'){if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
   if(action==='sign-out'){if(cloudBusy||cloudPending)return alert('Finish saving, or export your changes and load cloud data, before signing out.');try{await cloudApi.signOut();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
   if(action==='account'){page='settings';render();return;}
@@ -128,16 +129,29 @@ app.addEventListener('click',async event=>{
   if(action==='import-csv'){importModal('csv');return;}
   if(action==='restore'){importModal('json');return;}
   if(action==='export'){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`everyday-backup-${localDate()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);return;}
-  if(action==='commit-import') {if(!pendingImport)return;if(pendingImport.kind==='json'){data=pendingImport.data;}else{for(const e of pendingImport.entries){data.foodEntries.push(e);if(!data.foods.some(f=>f.name.toLowerCase()===e.name.toLowerCase()))data.foods.push({id:id(),name:e.name,calories:e.calories,protein:e.protein,lastUsed:e.date});}}const count=pendingImport.kind==='csv'?pendingImport.entries.length:null;close(true);if(await persist())alert(count===null?'Backup restored.':`${count} food row${count===1?'':'s'} imported.`);return;}
+  if(action==='import-more'){expandImportGroup(el);return;}
+  if(action==='choose-import'){importModal(el.dataset.kind);return;}
+  if(action==='commit-import'){await commitImport();return;}
 });
 app.addEventListener('submit',async event=>{
-  const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(account&&(cloudBusy||cloudPending||!session?.ready))return;const v=Object.fromEntries(new FormData(form));
+  const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(importSaving||account&&(cloudBusy||cloudPending||!session?.ready))return;const v=Object.fromEntries(new FormData(form));
   if(form.dataset.form==='week-settings'){const weekStart=Number(v.weekStart);if(!Number.isInteger(weekStart)||weekStart<0||weekStart>6)return;data.settings.weekStart=weekStart;await persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){const factor=v.unit==='kg'?1/2.2046226218:2.2046226218;data.weights.forEach(w=>w.value=round(w.value*factor));data.lifts.forEach(l=>l.sets.forEach(s=>s.weight=round(s.weight*factor)));}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};persist();return;}
   if(form.dataset.form==='food') {const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),quantity=Number(v.quantity||1);if(!name||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||(!v.cardOnly&&!/^\d{4}-\d{2}-\d{2}$/.test(v.date)))return alert('Check the food values and date.');const card=data.foods.find(x=>x.id===v.cardId) || data.foods.find(x=>x.name.toLowerCase()===name.toLowerCase());if(card){if(v.cardOnly || !v.entryId){card.name=name;card.calories=calories;card.protein=protein;card.lastUsed=new Date().toISOString();}}else if(!v.entryId && !v.cardOnly)data.foods.push({id:id(),name,calories,protein,lastUsed:new Date().toISOString()});if(!v.cardOnly){const item=data.foodEntries.find(x=>x.id===v.entryId);if(item)Object.assign(item,{name,calories,protein,quantity,date:v.date});else data.foodEntries.push({id:id(),name,calories,protein,quantity,date:v.date});chosenDate=v.date;}close(true);persist();return;}
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>({weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)}));if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1)||v.difficulty && (Number(v.difficulty)<1||Number(v.difficulty)>10))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),date:v.date,sets,difficulty:v.difficulty?Number(v.difficulty):null,notes:v.notes.trim()};if(item)Object.assign(item,record);else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
   if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);if(item)Object.assign(item,{date:v.date,value});else data.weights.push({id:id(),date:v.date,value});data.promptDate=localDate();close(true);persist();return;}
-  if(form.dataset.form==='import') {const file=form.querySelector('[name=file]').files[0];if(!file)return;try{if(file.size>5_000_000)throw Error('The file must be under 5 MB.');const raw=await file.text();if(v.kind==='csv'){const result=parseFoodCSV(raw);if(result.errors.length)throw Error(result.errors.slice(0,5).join('\n')+(result.errors.length>5?`\n…and ${result.errors.length-5} more.`:''));if(!result.entries.length)throw Error('No food rows found.');pendingImport={kind:'csv',entries:result.entries};document.querySelector('#preview').innerHTML=`<div class="import-preview"><strong>${result.entries.length} rows ready</strong><p>${esc(result.entries.slice(0,3).map(e=>`${e.date}: ${e.name} (${e.calories} cal, ${e.protein}g × ${e.quantity})`).join(' · '))}</p>${button('Import these rows','commit-import','primary')}</div>`;}else{const restored=normalizeData(JSON.parse(raw));pendingImport={kind:'json',data:restored};document.querySelector('#preview').innerHTML=`<div class="import-preview"><strong>Replace current data?</strong><p>Backup contains ${restored.foodEntries.length} food logs, ${restored.lifts.length} lifts and ${restored.weights.length} weigh-ins. This replaces the logs currently shown, including cloud logs when signed in. Export your current backup first if needed.</p>${button('Replace with backup','commit-import','danger filled')}</div>`;}}catch(error){pendingImport=null;document.querySelector('#preview').textContent=error.message;}return;}
+  if(form.dataset.form==='import') {
+    const file=form.querySelector('[name=file]').files[0];if(!file)return;
+    pendingImport=null;const token=++importReadToken, preview=form.parentElement.querySelector('#preview');preview.textContent='Reading file…';
+    try{
+      if(file.size>5_000_000)throw Error('The file must be under 5 MB.');
+      const raw=await file.text();if(token!==importReadToken||!form.isConnected)return;
+      const plan=prepareImport(v.kind,raw,data);plan.filename=file.name||'Selected file';
+      if(account&&plan.candidate){try{encodeState(plan.candidate);}catch(e){plan.errors.push(e.message);plan.candidate=null;}}
+      pendingImport=plan;showImportReview(plan);
+    }catch(error){if(token===importReadToken&&form.isConnected){pendingImport=null;preview.textContent=error.message;preview.setAttribute('role','alert');}}
+    return;
+  }
 });
 
 render();
@@ -184,4 +198,46 @@ function dateHeader(label){
 
 function weekSettingsPanel(){
   return `<section class="panel spaced"><h2>Your week</h2><form data-form="week-settings" class="form"><label class="field"><span>Week starts on</span><select name="weekStart">${[1,2,3,4,5,6,0].map(day=>`<option value="${day}" ${data.settings.weekStart===day?'selected':''}>${weekDays[day]}</option>`).join('')}</select></label><button class="primary" type="submit">Save week setting</button></form><p class="hint">Regroups weekly averages in Progress. Your original log dates and values stay the same.</p></section>`;
+}
+
+function importRecord(key,item,unit){
+  const r=item.record;
+  const title=key==='foods'||key==='foodEntries'?r.name:key==='lifts'?r.exercise:`${fmt(r.value)} ${unit}`;
+  const details=key==='foods'?`${fmt(r.calories)} cal · ${fmt(r.protein)}g protein per serving${r.lastUsed?' · Last used '+r.lastUsed:''}`:key==='foodEntries'?`${r.date} · ${foodEntryDetail(r)} · Per serving: ${fmt(r.calories)} cal / ${fmt(r.protein)}g`:key==='lifts'?`${r.date} · ${r.sets.map(set=>`${fmt(set.weight)} ${unit} × ${set.reps}`).join(' · ')}${r.difficulty!=null?` · Difficulty ${r.difficulty}/10`:''}`:r.date;
+  return `<div class="list-row import-record"><div><strong>${esc(title)}</strong><small>${esc(details)}</small>${key==='lifts'&&r.notes?`<p class="import-note">${esc(r.notes)}</p>`:''}<div class="import-badges">${item.badges.map(b=>`<span class="import-badge ${/duplicate|Replaces|Removed|Multiple/.test(b)?'attention':''}">${esc(b)}</span>`).join('')}</div>${item.previous?`<details class="import-previous"><summary>Existing record being replaced</summary>${importRecord(key,{record:item.previous,badges:[]},pendingImport.currentSettings.unit)}</details>`:''}</div></div>`;
+}
+function importGroup(group,removed=false){
+  const rows=removed?group.removedRows:group.rows,key=group.key+(removed?'-removed':'');
+  const unit=removed?pendingImport.currentSettings.unit:pendingImport.kind==='json'?pendingImport.settings.unit:data.settings.unit;
+  return `<details class="import-group" ${removed?'':'open'}><summary>${removed?'Removed '+group.label:group.label}<span>${rows.length}</span></summary>${group.unchanged?'<p class="hint">Unchanged by CSV import.</p>':rows.length?`<div id="import-${key}">${rows.slice(0,50).map(row=>importRecord(group.key,row,unit)).join('')}</div>${rows.length>50?button(`Show next ${Math.min(50,rows.length-50)} (${50} of ${rows.length} shown)`,'import-more','outline small',`data-group="${group.key}" data-removed="${removed}" data-shown="50"`):''}`:'<p class="hint">No incoming records.</p>'}</details>`;
+}
+function expandImportGroup(el){
+  if(!pendingImport)return;const g=pendingImport.groups.find(g=>g.key===el.dataset.group);if(!g)return;
+  const removed=el.dataset.removed==='true',rows=removed?g.removedRows:g.rows,shown=Number(el.dataset.shown),next=Math.min(shown+50,rows.length);
+  const unit=removed?pendingImport.currentSettings.unit:pendingImport.kind==='json'?pendingImport.settings.unit:data.settings.unit;
+  document.querySelector(`#import-${g.key}${removed?'-removed':''}`).insertAdjacentHTML('beforeend',rows.slice(shown,next).map(r=>importRecord(g.key,r,unit)).join(''));
+  if(next===rows.length)el.remove();else{el.dataset.shown=next;el.textContent=`Show next ${Math.min(50,rows.length-next)} (${next} of ${rows.length} shown)`;}
+}
+function showImportReview(plan,saveError=''){
+  const json=plan.kind==='json',count=plan.groups.reduce((n,g)=>n+g.rows.length,0);
+  const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on'};
+  const settingValue=(key,value)=>key==='weekStart'?weekDays[value]:typeof value==='object'?JSON.stringify(value):String(value);
+  modal('Review import',`<p class="import-filename">${esc(plan.filename)}</p><div class="import-scroll" tabindex="0" aria-label="Import records"><div class="import-summary"><p class="eyebrow">${json?'REPLACE FROM JSON BACKUP':'ADD FROM CSV'}</p><h3>${count} incoming records</h3><p>${json?'This replaces all Saved Foods, Food Entries, Lifting Entries, Weight Entries and settings. Records missing from the backup will be removed.':'Adds food entries and creates saved cards for new food names. Existing records and settings stay unchanged.'}</p><p>${json?`${plan.replaced} changed records · ${plan.removed} records removed · `:''}${plan.duplicates} possible duplicates</p><strong>Nothing has been imported yet.</strong></div>${saveError?`<div class="import-alert" role="alert"><strong>Import was not saved</strong><p>${esc(saveError)}</p><p>Your current in-memory records are unchanged.</p></div>`:''}${plan.errors.length?`<div class="import-alert" role="alert"><strong>Cannot import · ${plan.errors.length} issue${plan.errors.length===1?'':'s'}</strong><p>Fix the file and preview it again. No records will be committed, including the valid records shown below.</p><ul>${plan.errors.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`:''}${plan.warnings.length?`<details class="import-alert" open><summary>Review ${plan.warnings.length} warning${plan.warnings.length===1?'':'s'}</summary><ul>${plan.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></details>`:''}${plan.groups.map(g=>importGroup(g)).join('')}${json?`<details class="import-group" open><summary>Settings & other data<span>${Object.keys(plan.settings).length+1}</span></summary>${Object.entries(plan.settings).map(([key,value])=>`<div class="list-row import-record"><div><strong>${esc(labels[key]||key)}</strong><small>${esc(settingValue(key,plan.currentSettings[key]))} → ${esc(settingValue(key,value))}</small><span class="import-badge ${JSON.stringify(plan.currentSettings[key])!==JSON.stringify(value)?'attention':''}">${JSON.stringify(plan.currentSettings[key])===JSON.stringify(value)?'Unchanged':'Replaces setting'}</span></div></div>`).join('')}<div class="list-row import-record"><div><strong>Daily weight-prompt date</strong><small>${esc(plan.currentPromptDate||'Not set')} → ${esc(plan.promptDate||'Not set')}</small></div></div></details>${plan.groups.filter(g=>g.removedRows.length).map(g=>importGroup(g,true)).join('')}`:'<p class="hint">Settings and weight-prompt date are unchanged.</p>'}</div><div class="import-footer"><p>${json?'Confirmation replaces the current data. Export a backup first if needed.':'Possible duplicates will also be added. Review them before confirming.'}</p><div class="form-actions">${plan.candidate?button(json?'Confirm replacement':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file','choose-import','primary',`data-kind="${plan.kind}"`)}${button('Cancel','close','outline')}</div></div>`);
+  document.querySelector('.modal').classList.add('import-dialog');
+}
+async function commitImport(){
+  const plan=pendingImport;if(!plan?.candidate||importSaving)return;
+  if(plan.base!==JSON.stringify(data)){plan.errors.push('Current data changed. Cancel and preview this file again.');plan.candidate=null;showImportReview(plan);return;}
+  const active=session,owner=account?.uid, candidate=structuredClone(plan.candidate);
+  close(true);importSaving=true;cloudBusy=Boolean(account);render();
+  try{
+    if(account)await active.save(candidate);else save(candidate);
+    if(session!==active||account?.uid!==owner)return;
+    data=candidate;if(!account)deviceData=structuredClone(candidate);else cloudMessage='Saved to your account';
+    importSaving=false;cloudBusy=false;render();
+    alert(plan.kind==='json'?'Backup restored.':`${plan.groups.find(g=>g.key==='foodEntries').rows.length} food rows imported.`);
+  }catch(error){
+    if(session!==active||account?.uid!==owner)return;
+    importSaving=false;cloudBusy=false;render();pendingImport=plan;showImportReview(plan,describeCloudError(error));
+  }finally{importSaving=false;if(session===active)cloudBusy=false;}
 }

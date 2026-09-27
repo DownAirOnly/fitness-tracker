@@ -23,6 +23,7 @@ await writeFile(fixture,`
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
 for(const name of ['data.js','cloud-model.js'])source=source.replaceAll(`'./${name}?v=10'`,`'${new URL(name,root)}'`);
+source=source.replace("'./import-model.js?v=11'",`'${new URL('import-model.js',root)}'`);
 source=source.replace("'./cloud.js?v=10'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
@@ -131,5 +132,53 @@ try{
  assert.equal(JSON.parse(state.records.get('bob').payload).settings.weekStart,6,'saving goals preserves week preference');
  await click('sign-out');await click('sign-in');await click('settings');
  assert.equal(document.querySelector('[name="weekStart"]').value,'6','preference survives cloud reload');
- console.log('UI smoke passed: Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, progress, CSV/JSON import/export, account transitions, migration and save recovery.');
+ // Pass 4: preview staging, pagination, invalid files, cancellation and failed writes.
+ const previewFile=async(kind,raw)=>{
+  await click(kind==='csv'?'import-csv':'restore');const f=document.querySelector('[data-form="import"]');
+  Object.defineProperty(f.querySelector('[name="file"]'),'files',{value:[{name:'test.'+kind,size:raw.length,text:async()=>raw}]});
+  f.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
+ };
+ const unchanged=JSON.parse(state.records.get('bob').payload);
+ const incoming={...structuredClone(unchanged),foodEntries:unchanged.foodEntries.slice(0,1)};incoming.settings.weekStart=0;
+ await previewFile('json',JSON.stringify(incoming));
+ assert.ok(document.querySelector('.import-scroll'));assert.equal(document.querySelectorAll('.import-group').length>=5,true);
+ assert.ok(document.querySelector('.import-summary').textContent.includes('replaces all'));
+ assert.deepEqual(JSON.parse(state.records.get('bob').payload),unchanged);
+ await click('close');assert.ok(!document.querySelector('.modal'));
+ assert.deepEqual(JSON.parse(state.records.get('bob').payload),unchanged);
+ const largeCSV='date,name,calories,protein,quantity\n'+Array.from({length:121},(_,i)=>`2026-09-27,Preview ${i},100,10,1`).join('\n');
+ await previewFile('csv',largeCSV);
+ assert.equal(document.querySelectorAll('#import-foodEntries>.import-record').length,50);
+ const more=document.querySelector('[data-group="foodEntries"]');more.click();await tick();
+ assert.equal(document.querySelectorAll('#import-foodEntries>.import-record').length,100);
+ document.querySelector('[data-group="foodEntries"]').click();await tick();
+ assert.equal(document.querySelectorAll('#import-foodEntries>.import-record').length,121);
+ await click('close');assert.deepEqual(JSON.parse(state.records.get('bob').payload),unchanged);
+ await previewFile('csv','date,name,calories,protein\n2026-09-27,Valid,100,10\n2026-09-27,Invalid,-1,10');
+ assert.ok(document.querySelector('[role="alert"]'));assert.ok(!document.querySelector('[data-action="commit-import"]'));await click('close');
+ await previewFile('json','{');assert.ok(!document.querySelector('[data-action="commit-import"]'));await click('close');
+ const oneCSV='date,name,calories,protein\n2026-09-27,Import test,100,10';
+ await previewFile('csv',oneCSV);state.fail=true;await click('commit-import');
+ assert.deepEqual(JSON.parse(state.records.get('bob').payload),unchanged,'failed import leaves cloud data unchanged');
+ assert.ok(document.querySelector('.import-alert').textContent.includes('not saved'));await click('close');await click('food');
+ assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'),'failed import leaves in-memory data unchanged');
+ state.fail=false;await click('settings');await previewFile('csv',oneCSV);await click('commit-import');
+ assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,unchanged.foodEntries.length+1);
+ await previewFile('csv',oneCSV);assert.ok(document.querySelector('.import-summary').textContent.includes('1 possible duplicates'));await click('close');
+ // A read resolving after Cancel must not revive the preview.
+ await click('import-csv');const slowForm=document.querySelector('[data-form="import"]');let finishRead;
+ Object.defineProperty(slowForm.querySelector('[name="file"]'),'files',{value:[{size:100,text:()=>new Promise(resolve=>{finishRead=resolve;})}]});
+ slowForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await click('close');finishRead(oneCSV);await tick();
+ assert.ok(!document.querySelector('.modal'));assert.ok(!document.querySelector('[data-action="commit-import"]'));
+ // Device storage failures also keep the original records intact.
+ await click('sign-out');await click('settings');
+ const localBefore=localStorage.getItem('everyday-fitness-v1');
+ await previewFile('csv',oneCSV);
+ const originalSetItem=dom.window.Storage.prototype.setItem;
+ dom.window.Storage.prototype.setItem=function(){throw Error('Storage full');};
+ await click('commit-import');dom.window.Storage.prototype.setItem=originalSetItem;
+ assert.equal(localStorage.getItem('everyday-fitness-v1'),localBefore);
+ assert.ok(document.querySelector('.import-alert').textContent.includes('Storage full'));
+ await click('close');await click('food');assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'));
+ console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, progress, CSV/JSON import/export, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}

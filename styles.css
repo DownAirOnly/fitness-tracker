@@ -101,3 +101,24 @@ main[aria-busy="true"] .today-card,main[aria-busy="true"] .weight-strip{opacity:
 [data-theme="dark"] .trend-highlight{background:#243b2c}[data-theme="dark"] .trend-metrics small,[data-theme="dark"] .week-setting,[data-theme="dark"] .progress-count{color:#adbcac}
 [data-theme="dark"] .trend-change{border-color:#40533f}
 @media(max-width:440px){.progress-trend,.progress-details{padding:17px}.progress-trend .section-head h2,.progress-details .section-head h2{font-size:21px}.trend-highlight{padding:15px}.trend-metrics strong{font-size:29px}.progress-trend .week-row strong{font-size:12px}}
+
+/* Review a staged import with the same cards, rows and buttons as daily logs. */
+.import-dialog{width:min(720px,calc(100% - 24px));display:flex;flex-direction:column;overflow:hidden;padding:20px}
+.import-dialog .modal-top{flex-shrink:0;margin-bottom:5px;gap:12px}.import-dialog .close-btn{flex-shrink:0}
+.import-filename{font-size:12px;color:#697e6d;margin:4px 0 12px;overflow-wrap:anywhere}
+.import-scroll{overflow:auto;overscroll-behavior:contain;min-height:0;padding:2px 5px 2px 2px}
+.import-summary{background:#edf2e6;border-radius:16px;padding:16px;margin-bottom:14px}
+.import-summary h3{font:700 24px 'Outfit',sans-serif;margin:4px 0 8px}.import-summary p,.import-summary>strong{font-size:12px;line-height:1.5}
+.import-group{background:#fff;border:1px solid #dce4d8;border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.import-group>summary{font-weight:700;font-size:15px;cursor:pointer;min-height:30px}.import-group>summary>span{float:right;font-size:12px;border-radius:20px;background:#edf2e6;padding:3px 9px;margin-left:8px}
+.import-record{padding:12px 0}.import-record>div{min-width:0;width:100%;overflow-wrap:anywhere}.import-record small{line-height:1.5}
+.import-record:last-child{border-bottom:0}.import-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.import-badge{display:inline-block;background:#edf2e6;color:#376045;border-radius:6px;padding:3px 6px;font-size:10px;font-weight:700}
+.import-badge.attention{background:#fff0d6;color:#7d4c11}.import-alert{background:#fff3e1;border:1px solid #dfba85;border-radius:12px;padding:14px;margin-bottom:14px;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.import-alert ul{padding-left:18px;margin-bottom:0}.import-alert li+li{margin-top:6px}.import-alert summary{font-weight:700;cursor:pointer}
+.import-note{font-size:12px;white-space:pre-wrap;line-height:1.5}.import-previous{margin-top:9px;border-left:2px solid #dfba85;padding-left:10px;font-size:12px}.import-previous summary{cursor:pointer}
+.import-footer{flex-shrink:0;border-top:1px solid #dce4d8;padding-top:10px;margin-top:8px;background:inherit}.import-footer>p{font-size:11px;line-height:1.4;margin:0 0 8px}.import-footer button{min-height:44px}
+[data-theme="dark"] .import-summary,[data-theme="dark"] .import-group>summary>span,[data-theme="dark"] .import-badge{background:#293b2e;color:#d9e8d8}
+[data-theme="dark"] .import-group{background:#1b2821;border-color:#40533f}[data-theme="dark"] .import-alert,[data-theme="dark"] .import-badge.attention{background:#423621;color:#f3d4a1;border-color:#84683f}
+[data-theme="dark"] .import-filename{color:#adbcac}[data-theme="dark"] .import-footer{border-color:#40533f}
+@media(max-width:440px){.import-dialog{padding:16px}.import-group{padding:11px}.import-summary{padding:13px}.import-footer .form-actions{gap:7px}}
