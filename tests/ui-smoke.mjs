@@ -27,7 +27,10 @@ const submit=async(kind,values)=>{const form=document.querySelector(`[data-form=
 globalThis.FormData=dom.window.FormData;
 try{
  await import(pathToFileURL(join(temp,'app.mjs')));await tick();await tick();
- await click('food');await click('new-food');await submit('food',{name:'Device meal',calories:'250',protein:'20'});
+ assert.ok(document.querySelector('main').firstElementChild.classList.contains('home-actions'));
+ assert.ok(document.querySelector('main').nextElementSibling.classList.contains('account-banner'));
+ await click('food');assert.ok(document.querySelector('.tracking-date input'));await click('new-food');
+ assert.equal(document.activeElement.getAttribute('role'),'dialog','opening forms must not autofocus an input');await submit('food',{name:'Device meal',calories:'250',protein:'20'});
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries.length,1);
  const {state}=await import(pathToFileURL(fixture));await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'no automatic migration');
@@ -39,5 +42,24 @@ try{
  assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');assert.equal(state.records.has('bob'),false);
  state.fail=false;await click('cloud-retry');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries[0].name,'Cloud meal');
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries[0].name,'Device meal','cloud record never replaces local data');
- console.log('UI smoke passed: device logging, Google account transitions, migration, private views, save failure and retry.');
+ await click('gym');assert.ok(document.querySelector('.tracking-date input'));
+ const dateInput=document.querySelector('.tracking-date input');dateInput.value='2026-09-20';dateInput.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
+ await click('custom-lift');await submit('lift',{exercise:'Test press',weight:'40',reps:'8',difficulty:'7'});
+ assert.equal(JSON.parse(state.records.get('bob').payload).lifts[0].date,'2026-09-20');
+ await click('home');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
+ await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));
+ await click('settings');
+ let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
+ dom.window.HTMLAnchorElement.prototype.click=function(){};
+ await click('export');const backup=JSON.parse(await exported.text());URL.createObjectURL=originalCreate;
+ assert.equal(backup.lifts.length,1);assert.equal(backup.weights.length,1);
+ await click('import-csv');let form=document.querySelector('[data-form="import"]');
+ Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=> 'date,name,calories,protein,quantity\n2026-09-19,CSV meal,300,25,1'}]});
+ form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
+ assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,2);
+ await click('restore');form=document.querySelector('[data-form="import"]');
+ Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=>JSON.stringify(backup)}]});
+ form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
+ assert.deepEqual(JSON.parse(state.records.get('bob').payload),backup,'JSON restore preserves the exported snapshot');
+ console.log('UI smoke passed: home hierarchy, dialog focus, dates, food, lifting, progress, CSV/JSON import/export, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}
