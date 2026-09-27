@@ -101,5 +101,35 @@ try{
  assert.ok(!document.querySelector('.food-preview').textContent.includes('History food'));
  await click('add-saved');current=JSON.parse(state.records.get('bob').payload);
  assert.equal(current.foodEntries.at(-1).date,document.querySelector('.tracking-date input').value);
+ // Pass 3: nested Food dismissal returns exactly one level.
+ await click('food-log');await click('edit-entry');
+ document.querySelector('.modal .close-btn').click();await tick();
+ assert.ok(document.querySelector('.full-food-log'));
+ await click('edit-entry');
+ document.querySelector('.modal').dispatchEvent(new dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));await tick();
+ assert.ok(document.querySelector('.full-food-log'));
+ await click('new-food');await click('close');assert.ok(document.querySelector('.full-food-log'));
+ await click('close');assert.ok(!document.querySelector('.modal'));
+ await click('new-food');await click('close');assert.ok(!document.querySelector('.modal'),'direct add dismisses to Food');
+ // Settings are persisted separately and never modify historical records.
+ await click('home');await click('weight');await submit('weight',{value:'178',date:'2026-09-21'});
+ await click('settings');
+ const recordsBefore=JSON.parse(state.records.get('bob').payload);
+ for(const day of [0,1,2,3,4,5,6]){
+  await submit('week-settings',{weekStart:String(day)});
+  const saved=JSON.parse(state.records.get('bob').payload);
+  assert.equal(saved.settings.weekStart,day);
+  for(const key of ['weights','lifts','foods','foodEntries'])assert.deepEqual(saved[key],recordsBefore[key]);
+  await click('progress');
+  const {weeklyWeights,startOfWeek,localDate}=await import(new URL('data.js',root));
+  assert.deepEqual([...document.querySelectorAll('[data-week]')].map(e=>e.dataset.week),weeklyWeights(saved.weights,68,'lb',day).map(w=>w.week));
+  const expectedCurrent=startOfWeek(localDate(),day);
+  for(const row of document.querySelectorAll('[data-week]'))assert.equal(row.textContent.includes('Current week'),row.dataset.week===expectedCurrent);
+  await click('settings');
+ }
+ await submit('settings',{calories:'1600',protein:'130',heightInches:'68',unit:'lb'});
+ assert.equal(JSON.parse(state.records.get('bob').payload).settings.weekStart,6,'saving goals preserves week preference');
+ await click('sign-out');await click('sign-in');await click('settings');
+ assert.equal(document.querySelector('[name="weekStart"]').value,'6','preference survives cloud reload');
  console.log('UI smoke passed: Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, progress, CSV/JSON import/export, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}

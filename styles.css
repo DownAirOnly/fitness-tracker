@@ -83,3 +83,21 @@ main[aria-busy="true"] .today-card,main[aria-busy="true"] .weight-strip{opacity:
 [data-theme="dark"] .daily-food-card{border-color:#48614e}
 [data-theme="dark"] .food-total-grid .bar{background:#345644}
 @media(max-width:440px){.daily-food-card{padding:17px}.food-total-grid{gap:14px}.food-total-number strong{font-size:26px}}
+
+/* Progress: retain the existing cards and rows, with a clear weekly summary. */
+.progress-head{padding:16px 0 20px}.progress-head h1{margin-bottom:10px}
+.progress-trend .section-head{margin-bottom:4px}.week-setting{font-size:12px;color:#708276;margin:0 0 14px}
+.trend-highlight{background:#edf2e6;border-radius:16px;padding:18px;margin-bottom:10px}
+.trend-highlight .eyebrow{margin-bottom:5px}.trend-range{font-size:13px;margin:0 0 14px}
+.trend-metrics{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+.trend-metrics strong{font:700 32px 'Outfit',sans-serif;display:block;overflow-wrap:anywhere}
+.trend-metrics em{font-size:16px;font-style:normal;font-weight:500}.trend-metrics small{display:block;font-size:12px;color:#596e60;margin-top:3px}
+.trend-change{font-size:12px;line-height:1.5;margin:15px 0 0;padding-top:12px;border-top:1px solid #d5dfcf}
+.progress-trend .week-row{gap:14px;padding:13px 0}.progress-trend .week-row>span:first-child{min-width:0}
+.progress-trend .week-row strong{font-size:13px}.progress-trend .week-values{flex-shrink:0}
+.progress-details{margin-top:18px}.progress-details .section-head{margin-bottom:6px}
+.progress-count{font-size:12px;color:#708276;white-space:nowrap}.progress-details .list-row{padding:12px 0}
+.progress-details .day-link{gap:12px}.progress-details .day-link strong{text-align:right}
+[data-theme="dark"] .trend-highlight{background:#243b2c}[data-theme="dark"] .trend-metrics small,[data-theme="dark"] .week-setting,[data-theme="dark"] .progress-count{color:#adbcac}
+[data-theme="dark"] .trend-change{border-color:#40533f}
+@media(max-width:440px){.progress-trend,.progress-details{padding:17px}.progress-trend .section-head h2,.progress-details .section-head h2{font-size:21px}.trend-highlight{padding:15px}.trend-metrics strong{font-size:29px}.progress-trend .week-row strong{font-size:12px}}

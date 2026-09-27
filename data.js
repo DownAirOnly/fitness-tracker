@@ -4,7 +4,7 @@ export const templateExercises = {
   Lower: ['Leg Press', 'Leg Curl', 'Glute Kickback', 'Leg Extension', 'Calf Raise'],
   'Full body': ['Chest Press', 'Leg Press', 'Lat Pulldown', 'Leg Curl', 'Seated Row', 'Abdominal Crunch', 'Lateral Raise', 'Calf Extension']
 };
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb'}, foods: [], foodEntries: [], lifts: [], weights: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const niceDate = s => new Date(`${s}T12:00:00`).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
@@ -12,12 +12,19 @@ export const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Dat
 export const round = n => Math.round((Number(n) + Number.EPSILON) * 10) / 10;
 export function bmi(weight, heightInches, unit='lb') { return heightInches > 0 ? round((unit === 'kg' ? weight * 2.2046226218 : weight) * 703 / heightInches ** 2) : null; }
 export function dailyTotals(entries, date) { return entries.filter(x=>x.date===date).reduce((a,x)=>({calories:a.calories+x.calories*x.quantity, protein:a.protein+x.protein*x.quantity}),{calories:0,protein:0}); }
-export function weeklyWeights(weights, height, unit='lb') {
+export const weekDays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+export function startOfWeek(date, weekStart=1) {
+  const d=new Date(`${date}T12:00:00`);
+  d.setDate(d.getDate()-(d.getDay()-weekStart+7)%7);
+  return localDate(d);
+}
+export function endOfWeek(start) {
+  const d=new Date(`${start}T12:00:00`);d.setDate(d.getDate()+6);return localDate(d);
+}
+export function weeklyWeights(weights, height, unit='lb', weekStart=1) {
   const groups = new Map();
   for (const w of weights) {
-    const d = new Date(`${w.date}T12:00:00`);
-    d.setDate(d.getDate() - (d.getDay()+6)%7);
-    const week = localDate(d);
+    const week = startOfWeek(w.date,weekStart);
     if (!groups.has(week)) groups.set(week, []);
     groups.get(week).push(w.value);
   }
@@ -57,6 +64,7 @@ export function normalizeData(input) {
   const data=emptyData();
   data.settings={...data.settings,...input.settings};
   if(![data.settings.calories,data.settings.protein,data.settings.heightInches].every(x=>Number.isFinite(Number(x)) && Number(x)>0) || !['lb','kg'].includes(data.settings.unit)) throw new Error('Backup settings are invalid.');
+  if(!Number.isInteger(data.settings.weekStart)||data.settings.weekStart<0||data.settings.weekStart>6) throw new Error('Backup week start is invalid.');
   data.settings.calories=Number(data.settings.calories); data.settings.protein=Number(data.settings.protein); data.settings.heightInches=Number(data.settings.heightInches);
   for(const key of ['foods','foodEntries','lifts','weights']) {
     if(input[key].length>50000) throw new Error('Backup is too large.');
