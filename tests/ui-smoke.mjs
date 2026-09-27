@@ -14,7 +14,7 @@ await writeFile(fixture,`
  export const state={user:'alice',records:new Map(),fail:false,callback:null};
  const store={read:async uid=>state.records.get(uid)||null,write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
  export const cloudError=e=>e.message;
- export async function connectCloud(callback){state.callback=callback;await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
+ export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
 for(const name of ['data.js','cloud-model.js'])source=source.replaceAll(`'./${name}'`,`'${new URL(name,root)}'`);
@@ -27,12 +27,20 @@ const submit=async(kind,values)=>{const form=document.querySelector(`[data-form=
 globalThis.FormData=dom.window.FormData;
 try{
  await import(pathToFileURL(join(temp,'app.mjs')));await tick();await tick();
+ const {state}=await import(pathToFileURL(fixture));
+ assert.ok(document.querySelector('.home-actions'),'Home cards exist before auth finishes');
+ assert.equal(document.querySelector('main').getAttribute('aria-busy'),'true');
+ assert.equal(document.querySelector('.metric-row b').textContent,'—');
+ assert.ok(document.querySelector('.home-actions button').disabled);
+ assert.ok(!document.querySelector('main').textContent.includes('Connecting'));
+ state.releaseAuth();await tick();await tick();
+ assert.equal(document.querySelector('main').getAttribute('aria-busy'),'false');
  assert.ok(document.querySelector('main').firstElementChild.classList.contains('home-actions'));
  assert.ok(document.querySelector('main').nextElementSibling.classList.contains('account-banner'));
  await click('food');assert.ok(document.querySelector('.tracking-date input'));await click('new-food');
  assert.equal(document.activeElement.getAttribute('role'),'dialog','opening forms must not autofocus an input');await submit('food',{name:'Device meal',calories:'250',protein:'20'});
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries.length,1);
- const {state}=await import(pathToFileURL(fixture));await click('sign-in');await click('food');
+ await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'no automatic migration');
  await click('settings');await click('migrate-device');
  assert.equal(JSON.parse(state.records.get('alice').payload).foodEntries.length,1);

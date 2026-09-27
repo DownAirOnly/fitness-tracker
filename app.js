@@ -22,18 +22,22 @@ const persist=async()=>{
 };
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
+function isLoading(){return !authChecked || Boolean(account && !session?.ready);}
 function shell(content) {
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(localDate())} <span>↗</span></button></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main>${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(localDate())} <span>↗</span></button></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
-  if(!authChecked || (account && !session?.ready)){shell(`<section class="panel"><h2>${account?'Loading your account':'Connecting…'}</h2><p class="body-copy">${esc(cloudMessage)}</p>${account&&!cloudBusy?button('Retry loading','cloud-load','primary'):''}</section>`);return;}
+  if(isLoading()){
+    const error=account&&!cloudBusy?`<section class="panel" role="alert"><p class="body-copy">${esc(cloudMessage)}</p>${button('Retry loading','cloud-load','primary')}</section>`:'';
+    shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+error);return;
+  }
   const views={home,food,gym,progress,history,settings};
   shell(views[page]?.()||home());
 }
-function home() {
+function home(loading=false) {
   const today=localDate(), totals=dailyTotals(data.foodEntries,today), latest=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
   const remaining=Math.round(data.settings.calories-totals.calories);
-  return `<section class="home-actions" aria-label="What do you want to log?"><button class="big-action food-action" data-action="food"><span class="action-icon">◒</span><span><strong>Food</strong><small>Calories, protein & saved foods</small></span><b>↗</b></button><button class="big-action lift-action" data-action="gym"><span class="action-icon">▣</span><span><strong>Lifting</strong><small>Sets, reps & previous workouts</small></span><b>↗</b></button></section><section class="today-card"><div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>Today so far</h2></div>${button('View day ↗','history','text-btn')}</div><div class="metric-row"><div><b>${Math.round(totals.calories).toLocaleString()}</b><small>of ${data.settings.calories} cal</small>${progressBar(totals.calories,data.settings.calories,'#d8eb86')}</div><div><b>${Math.round(totals.protein)}<em>g</em></b><small>of ${data.settings.protein}g protein</small>${progressBar(totals.protein,data.settings.protein,'#9fd9bf')}</div></div><p class="hint">${remaining>=0?`${remaining} calories left in your daily goal`:`${-remaining} calories above your daily goal`}. Goals are guides, not grades.</p></section><section class="weight-strip"><div><span class="small-icon">⚖</span><span><strong>${latest?`${fmt(latest.value)} ${data.settings.unit}`:'No weigh-in yet'}</strong><small>${latest?`Last logged ${niceDate(latest.date)}`:'A morning check-in when you are ready'}</small></span></div>${button('Log weight','weight','outline small')}</section>`;
+  return `<section class="home-actions" aria-label="What do you want to log?"><button class="big-action food-action" data-action="food" ${loading?'disabled':''}><span class="action-icon">◒</span><span><strong>Food</strong><small>Calories, protein & saved foods</small></span><b>↗</b></button><button class="big-action lift-action" data-action="gym" ${loading?'disabled':''}><span class="action-icon">▣</span><span><strong>Lifting</strong><small>Sets, reps & previous workouts</small></span><b>↗</b></button></section><section class="today-card"><div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>Today so far</h2></div>${button('View day ↗','history','text-btn',loading?'disabled':'')}</div><div class="metric-row"><div><b>${loading?'—':Math.round(totals.calories).toLocaleString()}</b><small>of ${loading?'—':data.settings.calories} cal</small>${progressBar(loading?0:totals.calories,data.settings.calories,'#d8eb86')}</div><div><b>${loading?'—':Math.round(totals.protein)}<em>g</em></b><small>of ${loading?'—':data.settings.protein}g protein</small>${progressBar(loading?0:totals.protein,data.settings.protein,'#9fd9bf')}</div></div><p class="hint">${loading?'—':remaining>=0?`${remaining} calories left in your daily goal`:`${-remaining} calories above your daily goal`}. Goals are guides, not grades.</p></section><section class="weight-strip"><div><span class="small-icon">⚖</span><span><strong>${loading?'—':latest?`${fmt(latest.value)} ${data.settings.unit}`:'No weigh-in yet'}</strong><small>${loading?'—':latest?`Last logged ${niceDate(latest.date)}`:'A morning check-in when you are ready'}</small></span></div>${button('Log weight','weight','outline small',loading?'disabled':'')}</section>`;
 }
 function food() {
   const totals=dailyTotals(data.foodEntries,chosenDate), entries=data.foodEntries.filter(x=>x.date===chosenDate).slice().reverse();
@@ -74,7 +78,7 @@ function importModal(kind) {modal(kind==='csv'?'Import food CSV':'Restore backup
 
 app.addEventListener('change',event=>{if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 app.addEventListener('click',async event=>{
-  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;
+  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if(!authChecked)return;
   if(action==='sign-in'){if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
   if(action==='sign-out'){if(cloudBusy||cloudPending)return alert('Finish saving, or export your changes and load cloud data, before signing out.');try{await cloudApi.signOut();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
   if(action==='account'){page='settings';render();return;}
@@ -124,7 +128,7 @@ startCloud();
 if('serviceWorker' in navigator && location.protocol==='https:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 
 function accountBanner(){
-  return `<div class="account-banner" role="status"><span>${esc(account?account.email:'Device mode')}<small>${esc(cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):''}</div>`;
+  return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
 }
 function cloudSaveWarning(){return `${account&&cloudPending&&!cloudBusy?`<div class="save-warning" role="alert"><strong>Changes are not saved online.</strong><p>${esc(cloudMessage)}</p>${button('Retry save','cloud-retry','outline small')}${button('Export unsaved backup','export','outline small')}${button('Load latest cloud data','cloud-load','outline small')}</div>`:''}`;
 }
