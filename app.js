@@ -6,6 +6,7 @@ import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=10';
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage='Connecting account service…', cloudReady=false, authChecked=false;
+let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false;
 let data=deviceData, page='home', chosenDate=localDate(), workout='Upper', pendingImport=null;
 const app=document.querySelector('#app');
@@ -75,7 +76,7 @@ function history() {
   return `<div class="page-head"><p class="eyebrow">EVERY DAY COUNTS</p><h1>History<span class="accent">.</span></h1><p>Choose any date to view or correct what you logged.</p></div><div class="date-row">${input('Jump to date','date',chosenDate,'date','required')}${button('Open food','food','outline small')}</div>${dates.length?dates.map(date=>{const t=dailyTotals(data.foodEntries,date), lifts=data.lifts.filter(x=>x.date===date).length, w=data.weights.find(x=>x.date===date);return `<button class="history-day" data-action="go-date" data-date="${date}"><strong>${niceDate(date)}</strong><span>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g protein<br>${lifts} lift${lifts===1?'':'s'}${w?` · ${fmt(w.value)} ${data.settings.unit}`:''}</span><b>↗</b></button>`}).join(''):empty('Your logged days will show up here.')}`;
 }
 function settings() {
-  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.'} Export backups regularly.</p></div>${accountPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section><section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button('Export JSON backup','export','outline')}${button('Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves your records to a private Firebase account space. Cloud viewing and saving require a connection; signed-in fitness records are not kept in browser storage. Device mode still works offline. Export backups for an independent copy. This version supports up to about 800 KB of logs per account.</p></section>`;
+  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.'} Export backups regularly.</p></div>${accountPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section><section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button('Export JSON backup','export','outline')}${button('Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves your records to a private Firebase account space. Cloud viewing and saving require a connection; signed-in fitness records are not kept in browser storage. Device mode still works offline. Export backups for an independent copy. This version supports up to about 800 KB of logs per account.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
 function close(all=false) {importReadToken++;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
@@ -109,6 +110,7 @@ app.addEventListener('click',async event=>{
   if(account&&(cloudBusy||cloudPending||!session?.ready)&&!['home','food','gym','progress','history','settings','account','export','close'].includes(action))return;
   if(['home','food','gym','progress','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
+  if(action.startsWith('health-')){await healthAction(action);return;}
   if(action==='today'){chosenDate=localDate();render();return;}
   if(action==='go-date'){chosenDate=el.dataset.date;page='food';render();return;}
   if(action==='workout'){workout=el.dataset.workout;render();return;}
@@ -139,7 +141,7 @@ app.addEventListener('submit',async event=>{
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){const factor=v.unit==='kg'?1/2.2046226218:2.2046226218;data.weights.forEach(w=>w.value=round(w.value*factor));data.lifts.forEach(l=>l.sets.forEach(s=>s.weight=round(s.weight*factor)));}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};persist();return;}
   if(form.dataset.form==='food') {const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),quantity=Number(v.quantity||1);if(!name||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||(!v.cardOnly&&!/^\d{4}-\d{2}-\d{2}$/.test(v.date)))return alert('Check the food values and date.');const card=data.foods.find(x=>x.id===v.cardId) || data.foods.find(x=>x.name.toLowerCase()===name.toLowerCase());if(card){if(v.cardOnly || !v.entryId){card.name=name;card.calories=calories;card.protein=protein;card.lastUsed=new Date().toISOString();}}else if(!v.entryId && !v.cardOnly)data.foods.push({id:id(),name,calories,protein,lastUsed:new Date().toISOString()});if(!v.cardOnly){const item=data.foodEntries.find(x=>x.id===v.entryId);if(item)Object.assign(item,{name,calories,protein,quantity,date:v.date});else data.foodEntries.push({id:id(),name,calories,protein,quantity,date:v.date});chosenDate=v.date;}close(true);persist();return;}
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>({weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)}));if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1)||v.difficulty && (Number(v.difficulty)<1||Number(v.difficulty)>10))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),date:v.date,sets,difficulty:v.difficulty?Number(v.difficulty):null,notes:v.notes.trim()};if(item)Object.assign(item,record);else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
-  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);if(item)Object.assign(item,{date:v.date,value});else data.weights.push({id:id(),date:v.date,value});data.promptDate=localDate();close(true);persist();return;}
+  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);if(item){Object.assign(item,{date:v.date,value});delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),date:v.date,value});data.promptDate=localDate();close(true);persist();return;}
   if(form.dataset.form==='import') {
     const file=form.querySelector('[name=file]').files[0];if(!file)return;
     pendingImport=null;const token=++importReadToken, preview=form.parentElement.querySelector('#preview');preview.textContent='Reading file…';
@@ -171,18 +173,19 @@ async function loadAccount(){
   const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
   try{const loaded=await active.load();if(session!==active)return;data=loaded;cloudPending=false;cloudMessage='Loaded from your account';}
   catch(error){if(session===active)cloudMessage=describeCloudError(error);}
-  finally{if(session===active){cloudBusy=false;render();if(active.ready)promptWeight();}}
+  finally{if(session===active){cloudBusy=false;render();if(active.ready){void syncHealth();promptWeight();}}}
 }
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=10');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=12');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
+      healthState={enabled:false,status:''};healthCheckedAt=0;
       data=user?emptyData():structuredClone(deviceData);
       if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';render();promptWeight();}
     });
-    cloudReady=true;render();
+    cloudReady=true;render();void syncHealth();
   }catch(error){authChecked=true;cloudMessage='Cloud login unavailable. Device logs still work. Reload to retry.';render();promptWeight();}
 }
 window.addEventListener('beforeunload',event=>{if(cloudPending||cloudBusy){event.preventDefault();event.returnValue='';}});
@@ -241,3 +244,49 @@ async function commitImport(){
     importSaving=false;cloudBusy=false;render();pendingImport=plan;showImportReview(plan,describeCloudError(error));
   }finally{importSaving=false;if(session===active)cloudBusy=false;}
 }
+
+function healthPanel(){
+  if(!account)return '';
+  return `<section class="panel spaced"><p class="eyebrow">APPLE HEALTH</p><h2>Weight sync</h2><p class="body-copy">Use an iPhone Shortcut to send your latest weight. Everyday checks when you open or return to the app. Your Home Screen icon stays the same.</p><p role="status">${esc(healthState.status||'Not connected. Weight access is granted in Shortcuts on your iPhone.')}</p>${healthState.enabled?`${button('Check for weight','health-check','outline')}${button('Shortcut setup','health-setup','outline')}${button('Disconnect','health-disconnect','text-btn')}`:button('Connect weight Shortcut','health-enable','primary')}<p class="hint">Latest reading only, with its original date. Existing manual weigh-ins are kept. Newer synced readings on the same day replace earlier synced readings. This does not read other Health measurements or write back to Apple Health.</p></section>`;
+}
+async function syncHealth(force=false){
+  if(!cloudApi?.health||!account||!session?.ready||cloudBusy||cloudPending||importSaving||document.querySelector('.modal'))return;
+  if(!force&&(page==='settings'||document.activeElement?.matches('input,textarea,select')||Date.now()-healthCheckedAt<30000))return;
+  const active=session;healthCheckedAt=Date.now();cloudBusy=true;
+  try{
+    const result=await cloudApi.health.pull(active.uid,active.revision);
+    if(session!==active)return;
+    healthState=result;
+    if(result.data){data=result.data;active.revision=result.revision;cloudMessage='Saved to your account';}
+  }catch(error){if(session===active)healthState={...healthState,status:error.code==='permission-denied'?'Setup needs the updated Firebase rules. Existing tracking still works.':describeCloudError(error)};}
+  finally{if(session===active){cloudBusy=false;if(!document.querySelector('.modal'))render();promptWeight();}}
+}
+async function healthAction(action){
+  if(!account||!session?.ready||!cloudApi?.health)return;
+  if(action==='health-check'){await syncHealth(true);return;}
+  if(action==='health-setup'){showHealthSetup();return;}
+  if(action==='health-copy'){
+    try{await navigator.clipboard.writeText(cloudApi.health.url(healthState.token));document.querySelector('#health-copy-status').textContent='Copied. Paste it only into your own Shortcut.';}
+    catch{document.querySelector('#health-copy-status').textContent='Copy the address from the field below.';document.querySelector('#health-url').select();}return;
+  }
+  if(action==='health-enable'&&!confirm('Connect Apple Health weight? Your Shortcut will upload weight and its date to Firebase. Anyone with the private sync address can submit weight to this connection, so keep it private. You can revoke it with Disconnect.'))return;
+  if(action==='health-disconnect'&&!confirm('Disconnect this Shortcut? Its sync address will stop working. Previously imported weights will remain.'))return;
+  const active=session;cloudBusy=true;
+  try{
+    if(action==='health-enable'){
+      const token=await cloudApi.health.enable(active.uid);if(session!==active)return;
+      healthState={enabled:true,token,status:'Waiting for your first Shortcut sync.'};
+    }else if(action==='health-disconnect'){
+      await cloudApi.health.disable(active.uid);if(session!==active)return;
+      healthState={enabled:false,status:'Disconnected. Previously imported weights are unchanged.'};
+    }
+  }catch(error){if(session===active)healthState={...healthState,status:describeCloudError(error)};}
+  finally{if(session===active){cloudBusy=false;render();if(action==='health-enable'&&healthState.enabled)showHealthSetup();}}
+}
+function showHealthSetup(){
+  if(!healthState.token)return;
+  modal('Set up weight sync',`<p class="body-copy">Keep your existing Everyday Home Screen icon. Use a separate Sync Everyday Weight Shortcut to send your latest reading.</p><p class="hint">This private address permits weight submissions. Do not share it or publish a Shortcut containing it. Disconnect revokes it.</p>${button('Copy private sync address','health-copy','primary')}<p id="health-copy-status" role="status"></p><label class="field"><span>Private sync address</span><textarea id="health-url" readonly rows="3">${esc(cloudApi.health.url(healthState.token))}</textarea></label><p class="body-copy">Follow the <a href="health-shortcut.html" target="_blank" rel="noopener">Shortcut setup instructions</a>. You will need the sample’s Value and Start Date, plus this address. No Google password or Firebase administrator key goes into the Shortcut.</p><p class="hint">Only the latest submitted reading waits here. Open Everyday after syncing to import it. Repeated or older readings are ignored; historical backfill and Health deletions are not synced.</p>`);
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void syncHealth();});
+window.addEventListener('pageshow',()=>{void syncHealth();});
+window.addEventListener('focus',()=>{void syncHealth();});

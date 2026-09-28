@@ -24,7 +24,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 for(const name of ['data.js','cloud-model.js'])source=source.replaceAll(`'./${name}?v=10'`,`'${new URL(name,root)}'`);
 source=source.replace("'./import-model.js?v=11'",`'${new URL('import-model.js',root)}'`);
-source=source.replace("'./cloud.js?v=10'",`'${pathToFileURL(fixture)}'`);
+source=source.replace("'./cloud.js?v=12'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};

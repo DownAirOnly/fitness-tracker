@@ -1,3 +1,4 @@
+import {healthBridge} from './health-cloud.js?v=12';
 import {firebaseConfig} from './firebase-config.js';
 import {nextRecord, CloudSession} from './cloud-model.js?v=10';
 
@@ -31,7 +32,7 @@ export async function connectCloud(onUser) {
   const provider=new authSDK.GoogleAuthProvider();
   provider.setCustomParameters({prompt:'select_account'});
   authSDK.onAuthStateChanged(auth,user=>onUser(user,user?new CloudSession(user.uid,store):null));
-  return {signIn:()=>authSDK.signInWithPopup(auth,provider),signOut:()=>authSDK.signOut(auth)};
+  return {health:healthBridge({db,auth,sdk:dbSDK,projectId:firebaseConfig.projectId}),signIn:()=>authSDK.signInWithPopup(auth,provider),signOut:()=>authSDK.signOut(auth)};
 }
 export function cloudError(error) {
   const messages={

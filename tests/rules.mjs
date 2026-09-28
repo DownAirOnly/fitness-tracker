@@ -1,6 +1,11 @@
+import assert from 'node:assert/strict';
+import * as sdk from 'firebase/firestore';
+import {healthBridge} from '../health-cloud.js';
+import {emptyData} from '../data.js';
+import {encodeState} from '../cloud-model.js';
 import {readFile} from 'node:fs/promises';
 import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
-import {doc,setDoc,getDoc,getDocs,collection,deleteDoc,serverTimestamp} from 'firebase/firestore';
+import {doc,setDoc,getDoc,getDocs,collection,deleteDoc,updateDoc,serverTimestamp} from 'firebase/firestore';
 const env=await initializeTestEnvironment({projectId:'demo-everyday',firestore:{rules:await readFile(new URL('../firestore.rules',import.meta.url),'utf8')}});
 try {
  const alice=env.authenticatedContext('alice',{email_verified:true}).firestore();
@@ -22,5 +27,46 @@ try {
  await assertSucceeds(setDoc(doc(alice,path),{...state,revision:2}));
  await assertFails(getDocs(collection(alice,'users/alice/state')));
  await assertFails(deleteDoc(doc(alice,path)));
+ const token='a'.repeat(64), inbox='weightBridges/'+token;
+ const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00'};
+ await assertSucceeds(setDoc(doc(alice,inbox),{uid:'alice',sample:null}));
+ await assertSucceeds(setDoc(doc(alice,'users/alice/integrations/appleHealth'),{token,lastRecordedAt:'',status:'Waiting'}));
+ await assertFails(getDoc(doc(bob,'users/alice/integrations/appleHealth')));
+ await assertFails(getDoc(doc(anon,inbox)));
+ await assertFails(getDocs(collection(anon,'weightBridges')));
+ await assertFails(getDoc(doc(bob,inbox)));
+ await assertSucceeds(updateDoc(doc(anon,inbox),{sample}));
+ await assertSucceeds(getDoc(doc(alice,inbox)));
+ await assertFails(updateDoc(doc(anon,inbox),{uid:'bob',sample}));
+ await assertFails(updateDoc(doc(anon,inbox),{sample:{...sample,value:-1}}));
+ await assertFails(updateDoc(doc(anon,inbox),{sample:{...sample,extra:'x'}}));
+ await assertFails(updateDoc(doc(anon,inbox),{sample:{...sample,unit:'stone'}}));
+ await assertFails(updateDoc(doc(anon,inbox),{payload:'overwrite food'}));
+ await assertFails(deleteDoc(doc(anon,inbox)));
+ await assertFails(setDoc(doc(anon,'weightBridges/'+'b'.repeat(64)),{uid:'alice',sample}));
+ // Exercise the exact unauthenticated PATCH shape used by Shortcuts.
+ const endpoint='http://127.0.0.1:8080/v1/projects/demo-everyday/databases/(default)/documents/'+inbox+'?updateMask.fieldPaths=sample&currentDocument.exists=true&mask.fieldPaths=sample';
+ const fields={value:{doubleValue:188.3},unit:{stringValue:'lb'},date:{stringValue:sample.date},recordedAt:{stringValue:sample.recordedAt}};
+ const response=await fetch(endpoint,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{sample:{mapValue:{fields}}}})});
+ if(!response.ok)throw Error('Shortcut REST upload failed: '+await response.text());
+ await assertSucceeds(deleteDoc(doc(alice,inbox)));
+ await assertFails(updateDoc(doc(anon,inbox),{sample}));
+ const carol=env.authenticatedContext('carol',{email_verified:true}).firestore();
+ const api=healthBridge({db:carol,auth:{currentUser:{uid:'carol'}},sdk,projectId:'demo-everyday'});
+ const connected=await api.enable('carol');
+ await updateDoc(doc(anon,'weightBridges/'+connected),{sample});
+ const imported=await api.pull('carol',0);
+ assert.equal(imported.revision,1);assert.equal(imported.data.weights.length,1);
+ assert.equal(imported.data.weights[0].date,sample.date);
+ assert.equal((await api.pull('carol',1)).data,undefined);
+ // A conflict must not acknowledge the pending sample or alter the account.
+ await updateDoc(doc(anon,'weightBridges/'+connected),{sample:{...sample,date:'2026-09-26',recordedAt:'2026-09-26T00:00:00-04:00'}});
+ await assert.rejects(api.pull('carol',0),/Another device/);
+ assert.equal((await getDoc(doc(carol,'users/carol/integrations/appleHealth'))).data().lastRecordedAt,sample.recordedAt);
+ assert.equal((await api.pull('carol',1)).data.weights.length,2);
+ await api.disable('carol');
+ await assertFails(updateDoc(doc(anon,'weightBridges/'+connected),{sample}));
+ assert.equal((await api.pull('carol',2)).enabled,false);
+ console.log('Weight bridge rules, REST upload, atomic import/conflict, dedup and revocation passed.');
  console.log('Firestore rules passed: owner access, cross-user denial, anonymous denial, schema and revision checks.');
 } finally {await env.cleanup();}

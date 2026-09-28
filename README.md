@@ -36,3 +36,51 @@ For a full-device migration, export JSON from Settings and restore it on the oth
 ## Cloud account setup
 
 Follow [FIREBASE_SETUP.md](FIREBASE_SETUP.md), publish [firestore.rules](firestore.rules), and verify the backend before deploying this branch.
+
+## Apple Health weight Shortcut (v12)
+
+This optional bridge keeps the GitHub Pages PWA as the primary app. It needs no
+native build, Apple Developer subscription, Cloud Function, or additional host.
+Apple Health is read only by the user's iPhone Shortcut, with Health permission.
+See `health-shortcut.html` for the phone setup. Only latest-weight sync is supported;
+body fat, historical backfill and Health deletion mirroring are out of scope.
+
+Before enabling it, publish the complete `firestore.rules` in the Firebase console.
+Existing main-state rules are unchanged. The additional paths are:
+
+- `/users/{uid}/integrations/appleHealth`: owner-only connection token, processed
+  timestamp and last result. This is separate from backups and the main state.
+- `/weightBridges/{256-bit-random-token}`: owner UID and one bounded pending sample.
+  Only a verified owner can create/read/delete it. Possession of the random URL
+  permits replacing `sample` only; no unauthenticated get/list/create/delete,
+  owner changes, or writes to fitness records are allowed. The PATCH response is
+  masked to the submitted sample. Treat the URL as a bearer secret and never log
+  or share it. Disconnect atomically deletes both connection and pending sample.
+
+This is a narrowly scoped capability URL, not Apple/Firebase account authentication.
+A leaked URL permits false weight submissions and consumes Firestore write quota;
+revoke it with Disconnect and reconnect for a new URL. This is an opt-in personal
+bridge, not a public ingestion service with server-side abuse/rate controls.
+No administrator or Google credentials belong in Shortcuts.
+
+`health-model.js` handles validation, local calendar dates, unit conversion and the
+same-day policy independently of Shortcuts. `health-cloud.js` uses a transaction
+that reads the current state revision and pending sample and atomically saves both
+an imported weight and its processed timestamp. Failed/conflicting writes do not
+partially acknowledge or import data. The app applies returned data only to the
+session that initiated the operation. It does not sync while a form is open or
+there are pending edits. Foreground checks are throttled to 30 seconds; Settings
+has an explicit check button. The phone Shortcut sends the sample; the PWA then
+imports it on next check, not while closed in the background.
+
+Existing manual same-day entries win. Newer imported same-day entries update prior
+imported entries. Manual editing removes imported provenance so sync cannot replace
+the edit. Repeated/older readings at or before the processed timestamp are ignored,
+including after deletion or restoring a backup. Disconnecting resets that watermark.
+Exported weights retain their source/timestamp; secrets stay out of exports.
+
+Verification: `node --test tests/health.test.js`, `npm run test:ui`, and
+`npm run test:rules` (requires Java 21+). The rules test exercises the exact anonymous
+Firestore REST PATCH request that Shortcuts sends as well as cross-user isolation,
+invalid payload rejection and revocation. A real-iPhone end-to-end test must follow
+rules publication and Shortcut setup; desktop tests cannot grant Health permissions.
