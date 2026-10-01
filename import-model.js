@@ -1,4 +1,4 @@
-import {emptyData,normalizeData,parseFoodCSV,id,validDate} from './data.js?v=10';
+import {emptyData,normalizeData,parseFoodCSV,id,validDate} from './data.js?v=13';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries'};
 const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein]:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity]:key==='weights'?[r.date,r.value]:[r.date,r.exercise.toLowerCase(),r.sets,r.difficulty??null,r.notes??'']);
@@ -12,7 +12,7 @@ export function prepareImport(kind,text,current){
   }
   if(kind!=='json')throw Error('Unsupported import format.');
   let raw;try{raw=JSON.parse(text);}catch{throw Error('This file is not valid JSON. Check its syntax and try again. Nothing was imported.');}
-  return reviewImport(kind,raw,current);
+  return reviewImport(kind,normalizeData(raw),current);
 }
 export function reviewImport(kind,raw,current,initialErrors=[]){
   const errors=[...initialErrors], warnings=[], incoming=emptyData(), groups=[];

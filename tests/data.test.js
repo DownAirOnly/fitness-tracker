@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseFoodCSV,dailyTotals,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData} from '../data.js';
+import {parseFoodCSV,dailyTotals,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData} from '../data.js';
 
 test('CSV supports quoted names and rejects malformed rows before import',()=>{
   const parsed=parseFoodCSV('date,name,calories,protein,quantity\r\n2026-09-25,"Chicken, rice",500,42,0.5\r\n2026-09-26,Bad,hi,4,1');
@@ -58,3 +58,6 @@ test('old backups default to Monday; new week preference survives cloud and JSON
   }
   for(const value of [-1,7,1.5,'Monday',null]){data.settings.weekStart=value;assert.throws(()=>normalizeData(data),/week start/);}
 });
+
+test('stored schema uses canonical food and exercise references',()=>{const d=emptyData();d.foods=[{id:'f',name:'Meal',calories:150,protein:10}];d.foodEntries=[{id:'e',date:'2026-09-30',name:'Meal',calories:150,protein:10,quantity:1}];d.lifts=[{id:'l',date:'2026-09-30',exercise:'Chest Press',sets:[{weight:60,reps:10}]}];const s=encodeData(d);assert.equal(s.version,2);assert.equal(s.foodEntries[0].foodId,'f');assert.equal('name' in s.foodEntries[0],false);assert.equal(s.exercises.length,1);assert.equal('exercise' in s.lifts[0],false);assert.equal(normalizeData(s).foodEntries[0].name,'Meal');});
+test('changed saved-food values do not rewrite older logs',()=>{const d=emptyData();d.foods=[{id:'f',name:'Meal',calories:150,protein:10}];d.foodEntries=[{id:'e',date:'2026-09-30',name:'Meal',calories:100,protein:10,quantity:1}];const s=encodeData(d);assert.notEqual(s.foodEntries[0].foodId,'f');assert.equal(normalizeData(s).foodEntries[0].calories,100);});

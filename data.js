@@ -1,3 +1,5 @@
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=13';
+
 export const KEY = 'everyday-fitness-v1';
 export const templateExercises = {
   Upper: ['Machine Chest Press', 'Lat Pulldown', 'Seated Row', 'Shoulder Press', 'Cable Triceps Pushdown', 'Dumbbell Bicep Curl'],
@@ -60,6 +62,7 @@ export function parseFoodCSV(raw) {
   return {entries,errors};
 }
 export function normalizeData(input) {
+  input=decodeStoredData(input);
   if(!input || input.version!==1 || !Array.isArray(input.foods)||!Array.isArray(input.foodEntries)||!Array.isArray(input.lifts)||!Array.isArray(input.weights)||!input.settings || typeof input.settings!=='object') throw new Error('This is not an Everyday backup.');
   const data=emptyData();
   data.settings={...data.settings,...input.settings};
@@ -78,5 +81,6 @@ export function normalizeData(input) {
   data.promptDate=validDate(input.promptDate)?input.promptDate:'';
   return data;
 }
+export function encodeData(data) { return encodeStoredData(normalizeData(structuredClone(data))); }
 export function load() { try { const raw=localStorage.getItem(KEY); return raw?normalizeData(JSON.parse(raw)):emptyData(); } catch { return emptyData(); } }
-export function save(data) { localStorage.setItem(KEY,JSON.stringify(data)); }
+export function save(data) { localStorage.setItem(KEY,JSON.stringify(encodeData(data))); }

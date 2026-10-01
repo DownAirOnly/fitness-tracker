@@ -1,7 +1,7 @@
-import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=10';
+import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=13';
 
-import {prepareImport,importSections} from './import-model.js?v=11';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=10';
+import {prepareImport,importSections} from './import-model.js?v=13';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=13';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
@@ -130,7 +130,7 @@ app.addEventListener('click',async event=>{
   if(action.startsWith('delete-')) {if(!confirm('Delete this item?'))return;const key={'delete-entry':'foodEntries','delete-card':'foods','delete-lift':'lifts','delete-weight':'weights'}[action];data[key]=data[key].filter(x=>x.id!==el.dataset.id);close(true);persist();return;}
   if(action==='import-csv'){importModal('csv');return;}
   if(action==='restore'){importModal('json');return;}
-  if(action==='export'){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`everyday-backup-${localDate()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);return;}
+  if(action==='export'){const blob=new Blob([JSON.stringify(encodeData(data),null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=`everyday-backup-${localDate()}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);return;}
   if(action==='import-more'){expandImportGroup(el);return;}
   if(action==='choose-import'){importModal(el.dataset.kind);return;}
   if(action==='commit-import'){await commitImport();return;}

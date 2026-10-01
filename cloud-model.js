@@ -1,11 +1,11 @@
-import {emptyData, normalizeData, round} from './data.js?v=10';
+import {emptyData, normalizeData, encodeData, round} from './data.js?v=13';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
   constructor() { super('Another device saved a newer version. Export your unsaved changes, then load the latest cloud data before editing again.'); this.code='conflict'; }
 }
 export function encodeState(data) {
-  const payload=JSON.stringify(normalizeData(structuredClone(data)));
+  const payload=JSON.stringify(encodeData(data));
   if(new TextEncoder().encode(payload).length>MAX_CLOUD_BYTES) throw new Error('This account has reached the current cloud storage limit. Export a backup before reducing its history.');
   return payload;
 }
