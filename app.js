@@ -1,7 +1,7 @@
-import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=14';
+import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=15';
 
-import {prepareImport,importSections} from './import-model.js?v=14';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=14';
+import {prepareImport,importSections} from './import-model.js?v=15';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=15';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
@@ -47,20 +47,13 @@ function foodTotals(totals){
   return `<span class="food-total-grid"><span><small>CALORIES</small><span class="food-total-number"><strong>${Math.round(totals.calories)}</strong><span>/ ${data.settings.calories}</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.calories/data.settings.calories*100))}%;background:#d8eb86"></span></span></span><span><small>PROTEIN</small><span class="food-total-number"><strong>${Math.round(totals.protein)}g</strong><span>/ ${data.settings.protein}g</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.protein/data.settings.protein*100))}%;background:#9fd9bf"></span></span></span></span>`;
 }
 function foodEntryDetail(e){return `${fmt(e.calories*e.quantity)} cal · ${fmt(e.protein*e.quantity)}g protein${e.quantity!==1?` · ${fmt(e.quantity)} servings`:''}`;}
-function foodMatch(name,calories,protein){
-  const normalize=value=>value.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-  const wanted=normalize(name), wantedWords=new Set(wanted.split(' ').filter(Boolean));
-  let best=null,bestScore=0;
-  for(const food of data.foods){
-    const candidate=normalize(food.name), words=new Set(candidate.split(' ').filter(Boolean));
-    const shared=[...wantedWords].filter(word=>words.has(word)).length, union=new Set([...wantedWords,...words]).size;
-    const nameScore=wanted===candidate?1:(wanted.length>=4&&candidate.length>=4&&(wanted.includes(candidate)||candidate.includes(wanted)))?0.9:union?shared/union:0;
-    const calorieScore=Math.max(0,1-Math.abs(food.calories-calories)/Math.max(100,food.calories,calories));
-    const proteinScore=Math.max(0,1-Math.abs(food.protein-protein)/Math.max(10,food.protein,protein));
-    const score=nameScore*.75+calorieScore*.15+proteinScore*.10;
-    if((nameScore>=.5||wanted===candidate)&&score>bestScore){best=food;bestScore=score;}
-  }
-  return bestScore>=.62?best:null;
+function foodMatches(name){
+ const normalize=value=>value.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),wanted=normalize(name);if(wanted.length<2)return [];const wantedWords=new Set(wanted.split(' ').filter(Boolean));
+ return data.foods.map(food=>{const candidate=normalize(food.name),words=new Set(candidate.split(' ').filter(Boolean)),shared=[...wantedWords].filter(word=>words.has(word)).length,union=new Set([...wantedWords,...words]).size;const score=wanted===candidate?1:candidate.startsWith(wanted)?.95:candidate.includes(wanted)?.9:wanted.includes(candidate)?.85:union?shared/union:0;return{food,score};}).filter(x=>x.score>=.35).sort((a,b)=>b.score-a.score||(b.food.lastUsed||'').localeCompare(a.food.lastUsed||'')).slice(0,5).map(x=>x.food);
+}
+function renderFoodMatches(form){
+ const box=form.querySelector('.food-matches'),matches=foodMatches(form.elements.name.value);form.elements.cardId.value='';
+ box.innerHTML=matches.length?'<span class="food-match-label">Saved foods</span>'+matches.map(food=>'<button type="button" class="food-match" data-action="choose-food-match" data-id="'+esc(food.id)+'"><span><strong>'+esc(food.name)+'</strong><small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><b>Use</b></button>').join(''):'';
 }
 function foodLog(){
   const entries=data.foodEntries.filter(e=>e.date===chosenDate).slice().reverse();
@@ -97,7 +90,7 @@ function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector(
 function close(all=false) {importReadToken++;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
 function foodForm(entry=null,card=null) {
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
-  modal(entry?'Edit food log':card?'Edit saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><input type="hidden" name="cardOnly" value="${card && !entry?'yes':''}">${input('Food name','name',entry?.name||card?.name||'','text','maxlength="100" required') }<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??'','number','min="0" step="0.1" required')}</div>${card&&!entry?'':`<div class="form-grid">${input('Servings','quantity',entry?.quantity??1,'number','min="0.01" step="0.01" required')}${input('Date','date',entry?.date||chosenDate,'date','required')}</div>`}<div class="form-actions"><button class="primary" type="submit">${card&&!entry?'Save card':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):card?button('Delete card','delete-card','danger',`data-id="${esc(card.id)}"`):''}</div></form><p class="hint">Saved cards remember these per-serving values. Earlier entries keep their original values when a card changes.</p>`,onBack);
+  modal(entry?'Edit food log':card?'Edit saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><input type="hidden" name="cardOnly" value="${card && !entry?'yes':''}">${input('Food name','name',entry?.name||card?.name||'','text','maxlength="100" autocomplete="off" required') }${!entry&&!card?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??'','number','min="0" step="0.1" required')}</div>${card&&!entry?'':`<div class="form-grid">${input('Servings','quantity',entry?.quantity??1,'number','min="0.01" step="0.01" required')}${input('Date','date',entry?.date||chosenDate,'date','required')}</div>`}<div class="form-actions"><button class="primary" type="submit">${card&&!entry?'Save card':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):card?button('Delete card','delete-card','danger',`data-id="${esc(card.id)}"`):''}</div></form><p class="hint">Saved cards remember these per-serving values. Earlier entries keep their original values when a card changes.</p>`,onBack);
 }
 function liftForm(lift=null,name='') {
   const exercise=lift?.exercise||name, prior=lastLift(exercise,lift?.id), sets=lift?.sets||prior?.sets||[{weight:0,reps:8},{weight:0,reps:8}];
@@ -108,6 +101,7 @@ function weightForm(w=null) {modal(w?'Edit weigh-in':'Log your weight',`<form cl
 function importModal(kind) {pendingImport=null;importReadToken++;modal(kind==='csv'?'Import food CSV':'Restore backup',`<form class="form" data-form="import"><input type="hidden" name="kind" value="${kind}"><label class="field"><span>${kind==='csv'?'Choose a .csv file':'Choose an Everyday .json backup'}</span><input type="file" name="file" accept="${kind==='csv'?'.csv,text/csv':'.json,application/json'}" required></label><button type="submit" class="primary">Preview import</button></form><div id="preview" role="status"></div>`);}
 
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
+app.addEventListener('input',event=>{if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);});
 app.addEventListener('change',event=>{if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 app.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if(!authChecked||importSaving)return;
@@ -134,6 +128,8 @@ app.addEventListener('click',async event=>{
   if(action==='edit-weight'){weightForm(data.weights.find(x=>x.id===el.dataset.id));return;}
   if(action==='food-log'){foodLog();return;}
   if(action==='new-food'){foodForm();return;}
+  if(action==='choose-food-match'){const form=el.closest('form[data-form="food"]'),food=data.foods.find(x=>x.id===el.dataset.id);if(!form||!food)return;form.elements.cardId.value=food.id;form.elements.name.value=food.name;form.elements.calories.value=food.calories;form.elements.protein.value=food.protein;form.querySelector('.food-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(food.name)+'</strong><small>Using saved food · '+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><button type="button" class="text-btn" data-action="clear-food-match">Change</button></div>';return;}
+  if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';renderFoodMatches(form);form.elements.name.focus();return;}
   if(action==='edit-card'){foodForm(null,data.foods.find(x=>x.id===el.dataset.id));return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
   if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);data.foodEntries.push({id:id(),date:chosenDate,name:f.name,calories:f.calories,protein:f.protein,quantity:1});f.lastUsed=new Date().toISOString();persist();return;}
@@ -154,7 +150,7 @@ app.addEventListener('submit',async event=>{
   const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(importSaving||account&&(cloudBusy||cloudPending||!session?.ready))return;const v=Object.fromEntries(new FormData(form));
   if(form.dataset.form==='week-settings'){const weekStart=Number(v.weekStart);if(!Number.isInteger(weekStart)||weekStart<0||weekStart>6)return;data.settings.weekStart=weekStart;await persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){const factor=v.unit==='kg'?1/2.2046226218:2.2046226218;data.weights.forEach(w=>w.value=round(w.value*factor));data.lifts.forEach(l=>l.sets.forEach(s=>s.weight=round(s.weight*factor)));}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};persist();return;}
-  if(form.dataset.form==='food') {const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),quantity=Number(v.quantity||1);if(!name||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||(!v.cardOnly&&!/^\d{4}-\d{2}-\d{2}$/.test(v.date)))return alert('Check the food values and date.');let card=data.foods.find(x=>x.id===v.cardId);if(!v.entryId&&!v.cardOnly&&!card){const match=foodMatch(name,calories,protein);if(match&&confirm(`Possible saved-food match:\n\n${match.name}\n${fmt(match.calories)} cal · ${fmt(match.protein)}g protein\n\nUse this existing food?\n\nOK = use existing\nCancel = create a new saved food`)){card=match;card.lastUsed=new Date().toISOString();data.foodEntries.push({id:id(),name:card.name,calories:card.calories,protein:card.protein,quantity,date:v.date});chosenDate=v.date;close(true);persist();return;}}if(card){if(v.cardOnly){card.name=name;card.calories=calories;card.protein=protein;card.lastUsed=new Date().toISOString();}}else if(!v.entryId&&!v.cardOnly)data.foods.push({id:id(),name,calories,protein,lastUsed:new Date().toISOString()});if(!v.cardOnly){const item=data.foodEntries.find(x=>x.id===v.entryId);if(item)Object.assign(item,{name,calories,protein,quantity,date:v.date});else data.foodEntries.push({id:id(),name,calories,protein,quantity,date:v.date});chosenDate=v.date;}close(true);persist();return;}
+  if(form.dataset.form==='food') {const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),quantity=Number(v.quantity||1);if(!name||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||(!v.cardOnly&&!/^\d{4}-\d{2}-\d{2}$/.test(v.date)))return alert('Check the food values and date.');const card=data.foods.find(x=>x.id===v.cardId);if(card){if(v.cardOnly){card.name=name;card.calories=calories;card.protein=protein;card.lastUsed=new Date().toISOString();}else if(!v.entryId){card.lastUsed=new Date().toISOString();data.foodEntries.push({id:id(),name:card.name,calories:card.calories,protein:card.protein,quantity,date:v.date});chosenDate=v.date;close(true);persist();return;}}else if(!v.entryId&&!v.cardOnly)data.foods.push({id:id(),name,calories,protein,lastUsed:new Date().toISOString()});if(!v.cardOnly){const item=data.foodEntries.find(x=>x.id===v.entryId);if(item)Object.assign(item,{name,calories,protein,quantity,date:v.date});else data.foodEntries.push({id:id(),name,calories,protein,quantity,date:v.date});chosenDate=v.date;}close(true);persist();return;}
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>({weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)}));if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1)||v.difficulty && (Number(v.difficulty)<1||Number(v.difficulty)>10))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),date:v.date,sets,difficulty:v.difficulty?Number(v.difficulty):null,notes:v.notes.trim()};if(item)Object.assign(item,record);else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
   if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);if(item){Object.assign(item,{date:v.date,value});delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),date:v.date,value});data.promptDate=localDate();close(true);persist();return;}
   if(form.dataset.form==='import') {
@@ -193,7 +189,7 @@ async function loadAccount(){
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=14');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=15');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
