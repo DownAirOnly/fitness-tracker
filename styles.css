@@ -195,3 +195,11 @@ html,body{max-width:100%;overflow-x:hidden}
 .lift-form .lift-notes textarea{height:auto;max-height:none;overflow-y:hidden;field-sizing:content;min-block-size:42px}
 @supports not (field-sizing:content){.lift-form .lift-notes textarea{height:42px}}
 @media(max-width:440px){.lift-dialog{scroll-padding-bottom:190px}}
+
+/* Per-set effort stays compact: weight, reps, effort, remove. */
+.lift-form .set-row{grid-template-columns:18px minmax(0,1fr) minmax(0,.72fr) minmax(92px,1fr) 28px;align-items:end}
+.lift-form .effort-field{min-width:0}
+.lift-form .effort-select{width:100%;min-width:0;min-height:42px;padding:9px 26px 9px 9px;border-radius:10px;font-size:12px;font-weight:700}
+.lift-form .effort-1{background:#e6f3e8;border-color:#bad9c0}.lift-form .effort-2{background:#edf3df;border-color:#cbd9ad}.lift-form .effort-3{background:#f3f0d8;border-color:#ddd19b}.lift-form .effort-4{background:#f6e8cf;border-color:#dfc08b}.lift-form .effort-5{background:#f6ddce;border-color:#dfa98d}.lift-form .effort-6{background:#f3d1ca;border-color:#dc9489}.lift-form .effort-7{background:#edc4c2;border-color:#d67f7b}
+[data-theme="dark"] .lift-form .effort-select{color:#e4eee6}.lift-form .effort-0{background:inherit}
+@media(max-width:440px){.lift-form .set-row{grid-template-columns:16px minmax(0,1fr) minmax(0,.68fr) minmax(86px,.95fr) 26px;gap:5px}.lift-form .effort-select{font-size:11px;padding-left:7px;padding-right:20px}.lift-form .form-actions{z-index:5}}
