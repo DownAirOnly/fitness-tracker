@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=24';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=25';
 
 export const KEY = 'everyday-fitness-v1';
 export const templateExercises = {
@@ -30,7 +30,7 @@ export const templateExercises = {
     {name:'Calf Extension',equipment:'machine'}
   ]
 };
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], activeWorkout: null, workoutHistory: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const niceDate = s => new Date(`${s}T12:00:00`).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
@@ -103,6 +103,8 @@ export function normalizeData(input) {
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');
   // Transitional tolerance: old cloud records may still carry an exercise-level numeric difficulty.
   for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1)) throw new Error('Backup has an invalid difficulty.');
+  data.activeWorkout=input.activeWorkout&&typeof input.activeWorkout==='object'?input.activeWorkout:null;
+  data.workoutHistory=Array.isArray(input.workoutHistory)?input.workoutHistory:[];
   data.promptDate=validDate(input.promptDate)?input.promptDate:'';
   return data;
 }
