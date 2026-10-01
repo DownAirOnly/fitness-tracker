@@ -182,3 +182,10 @@ html,body{max-width:100%;overflow-x:hidden}
  .lift-form .set-row{grid-template-columns:16px minmax(0,1fr) minmax(0,.8fr) 26px;gap:5px}
  .lift-form .form-grid{grid-template-columns:1fr}
 }
+
+/* Lift notes grow vertically instead of behaving like a desktop text field. */
+.lift-form .form-grid{display:contents}
+.lift-form .lift-notes{grid-column:1/-1}
+.lift-form .lift-notes textarea{font:inherit;font-size:16px;line-height:1.4;width:100%;min-width:0;max-width:100%;min-height:42px;max-height:180px;resize:none;overflow-y:auto;overflow-x:hidden;white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #dce4d8;background:#fff;border-radius:11px;padding:10px 12px;color:#172c23}
+.lift-form input[name="difficulty"]{max-width:120px}
+[data-theme="dark"] .lift-form .lift-notes textarea{background:#152019;color:#e4eee6;border-color:#48614e}
