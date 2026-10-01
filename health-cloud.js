@@ -1,4 +1,4 @@
-import {decodeState, encodeState, nextRecord, CloudConflict} from './cloud-model.js?v=10';
+import {decodeState, encodeState, nextRecord, CloudConflict} from './cloud-model.js?v=13';
 import {planHealthWeight,shortcutURL} from './health-model.js?v=12';
 
 export function healthBridge({db,auth,sdk,projectId}) {
