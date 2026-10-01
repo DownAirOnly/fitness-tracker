@@ -127,3 +127,11 @@ main[aria-busy="true"] .today-card,main[aria-busy="true"] .weight-strip{opacity:
 
 /* Exercise dictionary autocomplete */
 .exercise-matches{display:grid;gap:5px;margin-top:-10px}
+
+/* Equipment-aware exercise cards */
+.exercise{position:relative;overflow:hidden;min-height:78px}
+.exercise-copy{position:relative;z-index:1;min-width:0}
+.exercise-copy .equipment-label{font-size:9px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;margin:0 0 4px}
+.equipment-art{position:absolute;right:42px;top:50%;transform:translateY(-50%);font-size:52px;line-height:1;opacity:.08;pointer-events:none}
+.exercise.equipment-machine{background:#f3f7ef}.exercise.equipment-cable{background:#eef6f4}.exercise.equipment-dumbbell{background:#f5f1f7}.exercise.equipment-bench{background:#f7f4ed}.exercise.equipment-calisthenics{background:#f1f4f8}
+[data-theme="dark"] .exercise.equipment-machine{background:#1d2c21}[data-theme="dark"] .exercise.equipment-cable{background:#1b2c28}[data-theme="dark"] .exercise.equipment-dumbbell{background:#29232d}[data-theme="dark"] .exercise.equipment-bench{background:#2b2820}[data-theme="dark"] .exercise.equipment-calisthenics{background:#202830}

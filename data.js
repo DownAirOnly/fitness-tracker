@@ -1,10 +1,34 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=13';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=18';
 
 export const KEY = 'everyday-fitness-v1';
 export const templateExercises = {
-  Upper: ['Machine Chest Press', 'Lat Pulldown', 'Seated Row', 'Shoulder Press', 'Cable Triceps Pushdown', 'Dumbbell Bicep Curl'],
-  Lower: ['Leg Press', 'Leg Curl', 'Glute Kickback', 'Leg Extension', 'Calf Raise'],
-  'Full body': ['Chest Press', 'Leg Press', 'Lat Pulldown', 'Leg Curl', 'Seated Row', 'Abdominal Crunch', 'Lateral Raise', 'Calf Extension']
+  Upper: [
+    {name:'Chest Press',equipment:'machine'},
+    {name:'Lat Pulldown',equipment:'machine'},
+    {name:'Seated Row',equipment:'machine'},
+    {name:'Shoulder Press',equipment:'machine'},
+    {name:'Triceps Pushdown',equipment:'cable'},
+    {name:'Bicep Curl',equipment:'dumbbell'}
+  ],
+  Lower: [
+    {name:'Seated Leg Press',equipment:'machine'},
+    {name:'Leg Curl',equipment:'machine'},
+    {name:'Glute Kickback',equipment:'machine'},
+    {name:'Leg Extension',equipment:'machine'},
+    {name:'Hip Abduction',equipment:'machine'},
+    {name:'Calf Extension',equipment:'machine'}
+  ],
+  'Full body': [
+    {name:'Torso Rotation',equipment:'machine'},
+    {name:'Chest Press',equipment:'machine'},
+    {name:'Seated Leg Press',equipment:'machine'},
+    {name:'Lat Pulldown',equipment:'machine'},
+    {name:'Leg Curl',equipment:'machine'},
+    {name:'Seated Row',equipment:'machine'},
+    {name:'Abdominal Crunch',equipment:'machine'},
+    {name:'Lateral Raise',equipment:'dumbbell'},
+    {name:'Calf Extension',equipment:'machine'}
+  ]
 };
 export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
@@ -76,7 +100,7 @@ export function normalizeData(input) {
   for(const f of data.foods) if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0) throw new Error('Backup has an invalid saved food.');
   for(const e of data.foodEntries) if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0) throw new Error('Backup has an invalid food entry.');
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
-  for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0)) throw new Error('Backup has an invalid lift.');
+  for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0)) throw new Error('Backup has an invalid lift.');
   for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1||l.difficulty>10)) throw new Error('Backup has an invalid difficulty.');
   data.promptDate=validDate(input.promptDate)?input.promptDate:'';
   return data;
