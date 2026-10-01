@@ -135,3 +135,13 @@ main[aria-busy="true"] .today-card,main[aria-busy="true"] .weight-strip{opacity:
 .equipment-art{position:absolute;right:42px;top:50%;transform:translateY(-50%);font-size:52px;line-height:1;opacity:.08;pointer-events:none}
 .exercise.equipment-machine{background:#f3f7ef}.exercise.equipment-cable{background:#eef6f4}.exercise.equipment-dumbbell{background:#f5f1f7}.exercise.equipment-bench{background:#f7f4ed}.exercise.equipment-calisthenics{background:#f1f4f8}
 [data-theme="dark"] .exercise.equipment-machine{background:#1d2c21}[data-theme="dark"] .exercise.equipment-cable{background:#1b2c28}[data-theme="dark"] .exercise.equipment-dumbbell{background:#29232d}[data-theme="dark"] .exercise.equipment-bench{background:#2b2820}[data-theme="dark"] .exercise.equipment-calisthenics{background:#202830}
+
+/* Equipment card visual refinement */
+.equipment-art{width:86px;height:66px;right:38px;font-size:initial;display:flex;align-items:center;justify-content:center;opacity:.13}
+.equipment-art svg{display:block;width:100%;height:100%}
+.exercise.equipment-dumbbell{background:#e8eef2;border-color:#cbd6dd}.exercise.equipment-dumbbell .equipment-label,.exercise.equipment-dumbbell .equipment-art{color:#526b7b}
+.exercise.equipment-cable{background:#e5e7e7;border-color:#c7cbcc}.exercise.equipment-cable .equipment-label,.exercise.equipment-cable .equipment-art{color:#2e3436}
+.exercise.equipment-machine{background:linear-gradient(105deg,#ececef 0%,#e2e1e7 72%,#e5dcef 100%);border-color:#d0ccd7}.exercise.equipment-machine .equipment-label,.exercise.equipment-machine .equipment-art{color:#675578}
+[data-theme="dark"] .exercise.equipment-dumbbell{background:#202a31;border-color:#3e505d}[data-theme="dark"] .exercise.equipment-dumbbell .equipment-label,[data-theme="dark"] .exercise.equipment-dumbbell .equipment-art{color:#8ca8b9}
+[data-theme="dark"] .exercise.equipment-cable{background:#181b1c;border-color:#3d4244}[data-theme="dark"] .exercise.equipment-cable .equipment-label,[data-theme="dark"] .exercise.equipment-cable .equipment-art{color:#9da3a5}
+[data-theme="dark"] .exercise.equipment-machine{background:linear-gradient(105deg,#27272b 0%,#2d2c31 72%,#332b3b 100%);border-color:#4b4651}[data-theme="dark"] .exercise.equipment-machine .equipment-label,[data-theme="dark"] .exercise.equipment-machine .equipment-art{color:#a88bc1}
