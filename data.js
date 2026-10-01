@@ -1,37 +1,54 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=29';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=30';
 
 export const KEY = 'everyday-fitness-v1';
+export const defaultExerciseDefinitions = () => [
+  {id:'exercise-machine-chest-press',name:'Chest Press',equipment:'machine'},
+  {id:'exercise-machine-lat-pulldown',name:'Lat Pulldown',equipment:'machine'},
+  {id:'exercise-machine-seated-row',name:'Seated Row',equipment:'machine',setup:'Setting 3'},
+  {id:'exercise-machine-shoulder-press',name:'Shoulder Press',equipment:'machine'},
+  {id:'exercise-cable-triceps-pushdown',name:'Triceps Pushdown',equipment:'cable'},
+  {id:'exercise-dumbbell-bicep-curl',name:'Bicep Curl',equipment:'dumbbell'},
+  {id:'exercise-machine-seated-leg-press',name:'Seated Leg Press',equipment:'machine'},
+  {id:'exercise-machine-leg-curl',name:'Leg Curl',equipment:'machine'},
+  {id:'exercise-machine-glute-kickback',name:'Glute Kickback',equipment:'machine'},
+  {id:'exercise-machine-leg-extension',name:'Leg Extension',equipment:'machine'},
+  {id:'exercise-machine-hip-abduction',name:'Hip Abduction',equipment:'machine'},
+  {id:'exercise-machine-calf-extension',name:'Calf Extension',equipment:'machine'},
+  {id:'exercise-machine-torso-rotation',name:'Torso Rotation',equipment:'machine'},
+  {id:'exercise-machine-abdominal-crunch',name:'Abdominal Crunch',equipment:'machine'},
+  {id:'exercise-dumbbell-lateral-raise',name:'Lateral Raise',equipment:'dumbbell'}
+];
 export const templateExercises = {
   Upper: [
-    {name:'Chest Press',equipment:'machine',repMin:6,repMax:12},
-    {name:'Lat Pulldown',equipment:'machine',repMin:6,repMax:12},
-    {name:'Seated Row',equipment:'machine',repMin:6,repMax:12,setup:'Setting 3'},
-    {name:'Shoulder Press',equipment:'machine',repMin:6,repMax:12},
-    {name:'Triceps Pushdown',equipment:'cable',repMin:6,repMax:12},
-    {name:'Bicep Curl',equipment:'dumbbell',repMin:6,repMax:12}
+    {exerciseId:'exercise-machine-chest-press',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-lat-pulldown',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-seated-row',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-shoulder-press',repMin:6,repMax:12},
+    {exerciseId:'exercise-cable-triceps-pushdown',repMin:6,repMax:12},
+    {exerciseId:'exercise-dumbbell-bicep-curl',repMin:6,repMax:12}
   ],
   Lower: [
-    {name:'Seated Leg Press',equipment:'machine',repMin:6,repMax:12,setup:'Setting 5'},
-    {name:'Leg Curl',equipment:'machine',repMin:6,repMax:12},
-    {name:'Glute Kickback',equipment:'machine',repMin:6,repMax:12},
-    {name:'Leg Extension',equipment:'machine',repMin:6,repMax:12},
-    {name:'Hip Abduction',equipment:'machine',repMin:6,repMax:12},
-    {name:'Calf Extension',equipment:'machine',repMin:10,repMax:16}
+    {exerciseId:'exercise-machine-seated-leg-press',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-leg-curl',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-glute-kickback',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-leg-extension',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-hip-abduction',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-calf-extension',repMin:10,repMax:16}
   ],
   'Full body': [
-    {name:'Torso Rotation',equipment:'machine',repMin:6,repMax:12},
-    {name:'Chest Press',equipment:'machine',repMin:6,repMax:12},
-    {name:'Seated Leg Press',equipment:'machine',repMin:6,repMax:12,setup:'Setting 3'},
-    {name:'Lat Pulldown',equipment:'machine',repMin:6,repMax:12},
-    {name:'Leg Curl',equipment:'machine',repMin:6,repMax:12},
-    {name:'Seated Row',equipment:'machine',repMin:6,repMax:12},
-    {name:'Abdominal Crunch',equipment:'machine',repMin:6,repMax:12},
-    {name:'Lateral Raise',equipment:'dumbbell',repMin:6,repMax:12},
-    {name:'Calf Extension',equipment:'machine',repMin:10,repMax:16}
+    {exerciseId:'exercise-machine-torso-rotation',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-chest-press',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-seated-leg-press',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-lat-pulldown',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-leg-curl',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-seated-row',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-abdominal-crunch',repMin:6,repMax:12},
+    {exerciseId:'exercise-dumbbell-lateral-raise',repMin:6,repMax:12},
+    {exerciseId:'exercise-machine-calf-extension',repMin:10,repMax:16}
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const niceDate = s => new Date(`${s}T12:00:00`).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
@@ -104,18 +121,39 @@ export function normalizeData(input) {
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');
   // Transitional tolerance: old cloud records may still carry an exercise-level numeric difficulty.
   for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1)) throw new Error('Backup has an invalid difficulty.');
+  if(Array.isArray(input.exerciseDefinitions)){
+    if(input.exerciseDefinitions.length>10000)throw new Error('Backup has too many exercise definitions.');
+    data.exerciseDefinitions=input.exerciseDefinitions.map(e=>{
+      const setup=e?.setup==null?'':String(e.setup);
+      if(!e||typeof e.id!=='string'||!e.id.trim()||typeof e.name!=='string'||!e.name.trim()||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(e.equipment)||setup.length>200)throw new Error('Backup has an invalid exercise definition.');
+      return{id:e.id,name:e.name,equipment:e.equipment,...(setup?{setup}:{})};
+    });
+  }
+  const definitionIds=new Set(data.exerciseDefinitions.map(e=>e.id));
+  const definitionByKey=new Map(data.exerciseDefinitions.map(e=>[e.name.toLowerCase()+'|'+e.equipment,e]));
   if(Array.isArray(input.workoutTemplates)){
     if(input.workoutTemplates.length>100)throw new Error('Backup has too many workout templates.');
-    data.workoutTemplates=input.workoutTemplates.map((w,wi)=>{
+    data.workoutTemplates=input.workoutTemplates.map(w=>{
       if(!w||typeof w.id!=='string'||!w.id.trim()||typeof w.name!=='string'||!w.name.trim()||!Array.isArray(w.exercises)||w.exercises.length>100)throw new Error('Backup has an invalid workout template.');
       return{id:w.id,name:w.name,exercises:w.exercises.map(e=>{
-        const repMin=Number(e?.repMin),repMax=Number(e?.repMax),setup=e?.setup==null?'':String(e.setup);
-        if(!e||typeof e.name!=='string'||!e.name.trim()||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(e.equipment)||!Number.isInteger(repMin)||!Number.isInteger(repMax)||repMin<1||repMax<repMin||repMax>100||setup.length>200)throw new Error('Backup has an invalid workout exercise.');
-        return{name:e.name,equipment:e.equipment,repMin,repMax,...(setup?{setup}:{})};
+        const repMin=Number(e?.repMin),repMax=Number(e?.repMax);
+        let exerciseId=e?.exerciseId;
+        if(!exerciseId&&typeof e?.name==='string'){
+          const def=definitionByKey.get(e.name.toLowerCase()+'|'+(e.equipment||'other'));
+          exerciseId=def?.id;
+        }
+        if(typeof exerciseId!=='string'||!definitionIds.has(exerciseId)||!Number.isInteger(repMin)||!Number.isInteger(repMax)||repMin<1||repMax<repMin||repMax>100)throw new Error('Backup has an invalid workout exercise reference.');
+        return{exerciseId,repMin,repMax};
       })};
     });
   }
-  data.activeWorkout=input.activeWorkout&&typeof input.activeWorkout==='object'?input.activeWorkout:null;
+  data.activeWorkout=input.activeWorkout&&typeof input.activeWorkout==='object'?structuredClone(input.activeWorkout):null;
+  if(data.activeWorkout?.exercises){
+    for(const e of data.activeWorkout.exercises){
+      const def=data.exerciseDefinitions.find(d=>d.id===e.exerciseId)||definitionByKey.get(String(e.name||'').toLowerCase()+'|'+(e.equipment||'other'));
+      if(def){e.exerciseId=def.id;e.name=def.name;e.equipment=def.equipment;if(def.setup)e.setup=def.setup;else delete e.setup;}
+    }
+  }
   data.workoutHistory=Array.isArray(input.workoutHistory)?input.workoutHistory:[];
   data.promptDate=validDate(input.promptDate)?input.promptDate:'';
   return data;

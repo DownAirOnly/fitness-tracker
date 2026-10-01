@@ -1,5 +1,5 @@
-const CACHE='everyday-v29-workout-templates';
-const FILES=['./','./index.html','./theme.js','./styles.css?v=29','./app.js?v=29','./import-model.js?v=29','./data.js?v=29','./storage-model.js?v=29','./cloud.js?v=29','./cloud-model.js?v=29','./health-model.js?v=12','./health-cloud.js?v=29','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE='everyday-v30-canonical-exercises';
+const FILES=['./','./index.html','./theme.js','./styles.css?v=30','./app.js?v=30','./import-model.js?v=30','./data.js?v=30','./storage-model.js?v=30','./cloud.js?v=30','./cloud-model.js?v=30','./health-model.js?v=12','./health-cloud.js?v=30','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('everyday-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
