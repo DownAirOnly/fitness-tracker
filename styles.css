@@ -145,3 +145,40 @@ main[aria-busy="true"] .today-card,main[aria-busy="true"] .weight-strip{opacity:
 [data-theme="dark"] .exercise.equipment-dumbbell{background:#202a31;border-color:#3e505d}[data-theme="dark"] .exercise.equipment-dumbbell .equipment-label,[data-theme="dark"] .exercise.equipment-dumbbell .equipment-art{color:#8ca8b9}
 [data-theme="dark"] .exercise.equipment-cable{background:#181b1c;border-color:#3d4244}[data-theme="dark"] .exercise.equipment-cable .equipment-label,[data-theme="dark"] .exercise.equipment-cable .equipment-art{color:#9da3a5}
 [data-theme="dark"] .exercise.equipment-machine{background:linear-gradient(105deg,#27272b 0%,#2d2c31 72%,#332b3b 100%);border-color:#4b4651}[data-theme="dark"] .exercise.equipment-machine .equipment-label,[data-theme="dark"] .exercise.equipment-machine .equipment-art{color:#a88bc1}
+
+/* Mobile-first lift logger: compact, viewport-safe, app-like. */
+html,body{max-width:100%;overflow-x:hidden}
+.modal{overscroll-behavior:contain}
+.lift-dialog{width:min(500px,calc(100% - 16px));padding:18px;max-height:calc(100dvh - 16px)}
+.lift-dialog .modal-top{margin-bottom:14px}
+.lift-dialog .modal-top h2{font-size:22px}
+.lift-form{gap:12px;min-width:0}
+.lift-form>*{min-width:0;max-width:100%}
+.lift-form .field{width:100%;max-width:100%}
+.lift-form .field input,.lift-form .field select{max-width:100%;min-width:0}
+.lift-form input[type="date"]{display:block;width:100%;min-width:0;max-width:100%;appearance:none;-webkit-appearance:none}
+.lift-form input[type="date"]::-webkit-date-and-time-value{text-align:left;min-width:0}
+.lift-form .section-head{margin:1px 0 4px}
+.lift-form .prior{padding:10px 12px}
+.lift-form #sets{min-width:0}
+.lift-form .set-row{grid-template-columns:18px minmax(0,1fr) minmax(0,1fr) 28px;gap:7px;margin-bottom:7px}
+.lift-form .set-row .field{min-width:0}
+.lift-form .set-row input{width:100%;min-width:0;padding:9px 8px}
+.lift-form .remove-set{min-width:28px}
+.lift-form .form-grid{grid-template-columns:minmax(0,.72fr) minmax(0,1.28fr);gap:9px}
+.lift-form .form-actions{position:sticky;bottom:-18px;background:#fbfcf7;padding:10px 0 calc(2px + env(safe-area-inset-bottom));margin-top:0;z-index:2}
+[data-theme="dark"] .lift-form .form-actions{background:#1b2821}
+@media(max-width:440px){
+ .lift-dialog{left:0;right:0;bottom:0;top:auto;transform:none;width:100%;max-height:calc(100dvh - 8px);border-radius:22px 22px 0 0;padding:16px 16px calc(12px + env(safe-area-inset-bottom))}
+ .lift-dialog .modal-top{margin-bottom:12px}
+ .lift-dialog .close-btn{width:36px;height:36px}
+ .lift-form{gap:10px}
+ .lift-form .field{gap:4px}
+ .lift-form .field input,.lift-form .field select{min-height:42px;padding:9px 10px}
+ .lift-form .form-actions{bottom:calc(-12px - env(safe-area-inset-bottom));margin-left:-2px;margin-right:-2px}
+}
+@media(max-width:350px){
+ .lift-dialog{padding-left:12px;padding-right:12px}
+ .lift-form .set-row{grid-template-columns:16px minmax(0,1fr) minmax(0,.8fr) 26px;gap:5px}
+ .lift-form .form-grid{grid-template-columns:1fr}
+}
