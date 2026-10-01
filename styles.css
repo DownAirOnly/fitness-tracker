@@ -235,3 +235,77 @@ body.buddy-active{overflow:hidden}.buddy-active #app{visibility:hidden;pointer-e
 [data-theme="dark"] .buddy-start-list button:nth-child(3),[data-theme="dark"] .workout-tabs button:nth-child(3){background:#3d2d20;border-color:#654a35;color:#f6e6d7}
 [data-theme="dark"] .buddy-exit{border-color:#405349}
 @media(max-width:380px){.buddy-entry{align-items:flex-start}.buddy-entry-actions{flex-direction:column;align-items:stretch}.buddy-entry-actions button{width:100%}}
+
+/* Workout Buddy input refinement */
+html.buddy-active,html.buddy-active body{height:100dvh;overflow:hidden!important;overscroll-behavior:none}
+html.buddy-active body{position:relative}
+html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
+.buddy-elapsed{font-size:24px;line-height:1;font-variant-numeric:tabular-nums;padding:8px 10px;border-radius:11px;background:#e8eee9;letter-spacing:-.03em}
+.buddy-exercise-view{padding-top:14px}
+.buddy-exercise-title{margin:2px 0 12px}
+.buddy-exercise-title h1{font-size:clamp(28px,8vw,42px);margin:3px 0 7px}
+.buddy-rep-range{display:inline-flex;align-items:center;gap:8px;border:1px solid #ced9d0;background:#edf3ee;border-radius:999px;padding:6px 10px;margin:0 0 7px}
+.buddy-rep-range span{font-size:9px;letter-spacing:.12em;font-weight:900;color:#708078}
+.buddy-rep-range strong{font-size:15px}
+.buddy-rest-timer{display:flex;align-items:baseline;justify-content:space-between;padding:10px 14px;margin:0 0 10px;border-radius:15px;background:#e8efe9;border:1px solid #cad7cd}
+.buddy-rest-timer small{font-size:10px;letter-spacing:.14em;font-weight:900;color:#708078}
+.buddy-rest-timer strong{font-size:38px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.buddy-set-editor{display:grid;grid-template-columns:1.15fr .85fr;gap:10px}
+.buddy-number-field{display:grid;gap:5px;min-width:0}
+.buddy-number-field>span,.buddy-effort-wrap>span{font-size:10px;font-weight:900;letter-spacing:.08em;color:#718078}
+.buddy-stepper{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.buddy-stepper button{height:38px;border:1px solid #cad6cd;background:#eaf0eb;color:#234b37;border-radius:10px;font-size:23px;font-weight:700;line-height:1}
+.buddy-number-input{position:relative}
+.buddy-number-field input{width:100%;height:52px;border:1px solid #d6dfd8;border-radius:13px;background:#fff;color:#172c23;font:inherit;font-size:20px;font-weight:800;padding:9px 10px}
+.buddy-number-input input{padding-right:38px}
+.buddy-number-input small{position:absolute;right:10px;top:18px;font-size:11px;color:#718078;font-weight:800}
+.buddy-effort-wrap{display:grid;gap:6px;margin-top:10px}
+.buddy-effort-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.buddy-effort{min-width:0;height:54px;border:1px solid transparent;border-radius:11px;padding:5px 2px;display:grid;place-items:center;align-content:center;gap:1px;color:#23372c}
+.buddy-effort b{font-size:16px;line-height:1}
+.buddy-effort span{font-size:7px;line-height:1;text-align:center;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:clip;max-width:100%}
+.buddy-effort.effort-1{background:#dcefdc;border-color:#bbdabb}
+.buddy-effort.effort-2{background:#e5f0cf;border-color:#cadba8}
+.buddy-effort.effort-3{background:#f0efc8;border-color:#dcd99f}
+.buddy-effort.effort-4{background:#f5e3b9;border-color:#e1c58d}
+.buddy-effort.effort-5{background:#f4d0ad;border-color:#e2ad84}
+.buddy-effort.effort-6{background:#efb6a4;border-color:#db927e}
+.buddy-effort.effort-7{background:#e99c9c;border-color:#d57878}
+.buddy-effort.selected{outline:3px solid #173e2e;outline-offset:1px;box-shadow:0 3px 10px rgba(23,62,46,.14)}
+.buddy-set-dots{margin:10px 0}
+.buddy-exercise-list .buddy-exercise{min-height:78px;padding:13px 16px}
+.buddy-exercise-list .buddy-exercise>span.exercise-copy{display:block}
+.buddy-exercise-list .buddy-exercise.exercise.equipment-dumbbell{background:#e8eef2;border-color:#cbd6dd}
+.buddy-exercise-list .buddy-exercise.exercise.equipment-cable{background:#e5e7e7;border-color:#c7cbcc}
+.buddy-exercise-list .buddy-exercise.exercise.equipment-machine{background:linear-gradient(105deg,#ececef 0%,#e2e1e7 72%,#e5dcef 100%);border-color:#d0ccd7}
+.buddy-exercise-list .buddy-exercise.exercise.equipment-bench{background:#f7f4ed}
+.buddy-exercise-list .buddy-exercise.exercise.equipment-calisthenics{background:#f1f4f8}
+[data-theme="dark"] .buddy-elapsed,[data-theme="dark"] .buddy-rest-timer,[data-theme="dark"] .buddy-rep-range{background:#1b2a21;border-color:#3b5042}
+[data-theme="dark"] .buddy-stepper button{background:#223229;border-color:#405348;color:#dce9df}
+[data-theme="dark"] .buddy-number-field input{background:#17231c;color:#e5eee7;border-color:#3b5042}
+[data-theme="dark"] .buddy-effort{color:#182219}
+[data-theme="dark"] .buddy-effort.selected{outline-color:#e5eee7}
+[data-theme="dark"] .buddy-exercise-list .buddy-exercise.exercise.equipment-dumbbell{background:#202a31;border-color:#3e505d}
+[data-theme="dark"] .buddy-exercise-list .buddy-exercise.exercise.equipment-cable{background:#181b1c;border-color:#3d4244}
+[data-theme="dark"] .buddy-exercise-list .buddy-exercise.exercise.equipment-machine{background:linear-gradient(105deg,#27272b 0%,#2d2c31 72%,#332b3b 100%);border-color:#4b4651}
+@media(max-width:390px){
+ .buddy-elapsed{font-size:21px}
+ .buddy-rest-timer strong{font-size:34px}
+ .buddy-effort-grid{gap:3px}
+ .buddy-effort{height:50px;border-radius:9px}
+ .buddy-effort span{font-size:6.5px}
+}
+@media(max-height:720px){
+ .buddy-exercise-view{padding-top:8px;padding-bottom:10px}
+ .buddy-exercise-title{margin-bottom:7px}
+ .buddy-exercise-title h1{font-size:29px;margin-bottom:5px}
+ .buddy-rep-range{padding:4px 8px;margin-bottom:4px}
+ .buddy-rest-timer{padding:7px 12px;margin-bottom:7px}
+ .buddy-rest-timer strong{font-size:30px}
+ .buddy-stepper button{height:32px}
+ .buddy-number-field input{height:46px}
+ .buddy-effort-wrap{margin-top:7px}
+ .buddy-effort{height:44px}
+ .buddy-set-dots{margin:7px 0}
+ .buddy-a{min-height:66px}
+}

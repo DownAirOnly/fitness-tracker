@@ -1,33 +1,33 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=25';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=28';
 
 export const KEY = 'everyday-fitness-v1';
 export const templateExercises = {
   Upper: [
-    {name:'Chest Press',equipment:'machine'},
-    {name:'Lat Pulldown',equipment:'machine'},
-    {name:'Seated Row',equipment:'machine'},
-    {name:'Shoulder Press',equipment:'machine'},
-    {name:'Triceps Pushdown',equipment:'cable'},
-    {name:'Bicep Curl',equipment:'dumbbell'}
+    {name:'Chest Press',equipment:'machine',repMin:6,repMax:12},
+    {name:'Lat Pulldown',equipment:'machine',repMin:6,repMax:12},
+    {name:'Seated Row',equipment:'machine',repMin:6,repMax:12},
+    {name:'Shoulder Press',equipment:'machine',repMin:6,repMax:12},
+    {name:'Triceps Pushdown',equipment:'cable',repMin:6,repMax:12},
+    {name:'Bicep Curl',equipment:'dumbbell',repMin:6,repMax:12}
   ],
   Lower: [
-    {name:'Seated Leg Press',equipment:'machine'},
-    {name:'Leg Curl',equipment:'machine'},
-    {name:'Glute Kickback',equipment:'machine'},
-    {name:'Leg Extension',equipment:'machine'},
-    {name:'Hip Abduction',equipment:'machine'},
-    {name:'Calf Extension',equipment:'machine'}
+    {name:'Seated Leg Press',equipment:'machine',repMin:6,repMax:12},
+    {name:'Leg Curl',equipment:'machine',repMin:6,repMax:12},
+    {name:'Glute Kickback',equipment:'machine',repMin:6,repMax:12},
+    {name:'Leg Extension',equipment:'machine',repMin:6,repMax:12},
+    {name:'Hip Abduction',equipment:'machine',repMin:6,repMax:12},
+    {name:'Calf Extension',equipment:'machine',repMin:10,repMax:16}
   ],
   'Full body': [
-    {name:'Torso Rotation',equipment:'machine'},
-    {name:'Chest Press',equipment:'machine'},
-    {name:'Seated Leg Press',equipment:'machine'},
-    {name:'Lat Pulldown',equipment:'machine'},
-    {name:'Leg Curl',equipment:'machine'},
-    {name:'Seated Row',equipment:'machine'},
-    {name:'Abdominal Crunch',equipment:'machine'},
-    {name:'Lateral Raise',equipment:'dumbbell'},
-    {name:'Calf Extension',equipment:'machine'}
+    {name:'Torso Rotation',equipment:'machine',repMin:6,repMax:12},
+    {name:'Chest Press',equipment:'machine',repMin:6,repMax:12},
+    {name:'Seated Leg Press',equipment:'machine',repMin:6,repMax:12},
+    {name:'Lat Pulldown',equipment:'machine',repMin:6,repMax:12},
+    {name:'Leg Curl',equipment:'machine',repMin:6,repMax:12},
+    {name:'Seated Row',equipment:'machine',repMin:6,repMax:12},
+    {name:'Abdominal Crunch',equipment:'machine',repMin:6,repMax:12},
+    {name:'Lateral Raise',equipment:'dumbbell',repMin:6,repMax:12},
+    {name:'Calf Extension',equipment:'machine',repMin:10,repMax:16}
   ]
 };
 export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], activeWorkout: null, workoutHistory: [], promptDate: ''});
