@@ -1,5 +1,5 @@
-const CACHE='everyday-v26-workout-buddy-fix';
-const FILES=['./','./index.html','./theme.js','./styles.css?v=26','./app.js?v=26','./import-model.js?v=26','./data.js?v=26','./storage-model.js?v=26','./cloud.js?v=26','./cloud-model.js?v=26','./health-model.js?v=12','./health-cloud.js?v=26','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE='everyday-v27-buddy-controls';
+const FILES=['./','./index.html','./theme.js','./styles.css?v=27','./app.js?v=27','./import-model.js?v=27','./data.js?v=27','./storage-model.js?v=27','./cloud.js?v=27','./cloud-model.js?v=27','./health-model.js?v=12','./health-cloud.js?v=27','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('everyday-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{

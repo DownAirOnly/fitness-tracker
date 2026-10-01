@@ -221,3 +221,17 @@ body.buddy-active{overflow:hidden}.buddy-active #app{visibility:hidden;pointer-e
 [data-theme="dark"] .buddy-entry{background:linear-gradient(145deg,#17231c,#1c2b22);border-color:#3d5144}[data-theme="dark"] .buddy-screen{background:#101813;color:#e5eee7}[data-theme="dark"] .buddy-head{background:#101813;border-color:#304137}[data-theme="dark"] .buddy-exercise,[data-theme="dark"] .buddy-set-editor input,[data-theme="dark"] .buddy-set-editor select{background:#17231c;color:#e5eee7;border-color:#3b5042}
 @media(max-width:390px){.buddy-main{padding:18px 14px 14px}.buddy-head{padding-left:16px;padding-right:16px}.buddy-set-editor{grid-template-columns:1fr .72fr 1fr;gap:6px}.buddy-set-editor input,.buddy-set-editor select{height:54px;padding:8px;font-size:17px}.buddy-set-editor select{font-size:11px}.buddy-a{min-height:78px;border-radius:19px}.buddy-a b{font-size:21px}}
 @media(max-height:650px){.buddy-main{padding-top:12px}.buddy-exercise-title{margin:2px 0 10px}.buddy-exercise-title h1{font-size:30px}.buddy-set-dots{margin:10px 0}.buddy-a{min-height:70px}.buddy-step-number{margin-bottom:10px}}
+
+/* Workout circuit colors + Buddy exit controls */
+.buddy-start-list button:nth-child(1),.workout-tabs button:nth-child(1){background:#dcefe5;border-color:#b8d8c5;color:#173e2e}
+.buddy-start-list button:nth-child(2),.workout-tabs button:nth-child(2){background:#e8e1f5;border-color:#cbbde5;color:#3b2d59}
+.buddy-start-list button:nth-child(3),.workout-tabs button:nth-child(3){background:#f4e4d4;border-color:#dfc2a4;color:#593d29}
+.workout-tabs button.selected{box-shadow:inset 0 0 0 2px currentColor;font-weight:800}
+.buddy-head-actions{display:flex;align-items:center;gap:12px}
+.buddy-exit{border:1px solid #ccd8cf;background:transparent;color:inherit;border-radius:10px;padding:7px 10px;font:inherit;font-size:12px;font-weight:800}
+.buddy-entry-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+[data-theme="dark"] .buddy-start-list button:nth-child(1),[data-theme="dark"] .workout-tabs button:nth-child(1){background:#1d392b;border-color:#355a46;color:#dcefe5}
+[data-theme="dark"] .buddy-start-list button:nth-child(2),[data-theme="dark"] .workout-tabs button:nth-child(2){background:#302642;border-color:#514167;color:#eee5ff}
+[data-theme="dark"] .buddy-start-list button:nth-child(3),[data-theme="dark"] .workout-tabs button:nth-child(3){background:#3d2d20;border-color:#654a35;color:#f6e6d7}
+[data-theme="dark"] .buddy-exit{border-color:#405349}
+@media(max-width:380px){.buddy-entry{align-items:flex-start}.buddy-entry-actions{flex-direction:column;align-items:stretch}.buddy-entry-actions button{width:100%}}
