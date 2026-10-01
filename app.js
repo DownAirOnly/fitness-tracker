@@ -54,7 +54,7 @@ function foodMatch(name,calories,protein){
   for(const food of data.foods){
     const candidate=normalize(food.name), words=new Set(candidate.split(' ').filter(Boolean));
     const shared=[...wantedWords].filter(word=>words.has(word)).length, union=new Set([...wantedWords,...words]).size;
-    const nameScore=wanted===candidate?1:(wanted.length>=4&&candidate.length>=4&&(wanted.includes(candidate)||candidate.includes(wanted)))?.9:union?shared/union:0;
+    const nameScore=wanted===candidate?1:(wanted.length>=4&&candidate.length>=4&&(wanted.includes(candidate)||candidate.includes(wanted)))?0.9:union?shared/union:0;
     const calorieScore=Math.max(0,1-Math.abs(food.calories-calories)/Math.max(100,food.calories,calories));
     const proteinScore=Math.max(0,1-Math.abs(food.protein-protein)/Math.max(10,food.protein,protein));
     const score=nameScore*.75+calorieScore*.15+proteinScore*.10;
