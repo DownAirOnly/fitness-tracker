@@ -309,3 +309,32 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .buddy-set-dots{margin:7px 0}
  .buddy-a{min-height:66px}
 }
+
+/* JSON-backed workout setup editing */
+.section-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.exercise-setup{color:#566a5d!important;font-weight:800}
+.workout-template-form{gap:12px}
+.workout-template-list{display:grid;gap:10px}
+.workout-template-row{border:1px solid #dce5de;border-radius:15px;padding:13px;background:#f8faf7;display:grid;gap:10px}
+.workout-template-title{display:flex;align-items:center;gap:10px}
+.workout-template-title>span:last-child{display:grid;gap:2px}
+.workout-template-title small{font-size:9px;text-transform:uppercase;letter-spacing:.11em;color:#718078;font-weight:800}
+.workout-template-title strong{font-size:14px}
+.equipment-mini{width:38px;height:34px;display:grid;place-items:center;color:#6f7c73}
+.equipment-mini svg{width:100%;height:100%}
+.workout-range-edit{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.buddy-meta-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.buddy-setup{display:inline-flex;align-items:center;gap:8px;border:1px solid #cbd6ce;background:#e6eee8;border-radius:999px;padding:6px 10px;margin:0 0 7px}
+.buddy-setup span{font-size:9px;letter-spacing:.12em;font-weight:900;color:#708078}
+.buddy-setup strong{font-size:13px}
+.buddy-end-options,.buddy-delete-confirm{display:grid;gap:10px}
+.buddy-end-options button,.buddy-delete-confirm button{width:100%;min-height:48px}
+.buddy-delete-confirm .danger:disabled{opacity:.48;cursor:not-allowed}
+[data-theme="dark"] .workout-template-row{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .exercise-setup{color:#9fb1a4!important}
+[data-theme="dark"] .buddy-setup{background:#1b2a21;border-color:#3b5042}
+@media(max-width:440px){
+ .section-actions{gap:6px}
+ .section-actions button{padding-left:10px;padding-right:10px}
+ .workout-template-row{padding:11px}
+}
