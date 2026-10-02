@@ -1,5 +1,5 @@
-const CACHE='everyday-v42-daily-polish';
-const FILES=['./','./index.html','./theme.js','./styles.css?v=42','./app.js?v=42','./import-model.js?v=42','./data.js?v=42','./storage-model.js?v=42','./cloud.js?v=42','./cloud-model.js?v=42','./health-model.js?v=42','./health-cloud.js?v=42','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE='everyday-v43-offline-json-workspace';
+const FILES=['./','./index.html','./theme.js','./styles.css?v=43','./app.js?v=43','./import-model.js?v=43','./data.js?v=43','./storage-model.js?v=43','./cloud.js?v=43','./cloud-model.js?v=43','./health-model.js?v=43','./health-cloud.js?v=43','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('everyday-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{

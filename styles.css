@@ -712,3 +712,25 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .home-remaining>span{padding:7px 8px}
  .home-remaining strong{font-size:9.5px}
 }
+
+/* v43: offline JSON workspace */
+.offline-workspace-panel.active{border-color:#cfdcc7;background:linear-gradient(145deg,#fbfdf8,#f4f8f1)}
+.workspace-status{border-radius:999px;padding:6px 9px;font-size:9px;font-weight:900;white-space:nowrap}
+.workspace-status.clean{background:#e4efe5;color:#3f6749}
+.workspace-status.dirty{background:#f4ead8;color:#785b24}
+.offline-workspace-actions{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin-top:12px}
+.offline-workspace-actions button{width:100%}
+.offline-workspace-banner{border-color:#ccd9c8;background:#f4f8f1}
+.offline-workspace-banner>span>small{color:#6d7f72}
+#offline-workspace-preview[role="alert"]{margin-top:10px;padding:10px 12px;border:1px solid #dfba85;border-radius:11px;background:#fff3e1;color:#6f4c1d;font-size:11px;line-height:1.45}
+[data-theme="dark"] .offline-workspace-panel.active{background:linear-gradient(145deg,#19251e,#1d2a21);border-color:#3c5040}
+[data-theme="dark"] .workspace-status.clean{background:#22362a;color:#bdd3c1}
+[data-theme="dark"] .workspace-status.dirty{background:#403522;color:#efd29a}
+[data-theme="dark"] .offline-workspace-banner{background:#19251e;border-color:#3b4d40}
+[data-theme="dark"] #offline-workspace-preview[role="alert"]{background:#423621;border-color:#84683f;color:#f3d4a1}
+@media(max-width:520px){
+ .offline-workspace-actions{grid-template-columns:1fr}
+}
+
+.loading-offline-option{margin-top:14px}
+.loading-offline-option .outline{width:100%;margin-top:4px}

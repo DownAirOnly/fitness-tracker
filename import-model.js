@@ -1,4 +1,4 @@
-import {emptyData,normalizeData,parseFoodCSV,id,validDate} from './data.js?v=42';
+import {emptyData,normalizeData,parseFoodCSV,id,validDate} from './data.js?v=43';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries'};
 const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:[r.date,r.exercise.toLowerCase(),r.sets,r.difficulty??null,r.notes??'']);
