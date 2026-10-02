@@ -70,7 +70,7 @@ try{
  await click('custom-lift');await submit('lift',{exercise:'Test press',weight:'40',reps:'8',difficulty:'7'});
  assert.equal(JSON.parse(state.records.get('bob').payload).lifts[0].date,'2026-09-20');
  await click('home');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
- await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));
+ await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');
  await click('settings');
  let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
  dom.window.HTMLAnchorElement.prototype.click=function(){};
