@@ -1,6 +1,6 @@
-import {healthBridge} from './health-cloud.js?v=39';
+import {healthBridge} from './health-cloud.js?v=40';
 import {firebaseConfig} from './firebase-config.js';
-import {nextRecord, CloudSession} from './cloud-model.js?v=39';
+import {nextRecord, CloudSession} from './cloud-model.js?v=40';
 
 export async function connectCloud(onUser) {
   const [appSDK,authSDK,dbSDK]=await Promise.all([

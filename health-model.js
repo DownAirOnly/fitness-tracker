@@ -1,4 +1,4 @@
-import {validDate, round, id} from './data.js?v=39';
+import {validDate, round, id} from './data.js?v=40';
 
 // Adapter-independent latest-reading import. Dates are supplied in the phone's
 // local calendar; timestamps retain their offset and are used only for ordering.

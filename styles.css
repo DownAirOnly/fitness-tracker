@@ -614,3 +614,39 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .exercise-progress-sets span{font-size:10px;line-height:1.35}
 .exercise-progress-session p{font-size:11px;line-height:1.45}
 [data-theme="dark"] .exercise-chart-legend-item.rep{color:inherit}
+
+/* v40: pinned foods, nutrition accuracy, and searchable suggestion anchors */
+.pinned-foods{margin-top:-4px}
+.pinned-foods .section-head{margin-bottom:10px}
+.pinned-count{display:grid;place-items:center;min-width:28px;height:28px;border-radius:999px;background:#edf4e8;color:#476450;font-size:10px;font-weight:900}
+.pinned-food-grid .food-card-pinned{border-color:#c7d9b4;background:linear-gradient(145deg,#fbfdf6,#f1f7e8)}
+.food-card-pinned:before{content:'★';position:absolute;right:12px;bottom:10px;font-size:12px;color:#86a66e;opacity:.8;pointer-events:none}
+.pin-mark{font-style:normal;color:#78995f;font-size:11px;margin-left:4px}
+.suggestion-search{display:grid;gap:5px}
+.suggestion-search>span{font-size:10px;font-weight:900;letter-spacing:.06em;color:#718078}
+.suggestion-search input{width:100%;min-height:44px;border:1px solid #d5ded7;border-radius:11px;background:#fff;color:#294536;font:inherit;font-size:16px;padding:10px 12px}
+.suggestion-search-results{display:grid;gap:5px}
+.suggestion-search-result{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:9px 11px;border:1px solid #dce5de;border-radius:11px;background:#f9fbf8;color:#294536;text-align:left}
+.suggestion-search-result>span{display:grid;gap:2px;min-width:0}
+.suggestion-search-result strong{font-size:11px;overflow-wrap:anywhere}
+.suggestion-search-result small{font-size:9px;color:#718078}
+.suggestion-search-result b{font-size:10px;color:#35674c}
+.suggestion-search-hint{margin:0;padding:2px 1px;font-size:9px;line-height:1.45;color:#7d8a81}
+.suggestion-selected-anchor{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border-radius:11px;background:#eaf2e5}
+.suggestion-selected-anchor>span{display:grid;gap:2px}
+.suggestion-selected-anchor small{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#738179}
+.suggestion-selected-anchor strong{font-size:11px}
+.suggestion-anchor-recent{display:grid;gap:5px}
+.suggestion-anchor-recent>small{font-size:9px;font-weight:900;color:#718078}
+[data-theme="dark"] .pinned-count{background:#25372a;color:#c5dbc9}
+[data-theme="dark"] .pinned-food-grid .food-card-pinned{background:linear-gradient(145deg,#202d22,#233223);border-color:#4a664b}
+[data-theme="dark"] .pin-mark,[data-theme="dark"] .food-card-pinned:before{color:#b9d69a}
+[data-theme="dark"] .suggestion-search input{background:#17231c;color:#e5eee7;border-color:#394b40}
+[data-theme="dark"] .suggestion-search-result{background:#17231c;color:#e5eee7;border-color:#394b40}
+[data-theme="dark"] .suggestion-search-result small,[data-theme="dark"] .suggestion-search-hint,[data-theme="dark"] .suggestion-search>span,[data-theme="dark"] .suggestion-anchor-recent>small{color:#9daf9f}
+[data-theme="dark"] .suggestion-search-result b{color:#b5d58d}
+[data-theme="dark"] .suggestion-selected-anchor{background:#223229}
+@media(max-width:440px){
+ .pinned-foods{margin-top:0}
+ .suggestion-search-result{padding:9px 10px}
+}
