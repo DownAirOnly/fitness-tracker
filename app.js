@@ -489,12 +489,8 @@ function weightSmoothPath(points){
  return path;
 }
 function weightTrendSeries(points,windowSize=7){
- const half=Math.floor(windowSize/2);
  return points.map((point,index)=>{
-  let start=Math.max(0,index-half),end=Math.min(points.length-1,index+half);
-  if(index<half)end=Math.min(points.length-1,windowSize-1);
-  if(index>points.length-1-half)start=Math.max(0,points.length-windowSize);
-  const slice=points.slice(start,end+1),value=slice.reduce((sum,item)=>sum+item.value,0)/slice.length;
+  const slice=points.slice(Math.max(0,index-windowSize+1),index+1),value=slice.reduce((sum,item)=>sum+item.value,0)/slice.length;
   return{...point,trend:value};
  });
 }
