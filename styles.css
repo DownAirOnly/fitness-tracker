@@ -573,3 +573,34 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .suggestion-card-actions{grid-template-columns:1fr 1fr}
  .diagnostic-counts{grid-template-columns:1fr 1fr}
 }
+
+/* v38: dual-signal exercise chart + change-first import review */
+.exercise-chart-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 4px}
+.exercise-chart-legend-item{display:flex;align-items:center;gap:7px}
+.exercise-chart-legend-item>span{display:grid;gap:1px}
+.exercise-chart-legend-item b{font-size:10px}
+.exercise-chart-legend-item small,.exercise-chart-effort small{font-size:9px;color:#718078}
+.exercise-chart-legend-item i{display:block;width:25px;height:0;border-top:3px solid currentColor;position:relative}
+.exercise-chart-legend-item.weight i:after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:currentColor;left:9px;top:-4px}
+.exercise-chart-legend-item.rep{color:#4f7b61}
+.exercise-chart-legend-item.rep i{border-top-width:6px;border-radius:999px;opacity:.56}
+.exercise-chart-effort{margin-left:auto;display:grid;gap:1px;text-align:right}
+.exercise-chart-effort b{font-size:10px}
+.exercise-rep-segment{fill:none;stroke:#4f7b61;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.exercise-weight-line{stroke:currentColor;stroke-width:2.5}
+.exercise-weight-dot{fill:currentColor}
+.exercise-chart-note{margin:2px 0 0;font-size:9px;line-height:1.45;color:#78857c}
+.import-changes{margin-bottom:14px}
+.import-changes-head{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:10px}
+.import-changes-head .eyebrow{margin:0}
+.import-changes-head h3{font:700 23px 'Outfit',sans-serif;margin:0}
+.import-summary-compact{padding:12px 14px}
+.import-summary-compact p{margin:2px 0 5px}
+.import-summary-compact>strong{display:block;margin-top:4px}
+[data-theme="dark"] .exercise-chart-legend-item.rep{color:#91ba98}
+[data-theme="dark"] .exercise-rep-segment{stroke:#91ba98}
+[data-theme="dark"] .exercise-chart-note,[data-theme="dark"] .exercise-chart-legend-item small,[data-theme="dark"] .exercise-chart-effort small{color:#9daf9f}
+@media(max-width:440px){
+ .exercise-chart-effort{width:100%;margin-left:0;text-align:left}
+ .import-changes-head{align-items:flex-start;display:grid}
+}

@@ -1,7 +1,7 @@
-import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=37';
+import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=38';
 
-import {prepareImport,importSections} from './import-model.js?v=37';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=37';
+import {prepareImport,importSections} from './import-model.js?v=38';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=38';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
@@ -325,11 +325,23 @@ function bestLiftSet(lift){
 function exerciseProgressChart(group){
  const points=group.lifts.map(l=>({date:l.date,set:bestLiftSet(l)})).filter(x=>x.set);
  if(!points.length)return'';
- const weighted=points.some(x=>x.set.weight>0),values=points.map(x=>weighted?x.set.weight:x.set.reps),min=Math.min(...values),max=Math.max(...values),range=Math.max(1,max-min),w=300,h=92,p=10;
- const coords=values.map((v,i)=>({x:points.length===1?w/2:p+i*(w-2*p)/(points.length-1),y:h-p-(v-min)/range*(h-2*p)}));
- const poly=coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
- return '<div class="exercise-progress-chart"><div class="exercise-chart-head"><small>'+(weighted?'Top set weight':'Top set reps')+'</small><strong>'+fmt(values.at(-1))+(weighted?' '+data.settings.unit:' reps')+'</strong></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(group.name)+' '+(weighted?'weight':'reps')+' trend"><polyline points="'+poly+'" fill="none" vector-effect="non-scaling-stroke"></polyline>'+coords.map(p=>'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3"></circle>').join('')+'</svg><div class="exercise-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div></div>';
+ const weighted=points.some(x=>x.set.weight>0),weightValues=points.map(x=>weighted?x.set.weight:x.set.reps),repValues=points.map(x=>x.set.reps);
+ const wMin=Math.min(...weightValues),wMax=Math.max(...weightValues),wRange=Math.max(1,wMax-wMin),rMin=Math.min(...repValues),rMax=Math.max(...repValues),rRange=Math.max(1,rMax-rMin),w=300,h=108,p=12;
+ const xFor=i=>points.length===1?w/2:p+i*(w-2*p)/(points.length-1);
+ const weightCoords=weightValues.map((v,i)=>({x:xFor(i),y:h-p-(v-wMin)/wRange*(h-2*p)}));
+ const repCoords=repValues.map((v,i)=>({x:xFor(i),y:h-p-(v-rMin)/rRange*(h-2*p),difficulty:points[i].set.difficulty||0}));
+ const weightPoly=weightCoords.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' ');
+ const repSegments=[];
+ for(let i=0;i<repCoords.length-1;i++){
+   const a=repCoords[i],b=repCoords[i+1],mid=(a.x+b.x)/2,effort=b.difficulty||a.difficulty||0;
+   const opacity=effort?(.26+(Math.max(1,Math.min(7,effort))-1)/6*.56):.24,width=effort?(3.8+(Math.max(1,Math.min(7,effort))-1)/6*4.2):3.8;
+   repSegments.push('<path class="exercise-rep-segment" d="M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' C '+mid.toFixed(1)+' '+a.y.toFixed(1)+' '+mid.toFixed(1)+' '+b.y.toFixed(1)+' '+b.x.toFixed(1)+' '+b.y.toFixed(1)+'" style="opacity:'+opacity.toFixed(2)+';stroke-width:'+width.toFixed(1)+'"></path>');
+ }
+ const latest=points.at(-1).set,latestEffort=latest.difficulty?effortText(latest.difficulty):'No effort';
+ const repLegend=points.length>1?'<span class="exercise-chart-legend-item rep"><i></i><span><b>Reps</b><small>'+latest.reps+' latest · darkness follows effort</small></span></span>':'';
+ return '<div class="exercise-progress-chart"><div class="exercise-chart-head"><small>'+(weighted?'Top set weight':'Top set reps')+'</small><strong>'+fmt(weightValues.at(-1))+(weighted?' '+data.settings.unit:' reps')+'</strong></div><div class="exercise-chart-legend"><span class="exercise-chart-legend-item weight"><i></i><span><b>'+(weighted?'Weight':'Top reps')+'</b><small>Exact session values</small></span></span>'+repLegend+'<span class="exercise-chart-effort"><small>Latest effort</small><b>'+esc(latestEffort)+'</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(group.name)+' '+(weighted?'weight and reps':'reps')+' trend">'+repSegments.join('')+'<polyline class="exercise-weight-line" points="'+weightPoly+'" fill="none" vector-effect="non-scaling-stroke"></polyline>'+weightCoords.map(pt=>'<circle class="exercise-weight-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3"></circle>').join('')+'</svg><div class="exercise-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><p class="exercise-chart-note">The smooth rep curve uses its own scale. Darker/thicker sections mean the logged top set felt harder, so the curve shows rep progression without pretending reps and weight use the same axis.</p></div>';
 }
+
 function exerciseProgressModal(name,equipment){
  const group=exerciseProgressGroups().find(g=>g.key===exerciseHistoryKey(name,equipment));if(!group)return;
  const best=[...group.lifts].map(l=>({lift:l,set:bestLiftSet(l)})).filter(x=>x.set).sort((a,b)=>b.set.weight-a.set.weight||b.set.reps-a.set.reps)[0];
@@ -563,7 +575,7 @@ app.addEventListener('submit',async event=>{
 
 render();
 startCloud();
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=37',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=38',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
 
 function accountBanner(){
   return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
@@ -583,7 +595,7 @@ async function loadAccount(){
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=37');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=38');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
@@ -615,22 +627,33 @@ function importRecord(key,item,unit){
   return `<div class="list-row import-record"><div><strong>${esc(title)}</strong><small>${esc(details)}</small>${key==='lifts'&&r.notes?`<p class="import-note">${esc(r.notes)}</p>`:''}<div class="import-badges">${item.badges.map(b=>`<span class="import-badge ${/duplicate|Replaces|Removed|Multiple/.test(b)?'attention':''}">${esc(b)}</span>`).join('')}</div>${item.previous?`<details class="import-previous"><summary>Existing record being replaced</summary>${importRecord(key,{record:item.previous,badges:[]},pendingImport.currentSettings.unit)}</details>`:''}</div></div>`;
 }
 function importGroup(group,removed=false){
-  const rows=removed?group.removedRows:group.rows,key=group.key+(removed?'-removed':'');
-  const unit=removed?pendingImport.currentSettings.unit:pendingImport.kind==='json'?pendingImport.settings.unit:data.settings.unit;
-  return `<details class="import-group" ${removed?'':'open'}><summary>${removed?'Removed '+group.label:group.label}<span>${rows.length}</span></summary>${group.unchanged?'<p class="hint">Unchanged by CSV import.</p>':rows.length?`<div id="import-${key}">${rows.slice(0,50).map(row=>importRecord(group.key,row,unit)).join('')}</div>${rows.length>50?button(`Show next ${Math.min(50,rows.length-50)} (${50} of ${rows.length} shown)`,'import-more','outline small',`data-group="${group.key}" data-removed="${removed}" data-shown="50"`):''}`:'<p class="hint">No incoming records.</p>'}</details>`;
+  const rows=removed?group.removedRows:group.rows;if(!rows.length)return'';
+  const key=group.key+(removed?'-removed':''),unit=removed?pendingImport.currentSettings.unit:pendingImport.kind==='json'?pendingImport.settings.unit:data.settings.unit;
+  const title=removed?'Removed '+group.label:(pendingImport.kind==='json'?'Changed '+group.label:group.label);
+  return '<details class="import-group" open><summary>'+esc(title)+'<span>'+rows.length+'</span></summary><div id="import-'+key+'">'+rows.slice(0,50).map(row=>importRecord(group.key,row,unit)).join('')+'</div>'+(rows.length>50?button('Show next '+Math.min(50,rows.length-50)+' (50 of '+rows.length+' shown)','import-more','outline small','data-group="'+group.key+'" data-removed="'+removed+'" data-shown="50"'):'')+'</details>';
 }
 function expandImportGroup(el){
   if(!pendingImport)return;const g=pendingImport.groups.find(g=>g.key===el.dataset.group);if(!g)return;
   const removed=el.dataset.removed==='true',rows=removed?g.removedRows:g.rows,shown=Number(el.dataset.shown),next=Math.min(shown+50,rows.length);
   const unit=removed?pendingImport.currentSettings.unit:pendingImport.kind==='json'?pendingImport.settings.unit:data.settings.unit;
-  document.querySelector(`#import-${g.key}${removed?'-removed':''}`).insertAdjacentHTML('beforeend',rows.slice(shown,next).map(r=>importRecord(g.key,r,unit)).join(''));
-  if(next===rows.length)el.remove();else{el.dataset.shown=next;el.textContent=`Show next ${Math.min(50,rows.length-next)} (${next} of ${rows.length} shown)`;}
+  document.querySelector('#import-'+g.key+(removed?'-removed':'')).insertAdjacentHTML('beforeend',rows.slice(shown,next).map(r=>importRecord(g.key,r,unit)).join(''));
+  if(next===rows.length)el.remove();else{el.dataset.shown=next;el.textContent='Show next '+Math.min(50,rows.length-next)+' ('+next+' of '+rows.length+' shown)';}
 }
 function showImportReview(plan,saveError=''){
-  const json=plan.kind==='json',count=plan.groups.reduce((n,g)=>n+g.rows.length,0);
+  const json=plan.kind==='json',incomingCount=plan.groups.reduce((n,g)=>n+g.total,0);
   const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on',dayResetMinutes:'Day resets at'};
   const settingValue=(key,value)=>key==='weekStart'?weekDays[value]:key==='dayResetMinutes'?clockLabel(value):typeof value==='object'?JSON.stringify(value):String(value);
-  modal('Review import',`<p class="import-filename">${esc(plan.filename)}</p><div class="import-scroll" tabindex="0" aria-label="Import records"><div class="import-summary"><p class="eyebrow">${json?'REPLACE FROM JSON BACKUP':'ADD FROM CSV'}</p><h3>${count} incoming records</h3><p>${json?'This replaces all Saved Foods, Food Entries, Lifting Entries, Weight Entries and settings. Records missing from the backup will be removed.':'Adds food entries and creates saved cards for new food names. Existing records and settings stay unchanged.'}</p><p>${json?`${plan.replaced} changed records · ${plan.removed} records removed · `:''}${plan.duplicates} possible duplicates</p><strong>Nothing has been imported yet.</strong></div>${saveError?`<div class="import-alert" role="alert"><strong>Import was not saved</strong><p>${esc(saveError)}</p><p>Your current in-memory records are unchanged.</p></div>`:''}${plan.errors.length?`<div class="import-alert" role="alert"><strong>Cannot import · ${plan.errors.length} issue${plan.errors.length===1?'':'s'}</strong><p>Fix the file and preview it again. No records will be committed, including the valid records shown below.</p><ul>${plan.errors.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`:''}${plan.warnings.length?`<details class="import-alert" open><summary>Review ${plan.warnings.length} warning${plan.warnings.length===1?'':'s'}</summary><ul>${plan.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></details>`:''}${plan.groups.map(g=>importGroup(g)).join('')}${json?`<details class="import-group" open><summary>Settings & other data<span>${Object.keys(plan.settings).length+1}</span></summary>${Object.entries(plan.settings).map(([key,value])=>`<div class="list-row import-record"><div><strong>${esc(labels[key]||key)}</strong><small>${esc(settingValue(key,plan.currentSettings[key]))} → ${esc(settingValue(key,value))}</small><span class="import-badge ${JSON.stringify(plan.currentSettings[key])!==JSON.stringify(value)?'attention':''}">${JSON.stringify(plan.currentSettings[key])===JSON.stringify(value)?'Unchanged':'Replaces setting'}</span></div></div>`).join('')}<div class="list-row import-record"><div><strong>Daily weight-prompt date</strong><small>${esc(plan.currentPromptDate||'Not set')} → ${esc(plan.promptDate||'Not set')}</small></div></div></details>${plan.groups.filter(g=>g.removedRows.length).map(g=>importGroup(g,true)).join('')}`:'<p class="hint">Settings and weight-prompt date are unchanged.</p>'}</div><div class="import-footer"><p>${json?'Confirmation replaces the current data. Export a backup first if needed.':'Possible duplicates will also be added. Review them before confirming.'}</p><div class="form-actions">${plan.candidate?button(json?'Confirm replacement':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file','choose-import','primary',`data-kind="${plan.kind}"`)}${button('Cancel','close','outline')}</div></div>`);
+  const settingsChanges=plan.settingChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(labels[change.key]||change.key)+'</strong><small>'+esc(settingValue(change.key,change.from))+' → '+esc(settingValue(change.key,change.to))+'</small><span class="import-badge attention">Replaces setting</span></div></div>').join('');
+  const promptChange=plan.promptChanged?'<div class="list-row import-record"><div><strong>Daily weight-prompt date</strong><small>'+esc(plan.currentPromptDate||'Not set')+' → '+esc(plan.promptDate||'Not set')+'</small><span class="import-badge attention">Changes</span></div></div>':'';
+  const otherChanges=plan.otherChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(change.label)+'</strong><small>'+esc(change.detail||change.from+' → '+change.to)+'</small><span class="import-badge attention">Changes</span></div></div>').join('');
+  const changedGroups=plan.groups.map(g=>importGroup(g)).join('');
+  const removedGroups=json?plan.groups.map(g=>importGroup(g,true)).join(''):'';
+  const changesBody=plan.changeCount?settingsChanges+promptChange+otherChanges+changedGroups+removedGroups:'<p class="empty">No data changes detected in this file.</p>';
+  const summary='<div class="import-summary import-summary-compact"><p class="eyebrow">'+(json?'JSON BACKUP':'CSV IMPORT')+'</p><p>'+incomingCount+' incoming tracked records'+(json?' · '+plan.unchanged+' unchanged items omitted':'')+(plan.duplicates?' · '+plan.duplicates+' possible duplicates':'')+'</p><strong>Nothing has been imported yet.</strong></div>';
+  const errors=plan.errors.length?'<div class="import-alert" role="alert"><strong>Cannot import · '+plan.errors.length+' issue'+(plan.errors.length===1?'':'s')+'</strong><p>Fix the file and preview it again. No records will be committed, including the valid changes shown above.</p><ul>'+plan.errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>':'';
+  const warnings=plan.warnings.length?'<details class="import-alert"><summary>Review '+plan.warnings.length+' warning'+(plan.warnings.length===1?'':'s')+'</summary><ul>'+plan.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul></details>':'';
+  const saveAlert=saveError?'<div class="import-alert" role="alert"><strong>Import was not saved</strong><p>'+esc(saveError)+'</p><p>Your current in-memory records are unchanged.</p></div>':'';
+  modal('Review import','<p class="import-filename">'+esc(plan.filename)+'</p><div class="import-scroll" tabindex="0" aria-label="Import changes"><section class="import-changes"><div class="import-changes-head"><p class="eyebrow">CHANGES</p><h3>'+plan.changeCount+' proposed change'+(plan.changeCount===1?'':'s')+'</h3></div>'+changesBody+'</section>'+summary+saveAlert+errors+warnings+'</div><div class="import-footer"><p>'+(json?'Confirmation replaces the current data with this backup. Unchanged items are omitted from the preview.':'Review the additions above before confirming.')+'</p><div class="form-actions">'+(plan.candidate?button(json?'Confirm replacement':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file','choose-import','primary','data-kind="'+plan.kind+'"'))+button('Cancel','close','outline')+'</div></div>');
   document.querySelector('.modal').classList.add('import-dialog');
 }
 async function commitImport(){
