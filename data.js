@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=35';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=36';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -20,31 +20,31 @@ export const defaultExerciseDefinitions = () => [
 ];
 export const templateExercises = {
   Upper: [
-    {exerciseId:'exercise-machine-chest-press',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-lat-pulldown',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-seated-row',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-shoulder-press',repMin:6,repMax:12},
-    {exerciseId:'exercise-cable-triceps-pushdown',repMin:6,repMax:12},
-    {exerciseId:'exercise-dumbbell-bicep-curl',repMin:6,repMax:12}
+    {exerciseId:'exercise-machine-chest-press',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-lat-pulldown',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-seated-row',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-shoulder-press',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-cable-triceps-pushdown',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-dumbbell-bicep-curl',repMin:6,repMax:12,targetSets:2,restSeconds:90}
   ],
   Lower: [
-    {exerciseId:'exercise-machine-seated-leg-press',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-leg-curl',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-glute-kickback',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-leg-extension',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-hip-abduction',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-calf-extension',repMin:10,repMax:16}
+    {exerciseId:'exercise-machine-seated-leg-press',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-leg-curl',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-glute-kickback',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-leg-extension',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-hip-abduction',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-calf-extension',repMin:10,repMax:16,targetSets:2,restSeconds:90}
   ],
   'Full body': [
-    {exerciseId:'exercise-machine-torso-rotation',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-chest-press',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-seated-leg-press',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-lat-pulldown',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-leg-curl',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-seated-row',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-abdominal-crunch',repMin:6,repMax:12},
-    {exerciseId:'exercise-dumbbell-lateral-raise',repMin:6,repMax:12},
-    {exerciseId:'exercise-machine-calf-extension',repMin:10,repMax:16}
+    {exerciseId:'exercise-machine-torso-rotation',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-chest-press',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-seated-leg-press',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-lat-pulldown',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-leg-curl',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-seated-row',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-abdominal-crunch',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-dumbbell-lateral-raise',repMin:6,repMax:12,targetSets:2,restSeconds:90},
+    {exerciseId:'exercise-machine-calf-extension',repMin:10,repMax:16,targetSets:2,restSeconds:90}
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
@@ -157,12 +157,14 @@ export function normalizeData(input) {
           exerciseId=def?.id||exerciseId;
         }
         if(!definitionIds.has(exerciseId)&&fallbackItem?.exerciseId&&definitionIds.has(fallbackItem.exerciseId))exerciseId=fallbackItem.exerciseId;
-        let repMin=Number(e?.repMin),repMax=Number(e?.repMax);
+        let repMin=Number(e?.repMin),repMax=Number(e?.repMax),targetSets=Number(e?.targetSets),restSeconds=Number(e?.restSeconds);
         if(!Number.isInteger(repMin)||!Number.isInteger(repMax)||repMin<1||repMax<repMin||repMax>100){
           repMin=fallbackItem?.repMin||6;repMax=fallbackItem?.repMax||12;
         }
+        if(!Number.isInteger(targetSets)||targetSets<1||targetSets>10)targetSets=fallbackItem?.targetSets||2;
+        if(!Number.isInteger(restSeconds)||restSeconds<0||restSeconds>1800)restSeconds=fallbackItem?.restSeconds??90;
         if(typeof exerciseId!=='string'||!definitionIds.has(exerciseId))throw new Error('Backup has an invalid workout exercise reference.');
-        return{exerciseId,repMin,repMax};
+        return{exerciseId,repMin,repMax,targetSets,restSeconds};
       })};
     });
   }

@@ -70,7 +70,8 @@ export function decodeStoredData(input){
    let exerciseId='';
    if(typeof item?.exerciseId==='string'&&item.exerciseId)exerciseId=item.exerciseId;
    else if(typeof item?.name==='string'&&item.name.trim())exerciseId=ensureExercise(item.name,item?.equipment||'other');
-   return{exerciseId,repMin:Number(item?.repMin)||6,repMax:Number(item?.repMax)||12};
+   const targetSets=Number(item?.targetSets),restSeconds=Number(item?.restSeconds);
+   return{exerciseId,repMin:Number(item?.repMin)||6,repMax:Number(item?.repMax)||12,targetSets:Number.isInteger(targetSets)&&targetSets>=1&&targetSets<=10?targetSets:2,restSeconds:Number.isInteger(restSeconds)&&restSeconds>=0&&restSeconds<=1800?restSeconds:90};
   })
  })):undefined;
  const lifts=input.lifts.map(lift=>{if(!lift||typeof lift.exerciseId!=='string'||!exerciseMap.has(lift.exerciseId))throw Error('Backup lift references a missing exercise.');const exercise=exerciseMap.get(lift.exerciseId),record={id:lift.id,date:lift.date,exercise:exercise.name,equipment:exercise.equipment,sets:structuredClone(lift.sets)};if(lift.difficulty!=null)record.difficulty=lift.difficulty;if(lift.notes!=null)record.notes=lift.notes;if(lift.buddySessionId!=null)record.buddySessionId=lift.buddySessionId;return record;});
@@ -91,6 +92,6 @@ export function encodeStoredData(data){
   exercises.push(exercise);usedExerciseIds.add(exercise.id);exerciseByKey.set(key,exercise.id);exerciseById.set(exercise.id,exercise);
  }
  const lifts=data.lifts.map(lift=>{const normalized=inferExercise(lift.exercise),exercise={name:normalized.name,equipment:equipmentTypes.has(lift.equipment)?lift.equipment:normalized.equipment},key=exerciseKey(exercise);let exerciseId=exerciseByKey.get(key);if(!exerciseId){exerciseId=nextStableId('exercise',key,usedExerciseIds);usedExerciseIds.add(exerciseId);const created={id:exerciseId,...exercise};exercises.push(created);exerciseByKey.set(key,exerciseId);exerciseById.set(exerciseId,created);}const record={id:lift.id,date:lift.date,exerciseId,sets:structuredClone(lift.sets)};if(lift.difficulty!=null)record.difficulty=lift.difficulty;if(lift.notes)record.notes=lift.notes;if(lift.buddySessionId)record.buddySessionId=lift.buddySessionId;return record;});
- const workoutTemplates=Array.isArray(data.workoutTemplates)?data.workoutTemplates.map(w=>({id:w.id,name:w.name,exercises:(Array.isArray(w.exercises)?w.exercises:[]).map(item=>({exerciseId:item.exerciseId,repMin:item.repMin,repMax:item.repMax}))})):[];
+ const workoutTemplates=Array.isArray(data.workoutTemplates)?data.workoutTemplates.map(w=>({id:w.id,name:w.name,exercises:(Array.isArray(w.exercises)?w.exercises:[]).map(item=>{const record={exerciseId:item.exerciseId,repMin:item.repMin,repMax:item.repMax};if(item.targetSets!==2)record.targetSets=item.targetSets;if(item.restSeconds!==90)record.restSeconds=item.restSeconds;return record;})})):[];
  return{version:2,settings:structuredClone(data.settings),foods,foodEntries,exercises,lifts,weights:structuredClone(data.weights),workoutTemplates,activeWorkout:data.activeWorkout?structuredClone(data.activeWorkout):null,workoutHistory:Array.isArray(data.workoutHistory)?structuredClone(data.workoutHistory):[],promptDate:data.promptDate||''};
 }
