@@ -12,6 +12,8 @@ const initialHome=['.home-actions','.today-card','.weight-strip'].map(selector=>
 assert.ok(dom.window.document.querySelector('.home-actions button').disabled);
 assert.ok(!dom.window.document.body.textContent.includes('Goals are guides, not grades'));
 for(const key of ['window','document','localStorage','navigator'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
+let storagePersisted=false,persistRequests=0;
+Object.defineProperty(dom.window.navigator,'storage',{configurable:true,value:{persisted:async()=>storagePersisted,persist:async()=>{persistRequests++;storagePersisted=true;return true;},estimate:async()=>({usage:4096,quota:1024*1024})}});
 globalThis.alert=()=>{};globalThis.confirm=()=>true;
 const fixture=join(temp,'cloud.mjs');
 await writeFile(fixture,`
@@ -22,9 +24,11 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-for(const name of ['data.js','cloud-model.js'])source=source.replaceAll(`'./${name}?v=10'`,`'${new URL(name,root)}'`);
-source=source.replace("'./import-model.js?v=11'",`'${new URL('import-model.js',root)}'`);
-source=source.replace("'./cloud.js?v=12'",`'${pathToFileURL(fixture)}'`);
+source=source.replaceAll("'./data.js?v=44'",`'${new URL('data.js',root)}'`);
+source=source.replaceAll("'./cloud-model.js?v=44'",`'${new URL('cloud-model.js',root)}'`);
+source=source.replaceAll("'./import-model.js?v=44'",`'${new URL('import-model.js',root)}'`);
+source=source.replaceAll("'./durability.js?v=45'",`'${new URL('durability.js',root)}'`);
+source=source.replaceAll("'./cloud.js?v=44'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
@@ -33,6 +37,7 @@ const submit=async(kind,values)=>{const form=document.querySelector(`[data-form=
 globalThis.FormData=dom.window.FormData;
 try{
  await import(pathToFileURL(join(temp,'app.mjs')));await tick();await tick();
+ assert.equal(persistRequests,1,'startup requests persistent origin storage once');
  const {state}=await import(pathToFileURL(fixture));
  assert.ok(document.querySelector('.home-actions'),'Home cards exist before auth finishes');
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'true');
@@ -55,7 +60,10 @@ try{
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'account separation');
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
  assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');assert.equal(state.records.has('bob'),false);
+ assert.ok(localStorage.getItem('everyday-cloud-recovery-v1:bob'),'failed cloud save leaves an account-scoped device recovery copy');
  state.fail=false;await click('cloud-retry');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries[0].name,'Cloud meal');
+ assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
+ assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries[0].name,'Device meal','cloud record never replaces local data');
  await click('gym');assert.ok(document.querySelector('.tracking-date input'));
  const dateInput=document.querySelector('.tracking-date input');dateInput.value='2026-09-20';dateInput.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
@@ -171,7 +179,10 @@ try{
  slowForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await click('close');finishRead(oneCSV);await tick();
  assert.ok(!document.querySelector('.modal'));assert.ok(!document.querySelector('[data-action="commit-import"]'));
  // Device storage failures also keep the original records intact.
- await click('sign-out');await click('settings');
+ await click('sign-out');
+ assert.equal(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),null,'explicit sign-out clears the account-specific confirmed copy');
+ assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'explicit sign-out clears the account-specific recovery copy');
+ await click('settings');
  const localBefore=localStorage.getItem('everyday-fitness-v1');
  await previewFile('csv',oneCSV);
  const originalSetItem=dom.window.Storage.prototype.setItem;
