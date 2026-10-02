@@ -120,24 +120,30 @@ try{
  await click('new-food');await click('close');assert.ok(document.querySelector('.full-food-log'));
  await click('close');assert.ok(!document.querySelector('.modal'));
  await click('new-food');await click('close');assert.ok(!document.querySelector('.modal'),'direct add dismisses to Food');
- // Settings are persisted separately and never modify historical records.
+ // Calendar keeps Friday as the fixed week boundary and never modifies historical records.
  await click('home');await click('weight');await submit('weight',{value:'178',date:'2026-09-21'});
  await click('settings');
  const recordsBefore=JSON.parse(state.records.get('bob').payload);
- for(const day of [0,1,2,3,4,5,6]){
-  await submit('week-settings',{weekStart:String(day)});
-  const saved=JSON.parse(state.records.get('bob').payload);
-  assert.equal(saved.settings.weekStart,day);
-  for(const key of ['weights','lifts','foods','foodEntries'])assert.deepEqual(saved[key],recordsBefore[key]);
-  await click('progress');
-  const {weeklyWeights,startOfWeek,localDate}=await import(new URL('data.js',root));
-  assert.deepEqual([...document.querySelectorAll('[data-week]')].map(e=>e.dataset.week),weeklyWeights(saved.weights,68,'lb',day).map(w=>w.week));
-  const expectedCurrent=startOfWeek(localDate(),day);
-  for(const row of document.querySelectorAll('[data-week]'))assert.equal(row.textContent.includes('Current week'),row.dataset.week===expectedCurrent);
-  await click('settings');
- }
+ await submit('week-settings',{dayResetMinutes:'360'});
+ const savedCalendar=JSON.parse(state.records.get('bob').payload);
+ assert.equal(savedCalendar.settings.weekStart,5);
+ for(const key of ['weights','lifts','foods','foodEntries'])assert.deepEqual(savedCalendar[key],recordsBefore[key]);
+ await click('progress');
+ const {weeklyWeights,startOfWeek,localDate}=await import(new URL('data.js',root));
+ const visibleWeeks=weeklyWeights(savedCalendar.weights,68,'lb',5).slice(0,6);
+ assert.deepEqual([...document.querySelectorAll('[data-week]')].map(e=>e.dataset.week),visibleWeeks.map(w=>w.week));
+ assert.ok(document.querySelector('.progress-trend .weight-progress-chart'),'weight graph lives in Weekly trend');
+ assert.ok(!document.querySelector('.weight-progress-panel .weight-progress-chart'),'individual weigh-ins is list-only');
+ assert.ok(document.querySelector('.week-setting').textContent.includes('Friday'));
+ assert.ok(!document.querySelector('.week-setting').textContent.includes('Change'));
+ assert.ok(document.querySelectorAll('.weight-progress-panel .list-row').length<=5);
+ assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
+ assert.ok(document.querySelector('.food-progress-chart'),'recent food graph renders');
+ const expectedCurrent=startOfWeek(localDate(),5);
+ for(const row of document.querySelectorAll('[data-week]'))assert.equal(row.textContent.includes('Current week'),row.dataset.week===expectedCurrent);
+ await click('settings');
  await submit('settings',{calories:'1600',protein:'130',heightInches:'68',unit:'lb'});
- assert.equal(JSON.parse(state.records.get('bob').payload).settings.weekStart,6,'saving goals preserves week preference');
+ assert.equal(JSON.parse(state.records.get('bob').payload).settings.weekStart,5,'saving goals preserves fixed Friday week start');
  await click('sign-out');await click('sign-in');await click('settings');
  assert.equal(document.querySelector('[name="weekStart"]').value,'6','preference survives cloud reload');
  // Pass 4: preview staging, pagination, invalid files, cancellation and failed writes.
