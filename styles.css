@@ -116,6 +116,26 @@ main[aria-busy="true"] .today-card,main[aria-busy="true"] .weight-strip{opacity:
 .weight-chart-range{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:9px;color:#78857c}
 .weight-chart-range span:nth-child(2){text-align:center}
 .weight-chart-note{margin:0;font-size:9px;line-height:1.45;color:#78857c}
+.progress-trend .weight-progress-chart{margin:12px 0 10px}
+.food-progress-chart{display:grid;gap:7px;margin:10px 0 8px;padding:12px;border:1px solid #d9e2db;border-radius:14px;background:#fafcf9}
+.food-progress-chart svg{width:100%;height:105px;overflow:visible}
+.food-chart-legend{display:flex;gap:13px;flex-wrap:wrap;align-items:center}
+.food-chart-key{display:flex;align-items:center;gap:6px;font-size:10px}
+.food-chart-key i{display:block;width:22px;height:0;border-top:3px solid currentColor;position:relative}
+.food-chart-key.calories{color:#9a7b25}.food-chart-key.protein{color:#4f7b61}.food-chart-key.goal{color:#8a968d}
+.food-chart-key.calories i:after,.food-chart-key.protein i:after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:currentColor;left:8px;top:-4px}
+.food-chart-key.goal i{border-top-style:dashed;border-top-width:1.5px}
+.food-calorie-line,.food-protein-line{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.food-calorie-line{stroke:#9a7b25}.food-protein-line{stroke:#4f7b61}
+.food-calorie-dot{fill:#9a7b25}.food-protein-dot{fill:#4f7b61}
+.food-goal-line{stroke:#8a968d;stroke-width:1.2;stroke-dasharray:4 4;opacity:.75;vector-effect:non-scaling-stroke}
+.food-chart-range{display:flex;justify-content:space-between;font-size:9px;color:#78857c}
+.food-chart-note{margin:0;font-size:9px;line-height:1.45;color:#78857c}
+[data-theme="dark"] .food-progress-chart{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .food-chart-key.calories{color:#d7bd69}[data-theme="dark"] .food-chart-key.protein{color:#91ba98}
+[data-theme="dark"] .food-calorie-line{stroke:#d7bd69}[data-theme="dark"] .food-protein-line{stroke:#91ba98}
+[data-theme="dark"] .food-calorie-dot{fill:#d7bd69}[data-theme="dark"] .food-protein-dot{fill:#91ba98}
+[data-theme="dark"] .food-chart-range,[data-theme="dark"] .food-chart-note{color:#9daf9f}
 [data-theme="dark"] .weight-progress-chart{background:#17231c;border-color:#394b40}
 [data-theme="dark"] .weight-chart-key.trend{color:#91ba98}
 [data-theme="dark"] .weight-trend-line{stroke:#91ba98}
