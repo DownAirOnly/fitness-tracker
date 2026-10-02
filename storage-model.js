@@ -24,7 +24,15 @@ export function decodeStoredData(input){
  if(!input||input.version!==2)return input;
  if(!Array.isArray(input.foods)||!Array.isArray(input.foodEntries)||!Array.isArray(input.exercises)||!Array.isArray(input.lifts)||!Array.isArray(input.weights)||!input.settings||typeof input.settings!=='object')throw Error('This is not an Everyday backup.');
  const foodMap=new Map(),foods=[];
- for(const food of input.foods){if(!food||typeof food.id!=='string'||!food.id.trim()||typeof food.name!=='string'||!food.name.trim()||!Number.isFinite(food.calories)||food.calories<0||!Number.isFinite(food.protein)||food.protein<0||food.saved!=null&&typeof food.saved!=='boolean')throw Error('Backup has an invalid food dictionary item.');if(foodMap.has(food.id))throw Error('Backup has duplicate food dictionary IDs.');foodMap.set(food.id,food);if(food.saved!==false){const card={id:food.id,name:food.name,calories:food.calories,protein:food.protein};if(food.lastUsed!=null)card.lastUsed=food.lastUsed;foods.push(card);}}
+ for(const food of input.foods){
+  if(!food||typeof food.id!=='string'||!food.id.trim()||typeof food.name!=='string'||!food.name.trim()||!Number.isFinite(food.calories)||food.calories<0||!Number.isFinite(food.protein)||food.protein<0||food.saved!=null&&typeof food.saved!=='boolean')throw Error('Backup has an invalid food dictionary item.');
+  const kind=food.kind==null?'food':food.kind,tags=food.tags==null?[]:food.tags;
+  if(!['food','drink'].includes(kind)||!Array.isArray(tags)||tags.length>50||tags.some(tag=>typeof tag!=='string'||!tag.trim()||tag.length>40))throw Error('Backup has invalid food metadata.');
+  if(foodMap.has(food.id))throw Error('Backup has duplicate food dictionary IDs.');
+  const normalized={...food,kind,tags:[...new Set(tags.map(tag=>tag.trim().toLowerCase()))]};
+  foodMap.set(food.id,normalized);
+  if(food.saved!==false){const card={id:food.id,name:food.name,calories:food.calories,protein:food.protein,kind:normalized.kind,tags:structuredClone(normalized.tags)};if(food.lastUsed!=null)card.lastUsed=food.lastUsed;foods.push(card);}
+ }
  const foodEntries=input.foodEntries.map(entry=>{if(!entry||typeof entry.foodId!=='string'||!foodMap.has(entry.foodId))throw Error('Backup food entry references a missing food.');const food=foodMap.get(entry.foodId);return{id:entry.id,date:entry.date,name:food.name,calories:food.calories,protein:food.protein,quantity:entry.quantity};});
  const exerciseMap=new Map(),exerciseDefinitions=[],usedExerciseIds=new Set();
  for(const exercise of input.exercises){
@@ -70,7 +78,11 @@ export function decodeStoredData(input){
 }
 export function encodeStoredData(data){
  const foods=[],foodByKey=new Map(),usedFoodIds=new Set();
- for(const food of data.foods){const def={id:food.id,name:food.name,calories:food.calories,protein:food.protein};if(food.lastUsed!=null)def.lastUsed=food.lastUsed;foods.push(def);usedFoodIds.add(def.id);if(!foodByKey.has(foodKey(def)))foodByKey.set(foodKey(def),def.id);}
+ for(const food of data.foods){
+  const def={id:food.id,name:food.name,calories:food.calories,protein:food.protein,kind:['food','drink'].includes(food.kind)?food.kind:'food',tags:Array.isArray(food.tags)?[...new Set(food.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[]};
+  if(food.lastUsed!=null)def.lastUsed=food.lastUsed;
+  foods.push(def);usedFoodIds.add(def.id);if(!foodByKey.has(foodKey(def)))foodByKey.set(foodKey(def),def.id);
+ }
  const foodEntries=data.foodEntries.map(entry=>{const key=foodKey(entry);let foodId=foodByKey.get(key);if(!foodId){foodId=nextStableId('food',key,usedFoodIds);usedFoodIds.add(foodId);foods.push({id:foodId,name:entry.name,calories:entry.calories,protein:entry.protein,saved:false});foodByKey.set(key,foodId);}return{id:entry.id,date:entry.date,foodId,quantity:entry.quantity};});
  const exercises=[],exerciseByKey=new Map(),exerciseById=new Map(),usedExerciseIds=new Set();
  for(const def of Array.isArray(data.exerciseDefinitions)?data.exerciseDefinitions:[]){

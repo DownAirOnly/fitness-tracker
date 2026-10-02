@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=33';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=34';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -115,7 +115,7 @@ export function normalizeData(input) {
     if(input[key].length>50000) throw new Error('Backup is too large.');
     data[key]=input[key];
   }
-  for(const f of data.foods) if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0) throw new Error('Backup has an invalid saved food.');
+  for(const f of data.foods){if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0)throw new Error('Backup has an invalid saved food.');f.kind=['food','drink'].includes(f.kind)?f.kind:'food';f.tags=Array.isArray(f.tags)?[...new Set(f.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[];if(f.tags.length>50||f.tags.some(tag=>tag.length>40))throw new Error('Backup has invalid food metadata.');}
   for(const e of data.foodEntries) if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0) throw new Error('Backup has an invalid food entry.');
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');

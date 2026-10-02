@@ -417,3 +417,34 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .timing-summary strong{font-size:21px}
  .timing-row{gap:8px}
 }
+
+/* Sort controls + food metadata + day suggestions */
+.sort-control{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:.06em;color:#718078;white-space:nowrap}
+.sort-control select{height:34px;min-width:94px;border:1px solid #d5ded7;border-radius:10px;background:#f7faf7;color:#294536;font:inherit;font-size:11px;font-weight:800;padding:0 28px 0 9px}
+.library-tools{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.tag-check{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:1px solid #d8e1da;border-radius:13px;background:#f7faf7}
+.tag-check input{margin-top:3px;width:18px;height:18px}
+.tag-check>span{display:grid;gap:2px}
+.tag-check strong{font-size:13px}
+.tag-check small{font-size:10px;color:#718078;line-height:1.35}
+.food-add-row{display:flex;gap:8px;flex-wrap:wrap}
+.food-suggestions{display:grid;gap:14px}
+.suggestion-target{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.suggestion-target>span{display:grid;gap:3px;padding:12px 13px;border:1px solid #d8e1da;border-radius:13px;background:#f5f8f4}
+.suggestion-target small{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#738078;font-weight:800}
+.suggestion-target strong{font-size:22px;letter-spacing:-.03em}
+.suggestion-list{display:grid;gap:8px}
+.suggestion-card{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:13px 14px;border:1px solid #d7e0d9;border-radius:14px;background:#fff;color:inherit;text-align:left}
+.suggestion-card>span{display:flex;flex-wrap:wrap;gap:6px 10px}
+.suggestion-card strong{font-size:13px}
+.suggestion-card small{font-size:10px;color:#64736a;white-space:nowrap}
+[data-theme="dark"] .sort-control select,[data-theme="dark"] .tag-check,[data-theme="dark"] .suggestion-target>span{background:#17231c;color:#dce8df;border-color:#394b40}
+[data-theme="dark"] .suggestion-card{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .tag-check small,[data-theme="dark"] .suggestion-card small{color:#9daf9f}
+@media(max-width:440px){
+ .section-actions{align-items:flex-end}
+ .sort-control{display:grid;gap:3px}
+ .sort-control select{min-width:88px}
+ .suggestion-card{align-items:flex-start;display:grid}
+ .suggestion-card small{white-space:normal}
+}
