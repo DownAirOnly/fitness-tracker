@@ -10,7 +10,7 @@ export async function connectCloud(onUser) {
   ]);
   const app=appSDK.initializeApp(firebaseConfig);
   const auth=authSDK.getAuth(app);
-  // Session credentials can persist, but signed-in fitness records stay in memory.
+  // Firebase's own document cache stays memory-only; app.js maintains the explicit account-scoped recovery/confirmed device copies.
   await authSDK.setPersistence(auth,authSDK.browserLocalPersistence);
   const db=dbSDK.initializeFirestore(app,{localCache:dbSDK.memoryLocalCache()});
   const ref=uid=>dbSDK.doc(db,'users',uid,'state','main');
