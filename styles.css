@@ -98,6 +98,29 @@ main[aria-busy="true"] .today-card,main[aria-busy="true"] .weight-strip{opacity:
 .progress-details{margin-top:18px}.progress-details .section-head{margin-bottom:6px}
 .progress-count{font-size:12px;color:#708276;white-space:nowrap}.progress-details .list-row{padding:12px 0}
 .progress-details .day-link{gap:12px}.progress-details .day-link strong{text-align:right}
+.weight-progress-chart{display:grid;gap:8px;margin:10px 0 8px;padding:13px;border:1px solid #d9e2db;border-radius:14px;background:#fafcf9}
+.weight-chart-head{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.weight-chart-head>span{display:grid;gap:2px}.weight-chart-head>span:last-child{text-align:right}
+.weight-chart-head small{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#758178;font-weight:800}
+.weight-chart-head strong{font-size:17px}
+.weight-chart-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.weight-chart-key{display:flex;align-items:center;gap:6px;font-size:10px}
+.weight-chart-key i{display:block;width:24px;height:0;position:relative}
+.weight-chart-key.actual i{border-top:2.5px solid currentColor}
+.weight-chart-key.actual i:after{content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:currentColor;left:9px;top:-5px}
+.weight-chart-key.trend{color:#5d8767}.weight-chart-key.trend i{border-top:5px solid currentColor;border-radius:999px}
+.weight-progress-chart svg{width:100%;height:118px;overflow:visible}
+.weight-actual-line{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:miter;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.weight-actual-dot{fill:currentColor}
+.weight-trend-line{fill:none;stroke:#5d8767;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;opacity:.68;vector-effect:non-scaling-stroke}
+.weight-chart-range{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:9px;color:#78857c}
+.weight-chart-range span:nth-child(2){text-align:center}
+.weight-chart-note{margin:0;font-size:9px;line-height:1.45;color:#78857c}
+[data-theme="dark"] .weight-progress-chart{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .weight-chart-key.trend{color:#91ba98}
+[data-theme="dark"] .weight-trend-line{stroke:#91ba98}
+[data-theme="dark"] .weight-chart-head small,[data-theme="dark"] .weight-chart-range,[data-theme="dark"] .weight-chart-note{color:#9daf9f}
+@media(max-width:440px){.weight-chart-head strong{font-size:15px}.weight-progress-chart{padding:11px}.weight-chart-range{grid-template-columns:1fr auto}.weight-chart-range span:nth-child(2){grid-column:1/-1;grid-row:2;text-align:left}.weight-chart-range span:last-child{text-align:right}}
 [data-theme="dark"] .trend-highlight{background:#243b2c}[data-theme="dark"] .trend-metrics small,[data-theme="dark"] .week-setting,[data-theme="dark"] .progress-count{color:#adbcac}
 [data-theme="dark"] .trend-change{border-color:#40533f}
 @media(max-width:440px){.progress-trend,.progress-details{padding:17px}.progress-trend .section-head h2,.progress-details .section-head h2{font-size:21px}.trend-highlight{padding:15px}.trend-metrics strong{font-size:29px}.progress-trend .week-row strong{font-size:12px}}
