@@ -687,3 +687,28 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .food-main{padding-right:68px}
  .food-card-controls{right:5px;top:5px}
 }
+
+/* v42: compact remaining goals + larger Workout Buddy notes */
+.home-remaining{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.home-remaining>span{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;padding:8px 10px;border:1px solid #e0e6dd;border-radius:11px;background:#f7f9f5}
+.home-remaining small{font-size:8px;letter-spacing:.08em;font-weight:900;color:#7d8b81}
+.home-remaining strong{font-size:10px;color:#38503f;white-space:nowrap}
+.home-remaining>span.over strong{color:#a0523f}
+.home-remaining>span.reached strong{color:#3e7151}
+.buddy-notes-toggle{justify-self:stretch;width:100%;min-height:48px;border-radius:13px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left}
+.buddy-notes-toggle>span{display:grid;gap:2px}
+.buddy-notes-toggle b{font-size:12px}
+.buddy-notes-toggle small{font-size:9px;font-weight:700;color:#718078}
+.buddy-notes-toggle>strong{font-size:18px;line-height:1}
+.buddy-notes-toggle.has-note small{color:#607267}
+[data-theme="dark"] .home-remaining>span{background:#19251e;border-color:#33443a}
+[data-theme="dark"] .home-remaining small{color:#94a398}
+[data-theme="dark"] .home-remaining strong{color:#d1ddd4}
+[data-theme="dark"] .home-remaining>span.over strong{color:#e0a290}
+[data-theme="dark"] .home-remaining>span.reached strong{color:#a9d4b2}
+[data-theme="dark"] .buddy-notes-toggle small{color:#9faf9f}
+@media(max-width:390px){
+ .home-remaining{gap:6px}
+ .home-remaining>span{padding:7px 8px}
+ .home-remaining strong{font-size:9.5px}
+}
