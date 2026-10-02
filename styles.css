@@ -650,3 +650,40 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .pinned-foods{margin-top:0}
  .suggestion-search-result{padding:9px 10px}
 }
+
+/* v41: food card hierarchy, favorite toggles, and subtle nutrition accuracy marks */
+.food-section-title{align-items:center;margin-bottom:10px}
+.food-section-title>h2{margin:0}
+.pinned-foods .section-head{margin-bottom:10px}
+.pinned-count{display:none!important}
+.food-card-pinned:before{content:none!important}
+.pinned-food-grid .food-card-pinned{background:#fff;border-color:#dce5d7}
+.food-card-controls{position:absolute;right:7px;top:7px;z-index:2;display:flex;align-items:center;gap:1px}
+.food-card-controls .card-edit{position:static;right:auto;top:auto;padding:5px 7px}
+.food-favorite{border:0;background:transparent;color:#7d8981;font:inherit;font-size:20px;line-height:1;padding:4px 5px;min-width:29px;min-height:29px;border-radius:9px}
+.food-favorite.selected{color:#6f8f58}
+.food-favorite:active{background:#eef3eb}
+.food-main{padding-right:74px}
+.food-main strong{padding-right:0}
+.food-card-nutrition{display:flex!important;align-items:center;gap:7px;margin-top:8px!important;color:#617067!important;font-weight:800}
+.food-card-nutrition>span{display:inline!important;margin:0!important;color:inherit!important;font-size:11px!important}
+.food-card-tag{display:block;margin-top:5px!important;color:#8a968e!important;font-size:9px!important;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.food-card-add{display:block!important;margin-top:17px!important;font-weight:800!important;color:#447b54!important}
+.nutrition-accuracy{width:18px;height:20px;display:inline-grid!important;place-items:center;flex:0 0 auto;margin:0!important;color:#525d56}
+.nutrition-accuracy svg{width:16px;height:18px;display:block}
+.nutrition-accuracy svg rect,.nutrition-accuracy svg path{fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}
+.nutrition-accuracy-estimate{font:800 19px/1 'Outfit',sans-serif;color:#777f7a}
+.nutrition-accuracy-estimate>span{display:block!important;margin:-2px 0 0!important;color:inherit!important;font-size:19px!important}
+.nutrition-accuracy-unknown>span{display:block!important;width:13px;height:15px;border:1.5px solid #858d88;border-radius:2px;margin:0!important}
+[data-theme="dark"] .pinned-food-grid .food-card-pinned{background:#17231c;border-color:#35463b}
+[data-theme="dark"] .food-favorite{color:#89988e}
+[data-theme="dark"] .food-favorite.selected{color:#b5d58d}
+[data-theme="dark"] .food-favorite:active{background:#223129}
+[data-theme="dark"] .food-card-nutrition{color:#b0bbb3!important}
+[data-theme="dark"] .nutrition-accuracy{color:#aab3ad}
+[data-theme="dark"] .nutrition-accuracy-estimate{color:#9ba59e}
+[data-theme="dark"] .nutrition-accuracy-unknown>span{border-color:#7f8b83}
+@media(max-width:440px){
+ .food-main{padding-right:68px}
+ .food-card-controls{right:5px;top:5px}
+}
