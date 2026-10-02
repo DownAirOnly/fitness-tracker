@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=34';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=35';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -48,9 +48,10 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1}, foods: [], foodEntries: [], lifts: [], weights: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 1, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
 export const niceDate = s => new Date(`${s}T12:00:00`).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
 export const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T12:00:00`)) && localDate(new Date(`${s}T12:00:00`)) === s;
 export const round = n => Math.round((Number(n) + Number.EPSILON) * 10) / 10;
@@ -74,7 +75,7 @@ export function weeklyWeights(weights, height, unit='lb', weekStart=1) {
   }
   return [...groups].sort(([a],[b])=>b.localeCompare(a)).map(([week,values])=>({week, average:round(values.reduce((a,b)=>a+b,0)/values.length), bmi:bmi(values.reduce((a,b)=>a+b,0)/values.length,height,unit), count:values.length}));
 }
-export function shouldPrompt(data, now = new Date()) { return now.getHours() >= 6 && data.promptDate !== localDate(now) && !data.weights.some(w=>w.date===localDate(now)); }
+export function shouldPrompt(data, now = new Date()) { const reset=Number.isInteger(data.settings?.dayResetMinutes)?data.settings.dayResetMinutes:360, minutes=now.getHours()*60+now.getMinutes(), day=trackingDate(now,reset); return minutes>=reset && data.promptDate!==day && !data.weights.some(w=>w.date===day); }
 export function parseCSV(raw) {
   const rows=[]; let row=[], value='', quote=false;
   for(let i=0;i<raw.length;i++) {
@@ -110,13 +111,15 @@ export function normalizeData(input) {
   data.settings={...data.settings,...input.settings};
   if(![data.settings.calories,data.settings.protein,data.settings.heightInches].every(x=>Number.isFinite(Number(x)) && Number(x)>0) || !['lb','kg'].includes(data.settings.unit)) throw new Error('Backup settings are invalid.');
   if(!Number.isInteger(data.settings.weekStart)||data.settings.weekStart<0||data.settings.weekStart>6) throw new Error('Backup week start is invalid.');
+  data.settings.dayResetMinutes=Number.isInteger(Number(data.settings.dayResetMinutes))?Number(data.settings.dayResetMinutes):360;
+  if(data.settings.dayResetMinutes<0||data.settings.dayResetMinutes>1410||data.settings.dayResetMinutes%30!==0)throw new Error('Backup day reset time is invalid.');
   data.settings.calories=Number(data.settings.calories); data.settings.protein=Number(data.settings.protein); data.settings.heightInches=Number(data.settings.heightInches);
   for(const key of ['foods','foodEntries','lifts','weights']) {
     if(input[key].length>50000) throw new Error('Backup is too large.');
     data[key]=input[key];
   }
   for(const f of data.foods){if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0)throw new Error('Backup has an invalid saved food.');f.kind=['food','drink'].includes(f.kind)?f.kind:'food';f.tags=Array.isArray(f.tags)?[...new Set(f.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[];if(f.tags.length>50||f.tags.some(tag=>tag.length>40))throw new Error('Backup has invalid food metadata.');}
-  for(const e of data.foodEntries) if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0) throw new Error('Backup has an invalid food entry.');
+  for(const e of data.foodEntries){if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0)throw new Error('Backup has an invalid food entry.');if(e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47))throw new Error('Backup has an invalid food time.');}
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');
   // Transitional tolerance: old cloud records may still carry an exercise-level numeric difficulty.

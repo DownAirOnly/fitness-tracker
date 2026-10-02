@@ -1,21 +1,28 @@
-import {load,save,id,localDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=34';
+import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=35';
 
-import {prepareImport,importSections} from './import-model.js?v=34';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=34';
+import {prepareImport,importSections} from './import-model.js?v=35';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=35';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage='Connecting account service…', cloudReady=false, authChecked=false;
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false;
-let data=deviceData, page='home', chosenDate=localDate(), workout='Upper', pendingImport=null;
-let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name';
+let data=deviceData, page='home', chosenDate=trackingDate(new Date(),deviceData.settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
+let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,'');
 const button=(label,action,cls='',attrs='')=>`<button type="button" class="${cls}" data-action="${action}" ${attrs}>${label}</button>`;
 const input=(label,name,value='',type='text',extra='')=>`<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const empty=message=>`<p class="empty">${message}</p>`;
+const currentTrackingDate=(now=new Date())=>trackingDate(now,data.settings.dayResetMinutes??360);
+const currentFoodSlot=(now=new Date())=>Math.floor((now.getHours()*60+now.getMinutes())/30);
+const clockLabel=minutes=>{minutes=((minutes%1440)+1440)%1440;const h=Math.floor(minutes/60),m=minutes%60,period=h>=12?'PM':'AM',hour=h%12||12;return hour+':'+String(m).padStart(2,'0')+' '+period;};
+const foodTimeLabel=slot=>Number.isInteger(slot)&&slot>=0&&slot<48?clockLabel(slot*30):'No time';
+const foodTimeOptions=value=>'<option value="" '+(value==null?'selected':'')+'>No time</option>'+Array.from({length:48},(_,slot)=>'<option value="'+slot+'" '+(slot===value?'selected':'')+'>'+foodTimeLabel(slot)+'</option>').join('');
+const resetTimeOptions=value=>Array.from({length:48},(_,slot)=>{const minutes=slot*30;return '<option value="'+minutes+'" '+(minutes===value?'selected':'')+'>'+clockLabel(minutes)+'</option>';}).join('');
+
 const effortLabels={1:'Light',2:'Comfortable',3:'Challenging',4:'Hard',5:'Very Hard',6:'Limit',7:'Failure'};
 const effortText=value=>effortLabels[value]||'';
 const effortOptions=value=>'<option value="">Effort</option>'+Object.entries(effortLabels).map(([n,label])=>`<option value="${n}" ${Number(value)===Number(n)?'selected':''}>${label}</option>`).join('');
@@ -31,7 +38,7 @@ const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Mat
 
 function isLoading(){return !authChecked || Boolean(account && !session?.ready);}
 function shell(content) {
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(localDate())} <span>↗</span></button></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -43,14 +50,14 @@ function render() {
   shell(views[page]?.()||home());
 }
 function home(loading=false) {
-  const today=localDate(), totals=dailyTotals(data.foodEntries,today), latest=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const today=currentTrackingDate(), totals=dailyTotals(data.foodEntries,today), latest=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
   const remaining=Math.round(data.settings.calories-totals.calories);
   return `<section class="home-actions" aria-label="What do you want to log?"><button class="big-action food-action" data-action="food" ${loading?'disabled':''}><span class="action-icon">◒</span><span><strong>Food</strong><small>Calories, protein & saved foods</small></span><b>↗</b></button><button class="big-action lift-action" data-action="gym" ${loading?'disabled':''}><span class="action-icon">▣</span><span><strong>Lifting</strong><small>Sets, reps & previous workouts</small></span><b>↗</b></button></section><section class="today-card"><div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>Today so far</h2></div>${button('View day ↗','history','text-btn',loading?'disabled':'')}</div><div class="metric-row"><div><b>${loading?'—':Math.round(totals.calories).toLocaleString()}</b><small>of ${loading?'—':data.settings.calories} cal</small>${progressBar(loading?0:totals.calories,data.settings.calories,'#d8eb86')}</div><div><b>${loading?'—':Math.round(totals.protein)}<em>g</em></b><small>of ${loading?'—':data.settings.protein}g protein</small>${progressBar(loading?0:totals.protein,data.settings.protein,'#9fd9bf')}</div></div><p class="hint">${loading?'—':remaining>=0?`${remaining} calories left in your daily goal`:`${-remaining} calories above your daily goal`}</p></section><section class="weight-strip"><div><span class="small-icon">⚖</span><span><strong>${loading?'—':latest?`${fmt(latest.value)} ${data.settings.unit}`:'No weigh-in yet'}</strong><small>${loading?'—':latest?`Last logged ${niceDate(latest.date)}`:'A morning check-in when you are ready'}</small></span></div>${button('Log weight','weight','outline small',loading?'disabled':'')}</section>`;
 }
 function foodTotals(totals){
   return `<span class="food-total-grid"><span><small>CALORIES</small><span class="food-total-number"><strong>${Math.round(totals.calories)}</strong><span>/ ${data.settings.calories}</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.calories/data.settings.calories*100))}%;background:#d8eb86"></span></span></span><span><small>PROTEIN</small><span class="food-total-number"><strong>${Math.round(totals.protein)}g</strong><span>/ ${data.settings.protein}g</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.protein/data.settings.protein*100))}%;background:#9fd9bf"></span></span></span></span>`;
 }
-function foodEntryDetail(e){return `${fmt(e.calories*e.quantity)} cal · ${fmt(e.protein*e.quantity)}g protein${e.quantity!==1?` · ${fmt(e.quantity)} servings`:''}`;}
+function foodEntryDetail(e){return `${e.t!=null?foodTimeLabel(e.t)+' · ':''}${fmt(e.calories*e.quantity)} cal · ${fmt(e.protein*e.quantity)}g protein${e.quantity!==1?` · ${fmt(e.quantity)} servings`:''}`;}
 function foodMatches(name){
  const normalize=value=>value.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),wanted=normalize(name);if(wanted.length<2)return [];const wantedWords=new Set(wanted.split(' ').filter(Boolean));
  return data.foods.map(food=>{const candidate=normalize(food.name),words=new Set(candidate.split(' ').filter(Boolean)),shared=[...wantedWords].filter(word=>words.has(word)).length,union=new Set([...wantedWords,...words]).size;const score=wanted===candidate?1:candidate.startsWith(wanted)?.95:candidate.includes(wanted)?.9:wanted.includes(candidate)?.85:union?shared/union:0;return{food,score};}).filter(x=>x.score>=.35).sort((a,b)=>b.score-a.score||(b.food.lastUsed||'').localeCompare(a.food.lastUsed||'')).slice(0,5).map(x=>x.food);
@@ -78,33 +85,95 @@ function foodSortControl(value,scope){
  const opts=[['recent','Recent'],['name','A–Z'],['calories-low','Calories'],['protein-high','Protein'],['kind','Food / drink']];
  return '<label class="sort-control"><span>Sort</span><select data-sort-scope="'+scope+'">'+opts.map(([v,l])=>'<option value="'+v+'" '+(v===value?'selected':'')+'>'+l+'</option>').join('')+'</select></label>';
 }
-function suggestionCombos(){
- const totals=dailyTotals(data.foodEntries,chosenDate),calLeft=Math.max(0,data.settings.calories-totals.calories),proteinLeft=Math.max(0,data.settings.protein-totals.protein);
- const foods=sortFoods(data.foods.filter(f=>Number.isFinite(f.calories)&&f.calories>=0&&Number.isFinite(f.protein)&&f.protein>=0),'recent').slice(0,60);
- if(!foods.length)return[];
- const quantities=[0.5,1,1.5,2],candidates=[];
- for(const food of foods)for(const q of quantities)candidates.push([{food,q}]);
- for(let i=0;i<foods.length;i++)for(let j=i+1;j<foods.length;j++)for(const q1 of [0.5,1,1.5])for(const q2 of [0.5,1,1.5])candidates.push([{food:foods[i],q:q1},{food:foods[j],q:q2}]);
- const scored=candidates.map(items=>{
-  const calories=items.reduce((s,x)=>s+x.food.calories*x.q,0),protein=items.reduce((s,x)=>s+x.food.protein*x.q,0);
-  const calPenalty=calLeft>0?Math.abs(calories-calLeft)/Math.max(200,calLeft):calories/500;
-  const proteinPenalty=proteinLeft>0?Math.abs(protein-proteinLeft)/Math.max(20,proteinLeft):protein/100;
-  const overCal=Math.max(0,calories-calLeft)/Math.max(100,calLeft||100);
-  return{items,calories,protein,score:calPenalty*.72+proteinPenalty*.28+overCal*.85+(items.length-1)*.04};
- }).filter(x=>x.calories>0).sort((a,b)=>a.score-b.score);
- const seen=new Set(),out=[];
- for(const s of scored){const key=s.items.map(x=>x.food.id+':'+x.q).join('|');if(seen.has(key))continue;seen.add(key);out.push(s);if(out.length>=5)break;}
+
+const foodNameKey=value=>String(value||'').trim().toLowerCase();
+const dateDistanceDays=(a,b)=>Math.abs(Math.round((Date.parse(a+'T12:00:00')-Date.parse(b+'T12:00:00'))/86400000));
+function recentSuggestionFoods(limit=8){
+ const byName=new Map(data.foods.map(f=>[foodNameKey(f.name),f])),seen=new Set(),out=[];
+ for(let i=data.foodEntries.length-1;i>=0&&out.length<limit;i--){const f=byName.get(foodNameKey(data.foodEntries[i].name));if(f&&!seen.has(f.id)){seen.add(f.id);out.push(f);}}
  return out;
 }
-function foodSuggestions(){
- const totals=dailyTotals(data.foodEntries,chosenDate),calLeft=Math.max(0,data.settings.calories-totals.calories),proteinLeft=Math.max(0,data.settings.protein-totals.protein),suggestions=suggestionCombos();
- modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><p class="body-copy">Suggestions use your saved foods and drinks, including items tagged as ingredients. Nothing is logged until you choose a suggestion.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<button type="button" class="suggestion-card" data-action="apply-food-suggestion" data-index="'+i+'"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><small>'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</small></button>').join('')+'</div>':'<p class="empty">Add some saved foods first so there is something to suggest.</p>')+'</div>');
- window.__foodSuggestions=suggestions;
+function pairCompatibility(a,b,entriesByName){
+ const left=entriesByName.get(foodNameKey(a.name))||[],right=entriesByName.get(foodNameKey(b.name))||[];
+ if(!left.length||!right.length)return .45;
+ const rightByDate=new Map();for(const e of right){if(!rightByDate.has(e.date))rightByDate.set(e.date,[]);rightByDate.get(e.date).push(e);}
+ let sharedDates=0,timedDates=0,nearDates=0;
+ for(const date of new Set(left.map(e=>e.date))){const l=left.filter(e=>e.date===date),r=rightByDate.get(date);if(!r?.length)continue;sharedDates++;let best=99,hasTimed=false;for(const x of l)for(const y of r)if(Number.isInteger(x.t)&&Number.isInteger(y.t)){hasTimed=true;const d=Math.abs(x.t-y.t);best=Math.min(best,Math.min(d,48-d));}if(hasTimed){timedDates++;if(best<=4)nearDates++;}}
+ if(timedDates)return nearDates/timedDates;
+ if(sharedDates)return .55;
+ return left.length>=3&&right.length>=3?.35:.45;
 }
+function suggestionHistoryMap(foods,timeSlot,anchor){
+ const entriesByName=new Map();
+ for(const e of data.foodEntries){const key=foodNameKey(e.name);if(!entriesByName.has(key))entriesByName.set(key,[]);entriesByName.get(key).push(e);}
+ const map=new Map();
+ for(const food of foods){
+   const matches=entriesByName.get(foodNameKey(food.name))||[],count=matches.length,last=matches.map(e=>e.date).sort().at(-1),days=last?dateDistanceDays(chosenDate,last):365;
+   const frequency=Math.min(1,Math.log1p(count)/Math.log(12)),recency=Math.exp(-days/18),timed=matches.filter(e=>Number.isInteger(e.t));
+   let timeAffinity=.35;if(timeSlot!=null&&timed.length)timeAffinity=timed.reduce((sum,e)=>{const d=Math.abs(e.t-timeSlot),circular=Math.min(d,48-d);return sum+Math.exp(-circular/4);},0)/timed.length;
+   const co=anchor?(anchor.id===food.id?1:pairCompatibility(food,anchor,entriesByName)):.3,todayCount=matches.filter(e=>e.date===chosenDate).length;
+   map.set(food.id,{count,frequency,recency,timeAffinity,co,todayCount,affinity:frequency*.30+recency*.25+timeAffinity*.25+co*.20});
+ }
+ return{stats:map,entriesByName};
+}
+function suggestionReason(combo,anchor,timeSlot,stats,proteinLeft){
+ if(anchor)return 'Built around '+anchor.name;
+ const values=combo.items.map(x=>stats.get(x.food.id));
+ if(timeSlot!=null&&values.some(s=>s?.timeAffinity>.7))return 'Often logged around this time';
+ if(values.some(s=>s?.frequency>.65))return 'Common for you';
+ if(combo.protein>=Math.max(20,proteinLeft*.8))return 'Strong protein fit';
+ return 'Good goal fit';
+}
+function suggestionCombos(anchorId='',timeSlot=null){
+ const totals=dailyTotals(data.foodEntries,chosenDate),calLeft=Math.max(0,data.settings.calories-totals.calories),proteinLeft=Math.max(0,data.settings.protein-totals.protein);
+ const all=sortFoods(data.foods.filter(f=>Number.isFinite(f.calories)&&f.calories>=0&&Number.isFinite(f.protein)&&f.protein>=0),'recent').slice(0,60),anchor=all.find(f=>f.id===anchorId)||null;
+ if(!all.length)return[];
+ const context=suggestionHistoryMap(all,timeSlot,anchor),stats=context.stats;
+ const ranked=all.map(food=>({food,stats:stats.get(food.id)})).sort((a,b)=>b.stats.affinity-a.stats.affinity||b.food.protein-a.food.protein).slice(0,28);
+ if(anchor&&!ranked.some(x=>x.food.id===anchor.id))ranked.unshift({food:anchor,stats:stats.get(anchor.id)});
+ const candidates=[];
+ const singleQ=food=>food.kind==='drink'&&!hasFoodTag(food,'ingredient')?[1,2]:[0.5,1,1.5,2];
+ for(const {food} of ranked)for(const q of singleQ(food))candidates.push([{food,q}]);
+ const multiQ=food=>hasFoodTag(food,'ingredient')?[0.5,1,1.5]:[1];
+ const pairBase=ranked.slice(0,22).map(x=>x.food);
+ for(let i=0;i<pairBase.length;i++)for(let j=i+1;j<pairBase.length;j++)for(const q1 of multiQ(pairBase[i]))for(const q2 of multiQ(pairBase[j]))candidates.push([{food:pairBase[i],q:q1},{food:pairBase[j],q:q2}]);
+ const tripleBase=ranked.slice(0,12).map(x=>x.food);
+ for(let i=0;i<tripleBase.length;i++)for(let j=i+1;j<tripleBase.length;j++)for(let k=j+1;k<tripleBase.length;k++){
+   const qs=[multiQ(tripleBase[i]).slice(0,2),multiQ(tripleBase[j]).slice(0,2),multiQ(tripleBase[k]).slice(0,2)];
+   for(const q1 of qs[0])for(const q2 of qs[1])for(const q3 of qs[2])candidates.push([{food:tripleBase[i],q:q1},{food:tripleBase[j],q:q2},{food:tripleBase[k],q:q3}]);
+ }
+ const scored=candidates.filter(items=>!anchor||items.some(x=>x.food.id===anchor.id)).map(items=>{
+   const calories=items.reduce((s,x)=>s+x.food.calories*x.q,0),protein=items.reduce((s,x)=>s+x.food.protein*x.q,0);
+   const calFit=Math.abs(calories-calLeft)/Math.max(250,calLeft||250),proteinShort=Math.max(0,proteinLeft-protein)/Math.max(25,proteinLeft||25),overCal=Math.max(0,calories-calLeft)/Math.max(150,calLeft||150);
+   const affinity=items.reduce((sum,x)=>sum+(stats.get(x.food.id)?.affinity||0),0)/items.length;
+   const repeatPenalty=items.reduce((sum,x)=>sum+Math.min(.12,(stats.get(x.food.id)?.todayCount||0)*.04),0);
+   let compatibility=1,pairs=0;if(items.length>1){let total=0;for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){total+=pairCompatibility(items[i].food,items[j].food,context.entriesByName);pairs++;}compatibility=pairs?total/pairs:1;}
+   const sizePenalty=Math.max(0,items.length-2)*.025,compatibilityPenalty=(1-compatibility)*.22;
+   return{items,calories,protein,score:calFit*.50+proteinShort*.38+overCal*.80+repeatPenalty+sizePenalty+compatibilityPenalty-affinity*.24};
+ }).filter(x=>x.calories>0).sort((a,b)=>a.score-b.score);
+ const seen=new Set(),shapeCounts=new Map(),appearances=new Map(),out=[];
+ for(const s of scored){
+   const key=s.items.map(x=>x.food.id+':'+x.q).sort().join('|'),shape=s.items.map(x=>x.food.id).sort().join('|');if(seen.has(key)||(shapeCounts.get(shape)||0)>=2)continue;
+   if(!anchor&&s.items.some(x=>(appearances.get(x.food.id)||0)>=7))continue;
+   seen.add(key);shapeCounts.set(shape,(shapeCounts.get(shape)||0)+1);s.reason=suggestionReason(s,anchor,timeSlot,stats,proteinLeft);out.push(s);
+   for(const x of s.items)appearances.set(x.food.id,(appearances.get(x.food.id)||0)+1);
+   if(out.length>=15)break;
+ }
+ return out;
+}
+function foodSuggestions(state=null){
+ const defaults={anchorId:'',timeSlot:chosenDate===currentTrackingDate()?currentFoodSlot():null};
+ foodSuggestionState={...defaults,...(state||{})};
+ const totals=dailyTotals(data.foodEntries,chosenDate),calLeft=Math.max(0,data.settings.calories-totals.calories),proteinLeft=Math.max(0,data.settings.protein-totals.protein),recent=recentSuggestionFoods(),suggestions=suggestionCombos(foodSuggestionState.anchorId,foodSuggestionState.timeSlot);
+ foodSuggestionState.suggestions=suggestions;
+ const anchor=foodSuggestionState.anchorId;
+ modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><div class="suggestion-time"><label class="field"><span>Meal time</span><select data-suggestion-time>'+foodTimeOptions(foodSuggestionState.timeSlot)+'</select></label><small>One time is applied to every item you add.</small></div><div class="suggestion-anchor"><span class="buddy-mini-label">START WITH</span><div class="suggestion-chips"><button type="button" class="'+(!anchor?'selected':'')+'" data-action="food-suggest-anchor" data-id="">Anything</button>'+recent.map(f=>'<button type="button" class="'+(anchor===f.id?'selected':'')+'" data-action="food-suggest-anchor" data-id="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></div><p class="body-copy">Ranked from your remaining goals plus your own logging history: recency, frequency, foods you commonly log together, and time-of-day patterns when available. Ingredients participate normally.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<button type="button" class="suggestion-card" data-action="apply-food-suggestion" data-index="'+i+'"><span class="suggestion-card-copy"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><em>'+esc(s.reason)+'</em></span><small>'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</small></button>').join('')+'</div>':'<p class="empty">Add some saved foods first so there is something to suggest.</p>')+'</div>');
+}
+
 function food() {
   const totals=dailyTotals(data.foodEntries,chosenDate), entries=data.foodEntries.filter(x=>x.date===chosenDate).slice().reverse();
   const foods=sortFoods(data.foods,foodSort);
-  return '<div class="page-head food-page-head"><p class="eyebrow">NUTRITION</p><h1>Food tracking<span class="accent">.</span></h1></div>'+dateHeader('Viewing')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===localDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Suggest rest of day','food-suggest','outline small')+'</div></section><section><div class="section-head"><div><p class="eyebrow">ONE TAP TO REPEAT</p><h2>Saved foods</h2></div><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>'<div class="food-card"><button class="food-main" data-action="add-saved" data-id="'+esc(f.id)+'"><strong>'+esc(f.name)+'</strong><small>'+foodKindLabel(f.kind)+(hasFoodTag(f,'ingredient')?' · Ingredient':'')+' · '+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small><span>+ Add to '+(chosenDate===localDate()?'today':niceDate(chosenDate))+'</span></button><button class="card-edit" data-action="edit-card" data-id="'+esc(f.id)+'" aria-label="Edit '+esc(f.name)+'">•••</button></div>').join('')+'</div>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
+  return '<div class="page-head food-page-head"><p class="eyebrow">NUTRITION</p><h1>Food tracking<span class="accent">.</span></h1></div>'+dateHeader('Viewing')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Suggest rest of day','food-suggest','outline small')+'</div></section><section><div class="section-head"><div><p class="eyebrow">ONE TAP TO REPEAT</p><h2>Saved foods</h2></div><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>'<div class="food-card"><button class="food-main" data-action="add-saved" data-id="'+esc(f.id)+'"><strong>'+esc(f.name)+'</strong><small>'+foodKindLabel(f.kind)+(hasFoodTag(f,'ingredient')?' · Ingredient':'')+' · '+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small><span>+ Add to '+(chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><button class="card-edit" data-action="edit-card" data-id="'+esc(f.id)+'" aria-label="Edit '+esc(f.name)+'">•••</button></div>').join('')+'</div>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
 }
 
 function savedWorkouts(){return Array.isArray(data.workoutTemplates)&&data.workoutTemplates.length?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
@@ -146,7 +215,7 @@ const buddySeconds=(a,b=isoNow())=>a&&b?Math.max(0,Math.round((new Date(b)-new D
 const buddyClock=value=>{value=Math.max(0,Math.floor(value||0));const h=Math.floor(value/3600),m=Math.floor(value%3600/60),s=value%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;};
 const buddyKey=e=>`${e.name.toLowerCase()}|${e.equipment}`;
 const buddyFind=(s,key)=>s.exercises.find(e=>buddyKey(e)===key);
-function buddyPrior(e){return data.lifts.filter(l=>l.exercise.toLowerCase()===e.name.toLowerCase()&&(l.equipment||'other')===e.equipment&&l.date<=localDate()).sort((a,b)=>b.date.localeCompare(a.date))[0];}
+function buddyPrior(e){return data.lifts.filter(l=>l.exercise.toLowerCase()===e.name.toLowerCase()&&(l.equipment||'other')===e.equipment&&l.date<=currentTrackingDate()).sort((a,b)=>b.date.localeCompare(a.date))[0];}
 function buddyTargetSets(e){return Math.max(2,buddyPrior(e)?.sets?.length||2);}
 function buddyRepRange(e){return {min:Number(e.repMin)||(e.name==='Calf Extension'?10:6),max:Number(e.repMax)||(e.name==='Calf Extension'?16:12)};}
 function buddyEffortButtons(value){return Object.entries(effortLabels).map(([n,label])=>`<button type="button" class="buddy-effort effort-${n} ${Number(value)===Number(n)?'selected':''}" data-action="buddy-effort" data-value="${n}" aria-pressed="${Number(value)===Number(n)}"><b>${n}</b><span>${label}</span></button>`).join('');}
@@ -155,7 +224,7 @@ function buddyCaptureUndo(s,label){const snapshot={label,phase:s.phase,selected:
 function buddyUndo(s){if(!s?.undo)return;const u=s.undo;s.phase=u.phase;s.selected=u.selected;s.exercises=structuredClone(u.exercises);if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;delete s.undo;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);for(const e of s.exercises)if(e.status==='done')buddyUpsertLift(s,e);}
 function buddyUndoControl(s){return s.undo?`<button type="button" class="buddy-undo" data-action="buddy-undo">↶ Undo ${esc(s.undo.label||'last action')}</button>`:'';}
 function buddyDraft(e,index){const prior=buddyPrior(e),source=e.sets[index-1]||prior?.sets?.[index]||prior?.sets?.at(-1)||{weight:0,reps:8};return{weight:Number(source.weight)||0,reps:Number(source.reps)||8,difficulty:Number(source.difficulty)||0};}
-function buddyStart(type){const w=workoutByName(type);if(!w)return;data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:localDate(),startedAt:isoNow(),phase:'bike',selected:null,exercises:workoutExercises(w).map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
+function buddyStart(type){const w=workoutByName(type);if(!w)return;data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,exercises:workoutExercises(w).map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const d=e.draft||buddyDraft(e,e.sets.length);d.weight=Number(root.querySelector('[name=buddyWeight]')?.value)||0;d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;e.draft=d;}
 function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
@@ -210,7 +279,7 @@ function workoutTimingPanel(){
 }
 function progress() {
   const weeks=weeklyWeights(data.weights,data.settings.heightInches,data.settings.unit,data.settings.weekStart), weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date));
-  const currentWeek=startOfWeek(localDate(),data.settings.weekStart), latest=weeks[0], previous=weeks[1];
+  const currentWeek=startOfWeek(currentTrackingDate(),data.settings.weekStart), latest=weeks[0], previous=weeks[1];
   const change=previous?round(latest.average-previous.average):null;
   const days=[...new Set(data.foodEntries.map(x=>x.date))].sort().reverse().slice(0,7);
   const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
@@ -235,14 +304,15 @@ function foodDefinitionForm(food=null){
 }
 function foodForm(entry=null,card=null) {
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
-  modal(entry?'Edit food log':card?'Edit saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><input type="hidden" name="cardOnly" value="${card && !entry?'yes':''}">${input('Food name','name',entry?.name||card?.name||'','text','maxlength="100" autocomplete="off" required') }${!entry&&!card?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??'','number','min="0" step="0.1" required')}</div>${card&&!entry?'':`<div class="form-grid">${input('Servings','quantity',entry?.quantity??1,'number','min="0.01" step="0.01" required')}${input('Date','date',entry?.date||chosenDate,'date','required')}</div>`}<div class="form-actions"><button class="primary" type="submit">${card&&!entry?'Save card':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):card?button('Delete card','delete-card','danger',`data-id="${esc(card.id)}"`):''}</div></form><p class="hint">Saved cards remember these per-serving values. Earlier entries keep their original values when a card changes.</p>`,onBack);
+  const dateValue=entry?.date||chosenDate,timeValue=entry?(entry.t??null):(dateValue===currentTrackingDate()?currentFoodSlot():null);
+  modal(entry?'Edit food log':card?'Edit saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><input type="hidden" name="cardOnly" value="${card && !entry?'yes':''}">${input('Food name','name',entry?.name||card?.name||'','text','maxlength="100" autocomplete="off" required') }${!entry&&!card?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??'','number','min="0" step="0.1" required')}</div>${card&&!entry?'':`<div class="form-grid">${input('Servings','quantity',entry?.quantity??1,'number','min="0.01" step="0.01" required')}${input('Date','date',dateValue,'date','required')}</div><label class="field"><span>Time</span><select name="foodTime">${foodTimeOptions(timeValue)}</select></label>`}<div class="form-actions"><button class="primary" type="submit">${card&&!entry?'Save card':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):card?button('Delete card','delete-card','danger',`data-id="${esc(card.id)}"`):''}</div></form><p class="hint">Food time is optional and stored only in 30-minute slots. The day-reset setting decides which tracking day an early-morning log belongs to.</p>`,onBack);
 }
 function liftForm(lift=null,name='',equipment='other') {
  const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type),sets=lift?.sets||prior?.sets||[{weight:0,reps:8},{weight:0,reps:8}],options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${equipmentLabel(x)}</option>`).join('');
  modal(lift?'Edit lift':'Log lift',`<form class="form lift-form" data-form="lift"><input type="hidden" name="liftId" value="${esc(lift?.id||'')}">${input('Exercise','exercise',exercise,'text','maxlength="100" autocomplete="off" required')}${!lift?'<div class="exercise-matches" role="listbox" aria-label="Matching exercises"></div>':''}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label>${input('Date','date',lift?.date||chosenDate,'date','required')}${prior?`<p class="prior">Last time · ${niceDate(prior.date)}<br><strong>${describeLift(prior)}</strong></p>`:''}<div class="section-head"><h3>Sets</h3>${button('+ Add set','add-set','text-btn')}</div><div id="sets">${sets.map((s,i)=>setRow(i,s)).join('')}</div><div class="form-grid"><label class="field lift-notes"><span>Notes (optional)</span><textarea name="notes" rows="1" maxlength="500" placeholder="Form, setup, pain, anything worth remembering">${esc(lift?.notes||'')}</textarea></label></div><div class="form-actions"><button class="primary" type="submit">Save lift</button>${lift?button('Delete lift','delete-lift','danger',`data-id="${esc(lift.id)}"`):''}</div></form>`);document.querySelector('.modal')?.classList.add('lift-dialog');
 }
 function setRow(i,s={weight:'',reps:'',difficulty:''}) {return `<div class="set-row"><span>${i+1}</span>${input('Weight ('+data.settings.unit+')','weight',s.weight,'number','min="0" step="0.5" inputmode="decimal" required')}${input('Reps','reps',s.reps,'number','min="1" step="1" inputmode="numeric" required')}<label class="field effort-field"><span>Effort</span><select name="difficulty" class="effort-select effort-${Number(s.difficulty)||0}" aria-label="Set ${i+1} effort">${effortOptions(s.difficulty)}</select></label>${button('−','remove-set','remove-set','aria-label="Remove set"')}</div>`;}
-function weightForm(w=null) {modal(w?'Edit weigh-in':'Log your weight',`<form class="form" data-form="weight"><input type="hidden" name="weightId" value="${esc(w?.id||'')}">${input(`Weight (${data.settings.unit})`,'value',w?.value??'','number','min="1" step="0.1" required')}${input('Date','date',w?.date||localDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save weigh-in</button>${w?button('Delete','delete-weight','danger',`data-id="${esc(w.id)}"`):button('Enter later','later','outline')}</div></form><p class="hint">Same-day weigh-ins replace the earlier value. Your weekly average and BMI update automatically.</p>`);}
+function weightForm(w=null) {modal(w?'Edit weigh-in':'Log your weight',`<form class="form" data-form="weight"><input type="hidden" name="weightId" value="${esc(w?.id||'')}">${input(`Weight (${data.settings.unit})`,'value',w?.value??'','number','min="1" step="0.1" required')}${input('Date','date',w?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save weigh-in</button>${w?button('Delete','delete-weight','danger',`data-id="${esc(w.id)}"`):button('Enter later','later','outline')}</div></form><p class="hint">Same-day weigh-ins replace the earlier value. Your weekly average and BMI update automatically.</p>`);}
 function importModal(kind) {pendingImport=null;importReadToken++;modal(kind==='csv'?'Import food CSV':'Restore backup',`<form class="form" data-form="import"><input type="hidden" name="kind" value="${kind}"><label class="field"><span>${kind==='csv'?'Choose a .csv file':'Choose an Everyday .json backup'}</span><input type="file" name="file" accept="${kind==='csv'?'.csv,text/csv':'.json,application/json'}" required></label><button type="submit" class="primary">Preview import</button></form><div id="preview" role="status"></div>`);}
 
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
@@ -251,7 +321,7 @@ function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){buddyReadEditor();persist();}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>setTimeout(syncLiftViewport,40));window.visualViewport.addEventListener('scroll',syncLiftViewport);}
-app.addEventListener('change',event=>{if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
+app.addEventListener('change',event=>{if(event.target.matches('[data-suggestion-time]')){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,timeSlot:event.target.value===''?null:Number(event.target.value)});return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time)time.value=event.target.value===currentTrackingDate()?String(currentFoodSlot()):'';return;}if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if(!authChecked||importSaving)return;
   if(action==='sign-in'){if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
@@ -269,7 +339,7 @@ document.addEventListener('click',async event=>{
   if(['home','food','gym','progress','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
   if(action.startsWith('health-')){await healthAction(action);return;}
-  if(action==='today'){chosenDate=localDate();render();return;}
+  if(action==='today'){chosenDate=currentTrackingDate();render();return;}
   if(action==='go-date'){chosenDate=el.dataset.date;page='food';render();return;}
   if(action==='workout'){workout=el.dataset.workout;render();return;}
 
@@ -296,12 +366,13 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;await persist();buddyClose();render();return;}
 
   if(action==='weight'){weightForm();return;}
-  if(action==='later'){data.promptDate=localDate();persist();close(true);return;}
+  if(action==='later'){data.promptDate=currentTrackingDate();persist();close(true);return;}
   if(action==='edit-weight'){weightForm(data.weights.find(x=>x.id===el.dataset.id));return;}
   if(action==='food-log'){foodLog();return;}
   if(action==='food-library'){foodLibrary();return;}
   if(action==='food-suggest'){foodSuggestions();return;}
-  if(action==='apply-food-suggestion'){const suggestion=window.__foodSuggestions?.[Number(el.dataset.index)];if(!suggestion)return;for(const item of suggestion.items){data.foodEntries.push({id:id(),date:chosenDate,name:item.food.name,calories:item.food.calories,protein:item.food.protein,quantity:item.q});item.food.lastUsed=new Date().toISOString();}window.__foodSuggestions=null;close(true);await persist();render();return;}
+  if(action==='food-suggest-anchor'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,anchorId:el.dataset.id||''});return;}
+  if(action==='apply-food-suggestion'){const suggestion=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!suggestion)return;for(const item of suggestion.items){const record={id:id(),date:chosenDate,name:item.food.name,calories:item.food.calories,protein:item.food.protein,quantity:item.q};if(foodSuggestionState.timeSlot!=null)record.t=foodSuggestionState.timeSlot;data.foodEntries.push(record);item.food.lastUsed=new Date().toISOString();}foodSuggestionState=null;close(true);await persist();render();return;}
   if(action==='new-food-def'){foodDefinitionForm();return;}
   if(action==='edit-food-def'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id));return;}
   if(action==='delete-food-def'){data.foods=data.foods.filter(x=>x.id!==el.dataset.id);close(true);await persist();foodLibrary();return;}
@@ -310,7 +381,7 @@ document.addEventListener('click',async event=>{
   if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';renderFoodMatches(form);form.elements.name.focus();return;}
   if(action==='edit-card'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id));return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
-  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);data.foodEntries.push({id:id(),date:chosenDate,name:f.name,calories:f.calories,protein:f.protein,quantity:1});f.lastUsed=new Date().toISOString();persist();return;}
+  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id),record={id:id(),date:chosenDate,name:f.name,calories:f.calories,protein:f.protein,quantity:1};if(chosenDate===currentTrackingDate())record.t=currentFoodSlot();data.foodEntries.push(record);f.lastUsed=new Date().toISOString();persist();return;}
   if(action==='custom-lift'){liftForm();return;}
   if(action==='choose-exercise-match'){const form=el.closest('form[data-form="lift"]'),name=el.dataset.name,equipment=el.dataset.equipment;if(!form||!name)return;form.elements.exercise.value=name;form.elements.equipment.value=equipment;form.querySelector('.exercise-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(name)+'</strong><small>'+equipmentLabel(equipment)+' · Using canonical exercise</small></span><button type="button" class="text-btn" data-action="clear-exercise-match">Change</button></div>';return;}
   if(action==='clear-exercise-match'){const form=el.closest('form[data-form="lift"]');renderExerciseMatches(form);form.elements.exercise.focus();return;}
@@ -330,12 +401,12 @@ app.addEventListener('submit',async event=>{
   const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(importSaving||account&&(cloudBusy||cloudPending||!session?.ready))return;const v=Object.fromEntries(new FormData(form));
   if(form.dataset.form==='exercise-definition'){const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200)return alert('Check the exercise definition.');const duplicate=data.exerciseDefinitions?.find(x=>x.id!==v.exerciseId&&x.name.toLowerCase()===name.toLowerCase()&&x.equipment===equipment);if(duplicate)return alert('That exercise already exists with this equipment.');if(existing){const oldName=existing.name,oldEquipment=existing.equipment;Object.assign(existing,{name,equipment});if(setup)existing.setup=setup;else delete existing.setup;data.lifts.forEach(l=>{if(l.exercise.toLowerCase()===oldName.toLowerCase()&&(l.equipment||'other')===oldEquipment){l.exercise=name;l.equipment=equipment;}});}else data.exerciseDefinitions.push({id:id(),name,equipment,...(setup?{setup}:{})});close(true);await persist();render();return;}
   if(form.dataset.form==='workout-template'){const w=data.workoutTemplates?.find(x=>x.id===v.workoutId);if(!w)return;for(let i=0;i<w.exercises.length;i++){const item=w.exercises[i],exerciseId=form.elements['exerciseId-'+i]?.value||item.exerciseId,def=data.exerciseDefinitions?.find(x=>x.id===exerciseId),min=Number(form.elements['repMin-'+i]?.value),max=Number(form.elements['repMax-'+i]?.value);if(!def||!Number.isInteger(min)||!Number.isInteger(max)||min<1||max<min||max>100)return alert('Check the rep ranges.');item.exerciseId=exerciseId;item.repMin=min;item.repMax=max;}close(true);await persist();render();return;}
-  if(form.dataset.form==='week-settings'){const weekStart=Number(v.weekStart);if(!Number.isInteger(weekStart)||weekStart<0||weekStart>6)return;data.settings.weekStart=weekStart;await persist();return;}
+  if(form.dataset.form==='week-settings'){const weekStart=Number(v.weekStart),dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(weekStart)||weekStart<0||weekStart>6||!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=weekStart;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();await persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){const factor=v.unit==='kg'?1/2.2046226218:2.2046226218;data.weights.forEach(w=>w.value=round(w.value*factor));data.lifts.forEach(l=>l.sets.forEach(s=>s.weight=round(s.weight*factor)));}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};persist();return;}
   if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,lastUsed:new Date().toISOString()});close(true);await persist();render();return;}
-  if(form.dataset.form==='food') {const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),quantity=Number(v.quantity||1);if(!name||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||(!v.cardOnly&&!/^\d{4}-\d{2}-\d{2}$/.test(v.date)))return alert('Check the food values and date.');const card=data.foods.find(x=>x.id===v.cardId);if(card){if(v.cardOnly){card.name=name;card.calories=calories;card.protein=protein;card.lastUsed=new Date().toISOString();}else if(!v.entryId){card.lastUsed=new Date().toISOString();data.foodEntries.push({id:id(),name:card.name,calories:card.calories,protein:card.protein,quantity,date:v.date});chosenDate=v.date;close(true);persist();return;}}else if(!v.entryId&&!v.cardOnly)data.foods.push({id:id(),name,calories,protein,kind:'food',tags:[],lastUsed:new Date().toISOString()});if(!v.cardOnly){const item=data.foodEntries.find(x=>x.id===v.entryId);if(item)Object.assign(item,{name,calories,protein,quantity,date:v.date});else data.foodEntries.push({id:id(),name,calories,protein,quantity,date:v.date});chosenDate=v.date;}close(true);persist();return;}
+  if(form.dataset.form==='food') {const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),quantity=Number(v.quantity||1),time=v.foodTime===''||v.foodTime==null?null:Number(v.foodTime);if(!name||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||(!v.cardOnly&&!/^\d{4}-\d{2}-\d{2}$/.test(v.date))||(time!=null&&(!Number.isInteger(time)||time<0||time>47)))return alert('Check the food values, date, and time.');const card=data.foods.find(x=>x.id===v.cardId);if(card){if(v.cardOnly){card.name=name;card.calories=calories;card.protein=protein;card.lastUsed=new Date().toISOString();}else if(!v.entryId){card.lastUsed=new Date().toISOString();const record={id:id(),name:card.name,calories:card.calories,protein:card.protein,quantity,date:v.date};if(time!=null)record.t=time;data.foodEntries.push(record);chosenDate=v.date;close(true);persist();return;}}else if(!v.entryId&&!v.cardOnly)data.foods.push({id:id(),name,calories,protein,kind:'food',tags:[],lastUsed:new Date().toISOString()});if(!v.cardOnly){const record={name,calories,protein,quantity,date:v.date};if(time!=null)record.t=time;const item=data.foodEntries.find(x=>x.id===v.entryId);if(item){Object.assign(item,record);if(time==null)delete item.t;}else data.foodEntries.push({id:id(),...record});chosenDate=v.date;}close(true);persist();return;}
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
-  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);if(item){Object.assign(item,{date:v.date,value});delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),date:v.date,value});data.promptDate=localDate();close(true);persist();return;}
+  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);if(item){Object.assign(item,{date:v.date,value});delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),date:v.date,value});data.promptDate=currentTrackingDate();close(true);persist();return;}
   if(form.dataset.form==='import') {
     const file=form.querySelector('[name=file]').files[0];if(!file)return;
     pendingImport=null;const token=++importReadToken, preview=form.parentElement.querySelector('#preview');preview.textContent='Reading file…';
@@ -352,7 +423,7 @@ app.addEventListener('submit',async event=>{
 
 render();
 startCloud();
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=34',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=35',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
 
 function accountBanner(){
   return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
@@ -365,14 +436,14 @@ function accountPanel(){
 }
 async function loadAccount(){
   const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
-  try{const loaded=await active.load();if(session!==active)return;data=loaded;cloudPending=false;cloudMessage='Loaded from your account';}
+  try{const loaded=await active.load();if(session!==active)return;data=loaded;chosenDate=currentTrackingDate();cloudPending=false;cloudMessage='Loaded from your account';}
   catch(error){if(session===active)cloudMessage=describeCloudError(error);}
   finally{if(session===active){cloudBusy=false;render();if(active.ready){void syncHealth();promptWeight();}}}
 }
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=34');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=35');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
@@ -394,7 +465,7 @@ function dateHeader(label){
 }
 
 function weekSettingsPanel(){
-  return `<section class="panel spaced"><h2>Your week</h2><form data-form="week-settings" class="form"><label class="field"><span>Week starts on</span><select name="weekStart">${[1,2,3,4,5,6,0].map(day=>`<option value="${day}" ${data.settings.weekStart===day?'selected':''}>${weekDays[day]}</option>`).join('')}</select></label><button class="primary" type="submit">Save week setting</button></form><p class="hint">Regroups weekly averages in Progress. Your original log dates and values stay the same.</p></section>`;
+  return `<section class="panel spaced"><h2>Your calendar</h2><form data-form="week-settings" class="form"><div class="form-grid"><label class="field"><span>Week starts on</span><select name="weekStart">${[1,2,3,4,5,6,0].map(day=>`<option value="${day}" ${data.settings.weekStart===day?'selected':''}>${weekDays[day]}</option>`).join('')}</select></label><label class="field"><span>Day resets at</span><select name="dayResetMinutes">${resetTimeOptions(data.settings.dayResetMinutes??360)}</select></label></div><button class="primary" type="submit">Save calendar settings</button></form><p class="hint">The reset time defines your tracking day. With a 6:00 AM reset, a 2:30 AM food log still belongs to the previous day.</p></section>`;
 }
 
 function importRecord(key,item,unit){
@@ -417,8 +488,8 @@ function expandImportGroup(el){
 }
 function showImportReview(plan,saveError=''){
   const json=plan.kind==='json',count=plan.groups.reduce((n,g)=>n+g.rows.length,0);
-  const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on'};
-  const settingValue=(key,value)=>key==='weekStart'?weekDays[value]:typeof value==='object'?JSON.stringify(value):String(value);
+  const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on',dayResetMinutes:'Day resets at'};
+  const settingValue=(key,value)=>key==='weekStart'?weekDays[value]:key==='dayResetMinutes'?clockLabel(value):typeof value==='object'?JSON.stringify(value):String(value);
   modal('Review import',`<p class="import-filename">${esc(plan.filename)}</p><div class="import-scroll" tabindex="0" aria-label="Import records"><div class="import-summary"><p class="eyebrow">${json?'REPLACE FROM JSON BACKUP':'ADD FROM CSV'}</p><h3>${count} incoming records</h3><p>${json?'This replaces all Saved Foods, Food Entries, Lifting Entries, Weight Entries and settings. Records missing from the backup will be removed.':'Adds food entries and creates saved cards for new food names. Existing records and settings stay unchanged.'}</p><p>${json?`${plan.replaced} changed records · ${plan.removed} records removed · `:''}${plan.duplicates} possible duplicates</p><strong>Nothing has been imported yet.</strong></div>${saveError?`<div class="import-alert" role="alert"><strong>Import was not saved</strong><p>${esc(saveError)}</p><p>Your current in-memory records are unchanged.</p></div>`:''}${plan.errors.length?`<div class="import-alert" role="alert"><strong>Cannot import · ${plan.errors.length} issue${plan.errors.length===1?'':'s'}</strong><p>Fix the file and preview it again. No records will be committed, including the valid records shown below.</p><ul>${plan.errors.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div>`:''}${plan.warnings.length?`<details class="import-alert" open><summary>Review ${plan.warnings.length} warning${plan.warnings.length===1?'':'s'}</summary><ul>${plan.warnings.map(w=>`<li>${esc(w)}</li>`).join('')}</ul></details>`:''}${plan.groups.map(g=>importGroup(g)).join('')}${json?`<details class="import-group" open><summary>Settings & other data<span>${Object.keys(plan.settings).length+1}</span></summary>${Object.entries(plan.settings).map(([key,value])=>`<div class="list-row import-record"><div><strong>${esc(labels[key]||key)}</strong><small>${esc(settingValue(key,plan.currentSettings[key]))} → ${esc(settingValue(key,value))}</small><span class="import-badge ${JSON.stringify(plan.currentSettings[key])!==JSON.stringify(value)?'attention':''}">${JSON.stringify(plan.currentSettings[key])===JSON.stringify(value)?'Unchanged':'Replaces setting'}</span></div></div>`).join('')}<div class="list-row import-record"><div><strong>Daily weight-prompt date</strong><small>${esc(plan.currentPromptDate||'Not set')} → ${esc(plan.promptDate||'Not set')}</small></div></div></details>${plan.groups.filter(g=>g.removedRows.length).map(g=>importGroup(g,true)).join('')}`:'<p class="hint">Settings and weight-prompt date are unchanged.</p>'}</div><div class="import-footer"><p>${json?'Confirmation replaces the current data. Export a backup first if needed.':'Possible duplicates will also be added. Review them before confirming.'}</p><div class="form-actions">${plan.candidate?button(json?'Confirm replacement':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file','choose-import','primary',`data-kind="${plan.kind}"`)}${button('Cancel','close','outline')}</div></div>`);
   document.querySelector('.modal').classList.add('import-dialog');
 }

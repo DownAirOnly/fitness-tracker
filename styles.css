@@ -448,3 +448,22 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .suggestion-card{align-items:flex-start;display:grid}
  .suggestion-card small{white-space:normal}
 }
+
+/* Food timing + interactive deterministic suggestions */
+.suggestion-time{display:grid;gap:4px}
+.suggestion-time>.field{margin:0}
+.suggestion-time>small{font-size:10px;color:#718078}
+.suggestion-anchor{display:grid;gap:7px}
+.suggestion-chips{display:flex;gap:6px;overflow-x:auto;padding:1px 1px 4px;scrollbar-width:none}
+.suggestion-chips::-webkit-scrollbar{display:none}
+.suggestion-chips button{flex:0 0 auto;border:1px solid #d4ddd6;background:#f7faf7;color:#3a5545;border-radius:999px;padding:8px 11px;font:inherit;font-size:11px;font-weight:800;white-space:nowrap}
+.suggestion-chips button.selected{background:#dceadf;border-color:#a9c6b2;color:#1f4b34;box-shadow:inset 0 0 0 1px #a9c6b2}
+.suggestion-card-copy{display:grid!important;gap:4px}
+.suggestion-card-copy>span{display:flex;flex-wrap:wrap;gap:5px 10px}
+.suggestion-card-copy em{font-size:9px;font-style:normal;font-weight:900;letter-spacing:.04em;color:#718078}
+[data-theme="dark"] .suggestion-chips button{background:#17231c;border-color:#394b40;color:#cbdacf}
+[data-theme="dark"] .suggestion-chips button.selected{background:#23372a;border-color:#557562;color:#e1eee4}
+[data-theme="dark"] .suggestion-card-copy em,[data-theme="dark"] .suggestion-time>small{color:#9daf9f}
+@media(max-width:440px){
+ .suggestion-chips{margin-right:-4px}
+}
