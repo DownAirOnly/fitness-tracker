@@ -734,3 +734,41 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 
 .loading-offline-option{margin-top:14px}
 .loading-offline-option .outline{width:100%;margin-top:4px}
+
+/* v44: card corner accuracy, cleaner Buddy sets/notes */
+.food-main{padding-right:17px}
+.food-main>strong{padding-right:62px}
+.food-card-nutrition{display:block!important;margin-top:8px!important;color:#617067!important;font-weight:800}
+.food-card-nutrition>span{display:block!important;margin:0!important;color:inherit!important;font-size:11px!important;white-space:nowrap}
+.food-card-add{padding-right:28px}
+.food-card-accuracy-corner{position:absolute;right:11px;bottom:10px;z-index:2;display:grid;place-items:center;width:20px;height:22px;pointer-events:none}
+.food-card-accuracy-corner .nutrition-accuracy{margin:0!important}
+.buddy-set-status{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 7px;color:#6b7970}
+.buddy-set-status>span{font-size:9px;font-weight:900;letter-spacing:.12em;white-space:nowrap}
+.buddy-set-bars{display:flex;justify-content:flex-end;gap:4px;flex:1}
+.buddy-set-bars i{display:block;width:min(34px,12vw);height:4px;border-radius:2px;background:#dce4dd}
+.buddy-set-bars i.done{background:#89b093}
+.buddy-set-bars i.current{background:#355f49}
+.buddy-notes-wrap{margin:10px 0 12px;gap:0}
+.buddy-notes-editor{position:relative}
+.buddy-notes-wrap textarea{height:70px;min-height:70px;max-height:70px;padding:11px 58px 11px 12px}
+.buddy-notes-done{position:absolute;right:8px;top:8px;border:0;border-radius:9px;background:#e5eee7;color:#31533e;padding:7px 9px;font:inherit;font-size:10px;font-weight:900}
+.buddy-action-tools{justify-content:flex-start;margin:0 0 8px}
+.buddy-action-tools:empty{display:none}
+[data-theme="dark"] .food-card-nutrition{color:#b0bbb3!important}
+[data-theme="dark"] .buddy-set-status{color:#9ba9a0}
+[data-theme="dark"] .buddy-set-bars i{background:#2b3a31}
+[data-theme="dark"] .buddy-set-bars i.done{background:#567b61}
+[data-theme="dark"] .buddy-set-bars i.current{background:#98bfa0}
+[data-theme="dark"] .buddy-notes-done{background:#26372c;color:#d7e5da}
+@media(max-width:440px){
+ .food-main{padding-right:14px}
+ .food-main>strong{padding-right:60px}
+ .food-card-nutrition>span{font-size:10.5px!important;letter-spacing:-.08px}
+ .food-card-accuracy-corner{right:9px;bottom:9px}
+}
+@media(max-height:720px){
+ .buddy-set-status{margin-bottom:4px}
+ .buddy-notes-wrap{margin:7px 0 9px}
+ .buddy-notes-wrap textarea{height:56px;min-height:56px;max-height:56px}
+}
