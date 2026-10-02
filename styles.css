@@ -338,3 +338,51 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .section-actions button{padding-left:10px;padding-right:10px}
  .workout-template-row{padding:11px}
 }
+
+/* Exercise Library + Workout Buddy completion tools */
+.exercise-library{display:grid;gap:14px}
+.library-intro{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.library-intro .body-copy{margin:0;max-width:360px}
+.exercise-library-list{display:grid;gap:8px}
+.library-exercise{width:100%;cursor:pointer}
+.exercise-definition-form .hint{margin-top:-4px}
+.workout-template-title em{display:block;margin-top:3px;font-size:10px;font-style:normal;font-weight:800;color:#607168}
+.buddy-completed-sets{display:grid;gap:5px;margin:0 0 8px}
+.buddy-mini-label{font-size:9px;font-weight:900;letter-spacing:.12em;color:#718078}
+.buddy-completed-set{display:grid;grid-template-columns:auto 1.25fr 1fr auto;align-items:center;gap:8px;min-height:31px;padding:6px 9px;border:1px solid #d6e0d8;border-radius:10px;background:#f0f4ef;font-size:10px;color:#53645a}
+.buddy-completed-set b{font-size:10px;color:#284635}
+.buddy-completed-set time{font-variant-numeric:tabular-nums;font-weight:900;color:#53645a}
+.buddy-notes-wrap{display:grid;gap:6px;margin-top:7px}
+.buddy-notes-toggle{justify-self:start;border:1px solid #cbd7ce;background:#edf2ee;color:#365443;border-radius:999px;padding:7px 11px;font:inherit;font-size:11px;font-weight:900}
+.buddy-notes-toggle.has-note{background:#dceadf;border-color:#b8d0be}
+.buddy-notes-wrap textarea{width:100%;height:64px;min-height:64px;max-height:64px;resize:none;border:1px solid #cdd8cf;border-radius:12px;background:#fff;color:#172c23;font:inherit;font-size:13px;line-height:1.35;padding:9px 10px}
+.buddy-action-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:5px}
+.buddy-action-tools .buddy-set-dots{margin:0}
+.buddy-undo{border:0;background:transparent;color:#557060;font:inherit;font-size:11px;font-weight:900;padding:7px 0}
+.buddy-picker-head+.buddy-exercise-list{margin-top:2px}
+.buddy-main>.buddy-undo{align-self:flex-start;margin:-8px 0 8px}
+.buddy-a{min-height:112px;padding:20px 22px;border-radius:25px}
+.buddy-a span{font-size:13px}
+.buddy-a b{font-size:29px}
+[data-theme="dark"] .workout-template-title em{color:#9daf9f}
+[data-theme="dark"] .buddy-completed-set{background:#19241d;border-color:#35463b;color:#aab9ae}
+[data-theme="dark"] .buddy-completed-set b,[data-theme="dark"] .buddy-completed-set time{color:#dbe8de}
+[data-theme="dark"] .buddy-notes-toggle{background:#1c2a21;border-color:#3d5043;color:#cbdacf}
+[data-theme="dark"] .buddy-notes-toggle.has-note{background:#23372a}
+[data-theme="dark"] .buddy-notes-wrap textarea{background:#17231c;color:#e5eee7;border-color:#3b5042}
+[data-theme="dark"] .buddy-undo{color:#a7b8ac}
+@media(max-width:440px){
+ .library-intro{display:grid}
+ .library-intro .primary{justify-self:start}
+ .buddy-completed-set{grid-template-columns:auto 1.2fr .9fr auto;gap:5px;padding-left:7px;padding-right:7px}
+ .buddy-a{min-height:106px}
+ .buddy-a b{font-size:27px}
+}
+@media(max-height:720px){
+ .buddy-completed-set{min-height:27px;padding-top:4px;padding-bottom:4px}
+ .buddy-notes-wrap{margin-top:4px}
+ .buddy-notes-wrap textarea{height:52px;min-height:52px;max-height:52px}
+ .buddy-a{min-height:88px;padding-top:14px;padding-bottom:14px}
+ .buddy-a b{font-size:24px}
+ .buddy-action-tools{margin-top:2px}
+}
