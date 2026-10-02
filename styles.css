@@ -505,3 +505,71 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .workout-order-actions button{width:32px;height:32px}
  .workout-editor-actions{grid-template-columns:1fr}
 }
+
+/* Exercise progress + suggestion feedback + data diagnostics */
+.exercise-progress-list,.exercise-progress-all-list{display:grid;gap:7px}
+.exercise-progress-link{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:11px 2px;border:0;border-top:1px solid #e0e6e1;background:transparent;color:inherit;text-align:left}
+.exercise-progress-link:first-child{border-top:0}
+.exercise-progress-link>span{display:grid;gap:2px}
+.exercise-progress-link>span:last-child{text-align:right}
+.exercise-progress-link strong,.exercise-progress-link b{font-size:13px}
+.exercise-progress-link small{font-size:10px;color:#718078}
+.exercise-progress-all{margin-top:8px}
+.exercise-progress-modal{display:grid;gap:14px}
+.exercise-progress-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.exercise-progress-summary>span{display:grid;gap:3px;padding:11px;border:1px solid #d9e2db;border-radius:13px;background:#f5f8f4}
+.exercise-progress-summary small,.exercise-chart-head small{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#758178;font-weight:800}
+.exercise-progress-summary strong{font-size:13px}
+.exercise-progress-setup{margin:0;padding:10px 12px;border-radius:11px;background:#eef4ef;font-size:11px}
+.exercise-progress-chart{display:grid;gap:5px;padding:12px;border:1px solid #d9e2db;border-radius:14px;background:#fafcf9}
+.exercise-chart-head{display:flex;align-items:end;justify-content:space-between;gap:10px}
+.exercise-chart-head strong{font-size:20px}
+.exercise-progress-chart svg{width:100%;height:92px;overflow:visible}
+.exercise-progress-chart polyline{stroke:currentColor;stroke-width:2.5}
+.exercise-progress-chart circle{fill:currentColor}
+.exercise-chart-range{display:flex;justify-content:space-between;font-size:9px;color:#78857c}
+.exercise-progress-history{display:grid;gap:8px}
+.exercise-progress-session{display:grid;gap:7px;padding:11px 0;border-top:1px solid #e0e6e1}
+.exercise-progress-session>div:first-child{display:flex;justify-content:space-between;gap:8px}
+.exercise-progress-session>div:first-child small{font-size:10px;color:#718078}
+.exercise-progress-sets{display:flex;flex-wrap:wrap;gap:6px}
+.exercise-progress-sets span{padding:6px 8px;border-radius:9px;background:#f0f4ef;font-size:10px}
+.exercise-progress-session p{margin:0;font-size:11px;color:#617067}
+.suggestion-card-feedback{display:grid;gap:9px;align-items:stretch}
+.suggestion-card-macros{font-size:10px;color:#64736a;font-weight:800}
+.suggestion-card-actions{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:5px;align-items:center}
+.suggestion-card-actions button{min-height:34px;padding:6px 8px;font-size:10px}
+.suggestion-feedback-summary{display:grid;gap:7px;padding:10px 11px;border:1px solid #d9e2db;border-radius:12px;background:#f7faf7}
+.suggestion-feedback-summary>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.suggestion-feedback-summary small{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:#718078;margin-right:3px}
+.suggestion-feedback-summary button{border:1px solid #ced9d0;background:#fff;color:#3f5849;border-radius:999px;padding:5px 8px;font:inherit;font-size:9px;font-weight:800}
+.suggestion-avoid-picker{display:grid;gap:8px}
+.health-status{border-radius:999px;padding:6px 9px;font-size:10px;font-weight:900}
+.health-status.good{background:#e3f0e5;color:#315d3c}
+.health-status.warn{background:#f5edda;color:#735d22}
+.health-status.bad{background:#f4dfd9;color:#7b4438}
+.storage-meter{display:grid;gap:6px}
+.storage-meter>div{height:9px;border-radius:999px;background:#e6ece7;overflow:hidden}
+.storage-meter>div>span{display:block;height:100%;background:currentColor;border-radius:inherit}
+.storage-meter p{margin:0;font-size:10px;color:#65736b}
+.diagnostic-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:12px 0}
+.diagnostic-counts>span{display:grid;gap:2px;padding:9px;border:1px solid #d9e2db;border-radius:11px;background:#f7faf7;text-align:center}
+.diagnostic-counts strong{font-size:17px}
+.diagnostic-counts small{font-size:9px;color:#718078}
+.diagnostic-details{display:grid;gap:16px}
+.diagnostic-table{display:grid}
+.diagnostic-table>div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #e1e7e2;font-size:11px}
+.diagnostic-details section{display:grid;gap:7px}
+.diagnostic-details h3{margin:0}
+.diagnostic-details ul{margin:0;padding-left:18px;font-size:11px}
+[data-theme="dark"] .exercise-progress-link,.exercise-progress-session,.diagnostic-table>div{border-color:#314238}
+[data-theme="dark"] .exercise-progress-summary>span,[data-theme="dark"] .exercise-progress-chart,[data-theme="dark"] .diagnostic-counts>span,[data-theme="dark"] .suggestion-feedback-summary{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .exercise-progress-setup,[data-theme="dark"] .exercise-progress-sets span{background:#1b2a21}
+[data-theme="dark"] .suggestion-feedback-summary button{background:#1b2a21;border-color:#3b5042;color:#d7e5da}
+[data-theme="dark"] .storage-meter>div{background:#26362c}
+@media(max-width:440px){
+ .exercise-progress-summary{grid-template-columns:1fr 1fr}
+ .exercise-progress-summary>span:last-child{grid-column:1/-1}
+ .suggestion-card-actions{grid-template-columns:1fr 1fr}
+ .diagnostic-counts{grid-template-columns:1fr 1fr}
+}

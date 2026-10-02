@@ -1,7 +1,7 @@
-import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=36';
+import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=37';
 
-import {prepareImport,importSections} from './import-model.js?v=36';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=36';
+import {prepareImport,importSections} from './import-model.js?v=37';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=37';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
@@ -125,9 +125,10 @@ function suggestionReason(combo,anchor,timeSlot,stats,proteinLeft){
  if(combo.protein>=Math.max(20,proteinLeft*.8))return 'Strong protein fit';
  return 'Good goal fit';
 }
-function suggestionCombos(anchorId='',timeSlot=null){
+function suggestionCombos(anchorId='',timeSlot=null,feedback={}){
  const totals=dailyTotals(data.foodEntries,chosenDate),calLeft=Math.max(0,data.settings.calories-totals.calories),proteinLeft=Math.max(0,data.settings.protein-totals.protein);
- const all=sortFoods(data.foods.filter(f=>Number.isFinite(f.calories)&&f.calories>=0&&Number.isFinite(f.protein)&&f.protein>=0),'recent').slice(0,60),anchor=all.find(f=>f.id===anchorId)||null;
+ const excluded=new Set(feedback.excludedIds||[]),preferred=new Set(feedback.preferIds||[]),hiddenShapes=new Set(feedback.hiddenShapes||[]);
+ const all=sortFoods(data.foods.filter(f=>!excluded.has(f.id)&&Number.isFinite(f.calories)&&f.calories>=0&&Number.isFinite(f.protein)&&f.protein>=0),'recent').slice(0,60),anchor=all.find(f=>f.id===anchorId)||null;
  if(!all.length)return[];
  const context=suggestionHistoryMap(all,timeSlot,anchor),stats=context.stats;
  const ranked=all.map(food=>({food,stats:stats.get(food.id)})).sort((a,b)=>b.stats.affinity-a.stats.affinity||b.food.protein-a.food.protein).slice(0,28);
@@ -149,12 +150,12 @@ function suggestionCombos(anchorId='',timeSlot=null){
    const affinity=items.reduce((sum,x)=>sum+(stats.get(x.food.id)?.affinity||0),0)/items.length;
    const repeatPenalty=items.reduce((sum,x)=>sum+Math.min(.12,(stats.get(x.food.id)?.todayCount||0)*.04),0);
    let compatibility=1,pairs=0;if(items.length>1){let total=0;for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){total+=pairCompatibility(items[i].food,items[j].food,context.entriesByName);pairs++;}compatibility=pairs?total/pairs:1;}
-   const sizePenalty=Math.max(0,items.length-2)*.025,compatibilityPenalty=(1-compatibility)*.22;
-   return{items,calories,protein,score:calFit*.50+proteinShort*.38+overCal*.80+repeatPenalty+sizePenalty+compatibilityPenalty-affinity*.24};
+   const sizePenalty=Math.max(0,items.length-2)*.025,compatibilityPenalty=(1-compatibility)*.22,preferenceBonus=items.some(x=>preferred.has(x.food.id))?.14:0;
+   return{items,calories,protein,score:calFit*.50+proteinShort*.38+overCal*.80+repeatPenalty+sizePenalty+compatibilityPenalty-affinity*.24-preferenceBonus};
  }).filter(x=>x.calories>0).sort((a,b)=>a.score-b.score);
  const seen=new Set(),shapeCounts=new Map(),appearances=new Map(),out=[];
  for(const s of scored){
-   const key=s.items.map(x=>x.food.id+':'+x.q).sort().join('|'),shape=s.items.map(x=>x.food.id).sort().join('|');if(seen.has(key)||(shapeCounts.get(shape)||0)>=2)continue;
+   const key=s.items.map(x=>x.food.id+':'+x.q).sort().join('|'),shape=s.items.map(x=>x.food.id).sort().join('|');if(hiddenShapes.has(shape)||seen.has(key)||(shapeCounts.get(shape)||0)>=2)continue;
    if(!anchor&&s.items.some(x=>(appearances.get(x.food.id)||0)>=7))continue;
    seen.add(key);shapeCounts.set(shape,(shapeCounts.get(shape)||0)+1);s.reason=suggestionReason(s,anchor,timeSlot,stats,proteinLeft);out.push(s);
    for(const x of s.items)appearances.set(x.food.id,(appearances.get(x.food.id)||0)+1);
@@ -162,13 +163,23 @@ function suggestionCombos(anchorId='',timeSlot=null){
  }
  return out;
 }
+function suggestionShape(suggestion){return suggestion.items.map(x=>x.food.id).sort().join('|');}
 function foodSuggestions(state=null){
- const defaults={anchorId:'',timeSlot:chosenDate===currentTrackingDate()?currentFoodSlot():null};
- foodSuggestionState={...defaults,...(state||{})};
- const totals=dailyTotals(data.foodEntries,chosenDate),calLeft=Math.max(0,data.settings.calories-totals.calories),proteinLeft=Math.max(0,data.settings.protein-totals.protein),recent=recentSuggestionFoods(),suggestions=suggestionCombos(foodSuggestionState.anchorId,foodSuggestionState.timeSlot);
+ const defaults={anchorId:'',timeSlot:chosenDate===currentTrackingDate()?currentFoodSlot():null,preferIds:[],excludedIds:[],hiddenShapes:[]};
+ const next={...defaults,...(state||{})};next.preferIds=[...new Set(next.preferIds||[])];next.excludedIds=[...new Set(next.excludedIds||[])];next.hiddenShapes=[...new Set(next.hiddenShapes||[])];
+ if(next.excludedIds.includes(next.anchorId))next.anchorId='';
+ foodSuggestionState=next;
+ const totals=dailyTotals(data.foodEntries,chosenDate),calLeft=Math.max(0,data.settings.calories-totals.calories),proteinLeft=Math.max(0,data.settings.protein-totals.protein),recent=recentSuggestionFoods(),suggestions=suggestionCombos(next.anchorId,next.timeSlot,next);
  foodSuggestionState.suggestions=suggestions;
- const anchor=foodSuggestionState.anchorId;
- modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><div class="suggestion-time"><label class="field"><span>Meal time</span><select data-suggestion-time>'+foodTimeOptions(foodSuggestionState.timeSlot)+'</select></label><small>One time is applied to every item you add.</small></div><div class="suggestion-anchor"><span class="buddy-mini-label">START WITH</span><div class="suggestion-chips"><button type="button" class="'+(!anchor?'selected':'')+'" data-action="food-suggest-anchor" data-id="">Anything</button>'+recent.map(f=>'<button type="button" class="'+(anchor===f.id?'selected':'')+'" data-action="food-suggest-anchor" data-id="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></div><p class="body-copy">Ranked from your remaining goals plus your own logging history: recency, frequency, foods you commonly log together, and time-of-day patterns when available. Ingredients participate normally.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<button type="button" class="suggestion-card" data-action="apply-food-suggestion" data-index="'+i+'"><span class="suggestion-card-copy"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><em>'+esc(s.reason)+'</em></span><small>'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</small></button>').join('')+'</div>':'<p class="empty">Add some saved foods first so there is something to suggest.</p>')+'</div>');
+ const anchor=next.anchorId,excluded=next.excludedIds.map(id=>data.foods.find(f=>f.id===id)).filter(Boolean),preferred=next.preferIds.map(id=>data.foods.find(f=>f.id===id)).filter(Boolean);
+ const feedbackSummary=(excluded.length||preferred.length)?'<div class="suggestion-feedback-summary">'+(preferred.length?'<div><small>Favoring</small>'+preferred.map(f=>'<button type="button" data-action="food-suggest-unprefer" data-id="'+esc(f.id)+'">'+esc(f.name)+' ×</button>').join('')+'</div>':'')+(excluded.length?'<div><small>Avoiding this round</small>'+excluded.map(f=>'<button type="button" data-action="food-suggest-restore" data-id="'+esc(f.id)+'">'+esc(f.name)+' ×</button>').join('')+'</div>':'')+'</div>':'';
+ modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><div class="suggestion-time"><label class="field"><span>Meal time</span><select data-suggestion-time>'+foodTimeOptions(next.timeSlot)+'</select></label><small>One time is applied to every item you add.</small></div><div class="suggestion-anchor"><span class="buddy-mini-label">START WITH</span><div class="suggestion-chips"><button type="button" class="'+(!anchor?'selected':'')+'" data-action="food-suggest-anchor" data-id="">Anything</button>'+recent.filter(f=>!next.excludedIds.includes(f.id)).map(f=>'<button type="button" class="'+(anchor===f.id?'selected':'')+'" data-action="food-suggest-anchor" data-id="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></div>'+feedbackSummary+'<p class="body-copy">Ranked from your remaining goals plus your own logging history. Feedback below only changes this suggestion round and is not saved as a permanent preference.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<article class="suggestion-card suggestion-card-feedback"><div class="suggestion-card-copy"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><em>'+esc(s.reason)+'</em></div><div class="suggestion-card-macros">'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</div><div class="suggestion-card-actions"><button type="button" class="primary small" data-action="apply-food-suggestion" data-index="'+i+'">Add</button><button type="button" class="text-btn" data-action="food-suggest-more" data-index="'+i+'">More like this</button><button type="button" class="text-btn" data-action="food-suggest-avoid" data-index="'+i+'">Avoid…</button><button type="button" class="text-btn" data-action="food-suggest-skip" data-index="'+i+'">Skip</button></div></article>').join('')+'</div>':'<p class="empty">No combinations match the current feedback. Remove an avoided item or reset Start with to Anything.</p>')+'</div>');
+}
+function foodSuggestionAvoidPicker(index){
+ const suggestion=foodSuggestionState?.suggestions?.[index];if(!suggestion)return;
+ if(suggestion.items.length===1){foodSuggestions({...foodSuggestionState,excludedIds:[...(foodSuggestionState.excludedIds||[]),suggestion.items[0].food.id]});return;}
+ const snapshot={...foodSuggestionState};
+ modal('Avoid an item', '<div class="suggestion-avoid-picker"><p class="body-copy">Exclude one item from this suggestion round. This does not change the saved food itself.</p>'+suggestion.items.map(x=>'<button type="button" class="food-library-item" data-action="food-suggest-exclude" data-id="'+esc(x.food.id)+'"><span><strong>'+esc(x.food.name)+'</strong><small>Hide from current suggestions</small></span><b>×</b></button>').join('')+'</div>',()=>foodSuggestions(snapshot));
 }
 
 function food() {
@@ -291,6 +302,49 @@ function gym() {
 }
 function describeLift(l){return l.sets.map(s=>`${fmt(s.weight)} ${data.settings.unit} × ${s.reps}${s.difficulty?` · ${effortText(s.difficulty)}`:''}`).join(' · ');}
 function lastLift(name,excludeId='',equipment=''){return data.lifts.filter(l=>l.exercise.toLowerCase()===name.toLowerCase()&&(!equipment||(l.equipment||'other')===equipment)&&l.id!==excludeId&&l.date<=chosenDate).sort((a,b)=>b.date.localeCompare(a.date))[0];}
+
+const exerciseHistoryKey=(name,equipment='other')=>String(name||'').trim().toLowerCase()+'|'+(equipment||'other');
+function exerciseProgressGroups(){
+ const map=new Map();
+ for(const lift of data.lifts){
+   const key=exerciseHistoryKey(lift.exercise,lift.equipment),existing=map.get(key)||{key,name:lift.exercise,equipment:lift.equipment||'other',lifts:[]};
+   existing.lifts.push(lift);map.set(key,existing);
+ }
+ for(const group of map.values()){
+   group.lifts.sort((a,b)=>a.date.localeCompare(b.date));
+   group.latest=group.lifts.at(-1);
+   group.definition=(data.exerciseDefinitions||[]).find(e=>exerciseHistoryKey(e.name,e.equipment)===group.key)||null;
+ }
+ return [...map.values()].sort((a,b)=>b.latest.date.localeCompare(a.latest.date)||a.name.localeCompare(b.name));
+}
+function bestLiftSet(lift){
+ const sets=(lift?.sets||[]).filter(s=>Number.isFinite(s.weight)&&Number.isInteger(s.reps));
+ if(!sets.length)return null;
+ return [...sets].sort((a,b)=>b.weight-a.weight||b.reps-a.reps)[0];
+}
+function exerciseProgressChart(group){
+ const points=group.lifts.map(l=>({date:l.date,set:bestLiftSet(l)})).filter(x=>x.set);
+ if(!points.length)return'';
+ const weighted=points.some(x=>x.set.weight>0),values=points.map(x=>weighted?x.set.weight:x.set.reps),min=Math.min(...values),max=Math.max(...values),range=Math.max(1,max-min),w=300,h=92,p=10;
+ const coords=values.map((v,i)=>({x:points.length===1?w/2:p+i*(w-2*p)/(points.length-1),y:h-p-(v-min)/range*(h-2*p)}));
+ const poly=coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+ return '<div class="exercise-progress-chart"><div class="exercise-chart-head"><small>'+(weighted?'Top set weight':'Top set reps')+'</small><strong>'+fmt(values.at(-1))+(weighted?' '+data.settings.unit:' reps')+'</strong></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(group.name)+' '+(weighted?'weight':'reps')+' trend"><polyline points="'+poly+'" fill="none" vector-effect="non-scaling-stroke"></polyline>'+coords.map(p=>'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3"></circle>').join('')+'</svg><div class="exercise-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div></div>';
+}
+function exerciseProgressModal(name,equipment){
+ const group=exerciseProgressGroups().find(g=>g.key===exerciseHistoryKey(name,equipment));if(!group)return;
+ const best=[...group.lifts].map(l=>({lift:l,set:bestLiftSet(l)})).filter(x=>x.set).sort((a,b)=>b.set.weight-a.set.weight||b.set.reps-a.set.reps)[0];
+ modal(group.name+' progress','<div class="exercise-progress-modal"><div class="exercise-progress-summary"><span><small>Equipment</small><strong>'+equipmentLabel(group.equipment)+'</strong></span><span><small>Sessions</small><strong>'+group.lifts.length+'</strong></span><span><small>Best set</small><strong>'+(best?fmt(best.set.weight)+' '+data.settings.unit+' × '+best.set.reps:'—')+'</strong></span></div>'+(group.definition?.setup?'<p class="exercise-progress-setup"><strong>Current setup:</strong> '+esc(group.definition.setup)+'</p>':'')+exerciseProgressChart(group)+'<div class="exercise-progress-history">'+[...group.lifts].reverse().map(l=>'<div class="exercise-progress-session"><div><strong>'+niceDate(l.date)+'</strong><small>'+l.date+'</small></div><div class="exercise-progress-sets">'+l.sets.map((s,i)=>'<span><b>Set '+(i+1)+'</b> '+fmt(s.weight)+' '+data.settings.unit+' × '+s.reps+(s.difficulty?' · '+effortText(s.difficulty):'')+'</span>').join('')+'</div>'+(l.notes?'<p>'+esc(l.notes)+'</p>':'')+'</div>').join('')+'</div></div>');
+}
+function exerciseProgressPanel(){
+ const groups=exerciseProgressGroups();
+ if(!groups.length)return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><p class="eyebrow">LIFTING</p><h2>Exercise progress</h2></div></div>'+empty('Log some lifts to build exercise history.')+'</section>';
+ const shown=groups.slice(0,8);
+ return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><p class="eyebrow">LIFTING</p><h2>Exercise progress</h2></div><span class="progress-count">'+groups.length+' exercises</span></div><div class="exercise-progress-list">'+shown.map(g=>{const set=bestLiftSet(g.latest);return '<button type="button" class="exercise-progress-link" data-action="exercise-progress" data-name="'+esc(g.name)+'" data-equipment="'+esc(g.equipment)+'"><span><strong>'+esc(g.name)+'</strong><small>'+equipmentLabel(g.equipment)+' · Last '+niceDate(g.latest.date)+'</small></span><span><b>'+(set?fmt(set.weight)+' '+data.settings.unit+' × '+set.reps:'—')+'</b><small>'+g.lifts.length+' session'+(g.lifts.length===1?'':'s')+'</small></span></button>';}).join('')+'</div>'+(groups.length>8?'<button type="button" class="text-btn exercise-progress-all" data-action="exercise-progress-all">View all '+groups.length+' exercises</button>':'')+'</section>';
+}
+function exerciseProgressAll(){
+ const groups=exerciseProgressGroups();
+ modal('Exercise progress','<div class="exercise-progress-all-list">'+groups.map(g=>'<button type="button" class="exercise-progress-link" data-action="exercise-progress" data-name="'+esc(g.name)+'" data-equipment="'+esc(g.equipment)+'"><span><strong>'+esc(g.name)+'</strong><small>'+equipmentLabel(g.equipment)+' · '+g.lifts.length+' session'+(g.lifts.length===1?'':'s')+'</small></span><b>›</b></button>').join('')+'</div>');
+}
 function validTime(value){return typeof value==='string'&&Number.isFinite(Date.parse(value));}
 function workoutTiming(session){
  if(!session||!validTime(session.startedAt))return null;
@@ -319,14 +373,37 @@ function progress() {
   const change=previous?round(latest.average-previous.average):null;
   const days=[...new Set(data.foodEntries.map(x=>x.date))].sort().reverse().slice(0,7);
   const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
-  return `<div class="page-head progress-head"><p class="eyebrow">THE BIG PICTURE</p><h1>Progress<span class="accent">.</span></h1><p>Weekly averages put daily changes in perspective.</p></div><section class="panel progress-trend"><div class="section-head"><div><p class="eyebrow">BODY WEIGHT</p><h2>Weekly trend</h2></div>${button('+ Weigh in','weight','primary small')}</div><p class="week-setting">Weeks start ${weekDays[data.settings.weekStart]} · ${button('Change','settings','text-btn')}</p>${latest?`<div class="trend-highlight"><p class="eyebrow">${latest.week===currentWeek?'CURRENT WEEK':'LATEST LOGGED WEEK'}</p><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div><div class="week-list">${weeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.week.slice(0,4)}${w.week.slice(0,4)!==endOfWeek(w.week).slice(0,4)?'–'+endOfWeek(w.week).slice(0,4):''} · ${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')}</div>`:empty('Add a weigh-in to see weekly average weight and BMI.')}<p class="hint">Averages use logged weigh-ins only. BMI uses your height in Settings.</p></section><section class="panel progress-details"><div class="section-head"><h2>Individual weigh-ins</h2><span class="progress-count">${weights.length} total</span></div>${weights.length?weights.map(w=>`<div class="list-row"><span><strong>${fmt(w.value)} ${data.settings.unit}</strong><small>${niceDate(w.date)} · ${w.date.slice(0,4)} · BMI ${bmi(w.value,data.settings.heightInches,data.settings.unit)}</small></span>${button('Edit','edit-weight','text-btn',`data-id="${esc(w.id)}"`)}</div>`).join(''):empty('No weigh-ins yet.')}</section>${workoutTimingPanel()}<section class="panel progress-details"><div class="section-head"><h2>Recent food days</h2>${button('All dates ↗','history','text-btn')}</div>${days.length?days.map(day=>{const t=dailyTotals(data.foodEntries,day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`}).join(''):empty('Food totals will appear once you start logging.')}</section>`;
+  return `<div class="page-head progress-head"><p class="eyebrow">THE BIG PICTURE</p><h1>Progress<span class="accent">.</span></h1><p>Weekly averages put daily changes in perspective.</p></div><section class="panel progress-trend"><div class="section-head"><div><p class="eyebrow">BODY WEIGHT</p><h2>Weekly trend</h2></div>${button('+ Weigh in','weight','primary small')}</div><p class="week-setting">Weeks start ${weekDays[data.settings.weekStart]} · ${button('Change','settings','text-btn')}</p>${latest?`<div class="trend-highlight"><p class="eyebrow">${latest.week===currentWeek?'CURRENT WEEK':'LATEST LOGGED WEEK'}</p><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div><div class="week-list">${weeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.week.slice(0,4)}${w.week.slice(0,4)!==endOfWeek(w.week).slice(0,4)?'–'+endOfWeek(w.week).slice(0,4):''} · ${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')}</div>`:empty('Add a weigh-in to see weekly average weight and BMI.')}<p class="hint">Averages use logged weigh-ins only. BMI uses your height in Settings.</p></section><section class="panel progress-details"><div class="section-head"><h2>Individual weigh-ins</h2><span class="progress-count">${weights.length} total</span></div>${weights.length?weights.map(w=>`<div class="list-row"><span><strong>${fmt(w.value)} ${data.settings.unit}</strong><small>${niceDate(w.date)} · ${w.date.slice(0,4)} · BMI ${bmi(w.value,data.settings.heightInches,data.settings.unit)}</small></span>${button('Edit','edit-weight','text-btn',`data-id="${esc(w.id)}"`)}</div>`).join(''):empty('No weigh-ins yet.')}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details"><div class="section-head"><h2>Recent food days</h2>${button('All dates ↗','history','text-btn')}</div>${days.length?days.map(day=>{const t=dailyTotals(data.foodEntries,day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`}).join(''):empty('Food totals will appear once you start logging.')}</section>`;
 }
 function history() {
   const dates=[...new Set([...data.foodEntries,...data.lifts,...data.weights].map(x=>x.date))].sort().reverse();
   return `<div class="page-head"><p class="eyebrow">EVERY DAY COUNTS</p><h1>History<span class="accent">.</span></h1><p>Choose any date to view or correct what you logged.</p></div><div class="date-row">${input('Jump to date','date',chosenDate,'date','required')}${button('Open food','food','outline small')}</div>${dates.length?dates.map(date=>{const t=dailyTotals(data.foodEntries,date), lifts=data.lifts.filter(x=>x.date===date).length, w=data.weights.find(x=>x.date===date);return `<button class="history-day" data-action="go-date" data-date="${date}"><strong>${niceDate(date)}</strong><span>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g protein<br>${lifts} lift${lifts===1?'':'s'}${w?` · ${fmt(w.value)} ${data.settings.unit}`:''}</span><b>↗</b></button>`}).join(''):empty('Your logged days will show up here.')}`;
 }
+
+function dataDiagnostics(){
+ const issues=[],warnings=[];
+ let payloadBytes=0;try{payloadBytes=new TextEncoder().encode(JSON.stringify(encodeData(data))).length;}catch(error){issues.push('Current data cannot be encoded: '+error.message);}
+ const defs=data.exerciseDefinitions||[],defIds=new Set(defs.map(e=>e.id));
+ for(const w of data.workoutTemplates||[])for(const item of w.exercises||[])if(!defIds.has(item.exerciseId))issues.push(w.name+' references a missing exercise: '+item.exerciseId);
+ const foodGroups=new Map();for(const f of data.foods){const key=f.name.trim().toLowerCase();if(!foodGroups.has(key))foodGroups.set(key,[]);foodGroups.get(key).push(f);}
+ for(const [name,items] of foodGroups)if(items.length>1)warnings.push('Possible duplicate saved food: '+items[0].name+' ('+items.length+')');
+ const exerciseGroups=new Map();for(const e of defs){const key=exerciseHistoryKey(e.name,e.equipment);if(!exerciseGroups.has(key))exerciseGroups.set(key,[]);exerciseGroups.get(key).push(e);}
+ for(const items of exerciseGroups.values())if(items.length>1)warnings.push('Duplicate exercise definition: '+items[0].name+' / '+equipmentLabel(items[0].equipment));
+ const invalidFoodTimes=data.foodEntries.filter(e=>e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47)).length;if(invalidFoodTimes)issues.push(invalidFoodTimes+' food entr'+(invalidFoodTimes===1?'y has':'ies have')+' an invalid time slot.');
+ const workoutRefs=(data.workoutTemplates||[]).reduce((n,w)=>n+(w.exercises?.length||0),0);
+ const counts={foods:data.foods.length,foodEntries:data.foodEntries.length,lifts:data.lifts.length,weights:data.weights.length,exerciseDefinitions:defs.length,workoutTemplates:(data.workoutTemplates||[]).length,workoutRefs,workoutHistory:(data.workoutHistory||[]).length};
+ return{issues,warnings,payloadBytes,percent:Math.min(100,payloadBytes/800000*100),counts};
+}
+function dataHealthPanel(){
+ const d=dataDiagnostics(),status=d.issues.length?'Needs attention':d.warnings.length?'Review suggested':'Looks healthy',tone=d.issues.length?'bad':d.warnings.length?'warn':'good';
+ return '<section class="panel spaced data-health-panel"><div class="section-head"><div><p class="eyebrow">DATA HEALTH</p><h2>Diagnostics</h2></div><span class="health-status '+tone+'">'+status+'</span></div><div class="storage-meter"><div><span style="width:'+d.percent.toFixed(1)+'%"></span></div><p><strong>'+Math.round(d.payloadBytes/1024)+' KB</strong> of the app’s 781 KB cloud-payload limit · '+d.percent.toFixed(1)+'%</p></div><div class="diagnostic-counts"><span><strong>'+d.counts.foodEntries+'</strong><small>food logs</small></span><span><strong>'+d.counts.lifts+'</strong><small>lift logs</small></span><span><strong>'+d.counts.weights+'</strong><small>weights</small></span><span><strong>'+d.counts.workoutHistory+'</strong><small>Buddy sessions</small></span></div>'+button('View diagnostic details','data-health-details','outline small')+'<p class="hint">Diagnostics are read-only. Nothing is repaired, deleted, or merged automatically.</p></section>';
+}
+function dataHealthDetails(){
+ const d=dataDiagnostics(),rows=[['Cloud payload',Math.round(d.payloadBytes/1024)+' KB / ~781 KB'],['Saved foods',d.counts.foods],['Food entries',d.counts.foodEntries],['Exercise definitions',d.counts.exerciseDefinitions],['Workout templates',d.counts.workoutTemplates],['Workout exercise references',d.counts.workoutRefs],['Lift entries',d.counts.lifts],['Weight entries',d.counts.weights],['Workout Buddy history',d.counts.workoutHistory]];
+ modal('Data diagnostics','<div class="diagnostic-details"><div class="diagnostic-table">'+rows.map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div><section><h3>Errors</h3>'+(d.issues.length?'<ul>'+d.issues.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No structural errors found.</p>')+'</section><section><h3>Things to review</h3>'+(d.warnings.length?'<ul>'+d.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No duplicate definitions detected.</p>')+'</section></div>');
+}
 function settings() {
-  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.'} Export backups regularly.</p></div>${accountPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section><section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button('Export JSON backup','export','outline')}${button('Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves your records to a private Firebase account space. Cloud viewing and saving require a connection; signed-in fitness records are not kept in browser storage. Device mode still works offline. Export backups for an independent copy. This version supports up to about 800 KB of logs per account.</p></section>`;
+  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.'} Export backups regularly.</p></div>${accountPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button('Export JSON backup','export','outline')}${button('Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves your records to a private Firebase account space. Cloud viewing and saving require a connection; signed-in fitness records are not kept in browser storage. Device mode still works offline. Export backups for an independent copy. This version supports up to about 800 KB of logs per account.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
 function close(all=false) {importReadToken++;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
@@ -385,12 +462,15 @@ document.addEventListener('click',async event=>{
     data=mergeDeviceData(data,deviceData);
     if(await persist()){try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}render();}return;
   }
-  if(account&&(cloudBusy||cloudPending||!session?.ready)&&!['home','food','gym','progress','history','settings','account','export','close','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library'].includes(action))return;
+  if(account&&(cloudBusy||cloudPending||!session?.ready)&&!['home','food','gym','progress','history','settings','account','export','close','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
   if(['home','food','gym','progress','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
   if(action.startsWith('health-')){await healthAction(action);return;}
   if(action==='today'){chosenDate=currentTrackingDate();render();return;}
   if(action==='go-date'){chosenDate=el.dataset.date;page='food';render();return;}
+  if(action==='exercise-progress'){exerciseProgressModal(el.dataset.name,el.dataset.equipment);return;}
+  if(action==='exercise-progress-all'){exerciseProgressAll();return;}
+  if(action==='data-health-details'){dataHealthDetails();return;}
   if(action==='workout'){workout=el.dataset.workout;render();return;}
 
   if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();await persist();buddyClose();render();return;}
@@ -426,6 +506,12 @@ document.addEventListener('click',async event=>{
   if(action==='food-library'){foodLibrary();return;}
   if(action==='food-suggest'){foodSuggestions();return;}
   if(action==='food-suggest-anchor'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,anchorId:el.dataset.id||''});return;}
+  if(action==='food-suggest-more'){const s=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!s)return;foodSuggestions({...foodSuggestionState,preferIds:[...(foodSuggestionState.preferIds||[]),...s.items.map(x=>x.food.id)]});return;}
+  if(action==='food-suggest-skip'){const s=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!s)return;foodSuggestions({...foodSuggestionState,hiddenShapes:[...(foodSuggestionState.hiddenShapes||[]),suggestionShape(s)]});return;}
+  if(action==='food-suggest-avoid'){foodSuggestionAvoidPicker(Number(el.dataset.index));return;}
+  if(action==='food-suggest-exclude'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,excludedIds:[...(foodSuggestionState.excludedIds||[]),el.dataset.id]});return;}
+  if(action==='food-suggest-restore'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,excludedIds:(foodSuggestionState.excludedIds||[]).filter(id=>id!==el.dataset.id)});return;}
+  if(action==='food-suggest-unprefer'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,preferIds:(foodSuggestionState.preferIds||[]).filter(id=>id!==el.dataset.id)});return;}
   if(action==='apply-food-suggestion'){const suggestion=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!suggestion)return;for(const item of suggestion.items){const record={id:id(),date:chosenDate,name:item.food.name,calories:item.food.calories,protein:item.food.protein,quantity:item.q};if(foodSuggestionState.timeSlot!=null)record.t=foodSuggestionState.timeSlot;data.foodEntries.push(record);item.food.lastUsed=new Date().toISOString();}foodSuggestionState=null;close(true);await persist();render();return;}
   if(action==='new-food-def'){foodDefinitionForm();return;}
   if(action==='edit-food-def'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id));return;}
@@ -477,7 +563,7 @@ app.addEventListener('submit',async event=>{
 
 render();
 startCloud();
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=36',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=37',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
 
 function accountBanner(){
   return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
@@ -497,7 +583,7 @@ async function loadAccount(){
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=36');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=37');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
