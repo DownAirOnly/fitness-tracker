@@ -2,6 +2,7 @@ import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeigh
 
 import {prepareImport,importSections} from './import-model.js?v=44';
 import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=44';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=45';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 function readOfflineWorkspace(){
   try{
@@ -20,16 +21,18 @@ function offlineOutputName(){
   const base=(offlineWorkspace?.filename||'everyday-backup.json').replace(/\.json$/i,'').replace(/-updated-\d{4}-\d{2}-\d{2}$/i,'');
   return base+'-updated-'+localDate()+'.json';
 }
-function downloadJsonBackup(filename,markWorkspace=false){
-  const blob=new Blob([JSON.stringify(encodeData(data),null,2)],{type:'application/json'}),link=document.createElement('a');
+function downloadJsonBackup(filename,markWorkspace=false,sourceData=data){
+  const blob=new Blob([JSON.stringify(encodeData(sourceData),null,2)],{type:'application/json'}),link=document.createElement('a');
   link.href=URL.createObjectURL(blob);link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
-  if(markWorkspace&&offlineWorkspace){offlineWorkspace.dirty=false;offlineWorkspace.exportedAt=new Date().toISOString();storeOfflineWorkspace(data,false);render();}
+  if(markWorkspace&&offlineWorkspace&&sourceData===data){offlineWorkspace.dirty=false;offlineWorkspace.exportedAt=new Date().toISOString();storeOfflineWorkspace(data,false);render();}
 }
 
 
 let deviceData=load(),offlineWorkspace=readOfflineWorkspace();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud saving paused':'Connecting account service…', cloudReady=false, authChecked=false;
+let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null;
+let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):deviceData, page='home', chosenDate=trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
@@ -41,6 +44,29 @@ const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,''
 const button=(label,action,cls='',attrs='')=>`<button type="button" class="${cls}" data-action="${action}" ${attrs}>${label}</button>`;
 const input=(label,name,value='',type='text',extra='')=>`<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const empty=message=>`<p class="empty">${message}</p>`;
+const currentCloudRevision=()=>Number.isSafeInteger(session?.revision)?session.revision:Number.isSafeInteger(cloudConfirmed?.revision)?cloudConfirmed.revision:Number.isSafeInteger(cloudRecovery?.revision)?cloudRecovery.revision:0;
+function saveCloudRecoveryLocally(markMessage=true){
+  if(!account?.uid)return null;
+  cloudRecovery=writeCloudRecovery(account.uid,currentCloudRevision(),data);
+  if(markMessage){cloudPending=true;cloudMessage=session?.ready?'Saved on this device · waiting for cloud':'Saved on this device · cloud unavailable';}
+  return cloudRecovery;
+}
+function saveCriticalLocalCopy(){
+  try{
+    if(offlineWorkspace){storeOfflineWorkspace(data,true);return true;}
+    if(!account){save(data);deviceData=structuredClone(data);return true;}
+    saveCloudRecoveryLocally(true);return true;
+  }catch{return false;}
+}
+function captureCriticalLocalState(){
+  if(!data.activeWorkout)return;
+  buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();
+}
+async function refreshStorageProtection(request=true){
+  storageProtection=await requestStorageProtection(request);
+  if(page==='settings'&&!document.querySelector('.modal'))render();
+  return storageProtection;
+}
 const currentTrackingDate=(now=new Date())=>trackingDate(now,data.settings.dayResetMinutes??360);
 const currentFoodSlot=(now=new Date())=>Math.floor((now.getHours()*60+now.getMinutes())/30);
 const clockLabel=minutes=>{minutes=((minutes%1440)+1440)%1440;const h=Math.floor(minutes/60),m=minutes%60,period=h>=12?'PM':'AM',hour=h%12||12;return hour+':'+String(m).padStart(2,'0')+' '+period;};
@@ -56,15 +82,29 @@ const effortOptions=value=>'<option value="">Effort</option>'+Object.entries(eff
 const persist=async()=>{
   if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';render();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
   if(!account){try{save(data);deviceData=structuredClone(data);render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
-  if(!session?.ready || cloudBusy) return false;
-  const active=session;cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';render();
-  try{await active.save(data);if(session!==active)return false;cloudPending=false;cloudMessage='Saved to your account';return true;}
-  catch(error){if(session===active){cloudMessage=describeCloudError(error);cloudPending=true;}return false;}
-  finally{if(session===active){cloudBusy=false;render();}}
+  let localSafe=true;
+  try{saveCloudRecoveryLocally(false);cloudPending=true;}catch{localSafe=false;cloudPending=true;}
+  if(!session?.ready){cloudMessage=localSafe?'Saved on this device · cloud unavailable':'Cloud unavailable and the device recovery copy could not be saved. Export a backup now.';render();return localSafe;}
+  if(cloudBusy){cloudMessage=localSafe?'Saved on this device · waiting for cloud':'Cloud save in progress; the device recovery copy could not be updated.';render();return localSafe;}
+  const active=session,snapshot=structuredClone(data);cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';render();let queueAgain=false;
+  try{
+    await active.save(snapshot);if(session!==active)return false;
+    try{cloudConfirmed=writeCloudConfirmed(active.uid,active.revision,snapshot);}catch{cloudConfirmed={uid:active.uid,revision:active.revision,updatedAt:isoNow(),data:structuredClone(snapshot)};}
+    if(sameCloudData(data,snapshot)){
+      clearCloudRecovery(active.uid);cloudRecovery=null;cloudRecoveryConflict=null;cloudPending=false;cloudMessage='Saved to your account';
+    }else{
+      try{cloudRecovery=writeCloudRecovery(active.uid,active.revision,data);}catch{}
+      cloudPending=true;cloudMessage='Newer changes are safe on this device · syncing…';queueAgain=true;
+    }
+    return true;
+  }
+  catch(error){if(session===active){cloudMessage=describeCloudError(error)+(localSafe?' Device recovery kept.':' Device recovery also failed; export a backup now.');cloudPending=true;}return false;}
+  finally{if(session===active){cloudBusy=false;render();if(queueAgain)setTimeout(()=>{if(session===active&&!cloudBusy&&cloudPending)void persist();},0);}}
 };
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
-function isLoading(){return offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready);}
+function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudConfirmed));}
+function isLoading(){return offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']].map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
@@ -490,9 +530,16 @@ async function exitOfflineWorkspace(){
   if(account){data=emptyData();render();await loadAccount();}
   else{data=structuredClone(deviceData);chosenDate=currentTrackingDate();render();promptWeight();}
 }
+function storageProtectionPanel(){
+  const status=storageProtection.persisted===true?'Protected':storageProtection.supported?'Best effort':'Unavailable',tone=storageProtection.persisted===true?'good':storageProtection.supported?'warn':'bad';
+  const usage=Number.isFinite(storageProtection.usage)?Math.round(storageProtection.usage/1024)+' KB used':'Usage unavailable';
+  const quota=Number.isFinite(storageProtection.quota)?' · '+Math.round(storageProtection.quota/1024/1024)+' MB quota':'';
+  const detail=storageProtection.persisted===true?'iOS/browser storage eviction protection is active for this app origin.':storageProtection.supported?'Everyday asked for persistent storage, but the browser has not granted it yet. Home Screen use can improve WebKit’s decision.':'This browser does not expose the persistent-storage API.';
+  return '<section class="panel spaced"><div class="section-head"><div><p class="eyebrow">DEVICE STORAGE</p><h2>Offline protection</h2></div><span class="health-status '+tone+'">'+status+'</span></div><p class="body-copy">'+esc(detail)+'</p><p class="hint">'+esc(usage+quota+(storageProtection.error?' · '+storageProtection.error:''))+'</p>'+(storageProtection.supported&&storageProtection.persisted!==true?button('Ask for persistent storage','storage-persist','outline small'):'')+'</section>';
+}
 function settings() {
   const intro=offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
-  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${esc(intro)} Export backups regularly.</p></div>${accountPanel()}${offlineWorkspacePanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button(offlineWorkspace?'Replace workspace from JSON':'Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves account records to private Firebase space. Offline JSON workspace data is stored separately on this device and never syncs automatically. Export backups for an independent copy. Cloud accounts support up to about 800 KB of logs.</p></section>`;
+  return `<div class="page-head"><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1><p>${esc(intro)} Export backups regularly.</p></div>${accountPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import dated food rows from a CSV, or restore a complete Everyday JSON backup. Check the preview before anything is saved.</p>${button('Import food CSV','import-csv','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button(offlineWorkspace?'Replace workspace from JSON':'Restore JSON backup','restore','outline')}<p class="hint">CSV columns: <code>date,name,calories,protein,quantity</code>. Dates use YYYY-MM-DD; quantity is optional. Calories and protein are per serving. Import adds rows and may create new saved food cards.</p></section><section class="panel spaced"><h2>About this version</h2><p class="body-copy">Google sign-in saves account records to private Firebase space. Offline JSON workspace data is stored separately on this device and never syncs automatically. Export backups for an independent copy. Cloud accounts support up to about 800 KB of logs.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
 function close(all=false) {importReadToken++;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
@@ -544,14 +591,17 @@ app.addEventListener('change',event=>{if(event.target.dataset.libraryFilter){if(
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&action!=='offline-start')||importSaving)return;
   if(action==='sign-in'){if(offlineWorkspace)return alert('Exit the offline JSON workspace before changing cloud sign-in.');if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
-  if(action==='sign-out'){if(offlineWorkspace)return alert('Exit the offline JSON workspace before changing cloud sign-in.');if(cloudBusy||cloudPending)return alert('Finish saving, or export your changes and load cloud data, before signing out.');try{await cloudApi.signOut();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
+  if(action==='sign-out'){if(offlineWorkspace)return alert('Exit the offline JSON workspace before changing cloud sign-in.');if(cloudBusy||cloudPending)return alert('Finish saving, or export your changes and load cloud data, before signing out.');const uid=account?.uid;try{await cloudApi.signOut();if(uid)clearCloudLocal(uid);}catch(error){cloudMessage=describeCloudError(error);render();}return;}
   if(action==='account'){page='settings';render();return;}
-  if(action==='offline-start'){if(!offlineWorkspace&&account&&(cloudBusy||cloudPending))return alert('Finish or resolve the current cloud save before opening a separate workspace.');offlineWorkspaceModal(false);return;}
+  if(action==='offline-start'){if(!offlineWorkspace&&account&&(cloudBusy||cloudPending))return alert('Finish or resolve the current cloud save before opening a separate workspace.');void refreshStorageProtection(true);offlineWorkspaceModal(false);return;}
   if(action==='offline-replace'){offlineWorkspaceModal(true);return;}
   if(action==='offline-export'){if(!offlineWorkspace)return;downloadJsonBackup(offlineOutputName(),true);return;}
   if(action==='offline-exit'){await exitOfflineWorkspace();return;}
-  if(action==='cloud-load'){if(offlineWorkspace)return;if(cloudBusy)return;if(cloudPending&&!confirm('Discard these unsaved changes and load the latest cloud version? Export first if you want to keep them.'))return;await loadAccount();return;}
-  if(action==='cloud-retry'){if(offlineWorkspace)return;await persist();return;}
+  if(action==='cloud-load'){if(offlineWorkspace)return;if(cloudBusy)return;if(cloudPending){if(!confirm('Discard these unsaved device changes and load the latest cloud version? Export first if you want to keep them.'))return;if(account?.uid)clearCloudRecovery(account.uid);cloudRecovery=null;cloudRecoveryConflict=null;cloudPending=false;}await loadAccount();return;}
+  if(action==='cloud-retry'){if(offlineWorkspace)return;if(!session?.ready){await loadAccount();if(session?.ready&&cloudPending&&!cloudRecoveryConflict)await persist();return;}await persist();return;}
+  if(action==='cloud-recovery-export'){const recovery=cloudRecoveryConflict||cloudRecovery;if(!recovery)return;downloadJsonBackup('everyday-device-recovery-'+localDate()+'.json',false,recovery.data);return;}
+  if(action==='cloud-recovery-discard'){if(!account?.uid||!cloudRecoveryConflict)return;if(!confirm('Discard the saved device recovery copy and keep the cloud version?'))return;clearCloudRecovery(account.uid);cloudRecovery=null;cloudRecoveryConflict=null;cloudPending=false;cloudMessage=session?.ready?'Loaded from your account':'Using the last confirmed device copy';render();return;}
+  if(action==='storage-persist'){await refreshStorageProtection(true);return;}
   if(action==='migrate-device'){
     if(offlineWorkspace||!session?.ready||cloudBusy||cloudPending)return;
     if(!confirm(`Copy this device’s original logs into ${account.email}? Existing cloud entries with the same ID and same-day cloud weigh-ins will be kept.`))return;
@@ -583,7 +633,7 @@ document.addEventListener('click',async event=>{
   if(action==='workout-add-picker'){workoutExercisePicker();return;}
   if(action==='workout-add-exercise'){const def=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!def||!workoutEditorState||workoutEditorState.exercises.some(x=>x.exerciseId===def.id))return;workoutEditorState.exercises.push({exerciseId:def.id,repMin:def.name==='Calf Extension'?10:6,repMax:def.name==='Calf Extension'?16:12,targetSets:2,restSeconds:90});workoutTemplateForm(null,true);return;}
   if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}modal('Start Workout Buddy',`<div class="buddy-start-list">${savedWorkouts().map(x=>`<button data-action="buddy-start" data-workout="${esc(x.name)}"><span><strong>${esc(x.name)}</strong><small>${x.exercises.length} exercises · Bike warm-up first</small></span><b>›</b></button>`).join('')}</div>`);return;}
-  if(action==='buddy-start'){close(true);buddyStart(el.dataset.workout);buddyOpen();return;}
+  if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
   if(action==='buddy-bike-done'){data.activeWorkout.phase='picker';data.activeWorkout.bikeCompletedAt=isoNow();await buddyPersist();return;}
   if(action==='buddy-choose'){const s=data.activeWorkout,e=buddyFind(s,el.dataset.key);if(!e)return;e.status='active';e.selectedAt=isoNow();e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';await buddyPersist();return;}
   if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;buddyReadEditor();persist();return;}
@@ -672,13 +722,18 @@ app.addEventListener('submit',async event=>{
 
 render();
 startCloud();
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=44',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
+void refreshStorageProtection(true);
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=45',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
 
 function accountBanner(){
   if(offlineWorkspace)return '<div class="account-banner offline-workspace-banner" role="status"><span>Offline JSON workspace<small>'+esc(offlineWorkspace.filename)+' · '+(offlineWorkspace.dirty?'changes since export':'saved locally')+'</small></span>'+button('Workspace','account','text-btn')+'</div>';
   return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
 }
-function cloudSaveWarning(){return `${!offlineWorkspace&&account&&cloudPending&&!cloudBusy?`<div class="save-warning" role="alert"><strong>Changes are not saved online.</strong><p>${esc(cloudMessage)}</p>${button('Retry save','cloud-retry','outline small')}${button('Export unsaved backup','export','outline small')}${button('Load latest cloud data','cloud-load','outline small')}</div>`:''}`;
+function cloudSaveWarning(){
+  if(offlineWorkspace||!account)return '';
+  if(cloudRecoveryConflict)return `<div class="save-warning" role="alert"><strong>A device recovery copy needs review.</strong><p>The cloud changed after this device recovery was created, so Everyday did not overwrite either copy. Export the recovery JSON before discarding it if you may need those changes.</p>${button('Export device recovery','cloud-recovery-export','outline small')}${button('Keep cloud · discard recovery','cloud-recovery-discard','outline small')}</div>`;
+  if(cloudPending&&!cloudBusy)return `<div class="save-warning" role="alert"><strong>Changes are safe on this device but not confirmed online.</strong><p>${esc(cloudMessage)}</p>${button(session?.ready?'Retry cloud save':'Reconnect & sync','cloud-retry','outline small')}${button('Export unsaved backup','export','outline small')}${button('Load latest cloud data','cloud-load','outline small')}</div>`;
+  return '';
 }
 function accountPanel(){
   if(offlineWorkspace){
@@ -686,13 +741,34 @@ function accountPanel(){
     return '<section class="panel"><h2>Cloud account paused</h2><p class="body-copy">'+esc(cloudLine)+'</p><p class="hint">Workspace edits cannot overwrite Firebase by accident. Export the workspace JSON, exit offline mode, then use the normal restore preview to apply it deliberately.</p></section>';
   }
   let migrated=false;try{migrated=localStorage.getItem('everyday-migrated:'+account?.uid)==='yes';}catch{}
-  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasRecords(deviceData)&&!migrated?`<p class="body-copy">Original device logs found. You can copy them into this account. This keeps the device copy as a backup.</p>${button('Copy device logs to this account','migrate-device','primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs; other app users cannot access them when the private database rules are installed. Your browser remembers your sign-in until you sign out.</p></section>`;
+  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasRecords(deviceData)&&!migrated?`<p class="body-copy">Original device logs found. You can copy them into this account. This keeps the device copy as a backup.</p>${button('Copy device logs to this account','migrate-device','primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p></section>`;
 }
 async function loadAccount(){
   if(offlineWorkspace)return;const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
-  try{const loaded=await active.load();if(session!==active)return;data=loaded;chosenDate=currentTrackingDate();cloudPending=false;cloudMessage='Loaded from your account';}
-  catch(error){if(session===active)cloudMessage=describeCloudError(error);}
-  finally{if(session===active){cloudBusy=false;render();if(active.ready){void syncHealth();promptWeight();}}}
+  try{
+    const loaded=await active.load();if(session!==active)return;
+    const recovery=readCloudRecovery(active.uid);cloudRecovery=recovery;cloudRecoveryConflict=null;
+    try{cloudConfirmed=writeCloudConfirmed(active.uid,active.revision,loaded);}catch{cloudConfirmed={uid:active.uid,revision:active.revision,updatedAt:isoNow(),data:structuredClone(loaded)};}
+    if(recovery&&sameCloudData(recovery.data,loaded)){
+      clearCloudRecovery(active.uid);cloudRecovery=null;data=loaded;cloudPending=false;cloudMessage='Loaded from your account';
+    }else if(recovery&&recovery.revision===active.revision){
+      data=structuredClone(recovery.data);cloudPending=true;cloudMessage='Recovered unsaved changes from this device · ready to sync';
+    }else if(recovery){
+      data=loaded;cloudRecoveryConflict=recovery;cloudPending=false;cloudMessage='Loaded cloud data · device recovery needs review';
+    }else{
+      data=loaded;cloudPending=false;cloudMessage='Loaded from your account';
+    }
+    chosenDate=currentTrackingDate();
+  }
+  catch(error){
+    if(session===active){
+      const recovery=readCloudRecovery(active.uid),confirmed=readCloudConfirmed(active.uid),fallback=recovery||confirmed;
+      cloudRecovery=recovery;cloudConfirmed=confirmed;cloudRecoveryConflict=null;
+      if(fallback){data=structuredClone(fallback.data);chosenDate=currentTrackingDate();cloudPending=Boolean(recovery);cloudMessage=recovery?'Cloud unavailable · recovered unsaved device changes':'Cloud unavailable · using last confirmed device copy';}
+      else cloudMessage=describeCloudError(error);
+    }
+  }
+  finally{if(session===active){cloudBusy=false;render();if(active.ready){void syncHealth();promptWeight();}else if(hasLocalCloudFallback())promptWeight();}}
 }
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(offlineWorkspace||!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
@@ -700,6 +776,7 @@ async function startCloud(){
     const cloud=await import('./cloud.js?v=44');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
+      cloudConfirmed=null;cloudRecovery=null;cloudRecoveryConflict=null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
       if(offlineWorkspace){data=structuredClone(offlineWorkspace.data);cloudMessage='Offline JSON workspace · cloud saving paused';render();promptWeight();return;}
       data=user?emptyData():structuredClone(deviceData);
@@ -708,7 +785,9 @@ async function startCloud(){
     cloudReady=true;render();if(!offlineWorkspace)void syncHealth();
   }catch(error){authChecked=true;cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud unavailable, local editing still works':'Cloud login unavailable. Device logs still work. Reload to retry.';render();promptWeight();}
 }
-window.addEventListener('beforeunload',event=>{if(!offlineWorkspace&&(cloudPending||cloudBusy)){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{captureCriticalLocalState();if(!offlineWorkspace&&(cloudPending||cloudBusy)){event.preventDefault();event.returnValue='';}});
+window.addEventListener('pagehide',()=>captureCriticalLocalState());
+window.addEventListener('online',()=>{if(offlineWorkspace||!account)return;if(session?.ready&&cloudPending&&!cloudRecoveryConflict)void persist();else if(!session?.ready)void loadAccount();});
 
 function appearancePanel(){
   const selected=window.everydayTheme?.preference || 'system';
@@ -820,6 +899,7 @@ function showHealthSetup(){
   if(!healthState.token)return;
   modal('Set up weight sync',`<p class="body-copy">Keep your existing Everyday Home Screen icon. Use a separate Sync Everyday Weight Shortcut to send your latest reading.</p><p class="hint">This private address permits weight submissions. Do not share it or publish a Shortcut containing it. Disconnect revokes it.</p>${button('Copy private sync address','health-copy','primary')}<p id="health-copy-status" role="status"></p><label class="field"><span>Private sync address</span><textarea id="health-url" readonly rows="3">${esc(cloudApi.health.url(healthState.token))}</textarea></label><p class="body-copy">Follow the <a href="health-shortcut.html" target="_blank" rel="noopener">Shortcut setup instructions</a>. You will need the sample’s Value and Start Date, plus this address. No Google password or Firebase administrator key goes into the Shortcut.</p><p class="hint">Only the latest submitted reading waits here. Open Everyday after syncing to import it. Repeated or older readings are ignored; historical backfill and Health deletions are not synced.</p>`);
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void syncHealth();});
-window.addEventListener('pageshow',()=>{void syncHealth();});
+document.addEventListener('input',event=>{if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{void syncHealth();void refreshStorageProtection(false);}});
+window.addEventListener('pageshow',()=>{void syncHealth();void refreshStorageProtection(false);});
 window.addEventListener('focus',()=>{void syncHealth();});
