@@ -18,7 +18,7 @@ Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install
 - Automatically saved food cards for repeat taps. Each log stores its own calorie/protein values so editing a card does not rewrite history.
 - Dated CSV food import, preview and validation, dated edits, and a complete JSON backup/restore.
 - Upper, lower, and full-body starter exercise lists, custom exercises, sets/reps/weight, difficulty, notes, and last-time reference.
-- Weigh-ins, individual BMI, and Monday-start weekly average weight/BMI. Height starts at 68 inches and is editable.
+- Weigh-ins, individual BMI, and Friday-start weekly average weight/BMI. Height starts at 68 inches and is editable.
 - Google sign-in with private Firestore account storage, save status, conflict protection, and explicit migration from device logs. While signed in, the app also keeps an account-scoped last-confirmed device copy plus an unsaved recovery copy so an iOS process refresh or temporary network loss does not depend on RAM. Conflicting cloud/device revisions are never overwritten automatically. Explicit sign-out clears those account-specific local copies. Device-only mode remains available. See FIREBASE_SETUP.md before enabling cloud accounts. Export JSON regularly for an independent backup.
 
 ## CSV format
