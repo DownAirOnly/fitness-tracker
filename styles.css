@@ -386,3 +386,34 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .buddy-a b{font-size:24px}
  .buddy-action-tools{margin-top:2px}
 }
+
+/* Food Library + Workout Timing */
+.food-library{display:grid;gap:14px}
+.food-library-list{display:grid;gap:8px}
+.food-library-item{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:14px 16px;border:1px solid #d9e3db;border-radius:14px;background:#f8faf7;color:inherit;text-align:left}
+.food-library-item>span{display:grid;gap:3px;min-width:0}
+.food-library-item strong{font-size:15px}
+.food-library-item small{font-size:11px;color:#6c7b72}
+.food-library-item>b{font-size:24px;font-weight:400}
+.timing-panel{overflow:hidden}
+.timing-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
+.timing-summary>div{display:grid;gap:4px;padding:13px 14px;border:1px solid #d9e2db;border-radius:14px;background:#f5f8f4}
+.timing-summary small{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#758178;font-weight:800}
+.timing-summary strong{font-size:24px;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.timing-history{display:grid;gap:7px;margin-top:13px}
+.timing-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 2px;border-top:1px solid #e0e6e1}
+.timing-row>span{display:grid;gap:2px;min-width:0}
+.timing-row>span:last-child{text-align:right}
+.timing-row strong,.timing-row b{font-size:13px}
+.timing-row small{font-size:10px;color:#718078}
+.timing-row b{font-variant-numeric:tabular-nums}
+[data-theme="dark"] .food-library-item{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .food-library-item small{color:#9daf9f}
+[data-theme="dark"] .timing-summary>div{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .timing-row{border-color:#314238}
+@media(max-width:380px){
+ .timing-summary{grid-template-columns:1fr 1fr;gap:7px}
+ .timing-summary>div{padding:11px}
+ .timing-summary strong{font-size:21px}
+ .timing-row{gap:8px}
+}
