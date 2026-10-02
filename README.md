@@ -10,7 +10,7 @@ Requires Node.js 20 or newer. No packages or accounts are needed.
 npm run dev
 ```
 
-Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install as an iPhone Home Screen app, serve this folder over HTTPS, open it in Safari, and use Share → Add to Home Screen. The service worker caches the app for offline use after its first load.
+Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install as an iPhone Home Screen app, serve this folder over HTTPS, open it in Safari, and use Share → Add to Home Screen. The service worker caches the app for offline use after its first load. The app requests persistent origin storage when supported and shows the granted/best-effort status in Settings → Offline protection.
 
 ## What is included
 
@@ -19,7 +19,7 @@ Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install
 - Dated CSV food import, preview and validation, dated edits, and a complete JSON backup/restore.
 - Upper, lower, and full-body starter exercise lists, custom exercises, sets/reps/weight, difficulty, notes, and last-time reference.
 - Weigh-ins, individual BMI, and Monday-start weekly average weight/BMI. Height starts at 68 inches and is editable.
-- Google sign-in with private Firestore account storage, save status, conflict protection, and explicit migration from device logs. Signed-in records require an internet connection and stay only in memory on the device. Device-only mode remains available. See FIREBASE_SETUP.md before enabling cloud accounts. Export JSON regularly for an independent backup.
+- Google sign-in with private Firestore account storage, save status, conflict protection, and explicit migration from device logs. While signed in, the app also keeps an account-scoped last-confirmed device copy plus an unsaved recovery copy so an iOS process refresh or temporary network loss does not depend on RAM. Conflicting cloud/device revisions are never overwritten automatically. Explicit sign-out clears those account-specific local copies. Device-only mode remains available. See FIREBASE_SETUP.md before enabling cloud accounts. Export JSON regularly for an independent backup.
 
 ## CSV format
 
