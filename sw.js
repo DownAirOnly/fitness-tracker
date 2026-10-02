@@ -1,4 +1,4 @@
-const CACHE='everyday-v47-progress-layout';
+const CACHE='everyday-v48-friday-canonical';
 const FILES=['./','./index.html','./theme.js','./styles.css?v=47','./app.js?v=47','./durability.js?v=45','./import-model.js?v=44','./data.js?v=44','./storage-model.js?v=44','./cloud.js?v=44','./cloud-model.js?v=44','./health-model.js?v=44','./health-cloud.js?v=44','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('everyday-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
