@@ -44,7 +44,7 @@ const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,''
 const button=(label,action,cls='',attrs='')=>`<button type="button" class="${cls}" data-action="${action}" ${attrs}>${label}</button>`;
 const input=(label,name,value='',type='text',extra='')=>`<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const empty=message=>`<p class="empty">${message}</p>`;
-const currentCloudRevision=()=>Number.isSafeInteger(session?.revision)?session.revision:Number.isSafeInteger(cloudConfirmed?.revision)?cloudConfirmed.revision:Number.isSafeInteger(cloudRecovery?.revision)?cloudRecovery.revision:0;
+const currentCloudRevision=()=>session?.ready&&Number.isSafeInteger(session.revision)?session.revision:Number.isSafeInteger(cloudConfirmed?.revision)?cloudConfirmed.revision:Number.isSafeInteger(cloudRecovery?.revision)?cloudRecovery.revision:0;
 function saveCloudRecoveryLocally(markMessage=true){
   if(!account?.uid)return null;
   cloudRecovery=writeCloudRecovery(account.uid,currentCloudRevision(),data);
