@@ -145,7 +145,8 @@ try{
  await submit('settings',{calories:'1600',protein:'130',heightInches:'68',unit:'lb'});
  assert.equal(JSON.parse(state.records.get('bob').payload).settings.weekStart,5,'saving goals preserves fixed Friday week start');
  await click('sign-out');await click('sign-in');await click('settings');
- assert.equal(document.querySelector('[name="weekStart"]').value,'6','preference survives cloud reload');
+ assert.equal(document.querySelector('[name="weekStart"]'),null,'week start is no longer user-selectable');
+ assert.ok(document.querySelector('main').textContent.includes('Weeks start Friday.'),'Friday boundary survives cloud reload');
  // Pass 4: preview staging, pagination, invalid files, cancellation and failed writes.
  const previewFile=async(kind,raw)=>{
   await click(kind==='csv'?'import-csv':'restore');const f=document.querySelector('[data-form="import"]');
@@ -153,7 +154,7 @@ try{
   f.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
  };
  const unchanged=JSON.parse(state.records.get('bob').payload);
- const incoming={...structuredClone(unchanged),foodEntries:unchanged.foodEntries.slice(0,1)};incoming.settings.weekStart=0;
+ const incoming={...structuredClone(unchanged),foodEntries:unchanged.foodEntries.slice(0,1)};incoming.settings.dayResetMinutes=390;
  await previewFile('json',JSON.stringify(incoming));
  assert.ok(document.querySelector('.import-scroll'));assert.equal(document.querySelectorAll('.import-group').length>=5,true);
  assert.ok(document.querySelector('.import-summary').textContent.includes('replaces all'));
