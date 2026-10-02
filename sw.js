@@ -1,6 +1,6 @@
-const CACHE='everyday-v30-canonical-exercises';
-const FILES=['./','./index.html','./theme.js','./styles.css?v=30','./app.js?v=30','./import-model.js?v=30','./data.js?v=30','./storage-model.js?v=30','./cloud.js?v=30','./cloud-model.js?v=30','./health-model.js?v=12','./health-cloud.js?v=30','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
+const CACHE='everyday-v31-reference-repair';
+const FILES=['./','./index.html','./theme.js','./styles.css?v=31','./app.js?v=31','./import-model.js?v=31','./data.js?v=31','./storage-model.js?v=31','./cloud.js?v=31','./cloud-model.js?v=31','./health-model.js?v=31','./health-cloud.js?v=31','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('everyday-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
   const url=new URL(event.request.url);

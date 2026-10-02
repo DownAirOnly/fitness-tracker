@@ -59,7 +59,9 @@ export function decodeStoredData(input){
   id:typeof w?.id==='string'&&w.id.trim()?w.id:'workout-'+String(wi+1).padStart(2,'0'),
   name:typeof w?.name==='string'&&w.name.trim()?w.name:'Workout '+(wi+1),
   exercises:(Array.isArray(w?.exercises)?w.exercises:[]).map(item=>{
-   const exerciseId=typeof item?.exerciseId==='string'&&exerciseMap.has(item.exerciseId)?item.exerciseId:ensureExercise(item?.name||'',item?.equipment||'other');
+   let exerciseId='';
+   if(typeof item?.exerciseId==='string'&&item.exerciseId)exerciseId=item.exerciseId;
+   else if(typeof item?.name==='string'&&item.name.trim())exerciseId=ensureExercise(item.name,item?.equipment||'other');
    return{exerciseId,repMin:Number(item?.repMin)||6,repMax:Number(item?.repMax)||12};
   })
  })):undefined;

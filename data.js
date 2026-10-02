@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=30';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=31';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -121,28 +121,44 @@ export function normalizeData(input) {
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');
   // Transitional tolerance: old cloud records may still carry an exercise-level numeric difficulty.
   for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1)) throw new Error('Backup has an invalid difficulty.');
+  const definitionByKey=new Map(data.exerciseDefinitions.map(e=>[e.name.toLowerCase()+'|'+e.equipment,e]));
+  const idAliases=new Map(data.exerciseDefinitions.map(e=>[e.id,e.id]));
   if(Array.isArray(input.exerciseDefinitions)){
     if(input.exerciseDefinitions.length>10000)throw new Error('Backup has too many exercise definitions.');
-    data.exerciseDefinitions=input.exerciseDefinitions.map(e=>{
+    for(const e of input.exerciseDefinitions){
       const setup=e?.setup==null?'':String(e.setup);
       if(!e||typeof e.id!=='string'||!e.id.trim()||typeof e.name!=='string'||!e.name.trim()||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(e.equipment)||setup.length>200)throw new Error('Backup has an invalid exercise definition.');
-      return{id:e.id,name:e.name,equipment:e.equipment,...(setup?{setup}:{})};
-    });
+      const key=e.name.toLowerCase()+'|'+e.equipment,existing=definitionByKey.get(key);
+      if(existing){
+        idAliases.set(e.id,existing.id);
+        if(setup)existing.setup=setup;else delete existing.setup;
+      }else{
+        const created={id:e.id,name:e.name,equipment:e.equipment,...(setup?{setup}:{})};
+        data.exerciseDefinitions.push(created);definitionByKey.set(key,created);idAliases.set(e.id,e.id);
+      }
+    }
   }
   const definitionIds=new Set(data.exerciseDefinitions.map(e=>e.id));
-  const definitionByKey=new Map(data.exerciseDefinitions.map(e=>[e.name.toLowerCase()+'|'+e.equipment,e]));
+  const fallbackWorkouts=new Map(defaultWorkoutTemplates().map(w=>[w.name,w]));
   if(Array.isArray(input.workoutTemplates)){
     if(input.workoutTemplates.length>100)throw new Error('Backup has too many workout templates.');
     data.workoutTemplates=input.workoutTemplates.map(w=>{
       if(!w||typeof w.id!=='string'||!w.id.trim()||typeof w.name!=='string'||!w.name.trim()||!Array.isArray(w.exercises)||w.exercises.length>100)throw new Error('Backup has an invalid workout template.');
-      return{id:w.id,name:w.name,exercises:w.exercises.map(e=>{
-        const repMin=Number(e?.repMin),repMax=Number(e?.repMax);
-        let exerciseId=e?.exerciseId;
-        if(!exerciseId&&typeof e?.name==='string'){
+      const fallback=fallbackWorkouts.get(w.name);
+      return{id:w.id,name:w.name,exercises:w.exercises.map((e,index)=>{
+        const fallbackItem=fallback?.exercises?.[index];
+        let exerciseId=typeof e?.exerciseId==='string'?e.exerciseId:'';
+        if(idAliases.has(exerciseId))exerciseId=idAliases.get(exerciseId);
+        if(!definitionIds.has(exerciseId)&&typeof e?.name==='string'){
           const def=definitionByKey.get(e.name.toLowerCase()+'|'+(e.equipment||'other'));
-          exerciseId=def?.id;
+          exerciseId=def?.id||exerciseId;
         }
-        if(typeof exerciseId!=='string'||!definitionIds.has(exerciseId)||!Number.isInteger(repMin)||!Number.isInteger(repMax)||repMin<1||repMax<repMin||repMax>100)throw new Error('Backup has an invalid workout exercise reference.');
+        if(!definitionIds.has(exerciseId)&&fallbackItem?.exerciseId&&definitionIds.has(fallbackItem.exerciseId))exerciseId=fallbackItem.exerciseId;
+        let repMin=Number(e?.repMin),repMax=Number(e?.repMax);
+        if(!Number.isInteger(repMin)||!Number.isInteger(repMax)||repMin<1||repMax<repMin||repMax>100){
+          repMin=fallbackItem?.repMin||6;repMax=fallbackItem?.repMax||12;
+        }
+        if(typeof exerciseId!=='string'||!definitionIds.has(exerciseId))throw new Error('Backup has an invalid workout exercise reference.');
         return{exerciseId,repMin,repMax};
       })};
     });
@@ -150,7 +166,8 @@ export function normalizeData(input) {
   data.activeWorkout=input.activeWorkout&&typeof input.activeWorkout==='object'?structuredClone(input.activeWorkout):null;
   if(data.activeWorkout?.exercises){
     for(const e of data.activeWorkout.exercises){
-      const def=data.exerciseDefinitions.find(d=>d.id===e.exerciseId)||definitionByKey.get(String(e.name||'').toLowerCase()+'|'+(e.equipment||'other'));
+      const alias=idAliases.get(e.exerciseId)||e.exerciseId;
+      const def=data.exerciseDefinitions.find(d=>d.id===alias)||definitionByKey.get(String(e.name||'').toLowerCase()+'|'+(e.equipment||'other'));
       if(def){e.exerciseId=def.id;e.name=def.name;e.equipment=def.equipment;if(def.setup)e.setup=def.setup;else delete e.setup;}
     }
   }
