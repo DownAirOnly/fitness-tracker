@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=38';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=39';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [

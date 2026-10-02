@@ -1,7 +1,7 @@
-import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=38';
+import {load,save,id,localDate,trackingDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=39';
 
-import {prepareImport,importSections} from './import-model.js?v=38';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=38';
+import {prepareImport,importSections} from './import-model.js?v=39';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=39';
 
 let deviceData=load();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
@@ -25,6 +25,8 @@ const foodTimeOptions=value=>'<option value="" '+(value==null?'selected':'')+'>N
 const resetTimeOptions=value=>Array.from({length:48},(_,slot)=>{const minutes=slot*30;return '<option value="'+minutes+'" '+(minutes===value?'selected':'')+'>'+clockLabel(minutes)+'</option>';}).join('');
 
 const effortLabels={1:'Light',2:'Comfortable',3:'Challenging',4:'Hard',5:'Very Hard',6:'Limit',7:'Failure'};
+const effortChartColors={1:'#bbdabb',2:'#cadba8',3:'#dcd99f',4:'#e1c58d',5:'#e2ad84',6:'#db927e',7:'#d57878'};
+const effortChartColor=value=>effortChartColors[Number(value)]||'#91a096';
 const effortText=value=>effortLabels[value]||'';
 const effortOptions=value=>'<option value="">Effort</option>'+Object.entries(effortLabels).map(([n,label])=>`<option value="${n}" ${Number(value)===Number(n)?'selected':''}>${label}</option>`).join('');
 const persist=async()=>{
@@ -333,13 +335,13 @@ function exerciseProgressChart(group){
  const weightPoly=weightCoords.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' ');
  const repSegments=[];
  for(let i=0;i<repCoords.length-1;i++){
-   const a=repCoords[i],b=repCoords[i+1],mid=(a.x+b.x)/2,effort=b.difficulty||a.difficulty||0;
-   const opacity=effort?(.26+(Math.max(1,Math.min(7,effort))-1)/6*.56):.24,width=effort?(3.8+(Math.max(1,Math.min(7,effort))-1)/6*4.2):3.8;
-   repSegments.push('<path class="exercise-rep-segment" d="M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' C '+mid.toFixed(1)+' '+a.y.toFixed(1)+' '+mid.toFixed(1)+' '+b.y.toFixed(1)+' '+b.x.toFixed(1)+' '+b.y.toFixed(1)+'" style="opacity:'+opacity.toFixed(2)+';stroke-width:'+width.toFixed(1)+'"></path>');
+   const a=repCoords[i],b=repCoords[i+1],mid=(a.x+b.x)/2,effort=b.difficulty||a.difficulty||0,color=effortChartColor(effort);
+   const width=effort?5.8:4.8,opacity=effort?.96:.45;
+   repSegments.push('<path class="exercise-rep-segment" d="M '+a.x.toFixed(1)+' '+a.y.toFixed(1)+' C '+mid.toFixed(1)+' '+a.y.toFixed(1)+' '+mid.toFixed(1)+' '+b.y.toFixed(1)+' '+b.x.toFixed(1)+' '+b.y.toFixed(1)+'" style="stroke:'+color+';opacity:'+opacity+';stroke-width:'+width+'"></path>');
  }
  const latest=points.at(-1).set,latestEffort=latest.difficulty?effortText(latest.difficulty):'No effort';
- const repLegend=points.length>1?'<span class="exercise-chart-legend-item rep"><i></i><span><b>Reps</b><small>'+latest.reps+' latest · darkness follows effort</small></span></span>':'';
- return '<div class="exercise-progress-chart"><div class="exercise-chart-head"><small>'+(weighted?'Top set weight':'Top set reps')+'</small><strong>'+fmt(weightValues.at(-1))+(weighted?' '+data.settings.unit:' reps')+'</strong></div><div class="exercise-chart-legend"><span class="exercise-chart-legend-item weight"><i></i><span><b>'+(weighted?'Weight':'Top reps')+'</b><small>Exact session values</small></span></span>'+repLegend+'<span class="exercise-chart-effort"><small>Latest effort</small><b>'+esc(latestEffort)+'</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(group.name)+' '+(weighted?'weight and reps':'reps')+' trend">'+repSegments.join('')+'<polyline class="exercise-weight-line" points="'+weightPoly+'" fill="none" vector-effect="non-scaling-stroke"></polyline>'+weightCoords.map(pt=>'<circle class="exercise-weight-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3"></circle>').join('')+'</svg><div class="exercise-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><p class="exercise-chart-note">The smooth rep curve uses its own scale. Darker/thicker sections mean the logged top set felt harder, so the curve shows rep progression without pretending reps and weight use the same axis.</p></div>';
+ const repLegend=points.length>1?'<span class="exercise-chart-legend-item rep"><i></i><span><b>Reps</b><small>'+latest.reps+' latest · color follows effort</small></span></span>':'';
+ return '<div class="exercise-progress-chart"><div class="exercise-chart-head"><small>'+(weighted?'Top set weight':'Top set reps')+'</small><strong>'+fmt(weightValues.at(-1))+(weighted?' '+data.settings.unit:' reps')+'</strong></div><div class="exercise-chart-legend"><span class="exercise-chart-legend-item weight"><i></i><span><b>'+(weighted?'Weight':'Top reps')+'</b><small>Exact session values</small></span></span>'+repLegend+'<span class="exercise-chart-effort"><small>Latest effort</small><b>'+esc(latestEffort)+'</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(group.name)+' '+(weighted?'weight and reps':'reps')+' trend">'+repSegments.join('')+'<polyline class="exercise-weight-line" points="'+weightPoly+'" fill="none" vector-effect="non-scaling-stroke"></polyline>'+weightCoords.map(pt=>'<circle class="exercise-weight-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3"></circle>').join('')+'</svg><div class="exercise-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><p class="exercise-chart-note">The smooth rep curve uses its own scale. Green means lighter effort and red means harder effort, matching Workout Buddy’s difficulty scale.</p></div>';
 }
 
 function exerciseProgressModal(name,equipment){
@@ -575,7 +577,7 @@ app.addEventListener('submit',async event=>{
 
 render();
 startCloud();
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=38',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=39',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
 
 function accountBanner(){
   return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
@@ -595,7 +597,7 @@ async function loadAccount(){
 function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!cloudBusy&&!cloudPending&&(!account||session?.ready)&&!document.querySelector('.modal'))weightForm();},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=38');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=39');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       healthState={enabled:false,status:''};healthCheckedAt=0;

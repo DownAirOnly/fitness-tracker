@@ -604,3 +604,13 @@ html.buddy-active #app{position:fixed;inset:0;overflow:hidden!important}
  .exercise-chart-effort{width:100%;margin-left:0;text-align:left}
  .import-changes-head{align-items:flex-start;display:grid}
 }
+
+/* v39: Workout Buddy effort colors in progress + stable iOS rotation typography */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.exercise-progress-modal,.exercise-progress-history,.exercise-progress-session,.exercise-progress-sets,.exercise-progress-session p{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.exercise-chart-legend-item.rep{color:inherit}
+.exercise-chart-legend-item.rep i{height:6px;border:0;background:linear-gradient(90deg,#bbdabb 0%,#cadba8 16.6%,#dcd99f 33.3%,#e1c58d 50%,#e2ad84 66.6%,#db927e 83.3%,#d57878 100%);border-radius:999px;opacity:1}
+.exercise-rep-segment{stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.exercise-progress-sets span{font-size:10px;line-height:1.35}
+.exercise-progress-session p{font-size:11px;line-height:1.45}
+[data-theme="dark"] .exercise-chart-legend-item.rep{color:inherit}
