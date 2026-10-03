@@ -28,9 +28,9 @@ try {
  await assertFails(getDocs(collection(alice,'users/alice/state')));
  await assertFails(deleteDoc(doc(alice,path)));
  const token='a'.repeat(64), inbox='weightBridges/'+token;
- const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00'};
+ const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00',bodyFatPercent:22.4,bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
  await assertSucceeds(setDoc(doc(alice,inbox),{uid:'alice',sample:null}));
- await assertSucceeds(setDoc(doc(alice,'users/alice/integrations/appleHealth'),{token,lastRecordedAt:'',status:'Waiting'}));
+ await assertSucceeds(setDoc(doc(alice,'users/alice/integrations/appleHealth'),{token,lastRecordedAt:'',lastBodyFatRecordedAt:'',status:'Waiting'}));
  await assertFails(getDoc(doc(bob,'users/alice/integrations/appleHealth')));
  await assertFails(getDoc(doc(anon,inbox)));
  await assertFails(getDocs(collection(anon,'weightBridges')));
@@ -46,7 +46,7 @@ try {
  await assertFails(setDoc(doc(anon,'weightBridges/'+'b'.repeat(64)),{uid:'alice',sample}));
  // Exercise the exact unauthenticated PATCH shape used by Shortcuts.
  const endpoint='http://127.0.0.1:8080/v1/projects/demo-everyday/databases/(default)/documents/'+inbox+'?updateMask.fieldPaths=sample&currentDocument.exists=true&mask.fieldPaths=sample';
- const fields={value:{doubleValue:188.3},unit:{stringValue:'lb'},date:{stringValue:sample.date},recordedAt:{stringValue:sample.recordedAt}};
+ const fields={value:{doubleValue:188.3},unit:{stringValue:'lb'},date:{stringValue:sample.date},recordedAt:{stringValue:sample.recordedAt},bodyFatPercent:{doubleValue:sample.bodyFatPercent},bodyFatRecordedAt:{stringValue:sample.bodyFatRecordedAt}};
  const response=await fetch(endpoint,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{sample:{mapValue:{fields}}}})});
  if(!response.ok)throw Error('Shortcut REST upload failed: '+await response.text());
  await assertSucceeds(deleteDoc(doc(alice,inbox)));
@@ -57,16 +57,16 @@ try {
  await updateDoc(doc(anon,'weightBridges/'+connected),{sample});
  const imported=await api.pull('carol',0);
  assert.equal(imported.revision,1);assert.equal(imported.data.weights.length,1);
- assert.equal(imported.data.weights[0].date,sample.date);
+ assert.equal(imported.data.weights[0].date,sample.date);assert.equal(imported.data.weights[0].bodyFatPercent,22.4);
  assert.equal((await api.pull('carol',1)).data,undefined);
  // A conflict must not acknowledge the pending sample or alter the account.
- await updateDoc(doc(anon,'weightBridges/'+connected),{sample:{...sample,date:'2026-09-26',recordedAt:'2026-09-26T00:00:00-04:00'}});
+ await updateDoc(doc(anon,'weightBridges/'+connected),{sample:{value:188,unit:'lb',date:'2026-09-26',recordedAt:'2026-09-26T00:00:00-04:00'}});
  await assert.rejects(api.pull('carol',0),/Another device/);
- assert.equal((await getDoc(doc(carol,'users/carol/integrations/appleHealth'))).data().lastRecordedAt,sample.recordedAt);
+ assert.equal((await getDoc(doc(carol,'users/carol/integrations/appleHealth'))).data().lastRecordedAt,sample.recordedAt);assert.equal((await getDoc(doc(carol,'users/carol/integrations/appleHealth'))).data().lastBodyFatRecordedAt,sample.bodyFatRecordedAt);
  assert.equal((await api.pull('carol',1)).data.weights.length,2);
  await api.disable('carol');
  await assertFails(updateDoc(doc(anon,'weightBridges/'+connected),{sample}));
  assert.equal((await api.pull('carol',2)).enabled,false);
- console.log('Weight bridge rules, REST upload, atomic import/conflict, dedup and revocation passed.');
+ console.log('Weight/body-fat bridge rules, REST upload, atomic import/conflict, dedup and revocation passed.');
  console.log('Firestore rules passed: owner access, cross-user denial, anonymous denial, schema and revision checks.');
 } finally {await env.cleanup();}
