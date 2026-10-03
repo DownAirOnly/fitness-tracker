@@ -1,4 +1,4 @@
-import {emptyData, normalizeData, encodeData, round} from './data.js?v=44';
+import {emptyData, normalizeData, encodeData, round} from './data.js?v=49';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
