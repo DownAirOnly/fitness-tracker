@@ -49,7 +49,7 @@ function parseUniversalCSV(text,current){
  rows.forEach((row,rowIndex)=>{
   const line=rowIndex+2,get=(...names)=>getFrom(row,...names);
   try{
-   const requested=legacy?'foodLog':get('recordType').replace(/[ _-]+/g,'').toLowerCase(),type=csvTypeAliases.get(requested);
+   const requested=legacy?'foodlog':get('recordType').replace(/[ _-]+/g,'').toLowerCase(),type=csvTypeAliases.get(requested);
    if(!type)throw Error('recordType is not supported.');
    if(type==='savedFood'){
     const name=get('name'),calories=csvNumber(get('calories'),'calories',{min:0}),protein=csvNumber(get('protein'),'protein',{min:0});
