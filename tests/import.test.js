@@ -13,7 +13,7 @@ test('small CSV is staged without mutation and preserves every other section',()
 });
 test('mixed JSON reports replacements, removed records, settings and empty sections',()=>{
  const current=emptyData();current.foodEntries=[meal(),meal('missing')];
- const incoming=emptyData();incoming.foodEntries=[{...meal(),calories:200}];incoming.lifts=[{id:'l',date:'2026-09-27',exercise:'Press',sets:[{weight:45,reps:8}],difficulty:7,notes:'Test notes'}];incoming.weights=[{id:'w',date:'2026-09-27',value:180}];incoming.settings.weekStart=0;
+ const incoming=emptyData();incoming.foodEntries=[{...meal(),calories:200}];incoming.lifts=[{id:'l',date:'2026-09-27',exercise:'Press',sets:[{weight:45,reps:8}],difficulty:7,notes:'Test notes'}];incoming.weights=[{id:'w',date:'2026-09-27',value:180}];incoming.settings.dayResetMinutes=390;
  const snapshot=structuredClone(current),p=prepareImport('json',JSON.stringify(incoming),current);
  assert.equal(p.replaced,1);assert.equal(p.removed,1);assert.equal(p.groups.find(g=>g.key==='foods').rows.length,0);assert.equal(p.groups[1].rows[0].previous.calories,150);
  assert.deepEqual(p.candidate,incoming);assert.deepEqual(current,snapshot);
@@ -40,4 +40,28 @@ test('large import retains all records and efficiently detects duplicates',()=>{
 test('CSV saved-card conflicts are disclosed without replacing card values',()=>{
  const current=emptyData();current.foods=[{id:'f',name:'Yogurt',calories:100,protein:10}];const p=prepareImport('csv',csv,current);
  assert.match(p.warnings.join(' '),/different per-serving values/);assert.equal(p.candidate.foods[0].calories,100);assert.equal(p.candidate.foodEntries[0].calories,150);
+});
+
+
+test('universal CSV can add definitions, workout templates, lift sets, saved foods, food logs and body composition',()=>{
+ const current=emptyData();
+ const mixed=[
+  'recordType,date,name,calories,protein,quantity,exercise,equipment,workout,order,repMin,repMax,targetSets,restSeconds,group,set,weight,reps,effort,notes,bodyFatPercent,kind,tags,favorite,accuracy',
+  'savedFood,,Core Test,230,42,,,,,,,,,,,,,,,,,food,protein|drink,true,label',
+  'foodLog,2026-10-02,Core Test,230,42,1,,,,,,,,,,,,,,,,,,,',
+  'exercise,,,,,,,machine,Test Day,,,,,,,,,,,,,,,',
+  'exercise,,,,,,Chest Test,machine,,,,,,,,,,,,,,,,',
+  'workout,,,,,,Chest Test,machine,Test Day,1,6,12,2,90,,,,,,,,,,,',
+  'lift,2026-10-02,,,,,Chest Test,machine,,,,,,,press-1,1,60,10,4,first set,,,,',
+  'lift,2026-10-02,,,,,Chest Test,machine,,,,,,,press-1,2,60,8,5,,,,,',
+  'weight,2026-10-02,,,,,,,,,,,,,,,181.5,,,,22.4,,,,'
+ ].join('\n');
+ const p=prepareImport('csv',mixed,current);
+ assert.equal(p.errors.length,0,p.errors.join(' | '));assert.ok(p.candidate);
+ assert.ok(p.candidate.foods.some(f=>f.name==='Core Test'&&f.pinned===true&&f.accuracy==='label'));
+ assert.ok(p.candidate.foodEntries.some(e=>e.name==='Core Test'));
+ assert.ok(p.candidate.exerciseDefinitions.some(e=>e.name==='Chest Test'&&e.equipment==='machine'));
+ assert.ok(p.candidate.workoutTemplates.some(w=>w.name==='Test Day'&&w.exercises.length===1));
+ const lift=p.candidate.lifts.find(l=>l.exercise==='Chest Test');assert.equal(lift.sets.length,2);assert.equal(lift.sets[1].difficulty,5);
+ const weight=p.candidate.weights.find(w=>w.date==='2026-10-02');assert.equal(weight.value,181.5);assert.equal(weight.bodyFatPercent,22.4);
 });
