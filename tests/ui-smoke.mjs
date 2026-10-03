@@ -141,7 +141,14 @@ try{
  assert.ok(!document.querySelector('.week-setting').textContent.includes('Change'));
  assert.ok(document.querySelectorAll('.weight-progress-panel .list-row').length<=5);
  assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
- assert.ok(document.querySelector('.food-progress-chart'),'recent food graph renders');
+ assert.ok(document.querySelector('.food-progress-chart'),'nutrition graph renders');
+ assert.equal(document.querySelectorAll('.food-period-tabs [data-action="food-progress-period"]').length,4,'week/month/quarter/year controls render');
+ const monthTab=document.querySelector('[data-action="food-progress-period"][data-period="month"]');monthTab.click();await tick();assert.equal(document.querySelector('.food-period-tabs .active')?.dataset.period,'month');
+ document.querySelector('[data-action="food-progress-nav"][data-delta="-1"]').click();await tick();assert.ok(document.querySelector('[data-action="food-progress-current"]'),'past period exposes Current shortcut');assert.equal(document.querySelector('[data-action="food-progress-nav"][data-delta="1"]').disabled,false);
+ document.querySelector('[data-action="food-progress-nav"][data-delta="1"]').click();await tick();assert.ok(!document.querySelector('[data-action="food-progress-current"]'),'forward scrub returns to current period');
+ for(const [date,value] of [['2026-09-22','177.8'],['2026-09-23','177.6'],['2026-09-24','177.4'],['2026-09-25','177.2']]){await click('weight');await submit('weight',{value,date});}
+ assert.ok(document.querySelector('[data-action="weight-all"]'),'individual weigh-ins exposes See all after five');
+ await click('weight-all');assert.ok(document.querySelectorAll('.weight-all-list .list-row').length>=6,'all weigh-ins modal shows complete list');await click('close');
  const expectedCurrent=startOfWeek(localDate(),5);
  for(const row of document.querySelectorAll('[data-week]'))assert.equal(row.textContent.includes('Current week'),row.dataset.week===expectedCurrent);
  await click('settings');
@@ -202,5 +209,5 @@ try{
  assert.equal(localStorage.getItem('everyday-fitness-v1'),localBefore);
  assert.ok(document.querySelector('.import-alert').textContent.includes('Storage full'));
  await click('close');await click('food');assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'));
- console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, account transitions, migration and save recovery.');
+ console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, scrubbable nutrition periods, weigh-in see-all, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}
