@@ -1,5 +1,5 @@
-import {decodeState, encodeState, nextRecord, CloudConflict} from './cloud-model.js?v=54';
-import {planHealthWeight,shortcutURL} from './health-model.js?v=54';
+import {decodeState, encodeState, nextRecord, CloudConflict} from './cloud-model.js?v=55';
+import {planHealthWeight,shortcutURL} from './health-model.js?v=55';
 
 export function healthBridge({db,auth,sdk,projectId}) {
   const config=uid=>sdk.doc(db,'users',uid,'integrations','appleHealth');
