@@ -832,3 +832,34 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 [data-theme="dark"] .bodyfat-progress-chart{background:#18251e;border-color:#40533f}
 [data-theme="dark"] .bodyfat-line{stroke:#b5a4db}[data-theme="dark"] .bodyfat-dot{fill:#b5a4db}
 @media(max-width:440px){.import-source-grid{grid-template-columns:1fr}.food-undo-toast{bottom:76px}}
+
+
+/* Progress period navigation + expanded progress lists. */
+.progress-head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.food-period-controls{display:grid;gap:8px;margin:10px 0 8px}
+.food-period-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:4px;border:1px solid #d9e2db;border-radius:12px;background:#f4f7f3}
+.food-period-tabs button{min-height:34px;border:0;border-radius:9px;background:transparent;color:#607067;font:inherit;font-size:10px;font-weight:850}
+.food-period-tabs button.active{background:#fff;color:#24392d;box-shadow:0 1px 5px rgba(32,54,40,.10)}
+.food-period-nav{display:grid;grid-template-columns:38px 1fr 38px;gap:7px;align-items:center}
+.food-period-nav button{height:36px;border:1px solid #cfdbd1;border-radius:10px;background:#fff;color:inherit;font:700 22px/1 'Outfit',sans-serif}
+.food-period-nav button:disabled{opacity:.28}
+.food-period-nav strong{text-align:center;font-size:12px;line-height:1.25}
+.food-period-current{justify-self:center;margin-top:-2px}
+.food-progress-chart-empty{margin:10px 0 8px;border:1px dashed #d7dfd8;border-radius:14px}
+.food-progress-chart-empty .empty{margin:0}
+.recent-food-days{margin-top:14px;padding-top:12px;border-top:1px solid #e0e6e1}
+.recent-food-days>.eyebrow{margin-bottom:4px}
+.weight-all-list,.exercise-progress-card-list{display:grid;gap:0}
+.weight-all-list .list-row:first-child,.exercise-progress-card-list .exercise-progress-link:first-child{border-top:0}
+.exercise-progress-card-list .exercise-progress-link{padding:12px 2px}
+[data-theme="dark"] .food-period-tabs{background:#162219;border-color:#394b40}
+[data-theme="dark"] .food-period-tabs button{color:#a9b8ac}
+[data-theme="dark"] .food-period-tabs button.active{background:#26382d;color:#f3f7f2;box-shadow:none}
+[data-theme="dark"] .food-period-nav button{background:#17231c;border-color:#40533f}
+[data-theme="dark"] .food-progress-chart-empty{border-color:#40533f}
+@media(max-width:440px){
+ .progress-head-actions{gap:4px}
+ .food-period-tabs button{font-size:9px;padding:6px 3px}
+ .food-period-nav{grid-template-columns:36px 1fr 36px}
+ .food-period-nav strong{font-size:11px}
+}
