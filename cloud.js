@@ -1,4 +1,4 @@
-import {healthBridge} from './health-cloud.js?v=44';
+import {healthBridge} from './health-cloud.js?v=49';
 import {firebaseConfig} from './firebase-config.js';
 import {nextRecord, CloudSession} from './cloud-model.js?v=44';
 
