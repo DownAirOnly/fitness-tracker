@@ -903,7 +903,7 @@ function expandImportGroup(el){
   if(next===rows.length)el.remove();else{el.dataset.shown=next;el.textContent='Show next '+Math.min(50,rows.length-next)+' ('+next+' of '+rows.length+' shown)';}
 }
 function showImportReview(plan,saveError=''){
-  const json=plan.kind==='json',incomingCount=plan.groups.reduce((n,g)=>n+g.total,0);
+  const json=plan.kind==='json',incomingCount=json?plan.groups.reduce((n,g)=>n+g.total,0):plan.changeCount;
   const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on',dayResetMinutes:'Day resets at'};
   const settingValue=(key,value)=>key==='weekStart'?weekDays[value]:key==='dayResetMinutes'?clockLabel(value):typeof value==='object'?JSON.stringify(value):String(value);
   const settingsChanges=plan.settingChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(labels[change.key]||change.key)+'</strong><small>'+esc(settingValue(change.key,change.from))+' → '+esc(settingValue(change.key,change.to))+'</small><span class="import-badge attention">Replaces setting</span></div></div>').join('');
@@ -912,7 +912,7 @@ function showImportReview(plan,saveError=''){
   const changedGroups=plan.groups.map(g=>importGroup(g)).join('');
   const removedGroups=json?plan.groups.map(g=>importGroup(g,true)).join(''):'';
   const changesBody=plan.changeCount?settingsChanges+promptChange+otherChanges+changedGroups+removedGroups:'<p class="empty">No data changes detected in this file.</p>';
-  const summary='<div class="import-summary import-summary-compact"><p class="eyebrow">'+(json?'JSON BACKUP':'CSV IMPORT')+'</p><p>'+incomingCount+' incoming tracked records'+(json?' · '+plan.unchanged+' unchanged items omitted':'')+(plan.duplicates?' · '+plan.duplicates+' possible duplicates':'')+'</p><strong>Nothing has been imported yet.</strong></div>';
+  const summary='<div class="import-summary import-summary-compact"><p class="eyebrow">'+(json?'JSON BACKUP':'CSV IMPORT')+'</p><p>'+incomingCount+' '+(json?'incoming tracked records':'proposed changes')+(json?' · '+plan.unchanged+' unchanged items omitted':'')+(plan.duplicates?' · '+plan.duplicates+' possible duplicates':'')+'</p><strong>Nothing has been imported yet.</strong></div>';
   const errors=plan.errors.length?'<div class="import-alert" role="alert"><strong>Cannot import · '+plan.errors.length+' issue'+(plan.errors.length===1?'':'s')+'</strong><p>Fix the file and preview it again. No records will be committed, including the valid changes shown above.</p><ul>'+plan.errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>':'';
   const warnings=plan.warnings.length?'<details class="import-alert"><summary>Review '+plan.warnings.length+' warning'+(plan.warnings.length===1?'':'s')+'</summary><ul>'+plan.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul></details>':'';
   const saveAlert=saveError?'<div class="import-alert" role="alert"><strong>Import was not saved</strong><p>'+esc(saveError)+'</p><p>Your current in-memory records are unchanged.</p></div>':'';
