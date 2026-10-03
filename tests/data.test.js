@@ -21,7 +21,7 @@ test('backup validator rejects corrupt records',()=>{
   const data=emptyData();data.foodEntries.push({id:'a',date:'2026-09-25',name:'Food',calories:100,protein:10,quantity:1});
   assert.equal(normalizeData(data).foodEntries.length,1);
   data.foodEntries[0].calories=-10;assert.throws(()=>normalizeData(data),/invalid food entry/);
-  const body=emptyData();body.weights=[{id:'w',date:'2026-09-25',value:180,bodyFatPercent:22.4}];assert.equal(normalizeData(body).weights[0].bodyFatPercent,22.4);body.weights[0].bodyFatPercent=101;assert.throws(()=>normalizeData(body),/invalid weigh-in/);
+  const body=emptyData();body.bodyFat=[{id:'bf',date:'2026-09-25',value:22.4}];assert.equal(normalizeData(body).bodyFat[0].value,22.4);body.bodyFat[0].value=101;assert.throws(()=>normalizeData(body),/invalid body-fat reading/);
 });
 
 test('all seven week starts regroup historical data without mutation',async()=>{
@@ -63,3 +63,11 @@ test('week boundaries are canonically Friday across old and imported data',async
 
 test('stored schema uses canonical food and exercise references',()=>{const d=emptyData();d.foods=[{id:'f',name:'Meal',calories:150,protein:10}];d.foodEntries=[{id:'e',date:'2026-09-30',name:'Meal',calories:150,protein:10,quantity:1}];d.lifts=[{id:'l',date:'2026-09-30',exercise:'Chest Press',sets:[{weight:60,reps:10}]}];const s=encodeData(d);assert.equal(s.version,2);assert.equal(s.foodEntries[0].foodId,'f');assert.equal('name' in s.foodEntries[0],false);assert.equal(s.exercises.length,1);assert.equal('exercise' in s.lifts[0],false);assert.equal(normalizeData(s).foodEntries[0].name,'Meal');});
 test('changed saved-food values do not rewrite older logs',()=>{const d=emptyData();d.foods=[{id:'f',name:'Meal',calories:150,protein:10}];d.foodEntries=[{id:'e',date:'2026-09-30',name:'Meal',calories:100,protein:10,quantity:1}];const s=encodeData(d);assert.notEqual(s.foodEntries[0].foodId,'f');assert.equal(normalizeData(s).foodEntries[0].calories,100);});
+
+test('paired v49 body fat migrates into independent records',()=>{
+  const old=emptyData();old.weights=[{id:'w',date:'2026-09-25',value:180,bodyFatPercent:22.4,bodyFatRecordedAt:'2026-09-25T08:00:00-04:00'}];
+  const migrated=normalizeData(old);
+  assert.deepEqual(migrated.weights,[{id:'w',date:'2026-09-25',value:180}]);
+  assert.deepEqual(migrated.bodyFat,[{id:'bodyfat-w',date:'2026-09-25',value:22.4,recordedAt:'2026-09-25T08:00:00-04:00',source:'apple-health-shortcut'}]);
+  assert.deepEqual(normalizeData(encodeData(migrated)).bodyFat,migrated.bodyFat);
+});
