@@ -48,7 +48,7 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
@@ -119,9 +119,26 @@ export function normalizeData(input) {
     if(input[key].length>50000) throw new Error('Backup is too large.');
     data[key]=input[key];
   }
+  data.bodyFat=Array.isArray(input.bodyFat)?input.bodyFat:[];
+  if(data.bodyFat.length>50000)throw new Error('Backup is too large.');
+  // v49 compatibility: body fat was briefly stored on weight records. Migrate it
+  // into the independent bodyFat collection using stable IDs, then strip it from weights.
+  const existingBodyFatIds=new Set(data.bodyFat.map(x=>x.id));
+  for(const w of data.weights){
+    if(w.bodyFatPercent!=null){
+      const migratedId='bodyfat-'+w.id;
+      if(!existingBodyFatIds.has(migratedId)){
+        const record={id:migratedId,date:w.date,value:w.bodyFatPercent};
+        if(w.bodyFatRecordedAt){record.recordedAt=w.bodyFatRecordedAt;record.source='apple-health-shortcut';}
+        data.bodyFat.push(record);existingBodyFatIds.add(migratedId);
+      }
+      delete w.bodyFatPercent;delete w.bodyFatRecordedAt;
+    }
+  }
   for(const f of data.foods){if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0)throw new Error('Backup has an invalid saved food.');f.kind=['food','drink'].includes(f.kind)?f.kind:'food';f.tags=Array.isArray(f.tags)?[...new Set(f.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[];f.pinned=f.pinned===true;f.accuracy=['label','estimate'].includes(f.accuracy)?f.accuracy:'';if(f.tags.length>50||f.tags.some(tag=>tag.length>40))throw new Error('Backup has invalid food metadata.');}
   for(const e of data.foodEntries){if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0)throw new Error('Backup has an invalid food entry.');if(e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47))throw new Error('Backup has an invalid food time.');}
-  for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0||(w.bodyFatPercent!=null&&(!Number.isFinite(w.bodyFatPercent)||w.bodyFatPercent<=0||w.bodyFatPercent>100))||(w.bodyFatRecordedAt!=null&&typeof w.bodyFatRecordedAt!=='string')) throw new Error('Backup has an invalid weigh-in.');
+  for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
+  for(const b of data.bodyFat) if(typeof b.id!=='string'||!validDate(b.date)||!Number.isFinite(b.value)||b.value<=0||b.value>100||(b.recordedAt!=null&&typeof b.recordedAt!=='string')||(b.source!=null&&typeof b.source!=='string')) throw new Error('Backup has an invalid body-fat reading.');
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');
   // Transitional tolerance: old cloud records may still carry an exercise-level numeric difficulty.
   for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1)) throw new Error('Backup has an invalid difficulty.');
