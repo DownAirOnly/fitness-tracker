@@ -1,4 +1,4 @@
-import {validDate, round, id} from './data.js?v=55';
+import {validDate, round, id} from './data.js?v=56';
 
 const stampPattern=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 const validStamp=value=>typeof value==='string'&&stampPattern.test(value)&&Number.isFinite(Date.parse(value));
