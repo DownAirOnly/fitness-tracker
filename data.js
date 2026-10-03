@@ -48,7 +48,7 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360, cruiseMode: false}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
@@ -75,7 +75,7 @@ export function weeklyWeights(weights, height, unit='lb', weekStart=5) {
   }
   return [...groups].sort(([a],[b])=>b.localeCompare(a)).map(([week,values])=>({week, average:round(values.reduce((a,b)=>a+b,0)/values.length), bmi:bmi(values.reduce((a,b)=>a+b,0)/values.length,height,unit), count:values.length}));
 }
-export function shouldPrompt(data, now = new Date()) { const reset=Number.isInteger(data.settings?.dayResetMinutes)?data.settings.dayResetMinutes:360, minutes=now.getHours()*60+now.getMinutes(), day=trackingDate(now,reset); return minutes>=reset && data.promptDate!==day && !data.weights.some(w=>w.date===day); }
+export function shouldPrompt(data, now = new Date()) { const reset=Number.isInteger(data.settings?.dayResetMinutes)?data.settings.dayResetMinutes:360, minutes=now.getHours()*60+now.getMinutes(), day=trackingDate(now,reset); return data.settings?.cruiseMode!==true && minutes>=reset && data.promptDate!==day && !data.weights.some(w=>w.date===day); }
 export function parseCSV(raw) {
   const rows=[]; let row=[], value='', quote=false;
   for(let i=0;i<raw.length;i++) {
@@ -114,6 +114,8 @@ export function normalizeData(input) {
   data.settings.weekStart=5;
   data.settings.dayResetMinutes=Number.isInteger(Number(data.settings.dayResetMinutes))?Number(data.settings.dayResetMinutes):360;
   if(data.settings.dayResetMinutes<0||data.settings.dayResetMinutes>1410||data.settings.dayResetMinutes%30!==0)throw new Error('Backup day reset time is invalid.');
+  if(input.settings.cruiseMode!=null&&typeof input.settings.cruiseMode!=='boolean')throw new Error('Backup cruise mode setting is invalid.');
+  data.settings.cruiseMode=data.settings.cruiseMode===true;
   data.settings.calories=Number(data.settings.calories); data.settings.protein=Number(data.settings.protein); data.settings.heightInches=Number(data.settings.heightInches);
   for(const key of ['foods','foodEntries','lifts','weights']) {
     if(input[key].length>50000) throw new Error('Backup is too large.');
