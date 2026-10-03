@@ -24,11 +24,11 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-source=source.replaceAll("'./data.js?v=53'",`'${new URL('data.js',root)}'`);
-source=source.replaceAll("'./cloud-model.js?v=53'",`'${new URL('cloud-model.js',root)}'`);
-source=source.replaceAll("'./import-model.js?v=53'",`'${new URL('import-model.js',root)}'`);
-source=source.replaceAll("'./durability.js?v=53'",`'${new URL('durability.js',root)}'`);
-source=source.replaceAll("'./cloud.js?v=53'",`'${pathToFileURL(fixture)}'`);
+source=source.replaceAll("'./data.js?v=54'",`'${new URL('data.js',root)}'`);
+source=source.replaceAll("'./cloud-model.js?v=54'",`'${new URL('cloud-model.js',root)}'`);
+source=source.replaceAll("'./import-model.js?v=54'",`'${new URL('import-model.js',root)}'`);
+source=source.replaceAll("'./durability.js?v=54'",`'${new URL('durability.js',root)}'`);
+source=source.replaceAll("'./cloud.js?v=54'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
