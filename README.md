@@ -15,6 +15,8 @@ Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install
 ## What is included
 
 - Daily calorie and protein totals with editable goals (initially 1,600 calories and 130 g protein), plus a Progress chart that can move through weekly, monthly, quarterly, and yearly views.
+- Once-per-tracking-day automatic weigh-in prompt: once it has appeared, Everyday will not automatically ask again until the next tracking day.
+- Offline-safe daily notes and text-only meal memories for travel context and later photo-based reconstruction.
 - Saved Food cards open a prefilled food-log form for fast quantity/date/time changes, with a five-second Undo after saving. Each log stores its own calorie/protein values so editing a saved definition does not rewrite history.
 - Universal additive CSV import from files or pasted text, with preview and validation, plus pasted/file JSON backup restore.
 - Upper, lower, and full-body starter exercise lists, custom exercises, sets/reps/weight, difficulty, notes, and last-time reference.
@@ -38,6 +40,7 @@ Supported record types:
 | `lift` | `date,exercise,equipment,group,set,weight,reps,effort,notes` |
 | `weight` | `date,weight` |
 | `bodyFat` | `date,bodyFatPercent` |
+| `note` / `dayNote` / `mealNote` | `date,noteType,text,time` |
 
 Workout rows with the same `workout` name are assembled into one template and ordered by `order`. Lift rows with the same `group` are assembled into one lift entry with multiple sets. Dates use `YYYY-MM-DD`. Food time may be a half-hour slot number (0–47) or `HH:MM` on a 30-minute boundary. Tags may be separated by `|` or `;`.
 
