@@ -34,7 +34,7 @@ let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=fal
 let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null;
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
-let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null;
+let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):deviceData, page='home', chosenDate=trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodProgressPeriod='week',foodProgressOffset=0;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null;
@@ -77,7 +77,7 @@ const foodTimeLabel=slot=>Number.isInteger(slot)&&slot>=0&&slot<48?clockLabel(sl
 const foodTimeOptions=value=>'<option value="" '+(value==null?'selected':'')+'>No time</option>'+Array.from({length:48},(_,slot)=>'<option value="'+slot+'" '+(slot===value?'selected':'')+'>'+foodTimeLabel(slot)+'</option>').join('');
 const resetTimeOptions=value=>Array.from({length:48},(_,slot)=>{const minutes=slot*30;return '<option value="'+minutes+'" '+(minutes===value?'selected':'')+'>'+clockLabel(minutes)+'</option>';}).join('');
 
-const APP_VERSION='v55';
+const APP_VERSION='v'+(new URL(import.meta.url).searchParams.get('v')||'dev');
 const FIXED_WEEK_START=5;
 const effortLabels={1:'Light',2:'Comfortable',3:'Challenging',4:'Hard',5:'Very Hard',6:'Limit',7:'Failure'};
 const effortChartColors={1:'#bbdabb',2:'#cadba8',3:'#dcd99f',4:'#e1c58d',5:'#e2ad84',6:'#db927e',7:'#d57878'};
@@ -658,11 +658,25 @@ function offlineWorkspaceModal(replace=false){
   const warning=offlineWorkspace?.dirty&&replace?'<div class="import-alert"><strong>Unexported workspace changes</strong><p>Replacing the workspace will discard them. Export first if you want to keep them.</p></div>':'';
   modal(replace?'Replace offline workspace':'Start offline workspace',warning+'<form class="form" data-form="offline-workspace"><input type="hidden" name="replace" value="'+(replace?'yes':'no')+'"><label class="field"><span>Choose an Everyday .json backup</span><input type="file" name="file" accept=".json,application/json" required></label><button type="submit" class="primary">'+(replace?'Replace workspace':'Open offline workspace')+'</button></form><div id="offline-workspace-preview" role="status"></div>');
 }
-async function exitOfflineWorkspace(){
+function exitOfflineWorkspace(){
   if(!offlineWorkspace)return;
-  if(offlineWorkspace.dirty&&!confirm('This workspace has changes since the last export. Exit anyway?'))return;
+  clearInterval(offlineExitTimer);offlineExitTimer=null;
+  const dirty=offlineWorkspace.dirty;
+  modal('Exit offline mode',`<div class="offline-exit-confirm"><div class="import-alert"><strong>${dirty?'Workspace changes need a home':'Before you leave the workspace'}</strong><p>${dirty?'There are changes since your last JSON export. Exporting now is the safest way to keep them before returning to your normal account.':'You can export a fresh JSON before returning to your normal account.'}</p></div><button type="button" class="primary" data-action="offline-exit-export">Export JSON & exit</button><button type="button" class="danger" data-action="offline-exit-without" disabled>Exit without exporting · 3</button><button type="button" class="outline" data-action="close">Cancel</button><p class="hint">The no-export option unlocks after 3 seconds to protect against an accidental double-tap. Exported JSON can later be restored through Import data.</p></div>`);
+  let seconds=3;
+  offlineExitTimer=setInterval(()=>{
+    seconds--;
+    const btn=document.querySelector('[data-action="offline-exit-without"]');
+    if(!btn){clearInterval(offlineExitTimer);offlineExitTimer=null;return;}
+    if(seconds>0){btn.textContent='Exit without exporting · '+seconds;return;}
+    clearInterval(offlineExitTimer);offlineExitTimer=null;btn.disabled=false;btn.textContent='Exit without exporting';
+  },1000);
+}
+async function performOfflineWorkspaceExit(){
+  if(!offlineWorkspace)return;
+  clearInterval(offlineExitTimer);offlineExitTimer=null;
   try{localStorage.removeItem(OFFLINE_WORKSPACE_KEY);}catch{}
-  offlineWorkspace=null;pendingImport=null;cloudMessage=account?'Returning to your cloud account…':'Only on this device · sign in for cloud saving';
+  offlineWorkspace=null;pendingImport=null;close(true);cloudMessage=account?'Returning to your cloud account…':'Only on this device · sign in for cloud saving';
   if(account){data=emptyData();render();await loadAccount();}
   else{data=structuredClone(deviceData);chosenDate=currentTrackingDate();render();promptWeight();}
 }
@@ -682,7 +696,7 @@ function settings() {
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div><p>${esc(intro)} Export backups regularly.</p></div>${cruiseModePanel()}${accountPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts support up to about 800 KB of logs.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
-function close(all=false) {importReadToken++;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
+function close(all=false) {importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
 function filteredFoodLibrary(){
  let foods=sortFoods(data.foods,foodLibrarySort),q=foodLibrarySearch.trim().toLowerCase();
  if(q)foods=foods.filter(f=>f.name.toLowerCase().includes(q)||foodKindLabel(f.kind).toLowerCase().includes(q)||foodAccuracyLabel(f.accuracy).toLowerCase().includes(q)||(f.tags||[]).some(tag=>tag.includes(q))||(f.pinned&&'pinned'.includes(q)));
@@ -763,7 +777,9 @@ document.addEventListener('click',async event=>{
   if(action==='offline-start'){if(!offlineWorkspace&&account&&(cloudBusy||cloudPending))return alert('Finish or resolve the current cloud save before opening a separate workspace.');void refreshStorageProtection(true);offlineWorkspaceModal(false);return;}
   if(action==='offline-replace'){offlineWorkspaceModal(true);return;}
   if(action==='offline-export'){if(!offlineWorkspace)return;downloadJsonBackup(offlineOutputName(),true);return;}
-  if(action==='offline-exit'){await exitOfflineWorkspace();return;}
+  if(action==='offline-exit'){exitOfflineWorkspace();return;}
+  if(action==='offline-exit-export'){if(!offlineWorkspace)return;downloadJsonBackup(offlineOutputName(),false,data);await performOfflineWorkspaceExit();return;}
+  if(action==='offline-exit-without'){if(!offlineWorkspace||el.disabled)return;await performOfflineWorkspaceExit();return;}
   if(action==='cloud-load'){if(offlineWorkspace)return;if(cloudBusy)return;if(cloudPending){if(!confirm('Discard these unsaved device changes and load the latest cloud version? Export first if you want to keep them.'))return;if(account?.uid)clearCloudRecovery(account.uid);cloudRecovery=null;cloudRecoveryConflict=null;cloudPending=false;}await loadAccount();return;}
   if(action==='cloud-retry'){if(offlineWorkspace)return;if(!session?.ready){await loadAccount();if(session?.ready&&cloudPending&&!cloudRecoveryConflict)await persist();return;}await persist();return;}
   if(action==='cloud-recovery-export'){const recovery=cloudRecoveryConflict||cloudRecovery;if(!recovery)return;downloadJsonBackup('everyday-device-recovery-'+localDate()+'.json',false,recovery.data);return;}
