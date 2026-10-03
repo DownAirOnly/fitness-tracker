@@ -36,7 +36,7 @@ const submit=async(kind,values)=>{const form=document.querySelector(`[data-form=
 // Node's FormData doesn't consume HTML forms; use the DOM's implementation.
 globalThis.FormData=dom.window.FormData;
 try{
- await import(pathToFileURL(join(temp,'app.mjs')));await tick();await tick();
+ await import(pathToFileURL(join(temp,'app.mjs')).href+'?v=56');await tick();await tick();
  assert.equal(persistRequests,1,'startup requests persistent origin storage once');
  const {state}=await import(pathToFileURL(fixture));
  assert.ok(document.querySelector('.home-actions'),'Home cards exist before auth finishes');
@@ -90,6 +90,26 @@ try{
  dom.window.HTMLAnchorElement.prototype.click=function(){};
  await click('export');const backup=JSON.parse(await exported.text());URL.createObjectURL=originalCreate;
  assert.equal(backup.lifts.length,1);assert.equal(backup.weights.length,1);assert.equal(backup.notes.length,2);
+
+ // v56: leaving an offline workspace must offer export first and delay the destructive path.
+ await click('offline-start');let offlineForm=document.querySelector('[data-form="offline-workspace"]');
+ Object.defineProperty(offlineForm.querySelector('[name="file"]'),'files',{value:[{name:'cruise-backup.json',size:100,text:async()=>JSON.stringify(backup)}]});
+ offlineForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
+ assert.ok(localStorage.getItem('everyday-offline-workspace-v1'),'offline workspace is stored locally');
+ await click('settings');await click('offline-exit');
+ let unsafeExit=document.querySelector('[data-action="offline-exit-without"]');
+ assert.ok(unsafeExit.disabled,'exit without export starts disabled');assert.match(unsafeExit.textContent,/3/);
+ unsafeExit.click();await tick();assert.ok(localStorage.getItem('everyday-offline-workspace-v1'),'disabled exit cannot discard workspace');
+ await new Promise(r=>setTimeout(r,3100));
+ unsafeExit=document.querySelector('[data-action="offline-exit-without"]');assert.equal(unsafeExit.disabled,false,'no-export exit unlocks after three seconds');
+ await click('close');
+ await click('offline-exit');
+ let exitExported;URL.createObjectURL=blob=>{exitExported=blob;return 'blob:offline-exit-test';};
+ await click('offline-exit-export');URL.createObjectURL=originalCreate;
+ assert.ok(exitExported,'export-and-exit creates a JSON download');
+ assert.equal(localStorage.getItem('everyday-offline-workspace-v1'),null,'export-and-exit removes the local workspace only after export is initiated');
+ await tick();await tick();await click('settings');
+
  await click('import-data');await click('import-csv');let form=document.querySelector('[data-form="import"]');
  Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=> 'date,name,calories,protein,quantity\n2026-09-19,CSV meal,300,25,1'}]});
  form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
