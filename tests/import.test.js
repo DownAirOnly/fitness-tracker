@@ -74,3 +74,19 @@ test('v49 body-fat-only weight CSV imports unchanged into independent body fat r
  assert.deepEqual(p.candidate.bodyFat.map(x=>[x.date,x.value]),[['2026-10-02',21.5],['2026-10-01',21.8]]);
  const bodyGroup=p.groups.find(g=>g.key==='bodyFat');assert.equal(bodyGroup.rows.length,2);
 });
+
+
+test('universal CSV imports day notes and meal memories',()=>{
+ const current=emptyData();
+ const csv=[
+  'recordType,date,noteType,text,time',
+  'note,2026-10-04,day,Grand Cayman port day,',
+  'mealNote,2026-10-04,,Buffet lunch photographed,12:30'
+ ].join('\n');
+ const p=prepareImport('csv',csv,current);
+ assert.equal(p.errors.length,0,p.errors.join(' | '));
+ assert.equal(p.candidate.notes.length,2);
+ assert.equal(p.candidate.notes.find(n=>n.type==='day').text,'Grand Cayman port day');
+ assert.equal(p.candidate.notes.find(n=>n.type==='meal').t,25);
+ assert.equal(p.groups.find(g=>g.key==='notes').rows.length,2);
+});
