@@ -1,47 +1,73 @@
-import {validDate, round, id} from './data.js?v=49';
+import {validDate, round, id} from './data.js?v=50';
 
-// Adapter-independent latest-reading import. Dates are supplied in the phone's
-// local calendar; timestamps retain their offset and are used only for ordering.
+const stampPattern=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+const validStamp=value=>typeof value==='string'&&stampPattern.test(value)&&Number.isFinite(Date.parse(value));
+
+// Adapter-independent latest-measurement import. Weight and body fat are separate
+// measurement streams with separate dates and processed timestamps.
 export function planHealthWeight(current, sample, lastRecordedAt='', lastBodyFatRecordedAt='') {
-  if (!sample || typeof sample !== 'object' || !validDate(sample.date)
-    || !['lb','kg'].includes(sample.unit) || typeof sample.value !== 'number'
-    || !Number.isFinite(sample.value) || sample.value <= 0 || sample.value > 1500
-    || typeof sample.recordedAt !== 'string'
-    || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(sample.recordedAt)
-    || !Number.isFinite(Date.parse(sample.recordedAt))) throw Error('The incoming weight or date is invalid. Nothing was imported.');
-  const hasBodyFat=sample.bodyFatPercent!=null||sample.bodyFatRecordedAt!=null;
-  if(hasBodyFat){
-    if(typeof sample.bodyFatPercent!=='number'||!Number.isFinite(sample.bodyFatPercent)||sample.bodyFatPercent<=0||sample.bodyFatPercent>100
-      ||typeof sample.bodyFatRecordedAt!=='string'
-      ||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(sample.bodyFatRecordedAt)
-      ||!Number.isFinite(Date.parse(sample.bodyFatRecordedAt))||sample.bodyFatRecordedAt.slice(0,10)!==sample.date)throw Error('The incoming body-fat reading is invalid or does not match the weight day. Nothing was imported.');
+  if(!sample||typeof sample!=='object')throw Error('The incoming Health sample is invalid. Nothing was imported.');
+  const hasWeight=['value','unit','date','recordedAt'].some(key=>sample[key]!=null);
+  const hasBodyFat=['bodyFatPercent','bodyFatDate','bodyFatRecordedAt'].some(key=>sample[key]!=null);
+  if(!hasWeight&&!hasBodyFat)throw Error('The incoming Health sample has no supported measurements.');
+
+  if(hasWeight){
+    if(!validDate(sample.date)||!['lb','kg'].includes(sample.unit)||typeof sample.value!=='number'
+      ||!Number.isFinite(sample.value)||sample.value<=0||sample.value>1500||!validStamp(sample.recordedAt))
+      throw Error('The incoming weight or date is invalid. Nothing was imported.');
   }
-  const time=Date.parse(sample.recordedAt),bodyFatTime=hasBodyFat?Date.parse(sample.bodyFatRecordedAt):0;
-  const weightFresh=!lastRecordedAt||time>Date.parse(lastRecordedAt),bodyFatFresh=hasBodyFat&&(!lastBodyFatRecordedAt||bodyFatTime>Date.parse(lastBodyFatRecordedAt));
-  if(!weightFresh&&!bodyFatFresh)return{changed:false,status:'This reading has already been handled.',lastRecordedAt,lastBodyFatRecordedAt};
-  const candidate=structuredClone(current),existing=candidate.weights.find(w=>w.date===sample.date),value=round(sample.value*(sample.unit===current.settings.unit?1:current.settings.unit==='kg'?1/2.2046226218:2.2046226218));
-  if(value<=0)throw Error('The incoming weight is too small. Nothing was imported.');
-  let target=existing,changed=false,weightStatus='';
+
+  // Backward compatibility: the brief v49 Shortcut did not send bodyFatDate
+  // because body fat was attached to weight. When weight is present, its date
+  // remains a valid fallback while old Shortcuts are phased out.
+  const bodyFatDate=sample.bodyFatDate||(hasWeight?sample.date:'');
+  if(hasBodyFat){
+    if(typeof sample.bodyFatPercent!=='number'||!Number.isFinite(sample.bodyFatPercent)
+      ||sample.bodyFatPercent<=0||sample.bodyFatPercent>100||!validDate(bodyFatDate)
+      ||!validStamp(sample.bodyFatRecordedAt))
+      throw Error('The incoming body-fat reading or date is invalid. Nothing was imported.');
+  }
+
+  const weightTime=hasWeight?Date.parse(sample.recordedAt):0;
+  const bodyFatTime=hasBodyFat?Date.parse(sample.bodyFatRecordedAt):0;
+  const weightFresh=hasWeight&&(!lastRecordedAt||weightTime>Date.parse(lastRecordedAt));
+  const bodyFatFresh=hasBodyFat&&(!lastBodyFatRecordedAt||bodyFatTime>Date.parse(lastBodyFatRecordedAt));
+  if(!weightFresh&&!bodyFatFresh)return{changed:false,status:'These Health readings have already been handled.',lastRecordedAt,lastBodyFatRecordedAt};
+
+  const candidate=structuredClone(current);
+  candidate.bodyFat=Array.isArray(candidate.bodyFat)?candidate.bodyFat:[];
+  let changed=false;
+  const statuses=[];
+
   if(weightFresh){
-    if(existing&&existing.source!=='apple-health-shortcut')weightStatus='Kept your existing weight';
-    else if(existing?.recordedAt&&time<=Date.parse(existing.recordedAt))weightStatus='Kept the newer weight';
+    const value=round(sample.value*(sample.unit===current.settings.unit?1:current.settings.unit==='kg'?1/2.2046226218:2.2046226218));
+    if(value<=0)throw Error('The incoming weight is too small. Nothing was imported.');
+    const existing=candidate.weights.find(w=>w.date===sample.date);
+    if(existing&&existing.source!=='apple-health-shortcut')statuses.push('Kept your existing weight for '+sample.date);
+    else if(existing?.recordedAt&&weightTime<=Date.parse(existing.recordedAt))statuses.push('Kept the newer weight for '+sample.date);
     else{
       const entry={...(existing||{}),id:existing?.id||id(),date:sample.date,value,source:'apple-health-shortcut',recordedAt:sample.recordedAt};
       if(existing)candidate.weights[candidate.weights.findIndex(w=>w.id===existing.id)]=entry;else candidate.weights.push(entry);
-      target=entry;changed=true;weightStatus='Imported '+value+' '+current.settings.unit;
+      changed=true;statuses.push('Imported '+value+' '+current.settings.unit+' for '+sample.date);
     }
     lastRecordedAt=sample.recordedAt;
   }
-  let bodyFatStatus='';
+
   if(bodyFatFresh){
-    const bodyFat=round(sample.bodyFatPercent<=1?sample.bodyFatPercent*100:sample.bodyFatPercent);
-    target=candidate.weights.find(w=>w.date===sample.date);
-    if(target){target.bodyFatPercent=bodyFat;target.bodyFatRecordedAt=sample.bodyFatRecordedAt;changed=true;bodyFatStatus='imported '+bodyFat+'% body fat';}
-    else bodyFatStatus='body fat could not be attached because this weigh-in is no longer present';
+    const value=round(sample.bodyFatPercent<=1?sample.bodyFatPercent*100:sample.bodyFatPercent);
+    const sameDay=candidate.bodyFat.filter(b=>b.date===bodyFatDate);
+    const existing=sameDay.find(b=>b.source!=='apple-health-shortcut')||sameDay.sort((a,b)=>(b.recordedAt||'').localeCompare(a.recordedAt||''))[0];
+    if(existing&&existing.source!=='apple-health-shortcut')statuses.push('Kept your existing body-fat reading for '+bodyFatDate);
+    else if(existing?.recordedAt&&bodyFatTime<=Date.parse(existing.recordedAt))statuses.push('Kept the newer body-fat reading for '+bodyFatDate);
+    else{
+      const entry={...(existing||{}),id:existing?.id||id(),date:bodyFatDate,value,source:'apple-health-shortcut',recordedAt:sample.bodyFatRecordedAt};
+      if(existing)candidate.bodyFat[candidate.bodyFat.findIndex(b=>b.id===existing.id)]=entry;else candidate.bodyFat.push(entry);
+      changed=true;statuses.push('Imported '+value+'% body fat for '+bodyFatDate);
+    }
     lastBodyFatRecordedAt=sample.bodyFatRecordedAt;
   }
-  const parts=[weightStatus,bodyFatStatus].filter(Boolean),status=(parts.length?parts.join(' and '):'No changes')+' for '+sample.date+'.';
-  return{changed,candidate:changed?candidate:undefined,status,lastRecordedAt,lastBodyFatRecordedAt};
+
+  return{changed,candidate:changed?candidate:undefined,status:statuses.join('. ')+(statuses.length?'.':''),lastRecordedAt,lastBodyFatRecordedAt};
 }
 
 export function shortcutURL(projectId,token) {
