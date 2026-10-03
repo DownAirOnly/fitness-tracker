@@ -30,7 +30,7 @@ try {
  const token='a'.repeat(64), inbox='weightBridges/'+token;
  const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00',bodyFatPercent:22.4,bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
  await assertSucceeds(setDoc(doc(alice,inbox),{uid:'alice',sample:null}));
- await assertSucceeds(setDoc(doc(alice,'users/alice/integrations/appleHealth'),{token,lastRecordedAt:'',lastBodyFatRecordedAt:'',status:'Waiting'}));
+ await assertSucceeds(setDoc(doc(alice,'users/alice/integrations/appleHealth'),{token,lastRecordedAt:'',status:'Waiting'}));
  await assertFails(getDoc(doc(bob,'users/alice/integrations/appleHealth')));
  await assertFails(getDoc(doc(anon,inbox)));
  await assertFails(getDocs(collection(anon,'weightBridges')));
