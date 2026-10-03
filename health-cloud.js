@@ -15,7 +15,7 @@ export function healthBridge({db,auth,sdk,projectId}) {
         owner(uid);const old=await tx.get(config(uid));
         if(old.exists()&&old.data().token)tx.delete(bridge(old.data().token));
         tx.set(bridge(token),{uid,sample:null});
-        tx.set(config(uid),{token,lastRecordedAt:'',lastBodyFatRecordedAt:'',status:'Waiting for your first Shortcut sync.'});
+        tx.set(config(uid),{token,lastRecordedAt:'',status:'Waiting for your first Shortcut sync.'});
       });
       return token;
     },
@@ -43,7 +43,7 @@ export function healthBridge({db,auth,sdk,projectId}) {
         if(plan.lastRecordedAt===(options.lastRecordedAt||'')&&plan.lastBodyFatRecordedAt===(options.lastBodyFatRecordedAt||''))return {enabled:true,token:options.token,status:options.status};
         let next=null;
         if(plan.changed){next=nextRecord(record,expectedRevision,encodeState(plan.candidate));tx.set(state(uid),{...next,updatedAt:sdk.serverTimestamp()});}
-        tx.set(config(uid),{...options,lastRecordedAt:plan.lastRecordedAt,lastBodyFatRecordedAt:plan.lastBodyFatRecordedAt,status:plan.status});
+        const nextOptions={...options,lastRecordedAt:plan.lastRecordedAt,status:plan.status};if(plan.lastBodyFatRecordedAt)nextOptions.lastBodyFatRecordedAt=plan.lastBodyFatRecordedAt;tx.set(config(uid),nextOptions);
         return {enabled:true,token:options.token,status:plan.status,...(next?{data:plan.candidate,revision:next.revision}:{})};
       });
     }
