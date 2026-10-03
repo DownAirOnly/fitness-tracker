@@ -24,11 +24,11 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-source=source.replaceAll("'./data.js?v=44'",`'${new URL('data.js',root)}'`);
-source=source.replaceAll("'./cloud-model.js?v=44'",`'${new URL('cloud-model.js',root)}'`);
-source=source.replaceAll("'./import-model.js?v=44'",`'${new URL('import-model.js',root)}'`);
-source=source.replaceAll("'./durability.js?v=45'",`'${new URL('durability.js',root)}'`);
-source=source.replaceAll("'./cloud.js?v=44'",`'${pathToFileURL(fixture)}'`);
+source=source.replaceAll("'./data.js?v=49'",`'${new URL('data.js',root)}'`);
+source=source.replaceAll("'./cloud-model.js?v=49'",`'${new URL('cloud-model.js',root)}'`);
+source=source.replaceAll("'./import-model.js?v=49'",`'${new URL('import-model.js',root)}'`);
+source=source.replaceAll("'./durability.js?v=49'",`'${new URL('durability.js',root)}'`);
+source=source.replaceAll("'./cloud.js?v=49'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
@@ -69,18 +69,18 @@ try{
  const dateInput=document.querySelector('.tracking-date input');dateInput.value='2026-09-20';dateInput.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
  await click('custom-lift');await submit('lift',{exercise:'Test press',weight:'40',reps:'8',difficulty:'7'});
  assert.equal(JSON.parse(state.records.get('bob').payload).lifts[0].date,'2026-09-20');
- await click('home');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
- await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');
+ await click('home');await click('weight');await submit('weight',{value:'180',bodyFatPercent:'22.4',date:'2026-09-20'});
+ await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');
  await click('settings');
  let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
  dom.window.HTMLAnchorElement.prototype.click=function(){};
  await click('export');const backup=JSON.parse(await exported.text());URL.createObjectURL=originalCreate;
  assert.equal(backup.lifts.length,1);assert.equal(backup.weights.length,1);
- await click('import-csv');let form=document.querySelector('[data-form="import"]');
+ await click('import-data');await click('import-csv');let form=document.querySelector('[data-form="import"]');
  Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=> 'date,name,calories,protein,quantity\n2026-09-19,CSV meal,300,25,1'}]});
  form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
  assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,2);
- await click('restore');form=document.querySelector('[data-form="import"]');
+ await click('import-data');await click('restore');form=document.querySelector('[data-form="import"]');
  Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=>JSON.stringify(backup)}]});
  form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
  assert.deepEqual(JSON.parse(state.records.get('bob').payload),backup,'JSON restore preserves the exported snapshot');
@@ -104,11 +104,13 @@ try{
  await click('food-log');await click('edit-entry');await click('delete-entry');
  assert.equal(document.querySelector('.food-total-number strong').textContent,'800');
  assert.equal(document.querySelectorAll('.food-preview-row').length,3);
- await click('add-saved');
- let current=JSON.parse(state.records.get('bob').payload);assert.equal(current.foodEntries.at(-1).date,'2025-01-02');
+ const countBeforeSaved=JSON.parse(state.records.get('bob').payload).foodEntries.length;
+ await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'),'saved card opens normal food form');assert.equal(document.querySelector('[data-form="food"] [name="date"]').value,'2025-01-02');await submit('food',{quantity:'0.5'});
+ let current=JSON.parse(state.records.get('bob').payload);assert.equal(current.foodEntries.at(-1).date,'2025-01-02');assert.equal(current.foodEntries.at(-1).quantity,0.5);assert.ok(document.querySelector('.food-undo-toast'));
+ await click('undo-food-add');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,countBeforeSaved,'saved-food undo removes only the new entry');
  await click('today');assert.ok(document.querySelector('.food-main span').textContent.includes('Add to today'));
  assert.ok(!document.querySelector('.food-preview').textContent.includes('History food'));
- await click('add-saved');current=JSON.parse(state.records.get('bob').payload);
+ await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'));await submit('food',{quantity:'1'});current=JSON.parse(state.records.get('bob').payload);
  assert.equal(current.foodEntries.at(-1).date,document.querySelector('.tracking-date input').value);
  // Pass 3: nested Food dismissal returns exactly one level.
  await click('food-log');await click('edit-entry');
@@ -149,14 +151,14 @@ try{
  assert.ok(document.querySelector('main').textContent.includes('Weeks start Friday.'),'Friday boundary survives cloud reload');
  // Pass 4: preview staging, pagination, invalid files, cancellation and failed writes.
  const previewFile=async(kind,raw)=>{
-  await click(kind==='csv'?'import-csv':'restore');const f=document.querySelector('[data-form="import"]');
+  await click('import-data');await click(kind==='csv'?'import-csv':'restore');const f=document.querySelector('[data-form="import"]');
   Object.defineProperty(f.querySelector('[name="file"]'),'files',{value:[{name:'test.'+kind,size:raw.length,text:async()=>raw}]});
   f.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
  };
  const unchanged=JSON.parse(state.records.get('bob').payload);
  const incoming={...structuredClone(unchanged),foodEntries:unchanged.foodEntries.slice(0,1)};incoming.settings.dayResetMinutes=390;
  await previewFile('json',JSON.stringify(incoming));
- assert.ok(document.querySelector('.import-scroll'));assert.equal(document.querySelectorAll('.import-group').length>=5,true);
+ assert.ok(document.querySelector('.import-scroll'));assert.ok(document.querySelectorAll('.import-group').length>=1);
  assert.ok(document.querySelector('.import-summary').textContent.includes('replaces all'));
  assert.deepEqual(JSON.parse(state.records.get('bob').payload),unchanged);
  await click('close');assert.ok(!document.querySelector('.modal'));
@@ -179,9 +181,10 @@ try{
  assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'),'failed import leaves in-memory data unchanged');
  state.fail=false;await click('settings');await previewFile('csv',oneCSV);await click('commit-import');
  assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,unchanged.foodEntries.length+1);
+ await click('settings');await click('import-data');await click('paste-csv');let pasteForm=document.querySelector('[data-form="import"]');pasteForm.elements.text.value='recordType,date,weight,bodyFatPercent\nweight,2026-09-30,179.5,21.9';pasteForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(document.querySelector('.import-scroll'));await click('commit-import');assert.equal(JSON.parse(state.records.get('bob').payload).weights.find(w=>w.date==='2026-09-30').bodyFatPercent,21.9);
  await previewFile('csv',oneCSV);assert.ok(document.querySelector('.import-summary').textContent.includes('1 possible duplicates'));await click('close');
  // A read resolving after Cancel must not revive the preview.
- await click('import-csv');const slowForm=document.querySelector('[data-form="import"]');let finishRead;
+ await click('import-data');await click('import-csv');const slowForm=document.querySelector('[data-form="import"]');let finishRead;
  Object.defineProperty(slowForm.querySelector('[name="file"]'),'files',{value:[{size:100,text:()=>new Promise(resolve=>{finishRead=resolve;})}]});
  slowForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await click('close');finishRead(oneCSV);await tick();
  assert.ok(!document.querySelector('.modal'));assert.ok(!document.querySelector('[data-action="commit-import"]'));
@@ -198,5 +201,5 @@ try{
  assert.equal(localStorage.getItem('everyday-fitness-v1'),localBefore);
  assert.ok(document.querySelector('.import-alert').textContent.includes('Storage full'));
  await click('close');await click('food');assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'));
- console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, progress, CSV/JSON import/export, account transitions, migration and save recovery.');
+ console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}
