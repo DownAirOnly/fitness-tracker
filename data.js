@@ -48,7 +48,7 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
@@ -121,6 +121,8 @@ export function normalizeData(input) {
   }
   data.bodyFat=Array.isArray(input.bodyFat)?input.bodyFat:[];
   if(data.bodyFat.length>50000)throw new Error('Backup is too large.');
+  data.notes=Array.isArray(input.notes)?input.notes:[];
+  if(data.notes.length>50000)throw new Error('Backup is too large.');
   // v49 compatibility: body fat was briefly stored on weight records. Migrate it
   // into the independent bodyFat collection using stable IDs, then strip it from weights.
   const existingBodyFatIds=new Set(data.bodyFat.map(x=>x.id));
@@ -139,6 +141,9 @@ export function normalizeData(input) {
   for(const e of data.foodEntries){if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0)throw new Error('Backup has an invalid food entry.');if(e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47))throw new Error('Backup has an invalid food time.');}
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
   for(const b of data.bodyFat) if(typeof b.id!=='string'||!validDate(b.date)||!Number.isFinite(b.value)||b.value<=0||b.value>100||(b.recordedAt!=null&&typeof b.recordedAt!=='string')||(b.source!=null&&typeof b.source!=='string')) throw new Error('Backup has an invalid body-fat reading.');
+  for(const n of data.notes){
+    if(!n||typeof n.id!=='string'||!n.id.trim()||!validDate(n.date)||!['day','meal'].includes(n.type)||typeof n.text!=='string'||!n.text.trim()||n.text.length>1200||(n.t!=null&&(!Number.isInteger(n.t)||n.t<0||n.t>47)))throw new Error('Backup has an invalid note.');
+  }
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');
   // Transitional tolerance: old cloud records may still carry an exercise-level numeric difficulty.
   for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1)) throw new Error('Backup has an invalid difficulty.');
