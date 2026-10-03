@@ -74,7 +74,7 @@ try{
  await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
  await click('home');assert.ok(document.querySelector('.travel-notes-panel'),'trip notes are available from Home');
  await click('day-note');await submit('day-note',{date:'2026-09-20',text:'Embarkation day · lots of walking'});
- await click('meal-memory');await submit('meal-memory',{date:'2026-09-20',text:'Dinner menu and plate photographed',noteTime:'36'});
+ await click('meal-memory');assert.ok(document.querySelector('.meal-memory-date-time'),'meal memory uses dedicated date/time layout');await submit('meal-memory',{date:'2026-09-20',text:'Dinner menu and plate photographed',noteTime:'36'});
  let noteState=JSON.parse(state.records.get('bob').payload);assert.equal(noteState.notes.length,2);assert.equal(noteState.notes.find(n=>n.type==='meal').t,36);
  await click('food');const noteDate=document.querySelector('.tracking-date input');noteDate.value='2026-09-20';noteDate.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();assert.ok(document.querySelector('.travel-notes-panel').textContent.includes('Dinner menu and plate photographed'));
  await click('settings');
