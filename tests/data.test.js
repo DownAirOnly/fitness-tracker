@@ -9,7 +9,7 @@ test('CSV supports quoted names and rejects malformed rows before import',()=>{
 });
 test('weekly averages and BMI use entered weights and the configured height',()=>{
   const weeks=weeklyWeights([{date:'2026-09-21',value:184},{date:'2026-09-25',value:182},{date:'2026-09-20',value:186}],68);
-  assert.equal(weeks.length,2);assert.equal(weeks[0].average,183);assert.equal(weeks[0].bmi,bmi(183,68));
+  assert.equal(weeks.length,2);assert.equal(weeks[0].average,182);assert.equal(weeks[0].bmi,bmi(182,68));
 });
 test('morning prompt respects six AM and once per local date',()=>{
   const data=emptyData();const early=new Date(2026,8,25,5,59),late=new Date(2026,8,25,6,1);
@@ -21,6 +21,7 @@ test('backup validator rejects corrupt records',()=>{
   const data=emptyData();data.foodEntries.push({id:'a',date:'2026-09-25',name:'Food',calories:100,protein:10,quantity:1});
   assert.equal(normalizeData(data).foodEntries.length,1);
   data.foodEntries[0].calories=-10;assert.throws(()=>normalizeData(data),/invalid food entry/);
+  const body=emptyData();body.weights=[{id:'w',date:'2026-09-25',value:180,bodyFatPercent:22.4}];assert.equal(normalizeData(body).weights[0].bodyFatPercent,22.4);body.weights[0].bodyFatPercent=101;assert.throws(()=>normalizeData(body),/invalid weigh-in/);
 });
 
 test('all seven week starts regroup historical data without mutation',async()=>{
@@ -47,16 +48,17 @@ test('all seven week starts regroup historical data without mutation',async()=>{
   assert.equal(endOfWeek('2026-10-26'),'2026-11-01');
   assert.equal(JSON.stringify(weights),before);
 });
-test('old backups default to Monday; new week preference survives cloud and JSON',async()=>{
+test('week boundaries are canonically Friday across old and imported data',async()=>{
   const {encodeState,decodeState}=await import('../cloud-model.js');
   const data=emptyData();delete data.settings.weekStart;
-  assert.equal(normalizeData(data).settings.weekStart,1);
+  assert.equal(normalizeData(data).settings.weekStart,5);
   for(let day=0;day<7;day++){
     data.settings.weekStart=day;
     const restored=decodeState({schemaVersion:1,revision:1,payload:encodeState(data)}).data;
-    assert.equal(restored.settings.weekStart,day);
+    assert.equal(restored.settings.weekStart,5);
   }
-  for(const value of [-1,7,1.5,'Monday',null]){data.settings.weekStart=value;assert.throws(()=>normalizeData(data),/week start/);}
+  for(const value of [-1,7,1.5,'Monday']){data.settings.weekStart=value;assert.throws(()=>normalizeData(data),/week start/);}
+  data.settings.weekStart=null;assert.equal(normalizeData(data).settings.weekStart,5);
 });
 
 test('stored schema uses canonical food and exercise references',()=>{const d=emptyData();d.foods=[{id:'f',name:'Meal',calories:150,protein:10}];d.foodEntries=[{id:'e',date:'2026-09-30',name:'Meal',calories:150,protein:10,quantity:1}];d.lifts=[{id:'l',date:'2026-09-30',exercise:'Chest Press',sets:[{weight:60,reps:10}]}];const s=encodeData(d);assert.equal(s.version,2);assert.equal(s.foodEntries[0].foodId,'f');assert.equal('name' in s.foodEntries[0],false);assert.equal(s.exercises.length,1);assert.equal('exercise' in s.lifts[0],false);assert.equal(normalizeData(s).foodEntries[0].name,'Meal');});
