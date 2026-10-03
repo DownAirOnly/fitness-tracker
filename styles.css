@@ -966,3 +966,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .cruise-home-banner{padding:21px}
  .cruise-mode-mark{font-size:61px}
 }
+
+
+/* v56 guarded offline exit */
+.offline-exit-confirm{display:grid;gap:10px}
+.offline-exit-confirm .import-alert{margin:0 0 4px}
+.offline-exit-confirm>button{width:100%}
+.offline-exit-confirm .hint{margin-top:2px}
+.offline-exit-confirm .danger:disabled{opacity:.46;cursor:not-allowed}
