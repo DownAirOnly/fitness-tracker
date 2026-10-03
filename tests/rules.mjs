@@ -28,7 +28,7 @@ try {
  await assertFails(getDocs(collection(alice,'users/alice/state')));
  await assertFails(deleteDoc(doc(alice,path)));
  const token='a'.repeat(64), inbox='weightBridges/'+token;
- const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00',bodyFatPercent:22.4,bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
+ const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00',bodyFatPercent:22.4,bodyFatDate:'2026-09-25',bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
  await assertSucceeds(setDoc(doc(alice,inbox),{uid:'alice',sample:null}));
  await assertSucceeds(setDoc(doc(alice,'users/alice/integrations/appleHealth'),{token,lastRecordedAt:'',status:'Waiting'}));
  await assertFails(getDoc(doc(bob,'users/alice/integrations/appleHealth')));
@@ -41,12 +41,15 @@ try {
  await assertFails(updateDoc(doc(anon,inbox),{sample:{...sample,value:-1}}));
  await assertFails(updateDoc(doc(anon,inbox),{sample:{...sample,extra:'x'}}));
  await assertFails(updateDoc(doc(anon,inbox),{sample:{...sample,unit:'stone'}}));
+ await assertFails(updateDoc(doc(anon,inbox),{sample:{bodyFatPercent:22.4,bodyFatRecordedAt:sample.bodyFatRecordedAt}}));
+ await assertSucceeds(updateDoc(doc(anon,inbox),{sample:{bodyFatPercent:22.4,bodyFatDate:sample.bodyFatDate,bodyFatRecordedAt:sample.bodyFatRecordedAt}}));
+ await assertSucceeds(updateDoc(doc(anon,inbox),{sample}));
  await assertFails(updateDoc(doc(anon,inbox),{payload:'overwrite food'}));
  await assertFails(deleteDoc(doc(anon,inbox)));
  await assertFails(setDoc(doc(anon,'weightBridges/'+'b'.repeat(64)),{uid:'alice',sample}));
  // Exercise the exact unauthenticated PATCH shape used by Shortcuts.
  const endpoint='http://127.0.0.1:8080/v1/projects/demo-everyday/databases/(default)/documents/'+inbox+'?updateMask.fieldPaths=sample&currentDocument.exists=true&mask.fieldPaths=sample';
- const fields={value:{doubleValue:188.3},unit:{stringValue:'lb'},date:{stringValue:sample.date},recordedAt:{stringValue:sample.recordedAt},bodyFatPercent:{doubleValue:sample.bodyFatPercent},bodyFatRecordedAt:{stringValue:sample.bodyFatRecordedAt}};
+ const fields={value:{doubleValue:188.3},unit:{stringValue:'lb'},date:{stringValue:sample.date},recordedAt:{stringValue:sample.recordedAt},bodyFatPercent:{doubleValue:sample.bodyFatPercent},bodyFatDate:{stringValue:sample.bodyFatDate},bodyFatRecordedAt:{stringValue:sample.bodyFatRecordedAt}};
  const response=await fetch(endpoint,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:{sample:{mapValue:{fields}}}})});
  if(!response.ok)throw Error('Shortcut REST upload failed: '+await response.text());
  await assertSucceeds(deleteDoc(doc(alice,inbox)));
@@ -57,7 +60,7 @@ try {
  await updateDoc(doc(anon,'weightBridges/'+connected),{sample});
  const imported=await api.pull('carol',0);
  assert.equal(imported.revision,1);assert.equal(imported.data.weights.length,1);
- assert.equal(imported.data.weights[0].date,sample.date);assert.equal(imported.data.weights[0].bodyFatPercent,22.4);
+ assert.equal(imported.data.weights[0].date,sample.date);assert.equal(imported.data.bodyFat[0].value,22.4);assert.equal(imported.data.bodyFat[0].date,sample.bodyFatDate);
  assert.equal((await api.pull('carol',1)).data,undefined);
  // A conflict must not acknowledge the pending sample or alter the account.
  await updateDoc(doc(anon,'weightBridges/'+connected),{sample:{value:188,unit:'lb',date:'2026-09-26',recordedAt:'2026-09-26T00:00:00-04:00'}});
