@@ -30,14 +30,15 @@ service cloud.firestore {
     match /users/{uid}/integrations/appleHealth {
       allow get, delete: if verifiedOwner(uid);
       allow create, update: if verifiedOwner(uid)
-        && request.resource.data.keys().hasAll(['token','lastRecordedAt','lastBodyFatRecordedAt','status'])
+        && request.resource.data.keys().hasAll(['token','lastRecordedAt','status'])
         && request.resource.data.keys().hasOnly(['token','lastRecordedAt','lastBodyFatRecordedAt','status'])
         && request.resource.data.token is string
         && request.resource.data.token.matches('^[a-f0-9]{64}$')
         && request.resource.data.lastRecordedAt is string
         && request.resource.data.lastRecordedAt.size() <= 40
-        && request.resource.data.lastBodyFatRecordedAt is string
-        && request.resource.data.lastBodyFatRecordedAt.size() <= 40
+        && (!request.resource.data.keys().hasAny(['lastBodyFatRecordedAt'])
+          || (request.resource.data.lastBodyFatRecordedAt is string
+            && request.resource.data.lastBodyFatRecordedAt.size() <= 40))
         && request.resource.data.status is string
         && request.resource.data.status.size() <= 200;
     }
