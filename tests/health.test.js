@@ -30,15 +30,15 @@ test('unit conversion and invalid payload rejection',()=>{
 });
 
 
-test('same-day Apple Health body fat attaches to weight and normalizes fractional percentages',()=>{
- const bodySample={...sample,bodyFatPercent:0.224,bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
+test('Apple Health body fat is independent from weight and normalizes fractional percentages',()=>{
+ const bodySample={bodyFatPercent:0.224,bodyFatDate:'2026-09-25',bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
  const plan=planHealthWeight(emptyData(),bodySample);
- assert.equal(plan.candidate.weights[0].bodyFatPercent,22.4);
- assert.equal(plan.candidate.weights[0].bodyFatRecordedAt,bodySample.bodyFatRecordedAt);
- const manual=emptyData();manual.weights=[{id:'manual',date:sample.date,value:180}];
- const enriched=planHealthWeight(manual,bodySample,sample.recordedAt,'');
- assert.equal(enriched.candidate.weights[0].value,180,'manual weight remains authoritative');
- assert.equal(enriched.candidate.weights[0].bodyFatPercent,22.4,'fresh body fat can enrich a manual weight');
- assert.equal(enriched.lastBodyFatRecordedAt,bodySample.bodyFatRecordedAt);
- assert.equal(planHealthWeight(enriched.candidate,bodySample,sample.recordedAt,bodySample.bodyFatRecordedAt).changed,false);
+ assert.equal(plan.candidate.weights.length,0);
+ assert.equal(plan.candidate.bodyFat[0].value,22.4);
+ assert.equal(plan.candidate.bodyFat[0].date,'2026-09-25');
+ assert.equal(plan.candidate.bodyFat[0].recordedAt,bodySample.bodyFatRecordedAt);
+ const combined=planHealthWeight(emptyData(),{...sample,...bodySample});
+ assert.equal(combined.candidate.weights[0].value,188.3);
+ assert.equal(combined.candidate.bodyFat[0].value,22.4);
+ assert.equal(planHealthWeight(plan.candidate,bodySample,'',bodySample.bodyFatRecordedAt).changed,false);
 });
