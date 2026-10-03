@@ -14,7 +14,7 @@ export function planHealthWeight(current, sample, lastRecordedAt='', lastBodyFat
     if(typeof sample.bodyFatPercent!=='number'||!Number.isFinite(sample.bodyFatPercent)||sample.bodyFatPercent<=0||sample.bodyFatPercent>100
       ||typeof sample.bodyFatRecordedAt!=='string'
       ||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(sample.bodyFatRecordedAt)
-      ||!Number.isFinite(Date.parse(sample.bodyFatRecordedAt)))throw Error('The incoming body-fat reading is invalid. Nothing was imported.');
+      ||!Number.isFinite(Date.parse(sample.bodyFatRecordedAt))||sample.bodyFatRecordedAt.slice(0,10)!==sample.date)throw Error('The incoming body-fat reading is invalid or does not match the weight day. Nothing was imported.');
   }
   const time=Date.parse(sample.recordedAt),bodyFatTime=hasBodyFat?Date.parse(sample.bodyFatRecordedAt):0;
   const weightFresh=!lastRecordedAt||time>Date.parse(lastRecordedAt),bodyFatFresh=hasBodyFat&&(!lastBodyFatRecordedAt||bodyFatTime>Date.parse(lastBodyFatRecordedAt));
