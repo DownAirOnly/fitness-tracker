@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {emptyData} from '../data.js';
+import {emptyData,encodeData} from '../data.js';
 import {prepareImport,reviewImport} from '../import-model.js';
 const meal=(id='meal')=>({id,date:'2026-09-27',name:'Yogurt',calories:150,protein:20,quantity:2});
 const csv='date,name,calories,protein,quantity\n2026-09-27,Yogurt,150,20,2';
@@ -89,4 +89,28 @@ test('universal CSV imports day notes and meal memories',()=>{
  assert.equal(p.candidate.notes.find(n=>n.type==='day').text,'Grand Cayman port day');
  assert.equal(p.candidate.notes.find(n=>n.type==='meal').t,25);
  assert.equal(p.groups.find(g=>g.key==='notes').rows.length,2);
+});
+
+
+test('offline workspace JSON preserves active and finished Workout Buddy data',()=>{
+ const current=emptyData();
+ const workspace=emptyData();
+ workspace.activeWorkout={
+  id:'buddy-active',workoutId:'workout-01',type:'Upper',date:'2026-10-05',
+  startedAt:'2026-10-05T14:00:00-04:00',phase:'exercise',selected:'Chest Press|machine',
+  exercises:[{exerciseId:'exercise-machine-chest-press',name:'Chest Press',equipment:'machine',repMin:6,repMax:12,targetSets:2,restSeconds:90,status:'active',sets:[{weight:60,reps:10,difficulty:4}],draft:{weight:60,reps:8,difficulty:5},restStartedAt:'2026-10-05T14:10:35-04:00',notes:'Ship machine feels heavier'}]
+ };
+ let p=prepareImport('json',JSON.stringify(encodeData(workspace)),current);
+ assert.equal(p.errors.length,0,p.errors.join(' | '));
+ assert.deepEqual(p.candidate.activeWorkout,workspace.activeWorkout);
+ assert.ok(p.otherChanges.some(x=>x.key==='activeWorkout'));
+
+ workspace.activeWorkout=null;
+ workspace.lifts=[{id:'lift-cruise',date:'2026-10-05',exercise:'Chest Press',equipment:'machine',sets:[{weight:60,reps:10,difficulty:4},{weight:60,reps:8,difficulty:5}],notes:'Ship machine feels heavier',buddySessionId:'buddy-finished'}];
+ workspace.workoutHistory=[{id:'buddy-finished',workoutId:'workout-01',type:'Upper',date:'2026-10-05',startedAt:'2026-10-05T14:00:00-04:00',completedAt:'2026-10-05T14:45:00-04:00',phase:'complete',selected:null,exercises:[]}];
+ p=prepareImport('json',JSON.stringify(encodeData(workspace)),current);
+ assert.equal(p.errors.length,0,p.errors.join(' | '));
+ assert.equal(p.candidate.lifts[0].buddySessionId,'buddy-finished');
+ assert.deepEqual(p.candidate.workoutHistory,workspace.workoutHistory);
+ assert.equal(p.candidate.activeWorkout,null);
 });
