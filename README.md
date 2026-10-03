@@ -15,15 +15,45 @@ Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install
 ## What is included
 
 - Daily calorie and protein totals with editable goals (initially 1,600 calories and 130 g protein).
-- Automatically saved food cards for repeat taps. Each log stores its own calorie/protein values so editing a card does not rewrite history.
-- Dated CSV food import, preview and validation, dated edits, and a complete JSON backup/restore.
+- Saved Food cards open a prefilled food-log form for fast quantity/date/time changes, with a five-second Undo after saving. Each log stores its own calorie/protein values so editing a saved definition does not rewrite history.
+- Universal additive CSV import from files or pasted text, with preview and validation, plus pasted/file JSON backup restore.
 - Upper, lower, and full-body starter exercise lists, custom exercises, sets/reps/weight, difficulty, notes, and last-time reference.
-- Weigh-ins, individual BMI, and Friday-start weekly average weight/BMI. Height starts at 68 inches and is editable.
+- Weigh-ins with optional body-fat percentage, individual BMI, weight/body-fat charts, and Friday-start weekly average weight/BMI. Height starts at 68 inches and is editable.
 - Google sign-in with private Firestore account storage, save status, conflict protection, and explicit migration from device logs. While signed in, the app also keeps an account-scoped last-confirmed device copy plus an unsaved recovery copy so an iOS process refresh or temporary network loss does not depend on RAM. Conflicting cloud/device revisions are never overwritten automatically. Explicit sign-out clears those account-specific local copies. Device-only mode remains available. See FIREBASE_SETUP.md before enabling cloud accounts. Export JSON regularly for an independent backup.
 
 ## CSV format
 
-The header must include `date,name,calories,protein`; `quantity` is optional. Dates must be `YYYY-MM-DD`, and nutrition is **per serving**. Quotes and commas in names are supported. Import adds entries (including duplicate rows if imported twice) and creates saved cards for new names. Check the preview before confirming.
+CSV is an additive interchange format for normal user-editable Everyday data. It can be uploaded as a file or pasted directly into More → Import & backup → Import data. Every CSV goes through the same preview before it can be committed.
+
+For new universal CSVs, include a `recordType` column. One CSV may mix record types. Blank columns are allowed when they do not apply to that row.
+
+Supported record types:
+
+| recordType | Main fields |
+| --- | --- |
+| `savedFood` | `name,calories,protein,kind,tags,favorite,accuracy,lastUsed` |
+| `foodLog` | `date,name,calories,protein,quantity,time` |
+| `exercise` | `exercise,equipment,setup` |
+| `workout` | `workout,exercise,equipment,order,repMin,repMax,targetSets,restSeconds` |
+| `lift` | `date,exercise,equipment,group,set,weight,reps,effort,notes` |
+| `weight` | `date,weight,bodyFatPercent` |
+
+Workout rows with the same `workout` name are assembled into one template and ordered by `order`. Lift rows with the same `group` are assembled into one lift entry with multiple sets. Dates use `YYYY-MM-DD`. Food time may be a half-hour slot number (0–47) or `HH:MM` on a 30-minute boundary. Tags may be separated by `|` or `;`.
+
+Example mixed CSV:
+
+```csv
+recordType,date,name,calories,protein,quantity,exercise,equipment,workout,order,repMin,repMax,targetSets,restSeconds,group,set,weight,reps,effort,notes,bodyFatPercent,kind,tags,favorite,accuracy
+savedFood,,Core Power Elite 42g,230,42,,,,,,,,,,,,,,,,,food,protein|drink,true,label
+foodLog,2026-10-02,Core Power Elite 42g,230,42,1,,,,,,,,,,,,,,,,,,,
+exercise,,,,,,Chest Press,machine,,,,,,,,,,,,,,,,
+workout,,,,,,Chest Press,machine,Upper,1,6,12,2,90,,,,,,,,,,,
+lift,2026-10-02,,,,,Chest Press,machine,,,,,,,upper-press,1,60,10,4,,,,,
+lift,2026-10-02,,,,,Chest Press,machine,,,,,,,upper-press,2,60,8,5,,,,,
+weight,2026-10-02,,,,,,,,,,,,,,,181.5,,,,22.4,,,,
+```
+
+The original food-only CSV format remains supported for compatibility:
 
 ```csv
 date,name,calories,protein,quantity
@@ -31,56 +61,27 @@ date,name,calories,protein,quantity
 2026-09-24,"Chicken, rice and vegetables",650,48,1
 ```
 
-For a full-device migration, export JSON from Settings and restore it on the other device. JSON restore replaces all existing local data after a preview.
+CSV imports add or deliberately update the referenced user-facing definitions; they do not import internal active Workout Buddy recovery state. JSON remains the complete backup format. JSON restore replaces the current dataset only after the preview.
 
 ## Cloud account setup
 
 Follow [FIREBASE_SETUP.md](FIREBASE_SETUP.md), publish [firestore.rules](firestore.rules), and verify the backend before deploying this branch.
 
-## Apple Health weight Shortcut (v12)
+## Apple Health weight + body-fat Shortcut
 
-This optional bridge keeps the GitHub Pages PWA as the primary app. It needs no
-native build, Apple Developer subscription, Cloud Function, or additional host.
-Apple Health is read only by the user's iPhone Shortcut, with Health permission.
-See `health-shortcut.html` for the phone setup. Only latest-weight sync is supported;
-body fat, historical backfill and Health deletion mirroring are out of scope.
+This optional bridge keeps the GitHub Pages PWA as the primary app. It needs no native build, Apple Developer subscription, Cloud Function, or additional host. Apple Health is read only by the user's iPhone Shortcut, with Health permission. See `health-shortcut.html` for the phone setup.
 
-Before enabling it, publish the complete `firestore.rules` in the Firebase console.
-Existing main-state rules are unchanged. The additional paths are:
+The Shortcut submits the latest weight and can include a same-day Body Fat Percentage sample. Everyday stores body fat on that day's weigh-in. The bridge accepts either Health-style fractional values such as `0.224` or display-style `22.4` and stores `22.4%`. Body fat is rejected if its timestamp does not match the weight's calendar day, which prevents stale composition data from being paired with a newer weight.
 
-- `/users/{uid}/integrations/appleHealth`: owner-only connection token, processed
-  timestamp and last result. This is separate from backups and the main state.
-- `/weightBridges/{256-bit-random-token}`: owner UID and one bounded pending sample.
-  Only a verified owner can create/read/delete it. Possession of the random URL
-  permits replacing `sample` only; no unauthenticated get/list/create/delete,
-  owner changes, or writes to fitness records are allowed. The PATCH response is
-  masked to the submitted sample. Treat the URL as a bearer secret and never log
-  or share it. Disconnect atomically deletes both connection and pending sample.
+Before enabling it, publish the complete `firestore.rules` in the Firebase console. The additional paths are:
 
-This is a narrowly scoped capability URL, not Apple/Firebase account authentication.
-A leaked URL permits false weight submissions and consumes Firestore write quota;
-revoke it with Disconnect and reconnect for a new URL. This is an opt-in personal
-bridge, not a public ingestion service with server-side abuse/rate controls.
-No administrator or Google credentials belong in Shortcuts.
+- `/users/{uid}/integrations/appleHealth`: owner-only connection token, processed weight/body-fat timestamps, and last result. Secrets stay outside backups.
+- `/weightBridges/{256-bit-random-token}`: owner UID and one bounded pending sample. Possession of the random URL permits replacing `sample` only; it does not permit reading fitness records or changing the owner.
 
-`health-model.js` handles validation, local calendar dates, unit conversion and the
-same-day policy independently of Shortcuts. `health-cloud.js` uses a transaction
-that reads the current state revision and pending sample and atomically saves both
-an imported weight and its processed timestamp. Failed/conflicting writes do not
-partially acknowledge or import data. The app applies returned data only to the
-session that initiated the operation. It does not sync while a form is open or
-there are pending edits. Foreground checks are throttled to 30 seconds; Settings
-has an explicit check button. The phone Shortcut sends the sample; the PWA then
-imports it on next check, not while closed in the background.
+Treat the Shortcut URL as a bearer secret. Disconnect revokes it and creates a new token on reconnect. No administrator or Google credentials belong in Shortcuts.
 
-Existing manual same-day entries win. Newer imported same-day entries update prior
-imported entries. Manual editing removes imported provenance so sync cannot replace
-the edit. Repeated/older readings at or before the processed timestamp are ignored,
-including after deletion or restoring a backup. Disconnecting resets that watermark.
-Exported weights retain their source/timestamp; secrets stay out of exports.
+`health-model.js` validates dates, units, values, same-day body-fat pairing, unit conversion, and conflict policy independently of Shortcuts. Existing manual same-day weight remains authoritative, while fresh same-day body fat can enrich that manual weigh-in. Newer synced weight can replace an older synced weight. Weight and body-fat processed timestamps are tracked independently so repeated/older samples are ignored without blocking a fresh measurement.
 
-Verification: `node --test tests/health.test.js`, `npm run test:ui`, and
-`npm run test:rules` (requires Java 21+). The rules test exercises the exact anonymous
-Firestore REST PATCH request that Shortcuts sends as well as cross-user isolation,
-invalid payload rejection and revocation. A real-iPhone end-to-end test must follow
-rules publication and Shortcut setup; desktop tests cannot grant Health permissions.
+`health-cloud.js` imports measurements and acknowledges their processed timestamps in a Firestore transaction. Failed or conflicting writes do not partially acknowledge data. Historical Health backfill and Health deletion mirroring remain out of scope.
+
+Verification targets are `npm test`, `npm run test:ui`, and `npm run test:rules` (Java 21+ for the Firestore emulator). A real-iPhone end-to-end check is still required after publishing the updated rules and editing the Shortcut because desktop tests cannot grant Health permissions.
