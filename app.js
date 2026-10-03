@@ -447,7 +447,7 @@ function exerciseProgressModal(name,equipment){
 }
 function exerciseProgressLink(group){
  const set=bestLiftSet(group.latest);
- return '<button type="button" class="exercise-progress-link" data-action="exercise-progress" data-name="'+esc(group.name)+'" data-equipment="'+esc(group.equipment)+'"><span><strong>'+esc(group.name)+'</strong><small>'+equipmentLabel(group.equipment)+' · Last '+niceDate(group.latest.date)+'</small></span><span><b>'+(set?fmt(set.weight)+' '+data.settings.unit+' × '+set.reps:'—')+'</b><small>'+group.lifts.length+' session'+(group.lifts.length===1?'':'s')+'</small></span></button>';
+ return '<button type="button" class="exercise exercise-progress-link progress-exercise-card equipment-'+esc(group.equipment)+'" data-action="exercise-progress" data-name="'+esc(group.name)+'" data-equipment="'+esc(group.equipment)+'"><span class="equipment-art" aria-hidden="true">'+equipmentGlyph(group.equipment)+'</span><span class="exercise-copy"><small class="equipment-label">'+equipmentLabel(group.equipment)+'</small><strong>'+esc(group.name)+'</strong><small>Last '+niceDate(group.latest.date)+' · '+group.lifts.length+' session'+(group.lifts.length===1?'':'s')+'</small></span><span class="progress-exercise-value"><b>'+(set?fmt(set.weight)+' '+data.settings.unit+' × '+set.reps:'—')+'</b><small>Latest top set</small></span></button>';
 }
 function exerciseProgressPanel(){
  const groups=exerciseProgressGroups();
