@@ -49,7 +49,6 @@ test('universal CSV can add definitions, workout templates, lift sets, saved foo
   'recordType,date,name,calories,protein,quantity,exercise,equipment,workout,order,repMin,repMax,targetSets,restSeconds,group,set,weight,reps,effort,notes,bodyFatPercent,kind,tags,favorite,accuracy',
   'savedFood,,Core Test,230,42,,,,,,,,,,,,,,,,,food,protein|drink,true,label',
   'foodLog,2026-10-02,Core Test,230,42,1,,,,,,,,,,,,,,,,,,,',
-  'exercise,,,,,,,machine,Test Day,,,,,,,,,,,,,,,',
   'exercise,,,,,,Chest Test,machine,,,,,,,,,,,,,,,,',
   'workout,,,,,,Chest Test,machine,Test Day,1,6,12,2,90,,,,,,,,,,,',
   'lift,2026-10-02,,,,,Chest Test,machine,,,,,,,press-1,1,60,10,4,first set,,,,',
