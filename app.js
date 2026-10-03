@@ -36,7 +36,7 @@ let storageProtection={supported:false,persisted:null,usage:null,quota:null,erro
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):deviceData, page='home', chosenDate=trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
-let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null;
+let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodProgressPeriod='week',foodProgressOffset=0;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -445,15 +445,19 @@ function exerciseProgressModal(name,equipment){
  const best=[...group.lifts].map(l=>({lift:l,set:bestLiftSet(l)})).filter(x=>x.set).sort((a,b)=>b.set.weight-a.set.weight||b.set.reps-a.set.reps)[0];
  modal(group.name+' progress','<div class="exercise-progress-modal"><div class="exercise-progress-summary"><span><small>Equipment</small><strong>'+equipmentLabel(group.equipment)+'</strong></span><span><small>Sessions</small><strong>'+group.lifts.length+'</strong></span><span><small>Best set</small><strong>'+(best?fmt(best.set.weight)+' '+data.settings.unit+' × '+best.set.reps:'—')+'</strong></span></div>'+(group.definition?.setup?'<p class="exercise-progress-setup"><strong>Current setup:</strong> '+esc(group.definition.setup)+'</p>':'')+exerciseProgressChart(group)+'<div class="exercise-progress-history">'+[...group.lifts].reverse().map(l=>'<div class="exercise-progress-session"><div><strong>'+niceDate(l.date)+'</strong><small>'+l.date+'</small></div><div class="exercise-progress-sets">'+l.sets.map((s,i)=>'<span><b>Set '+(i+1)+'</b> '+fmt(s.weight)+' '+data.settings.unit+' × '+s.reps+(s.difficulty?' · '+effortText(s.difficulty):'')+'</span>').join('')+'</div>'+(l.notes?'<p>'+esc(l.notes)+'</p>':'')+'</div>').join('')+'</div></div>');
 }
+function exerciseProgressLink(group){
+ const set=bestLiftSet(group.latest);
+ return '<button type="button" class="exercise-progress-link" data-action="exercise-progress" data-name="'+esc(group.name)+'" data-equipment="'+esc(group.equipment)+'"><span><strong>'+esc(group.name)+'</strong><small>'+equipmentLabel(group.equipment)+' · Last '+niceDate(group.latest.date)+'</small></span><span><b>'+(set?fmt(set.weight)+' '+data.settings.unit+' × '+set.reps:'—')+'</b><small>'+group.lifts.length+' session'+(group.lifts.length===1?'':'s')+'</small></span></button>';
+}
 function exerciseProgressPanel(){
  const groups=exerciseProgressGroups();
  if(!groups.length)return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><p class="eyebrow">LIFTING</p><h2>Exercise progress</h2></div></div>'+empty('Log some lifts to build exercise history.')+'</section>';
  const shown=groups.slice(0,4);
- return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><p class="eyebrow">LIFTING</p><h2>Exercise progress</h2></div><span class="progress-count">'+groups.length+' exercises</span></div><div class="exercise-progress-list">'+shown.map(g=>{const set=bestLiftSet(g.latest);return '<button type="button" class="exercise-progress-link" data-action="exercise-progress" data-name="'+esc(g.name)+'" data-equipment="'+esc(g.equipment)+'"><span><strong>'+esc(g.name)+'</strong><small>'+equipmentLabel(g.equipment)+' · Last '+niceDate(g.latest.date)+'</small></span><span><b>'+(set?fmt(set.weight)+' '+data.settings.unit+' × '+set.reps:'—')+'</b><small>'+g.lifts.length+' session'+(g.lifts.length===1?'':'s')+'</small></span></button>';}).join('')+'</div>'+(groups.length>4?'<button type="button" class="text-btn exercise-progress-all" data-action="exercise-progress-all">View all '+groups.length+' exercises</button>':'')+'</section>';
+ return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><p class="eyebrow">LIFTING</p><h2>Exercise progress</h2></div><span class="progress-count">'+groups.length+' exercises</span></div><div class="exercise-progress-list">'+shown.map(exerciseProgressLink).join('')+'</div>'+(groups.length>4?'<button type="button" class="text-btn exercise-progress-all" data-action="exercise-progress-all">View all '+groups.length+' exercises</button>':'')+'</section>';
 }
 function exerciseProgressAll(){
  const groups=exerciseProgressGroups();
- modal('Exercise progress','<div class="exercise-progress-all-list">'+groups.map(g=>'<button type="button" class="exercise-progress-link" data-action="exercise-progress" data-name="'+esc(g.name)+'" data-equipment="'+esc(g.equipment)+'"><span><strong>'+esc(g.name)+'</strong><small>'+equipmentLabel(g.equipment)+' · '+g.lifts.length+' session'+(g.lifts.length===1?'':'s')+'</small></span><b>›</b></button>').join('')+'</div>');
+ modal('Exercise progress','<div class="exercise-progress-all-list exercise-progress-card-list">'+groups.map(exerciseProgressLink).join('')+'</div>');
 }
 function validTime(value){return typeof value==='string'&&Number.isFinite(Date.parse(value));}
 function workoutTiming(session){
@@ -521,25 +525,85 @@ function bodyFatProgressChart(entries){
  const coords=points.map(p=>({x:x(p.date),y:y(p.value),...p})),line=coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
  return '<div class="bodyfat-progress-chart"><div class="weight-chart-head"><span><small>BODY FAT</small><strong>'+fmt(points.at(-1).value)+'%</strong></span><span><small>READINGS</small><strong>'+points.length+'</strong></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Body fat percentage history">'+(coords.length>1?'<polyline class="bodyfat-line" points="'+line+'"></polyline>':'')+coords.map(p=>'<circle class="bodyfat-dot" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3.4"><title>'+niceDate(p.date)+' · '+fmt(p.value)+'% body fat</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>Body composition</span><span>'+niceDate(points.at(-1).date)+'</span></div></div>';
 }
-function recentFoodChart(days){
- const points=[...days].reverse().map(date=>{const totals=dailyTotals(data.foodEntries,date);return{date,calories:totals.calories,protein:totals.protein,calPct:data.settings.calories?totals.calories/data.settings.calories*100:0,proteinPct:data.settings.protein?totals.protein/data.settings.protein*100:0};});
- if(!points.length)return'';
+
+function shiftDate(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return localDate(d);}
+function foodProgressWindow(period=foodProgressPeriod,offset=foodProgressOffset){
+ const today=currentTrackingDate(),base=new Date(today+'T12:00:00');let start,end,label,granularity;
+ if(period==='week'){
+   start=shiftDate(startOfWeek(today,FIXED_WEEK_START),offset*7);end=shiftDate(start,6);
+   label=niceDate(start)+' – '+niceDate(end);granularity='day';
+ }else if(period==='month'){
+   const d=new Date(base.getFullYear(),base.getMonth()+offset,1,12);start=localDate(d);end=localDate(new Date(d.getFullYear(),d.getMonth()+1,0,12));
+   label=d.toLocaleDateString(undefined,{month:'long',year:'numeric'});granularity='day';
+ }else if(period==='quarter'){
+   const currentQuarter=Math.floor(base.getMonth()/3),index=currentQuarter+offset,qYear=base.getFullYear()+Math.floor(index/4),q=((index%4)+4)%4;
+   const d=new Date(qYear,q*3,1,12),last=new Date(qYear,q*3+3,0,12);start=localDate(d);end=localDate(last);
+   label='Q'+(q+1)+' '+qYear;granularity='week';
+ }else{
+   const year=base.getFullYear()+offset;start=year+'-01-01';end=year+'-12-31';label=String(year);granularity='month';
+ }
+ return{period,offset,start,end,label,granularity,isCurrent:offset===0};
+}
+function foodProgressPoints(window){
+ const byDate=new Map();
+ for(const entry of data.foodEntries){
+   if(entry.date<window.start||entry.date>window.end)continue;
+   const current=byDate.get(entry.date)||{calories:0,protein:0};
+   current.calories+=entry.calories*entry.quantity;current.protein+=entry.protein*entry.quantity;byDate.set(entry.date,current);
+ }
+ if(window.granularity==='day'){
+   return [...byDate].sort(([a],[b])=>a.localeCompare(b)).map(([date,totals])=>({
+     date,label:niceDate(date),calories:totals.calories,protein:totals.protein,loggedDays:1,
+     calPct:data.settings.calories?totals.calories/data.settings.calories*100:0,
+     proteinPct:data.settings.protein?totals.protein/data.settings.protein*100:0
+   }));
+ }
+ const buckets=new Map();
+ for(const [date,totals] of byDate){
+   let key,label;
+   if(window.granularity==='week'){
+     key=startOfWeek(date,FIXED_WEEK_START);const clippedStart=key<window.start?window.start:key,rawEnd=endOfWeek(key),clippedEnd=rawEnd>window.end?window.end:rawEnd;
+     label=niceDate(clippedStart)+' – '+niceDate(clippedEnd);
+   }else{
+     key=date.slice(0,7);label=new Date(date+'T12:00:00').toLocaleDateString(undefined,{month:'short'});
+   }
+   const bucket=buckets.get(key)||{key,label,calories:0,protein:0,loggedDays:0};
+   bucket.calories+=totals.calories;bucket.protein+=totals.protein;bucket.loggedDays++;buckets.set(key,bucket);
+ }
+ return [...buckets.values()].sort((a,b)=>a.key.localeCompare(b.key)).map(bucket=>{
+   const calories=bucket.calories/bucket.loggedDays,protein=bucket.protein/bucket.loggedDays;
+   return{date:bucket.key,label:bucket.label,calories,protein,loggedDays:bucket.loggedDays,
+     calPct:data.settings.calories?calories/data.settings.calories*100:0,
+     proteinPct:data.settings.protein?protein/data.settings.protein*100:0};
+ });
+}
+function recentFoodChart(window){
+ const points=foodProgressPoints(window);
+ if(!points.length)return'<div class="food-progress-chart-empty">'+empty('No food logs in '+esc(window.label)+'.')+'</div>';
  const maxPct=Math.max(120,...points.flatMap(p=>[p.calPct,p.proteinPct])),w=320,h=118,pX=13,pY=13;
- const firstTime=Date.parse(points[0].date+'T12:00:00'),lastTime=Date.parse(points.at(-1).date+'T12:00:00'),timeRange=Math.max(1,lastTime-firstTime);
- const xFor=date=>points.length===1?w/2:pX+(Date.parse(date+'T12:00:00')-firstTime)/timeRange*(w-2*pX),yFor=pct=>h-pY-Math.min(maxPct,Math.max(0,pct))/maxPct*(h-2*pY);
- const cal=points.map(p=>({x:xFor(p.date),y:yFor(p.calPct),...p})),protein=points.map(p=>({x:xFor(p.date),y:yFor(p.proteinPct),...p}));
+ const xFor=(point,index)=>points.length===1?w/2:pX+index*(w-2*pX)/(points.length-1),yFor=pct=>h-pY-Math.min(maxPct,Math.max(0,pct))/maxPct*(h-2*pY);
+ const cal=points.map((p,i)=>({x:xFor(p,i),y:yFor(p.calPct),...p})),protein=points.map((p,i)=>({x:xFor(p,i),y:yFor(p.proteinPct),...p}));
  const line=coords=>coords.map(pt=>pt.x.toFixed(1)+','+pt.y.toFixed(1)).join(' '),goalY=yFor(100).toFixed(1);
- return '<div class="food-progress-chart"><div class="food-chart-legend"><span class="food-chart-key calories"><i></i><b>Calories</b></span><span class="food-chart-key protein"><i></i><b>Protein</b></span><span class="food-chart-key goal"><i></i><b>100% goal</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Recent food days as percent of calorie and protein goals"><line class="food-goal-line" x1="'+pX+'" x2="'+(w-pX)+'" y1="'+goalY+'" y2="'+goalY+'"></line>'+(cal.length>1?'<polyline class="food-calorie-line" points="'+line(cal)+'"></polyline><polyline class="food-protein-line" points="'+line(protein)+'"></polyline>':'')+cal.map(pt=>'<circle class="food-calorie-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3.2"><title>'+niceDate(pt.date)+' · '+Math.round(pt.calories)+' cal · '+Math.round(pt.calPct)+'% of calorie goal</title></circle>').join('')+protein.map(pt=>'<circle class="food-protein-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3.2"><title>'+niceDate(pt.date)+' · '+Math.round(pt.protein)+'g protein · '+Math.round(pt.proteinPct)+'% of protein goal</title></circle>').join('')+'</svg><div class="food-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><p class="food-chart-note">Each line shows how much of that day’s calorie or protein goal you reached. Exact totals stay in the rows below.</p></div>';
+ const aggregate=window.granularity!=='day',pointTitle=(pt,metric)=>pt.label+' · '+(aggregate?'avg ':'')+(metric==='cal'?Math.round(pt.calories)+' cal · '+Math.round(pt.calPct)+'% of calorie goal':Math.round(pt.protein)+'g protein · '+Math.round(pt.proteinPct)+'% of protein goal')+(aggregate?' · '+pt.loggedDays+' logged day'+(pt.loggedDays===1?'':'s'):'');
+ return '<div class="food-progress-chart"><div class="food-chart-legend"><span class="food-chart-key calories"><i></i><b>Calories</b></span><span class="food-chart-key protein"><i></i><b>Protein</b></span><span class="food-chart-key goal"><i></i><b>100% goal</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(window.label)+' calorie and protein progress"><line class="food-goal-line" x1="'+pX+'" x2="'+(w-pX)+'" y1="'+goalY+'" y2="'+goalY+'"></line>'+(cal.length>1?'<polyline class="food-calorie-line" points="'+line(cal)+'"></polyline><polyline class="food-protein-line" points="'+line(protein)+'"></polyline>':'')+cal.map(pt=>'<circle class="food-calorie-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3.2"><title>'+esc(pointTitle(pt,'cal'))+'</title></circle>').join('')+protein.map(pt=>'<circle class="food-protein-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3.2"><title>'+esc(pointTitle(pt,'protein'))+'</title></circle>').join('')+'</svg><div class="food-chart-range"><span>'+esc(points[0].label)+'</span><span>'+esc(points.at(-1).label)+'</span></div><p class="food-chart-note">'+(aggregate?'Quarter and year views average only days that contain food logs. Missing days are not treated as zero.':'Each point is an exact logged day relative to your calorie and protein goals.')+'</p></div>';
+}
+function foodProgressControls(window){
+ const periods=[['week','Week'],['month','Month'],['quarter','Quarter'],['year','Year']];
+ return '<div class="food-period-controls"><div class="food-period-tabs" role="group" aria-label="Nutrition chart period">'+periods.map(([value,label])=>'<button type="button" data-action="food-progress-period" data-period="'+value+'" class="'+(foodProgressPeriod===value?'active':'')+'" aria-pressed="'+(foodProgressPeriod===value)+'">'+label+'</button>').join('')+'</div><div class="food-period-nav"><button type="button" data-action="food-progress-nav" data-delta="-1" aria-label="Previous '+esc(foodProgressPeriod)+'">‹</button><strong>'+esc(window.label)+'</strong><button type="button" data-action="food-progress-nav" data-delta="1" aria-label="Next '+esc(foodProgressPeriod)+'" '+(foodProgressOffset>=0?'disabled':'')+'>›</button></div>'+(foodProgressOffset!==0?'<button type="button" class="text-btn food-period-current" data-action="food-progress-current">Current '+esc(foodProgressPeriod)+'</button>':'')+'</div>';
+}
+function weightHistoryAll(){
+ const weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date));
+ modal('All weigh-ins','<div class="weight-all-list">'+(weights.length?weights.map(w=>'<div class="list-row"><span><strong>'+fmt(w.value)+' '+esc(data.settings.unit)+'</strong><small>'+niceDate(w.date)+' · '+w.date.slice(0,4)+' · BMI '+bmi(w.value,data.settings.heightInches,data.settings.unit)+'</small></span>'+button('Edit','edit-weight','text-btn','data-id="'+esc(w.id)+'"')+'</div>').join(''):empty('No weigh-ins yet.'))+'</div>');
 }
 function progress() {
   const weeks=weeklyWeights(data.weights,data.settings.heightInches,data.settings.unit,FIXED_WEEK_START), visibleWeeks=weeks.slice(0,6), weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date)), recentWeights=weights.slice(0,5), bodyFat=[...(data.bodyFat||[])].sort((a,b)=>b.date.localeCompare(a.date)), recentBodyFat=bodyFat.slice(0,5);
   const currentWeek=startOfWeek(currentTrackingDate(),FIXED_WEEK_START), latest=weeks[0], previous=weeks[1];
   const change=previous?round(latest.average-previous.average):null;
-  const days=[...new Set(data.foodEntries.map(x=>x.date))].sort().reverse().slice(0,7);
+  const days=[...new Set(data.foodEntries.map(x=>x.date))].sort().reverse().slice(0,7),foodWindow=foodProgressWindow();
   const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
   const chartStart=visibleWeeks.at(-1)?.week||weights.at(-1)?.date,chartEnd=visibleWeeks[0]?endOfWeek(visibleWeeks[0].week):weights[0]?.date;
   const chartWeights=chartStart&&chartEnd?weights.filter(w=>w.date>=chartStart&&w.date<=chartEnd):weights,chartBodyFat=chartStart&&chartEnd?bodyFat.filter(b=>b.date>=chartStart&&b.date<=chartEnd):bodyFat;
-  return `<div class="page-head progress-head"><p class="eyebrow">THE BIG PICTURE</p><h1>Progress<span class="accent">.</span></h1><p>Weekly averages put daily changes in perspective.</p></div><section class="panel progress-trend"><div class="section-head"><div><p class="eyebrow">BODY WEIGHT</p><h2>Weekly trend</h2></div>${button('+ Weigh in','weight','primary small')}</div><p class="week-setting">Weeks start Friday</p>${latest?`<div class="trend-highlight"><p class="eyebrow">${latest.week===currentWeek?'CURRENT WEEK':'LATEST LOGGED WEEK'}</p><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>${chartWeights.length?weightProgressChart(chartWeights):''}${chartBodyFat.length?bodyFatProgressChart(chartBodyFat):''}<div class="week-list">${visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.week.slice(0,4)}${w.week.slice(0,4)!==endOfWeek(w.week).slice(0,4)?'–'+endOfWeek(w.week).slice(0,4):''} · ${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')}</div>`:empty('Add a weigh-in to see weekly average weight and BMI.')}<p class="hint">Showing up to the last 6 Friday–Thursday weeks. Averages use logged weigh-ins only. BMI uses your height in Settings.</p></section><section class="panel progress-details weight-progress-panel"><div class="section-head"><h2>Individual weigh-ins</h2><span class="progress-count">${Math.min(5,weights.length)} shown${weights.length>5?' · '+weights.length+' total':''}</span></div>${recentWeights.length?recentWeights.map(w=>`<div class="list-row"><span><strong>${fmt(w.value)} ${data.settings.unit}</strong><small>${niceDate(w.date)} · ${w.date.slice(0,4)} · BMI ${bmi(w.value,data.settings.heightInches,data.settings.unit)}</small></span>${button('Edit','edit-weight','text-btn',`data-id="${esc(w.id)}"`)}</div>`).join(''):empty('No weigh-ins yet.')}</section><section class="panel progress-details bodyfat-progress-panel"><div class="section-head"><div><p class="eyebrow">BODY COMPOSITION</p><h2>Body fat</h2></div>${button('+ Body fat','body-fat','outline small')}</div>${recentBodyFat.length?recentBodyFat.map(b=>`<div class="list-row"><span><strong>${fmt(b.value)}%</strong><small>${niceDate(b.date)} · ${b.date.slice(0,4)}</small></span>${button('Edit','edit-body-fat','text-btn',`data-id="${esc(b.id)}"`)}</div>`).join(''):empty('No body-fat readings yet.')}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><h2>Recent food days</h2>${button('All dates ↗','history','text-btn')}</div>${days.length?recentFoodChart(days)+days.map(day=>{const t=dailyTotals(data.foodEntries,day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join(''):empty('Food totals will appear once you start logging.')}</section>`;
+  return `<div class="page-head progress-head"><p class="eyebrow">THE BIG PICTURE</p><h1>Progress<span class="accent">.</span></h1><p>Weekly averages put daily changes in perspective.</p></div><section class="panel progress-trend"><div class="section-head"><div><p class="eyebrow">BODY WEIGHT</p><h2>Weekly trend</h2></div>${button('+ Weigh in','weight','primary small')}</div><p class="week-setting">Weeks start Friday</p>${latest?`<div class="trend-highlight"><p class="eyebrow">${latest.week===currentWeek?'CURRENT WEEK':'LATEST LOGGED WEEK'}</p><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>${chartWeights.length?weightProgressChart(chartWeights):''}${chartBodyFat.length?bodyFatProgressChart(chartBodyFat):''}<div class="week-list">${visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.week.slice(0,4)}${w.week.slice(0,4)!==endOfWeek(w.week).slice(0,4)?'–'+endOfWeek(w.week).slice(0,4):''} · ${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')}</div>`:empty('Add a weigh-in to see weekly average weight and BMI.')}<p class="hint">Showing up to the last 6 Friday–Thursday weeks. Averages use logged weigh-ins only. BMI uses your height in Settings.</p></section><section class="panel progress-details weight-progress-panel"><div class="section-head"><h2>Individual weigh-ins</h2><div class="progress-head-actions"><span class="progress-count">${Math.min(5,weights.length)} shown${weights.length>5?' · '+weights.length+' total':''}</span>${weights.length>5?button('See all','weight-all','text-btn'):''}</div></div>${recentWeights.length?recentWeights.map(w=>`<div class="list-row"><span><strong>${fmt(w.value)} ${data.settings.unit}</strong><small>${niceDate(w.date)} · ${w.date.slice(0,4)} · BMI ${bmi(w.value,data.settings.heightInches,data.settings.unit)}</small></span>${button('Edit','edit-weight','text-btn',`data-id="${esc(w.id)}"`)}</div>`).join(''):empty('No weigh-ins yet.')}</section><section class="panel progress-details bodyfat-progress-panel"><div class="section-head"><div><p class="eyebrow">BODY COMPOSITION</p><h2>Body fat</h2></div>${button('+ Body fat','body-fat','outline small')}</div>${recentBodyFat.length?recentBodyFat.map(b=>`<div class="list-row"><span><strong>${fmt(b.value)}%</strong><small>${niceDate(b.date)} · ${b.date.slice(0,4)}</small></span>${button('Edit','edit-body-fat','text-btn',`data-id="${esc(b.id)}"`)}</div>`).join(''):empty('No body-fat readings yet.')}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><p class="eyebrow">NUTRITION</p><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=dailyTotals(data.foodEntries,day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
 }
 function history() {
   const dates=[...new Set([...data.foodEntries,...data.lifts,...data.weights,...(data.bodyFat||[])].map(x=>x.date))].sort().reverse();
@@ -713,6 +777,10 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-a'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=buddyFind(s,s.selected);if(!e)return;const i=e.sets.length,d=e.draft||buddyDraft(e,i);buddyCaptureUndo(s,e.activeSetStartedAt?`finish set ${i+1}`:`start set ${i+1}`);if(!e.activeSetStartedAt){e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';await buddyPersist();return;}const finishedAt=isoNow();e.sets.push({weight:d.weight,reps:d.reps,...(d.difficulty?{difficulty:d.difficulty}:{}),startedAt:e.activeSetStartedAt,finishedAt,durationSeconds:buddySeconds(e.activeSetStartedAt,finishedAt)});delete e.activeSetStartedAt;delete e.draft;if(e.sets.length>=buddyTargetSets(e)){buddyCompleteExercise(s,e);await buddyPersist();return;}e.restStartedAt=finishedAt;e.restSeconds=Number.isInteger(e.restSeconds)?e.restSeconds:90;e.draft=buddyDraft(e,e.sets.length);await buddyPersist();return;}
   if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;await persist();buddyClose();render();return;}
 
+  if(action==='food-progress-period'){foodProgressPeriod=el.dataset.period||'week';foodProgressOffset=0;render();return;}
+  if(action==='food-progress-nav'){foodProgressOffset=Math.min(0,foodProgressOffset+Number(el.dataset.delta||0));render();return;}
+  if(action==='food-progress-current'){foodProgressOffset=0;render();return;}
+  if(action==='weight-all'){weightHistoryAll();return;}
   if(action==='weight'){weightForm();return;}
   if(action==='body-fat'){bodyFatForm();return;}
   if(action==='later'){data.promptDate=currentTrackingDate();persist();close(true);return;}
