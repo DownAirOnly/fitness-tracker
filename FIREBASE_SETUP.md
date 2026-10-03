@@ -14,11 +14,16 @@ The web configuration is public. It cannot publish security rules or enable auth
 
 `users/{Firebase UID}/state/main` contains a versioned JSON snapshot. Rules require the authenticated, verified owner and a revision increment of exactly one. Signed-out users cannot read anything; collection listing and direct deletion are denied.
 
-Cloud fitness records stay in memory, not persistent browser cache. Sign-in credentials persist until sign-out. Cloud use requires internet. Save errors are shown as unsaved, with retry/export/load-latest actions. A transaction refuses to overwrite a newer revision from another device. Refresh from cloud before working on another device; stale edits produce a visible conflict instead of replacing newer data.
+While signed in, Everyday keeps account-scoped last-confirmed and unsaved recovery copies on the device so an iOS process refresh or temporary network loss does not depend on RAM. These copies are cleared on explicit sign-out. The app also requests persistent origin storage when the browser supports it, but that request is best-effort rather than a guarantee. Save errors expose retry/export/load-latest actions. A transaction refuses to overwrite a newer revision from another device; stale edits produce a visible conflict instead of replacing newer data.
 
-Existing local data is never automatically uploaded. In More, a signed-in user can choose **Copy device logs to this account** and confirm the destination email. Repeated migration deduplicates IDs, preserves cloud weigh-ins for the same date, and converts incoming units. The original device copy is retained. JSON restore is an explicit replacement and has a confirmation preview.
+Existing local data is never automatically uploaded. In More, a signed-in user can choose **Copy device logs to this account** and confirm the destination email. Repeated migration deduplicates IDs, preserves cloud weigh-ins for the same date, and converts incoming units. The original device copy is retained. Universal CSV imports are additive and can be supplied by file or pasted text; JSON restore is an explicit full replacement and both flows use the confirmation preview.
 
 Current snapshot limit: 800,000 UTF-8 bytes per account (below Firestore's document limit). Larger imports fail before writing and can be exported. A future per-entry schema can lift this limit without changing the sign-in provider.
+
+
+## Apple Health scale bridge
+
+The optional Shortcut bridge can submit a latest weight plus an optional same-day body-fat percentage. After changing the bridge schema, publish the repository's current `firestore.rules` before testing the updated Shortcut. Existing integration documents can still be read; the next successful pull writes the new `lastBodyFatRecordedAt` field. The Shortcut URL remains a revocable bearer capability, so never publish or log it.
 
 ## Verification
 
