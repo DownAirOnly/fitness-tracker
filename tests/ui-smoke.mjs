@@ -78,6 +78,14 @@ try{
  let noteState=JSON.parse(state.records.get('bob').payload);assert.equal(noteState.notes.length,2);assert.equal(noteState.notes.find(n=>n.type==='meal').t,36);
  await click('food');const noteDate=document.querySelector('.tracking-date input');noteDate.value='2026-09-20';noteDate.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();assert.ok(document.querySelector('.travel-notes-panel').textContent.includes('Dinner menu and plate photographed'));
  await click('settings');
+ assert.equal(document.querySelector('.settings-page-head .version-badge')?.textContent,'v55','Settings shows build version');
+ await click('toggle-cruise-mode');
+ assert.equal(JSON.parse(state.records.get('bob').payload).settings.cruiseMode,true,'Cruise Mode persists');
+ await click('home');assert.ok(document.querySelector('.cruise-home-banner'),'Cruise Mode has focused Home');assert.ok(!document.querySelector('[data-action="food"]'),'Food entry point is hidden');assert.ok(!document.querySelector('.today-card'),'calorie/protein card is hidden');assert.ok(!document.querySelector('.weight-strip'),'weight logging is hidden');assert.equal(document.querySelectorAll('.nav button').length,4,'Cruise nav removes Food');
+ await click('progress');assert.ok(document.querySelector('.exercise-progress-panel'),'exercise progress remains');assert.ok(!document.querySelector('.weight-progress-panel'),'weight progress is tucked away');assert.ok(!document.querySelector('.food-progress-panel'),'nutrition progress is tucked away');
+ await click('history');assert.ok(document.querySelector('[data-action="gym"]'),'Cruise history opens lifting');assert.ok(!document.querySelector('[data-action="food"]'),'Cruise history has no Food button');
+ await click('settings');await click('toggle-cruise-mode');assert.equal(JSON.parse(state.records.get('bob').payload).settings.cruiseMode,false,'Cruise Mode can be turned off');
+ assert.ok(document.querySelector('.version-badge'),'version remains visible');
  let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
  dom.window.HTMLAnchorElement.prototype.click=function(){};
  await click('export');const backup=JSON.parse(await exported.text());URL.createObjectURL=originalCreate;
