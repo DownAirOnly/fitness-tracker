@@ -71,3 +71,16 @@ test('paired v49 body fat migrates into independent records',()=>{
   assert.deepEqual(migrated.bodyFat,[{id:'bodyfat-w',date:'2026-09-25',value:22.4,recordedAt:'2026-09-25T08:00:00-04:00',source:'apple-health-shortcut'}]);
   assert.deepEqual(normalizeData(encodeData(migrated)).bodyFat,migrated.bodyFat);
 });
+
+
+test('daily and meal notes survive backup round trips',()=>{
+  const d=emptyData();
+  d.notes=[
+    {id:'day',date:'2026-10-03',type:'day',text:'Embarkation day'},
+    {id:'meal',date:'2026-10-03',type:'meal',text:'Dinner photographed',t:36}
+  ];
+  const restored=normalizeData(encodeData(d));
+  assert.deepEqual(restored.notes,d.notes);
+  const bad=emptyData();bad.notes=[{id:'bad',date:'2026-10-03',type:'meal',text:''}];
+  assert.throws(()=>normalizeData(bad),/invalid note/);
+});
