@@ -1,23 +1,17 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Weight + Body Fat Shortcut · Everyday</title><script src="theme.js"></script><link rel="stylesheet" href="styles.css?v=49"></head>
-<body><main class="shell"><section class="panel spaced"><h1>Sync weight + body fat</h1><p>Keep your Everyday Home Screen icon. Use one separate Apple Shortcut to send the latest scale reading from Apple Health.</p>
-<h2>1. Connect in Everyday</h2><p>Sign in, open More → Weight &amp; body fat sync → Connect. Copy the private sync address. Treat it like a password for submitting scale data. Disconnect revokes it.</p>
-<h2>2. Read the latest weight</h2><p>In Shortcuts, create “Sync Everyday Health”. Add <strong>Find Health Samples</strong>: Type Weight, Sort by Start Date, Latest First, Limit 1. If no weight exists, show “No weight found” and stop.</p><p>Get the weight sample’s <strong>Value</strong> and <strong>Start Date</strong>. Format Start Date twice:</p><ul><li><code>yyyy-MM-dd</code> → <strong>Weight Day</strong></li><li>ISO 8601 with time-zone offset → <strong>Weight Recorded At</strong></li></ul>
-<h2>3. Read body fat when available</h2><p>Add another <strong>Find Health Samples</strong>: Type <strong>Body Fat Percentage</strong>, Sort by Start Date, Latest First, Limit 1. Get its Value and Start Date. Format that date as <code>yyyy-MM-dd</code> and ISO 8601 too.</p><p>Only include body fat when its calendar day matches <strong>Weight Day</strong>. That prevents an older body-fat sample from being attached to a newer weight. Everyday accepts either a fractional Health value such as <code>0.224</code> or a display-style value such as <code>22.4</code> and normalizes it to <code>22.4%</code>.</p>
-<h2>4. Submit to your private address</h2><p>Add <strong>Get Contents of URL</strong> using the private sync address. Method: <strong>PATCH</strong>. Request Body: <strong>JSON</strong>. The required weight payload is:</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">{
-  "fields": {
-    "sample": {
-      "mapValue": {
-        "fields": {
-          "value": { "doubleValue": WEIGHT_VALUE },
-          "unit": { "stringValue": "lb" },
-          "date": { "stringValue": "WEIGHT_DAY" },
-          "recordedAt": { "stringValue": "WEIGHT_RECORDED_AT" }
-        }
-      }
-    }
-  }
-}</pre><p>If same-day body fat exists, add these two sibling fields inside that inner <code>fields</code> dictionary:</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">"bodyFatPercent": { "doubleValue": BODY_FAT_VALUE },
-"bodyFatRecordedAt": { "stringValue": "BODY_FAT_RECORDED_AT" }</pre><p>Use Shortcut variables, not the placeholder words. Do not include the body-fat keys at all when no same-day reading exists.</p>
-<h2>5. Verify once</h2><p>For the first run, show the request result. A successful response contains <code>fields.sample</code>. If it contains <code>error</code>, the upload failed. After verifying it, show a simple success message such as “Scale reading sent. Open Everyday to import it.”</p>
-<h2>How Everyday handles it</h2><p>Weight and body fat are processed independently. A manual same-day weight stays in place, but a fresh body-fat reading can still attach to it. Newer synced weight replaces older synced weight. Repeated or older samples are ignored. Historical backfill and Health deletions are not synced.</p>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Weight + Body Fat Shortcut · Everyday</title><script src="theme.js"></script><link rel="stylesheet" href="styles.css?v=50"></head>
+<body><main class="shell"><section class="panel spaced"><h1>Sync weight + body fat</h1><p>Everyday treats weight and body fat as separate measurement streams. One Shortcut can submit either one or both.</p>
+<h2>1. Connect in Everyday</h2><p>Sign in, open More → Weight &amp; body fat sync → Connect. Copy the private sync address. Treat it like a password. Disconnect revokes it.</p>
+<h2>2. Find the latest weight</h2><p>Add <strong>Find Health Samples</strong>: Type Weight, Sort by Start Date, Latest First, Limit 1. If present, get its Value and Start Date. Format Start Date as <code>yyyy-MM-dd</code> for <strong>Weight Day</strong> and as ISO 8601 with time-zone offset for <strong>Weight Recorded At</strong>.</p>
+<h2>3. Find the latest body fat</h2><p>Add another <strong>Find Health Samples</strong>: Type <strong>Body Fat Percentage</strong>, Sort by Start Date, Latest First, Limit 1. If present, get its Value and Start Date. Format Start Date independently as <code>yyyy-MM-dd</code> for <strong>Body Fat Day</strong> and ISO 8601 for <strong>Body Fat Recorded At</strong>.</p><p>The two dates do not need to match. Everyday accepts either a Health-style fractional body-fat value such as <code>0.215</code> or a display-style value such as <code>21.5</code>.</p>
+<h2>4. Submit whichever measurements exist</h2><p>Add <strong>Get Contents of URL</strong> with the private sync address. Method: <strong>PATCH</strong>. Request Body: <strong>JSON</strong>. Put the measurements inside <code>fields.sample.mapValue.fields</code>.</p>
+<p>If weight exists, include:</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">"value": { "doubleValue": WEIGHT_VALUE },
+"unit": { "stringValue": "lb" },
+"date": { "stringValue": "WEIGHT_DAY" },
+"recordedAt": { "stringValue": "WEIGHT_RECORDED_AT" }</pre>
+<p>If body fat exists, include these independently:</p><pre style="white-space:pre-wrap;overflow-wrap:anywhere">"bodyFatPercent": { "doubleValue": BODY_FAT_VALUE },
+"bodyFatDate": { "stringValue": "BODY_FAT_DAY" },
+"bodyFatRecordedAt": { "stringValue": "BODY_FAT_RECORDED_AT" }</pre>
+<p>You may send weight only, body fat only, or both. Do not include a partial measurement group.</p>
+<h2>5. Verify once</h2><p>For the first run, show the request result. A successful response contains <code>fields.sample</code>. After verifying it, show a simple success message such as “Scale reading sent. Open Everyday to import it.”</p>
+<h2>How Everyday handles it</h2><p>Weight and body fat have separate records, dates, source timestamps, duplicate handling, and history. A manual reading wins over an Apple Health reading of the same measurement type on the same date. Repeated or older Health samples are ignored independently.</p>
 <h2>Disconnect</h2><p>Use More → Weight &amp; body fat sync → Disconnect, then remove the Shortcut or its URL. Imported measurements remain in Everyday.</p><p><a href="./">Back to Everyday</a></p></section></main></body></html>
