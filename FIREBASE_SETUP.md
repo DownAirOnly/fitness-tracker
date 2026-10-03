@@ -23,7 +23,7 @@ Current snapshot limit: 800,000 UTF-8 bytes per account (below Firestore's docum
 
 ## Apple Health scale bridge
 
-The optional Shortcut bridge can submit a latest weight plus an optional same-day body-fat percentage. After changing the bridge schema, publish the repository's current `firestore.rules` before testing the updated Shortcut. Existing integration documents can still be read; the next successful pull writes the new `lastBodyFatRecordedAt` field. The Shortcut URL remains a revocable bearer capability, so never publish or log it.
+The optional Shortcut bridge can submit a latest weight plus an optional same-day body-fat percentage. After changing the bridge schema, publish the repository's current `firestore.rules` before testing the updated Shortcut. Existing weight-only integration documents remain valid; `lastBodyFatRecordedAt` is added only after body-fat data is actually processed. The Shortcut URL remains a revocable bearer capability, so never publish or log it.
 
 ## Verification
 
