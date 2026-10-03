@@ -78,9 +78,10 @@ function parseUniversalCSV(text,current){
     const lift=liftGroups.get(key);if(lift.date!==date||lift.exercise.toLowerCase()!==exercise.toLowerCase()||lift.equipment!==equipment)throw Error('rows sharing a lift group must use the same date, exercise, and equipment.');
     if(notes&&!lift.notes)lift.notes=notes;lift.sets.push({order:setOrder,set});
    }else if(type==='weight'){
-    const date=get('date'),value=csvNumber(get('weight','value'),'weight',{min:0.000001}),bodyFat=csvNumber(get('bodyFatPercent','bodyFat'),'bodyFatPercent',{required:false,min:0.000001,max:100});
+    const date=get('date'),value=csvNumber(get('weight','value'),'weight',{required:false,min:0.000001}),bodyFat=csvNumber(get('bodyFatPercent','bodyFat'),'bodyFatPercent',{required:false,min:0.000001,max:100});
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
-    const record={id:get('id')||id(),date,value};if(bodyFat!=null)record.bodyFatPercent=bodyFat;raw.weights.push(record);
+    if(value==null&&bodyFat==null)throw Error('weight or bodyFatPercent is required.');
+    const record={id:get('id')||id(),date};if(value!=null)record.value=value;if(bodyFat!=null)record.bodyFatPercent=bodyFat;raw.weights.push(record);
    }
   }catch(error){errors.push('Row '+line+': '+error.message);}
  });
@@ -124,7 +125,17 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
  const liftRows=[],currentLiftSigs=new Set(current.lifts.map(r=>signature('lifts',r)));
  for(const record of raw.lifts){const created=structuredClone(record),sig=signature('lifts',created),badges=['Adds new record'];if(currentLiftSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}candidate.lifts.push(created);liftRows.push({record:created,badges});added++;}
  const weightRows=[],currentWeightSigs=new Set(current.weights.map(r=>signature('weights',r))),weightDates=new Set();
- for(const record of raw.weights){const created=structuredClone(record),sig=signature('weights',created),badges=['Adds new record'];if(currentWeightSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}if(weightDates.has(created.date)||current.weights.some(w=>w.date===created.date))badges.push('Multiple weights on this date');weightDates.add(created.date);candidate.weights.push(created);weightRows.push({record:created,badges});added++;}
+ for(const record of raw.weights){
+  if(record.value==null&&record.bodyFatPercent!=null){
+   const existing=candidate.weights.find(w=>w.date===record.date);
+   if(!existing){errors.push('Body fat · '+record.date+': no existing weigh-in was found for this date. Add/import the weight first.');continue;}
+   const previous=structuredClone(existing);
+   if(existing.bodyFatPercent===record.bodyFatPercent){unchanged++;continue;}
+   existing.bodyFatPercent=record.bodyFatPercent;delete existing.bodyFatRecordedAt;
+   weightRows.push({record:structuredClone(existing),badges:['Updates body fat'],previous});replaced++;continue;
+  }
+  const created=structuredClone(record),sig=signature('weights',created),badges=['Adds new record'];if(currentWeightSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}if(weightDates.has(created.date)||current.weights.some(w=>w.date===created.date))badges.push('Multiple weights on this date');weightDates.add(created.date);candidate.weights.push(created);weightRows.push({record:created,badges});added++;
+ }
  groups.push({key:'foods',label:'Saved Foods',rows:foodRows,removedRows:[],total:foodRows.length,unchangedCount:0},{key:'foodEntries',label:'Food Entries',rows:entryRows,removedRows:[],total:entryRows.length,unchangedCount:0},{key:'lifts',label:'Lifting Entries',rows:liftRows,removedRows:[],total:liftRows.length,unchangedCount:0},{key:'weights',label:'Weight Entries',rows:weightRows,removedRows:[],total:weightRows.length,unchangedCount:0});
  if(duplicates)warnings.unshift(duplicates+' possible duplicate record'+(duplicates===1?'':'s')+' will be kept if you confirm. Nothing is automatically deduplicated.');
  let normalized=null;if(!errors.length){try{normalized=normalizeData(candidate);}catch(error){errors.push(error.message);}}
