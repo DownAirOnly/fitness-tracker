@@ -62,5 +62,15 @@ test('universal CSV can add definitions, workout templates, lift sets, saved foo
  assert.ok(p.candidate.exerciseDefinitions.some(e=>e.name==='Chest Test'&&e.equipment==='machine'));
  assert.ok(p.candidate.workoutTemplates.some(w=>w.name==='Test Day'&&w.exercises.length===1));
  const lift=p.candidate.lifts.find(l=>l.exercise==='Chest Test');assert.equal(lift.sets.length,2);assert.equal(lift.sets[1].difficulty,5);
- const weight=p.candidate.weights.find(w=>w.date==='2026-10-02');assert.equal(weight.value,181.5);assert.equal(weight.bodyFatPercent,22.4);
+ const weight=p.candidate.weights.find(w=>w.date==='2026-10-02');assert.equal(weight.value,181.5);const body=p.candidate.bodyFat.find(b=>b.date==='2026-10-02');assert.equal(body.value,22.4);
+});
+
+test('v49 body-fat-only weight CSV imports unchanged into independent body fat records',()=>{
+ const current=emptyData();
+ const csv='recordType,date,bodyFatPercent\nweight,2026-10-02,21.5\nweight,2026-10-01,21.8';
+ const p=prepareImport('csv',csv,current);
+ assert.equal(p.errors.length,0,p.errors.join(' | '));
+ assert.equal(p.candidate.weights.length,0);
+ assert.deepEqual(p.candidate.bodyFat.map(x=>[x.date,x.value]),[['2026-10-02',21.5],['2026-10-01',21.8]]);
+ const bodyGroup=p.groups.find(g=>g.key==='bodyFat');assert.equal(bodyGroup.rows.length,2);
 });
