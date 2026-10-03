@@ -1,5 +1,5 @@
-import {decodeState, encodeState, nextRecord, CloudConflict} from './cloud-model.js?v=44';
-import {planHealthWeight,shortcutURL} from './health-model.js?v=44';
+import {decodeState, encodeState, nextRecord, CloudConflict} from './cloud-model.js?v=49';
+import {planHealthWeight,shortcutURL} from './health-model.js?v=49';
 
 export function healthBridge({db,auth,sdk,projectId}) {
   const config=uid=>sdk.doc(db,'users',uid,'integrations','appleHealth');
@@ -15,7 +15,7 @@ export function healthBridge({db,auth,sdk,projectId}) {
         owner(uid);const old=await tx.get(config(uid));
         if(old.exists()&&old.data().token)tx.delete(bridge(old.data().token));
         tx.set(bridge(token),{uid,sample:null});
-        tx.set(config(uid),{token,lastRecordedAt:'',status:'Waiting for your first Shortcut sync.'});
+        tx.set(config(uid),{token,lastRecordedAt:'',lastBodyFatRecordedAt:'',status:'Waiting for your first Shortcut sync.'});
       });
       return token;
     },
@@ -39,11 +39,11 @@ export function healthBridge({db,auth,sdk,projectId}) {
         const snapshot=await tx.get(state(uid)),record=snapshot.exists()?snapshot.data():null;
         const decoded=decodeState(record);
         if(decoded.revision!==expectedRevision)throw new CloudConflict();
-        const plan=planHealthWeight(decoded.data,sample,options.lastRecordedAt);
-        if(plan.lastRecordedAt===options.lastRecordedAt)return {enabled:true,token:options.token,status:options.status};
+        const plan=planHealthWeight(decoded.data,sample,options.lastRecordedAt||'',options.lastBodyFatRecordedAt||'');
+        if(plan.lastRecordedAt===(options.lastRecordedAt||'')&&plan.lastBodyFatRecordedAt===(options.lastBodyFatRecordedAt||''))return {enabled:true,token:options.token,status:options.status};
         let next=null;
         if(plan.changed){next=nextRecord(record,expectedRevision,encodeState(plan.candidate));tx.set(state(uid),{...next,updatedAt:sdk.serverTimestamp()});}
-        tx.set(config(uid),{...options,lastRecordedAt:plan.lastRecordedAt,status:plan.status});
+        tx.set(config(uid),{...options,lastRecordedAt:plan.lastRecordedAt,lastBodyFatRecordedAt:plan.lastBodyFatRecordedAt,status:plan.status});
         return {enabled:true,token:options.token,status:plan.status,...(next?{data:plan.candidate,revision:next.revision}:{})};
       });
     }
