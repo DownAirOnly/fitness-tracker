@@ -24,11 +24,11 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-source=source.replaceAll("'./data.js?v=55'",`'${new URL('data.js',root)}'`);
-source=source.replaceAll("'./cloud-model.js?v=55'",`'${new URL('cloud-model.js',root)}'`);
-source=source.replaceAll("'./import-model.js?v=55'",`'${new URL('import-model.js',root)}'`);
-source=source.replaceAll("'./durability.js?v=55'",`'${new URL('durability.js',root)}'`);
-source=source.replaceAll("'./cloud.js?v=55'",`'${pathToFileURL(fixture)}'`);
+source=source.replaceAll("'./data.js?v=56'",`'${new URL('data.js',root)}'`);
+source=source.replaceAll("'./cloud-model.js?v=56'",`'${new URL('cloud-model.js',root)}'`);
+source=source.replaceAll("'./import-model.js?v=56'",`'${new URL('import-model.js',root)}'`);
+source=source.replaceAll("'./durability.js?v=56'",`'${new URL('durability.js',root)}'`);
+source=source.replaceAll("'./cloud.js?v=56'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
@@ -78,7 +78,7 @@ try{
  let noteState=JSON.parse(state.records.get('bob').payload);assert.equal(noteState.notes.length,2);assert.equal(noteState.notes.find(n=>n.type==='meal').t,36);
  await click('food');const noteDate=document.querySelector('.tracking-date input');noteDate.value='2026-09-20';noteDate.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();assert.ok(document.querySelector('.travel-notes-panel').textContent.includes('Dinner menu and plate photographed'));
  await click('settings');
- assert.equal(document.querySelector('.settings-page-head .version-badge')?.textContent,'v55','Settings shows build version');
+ assert.equal(document.querySelector('.settings-page-head .version-badge')?.textContent,'v56','Settings shows build version');
  await click('toggle-cruise-mode');
  assert.equal(JSON.parse(state.records.get('bob').payload).settings.cruiseMode,true,'Cruise Mode persists');
  await click('home');assert.ok(document.querySelector('.cruise-home-banner'),'Cruise Mode has focused Home');assert.ok(!document.querySelector('[data-action="food"]'),'Food entry point is hidden');assert.ok(!document.querySelector('.today-card'),'calorie/protein card is hidden');assert.ok(!document.querySelector('.weight-strip'),'weight logging is hidden');assert.equal(document.querySelectorAll('.nav button').length,4,'Cruise nav removes Food');
