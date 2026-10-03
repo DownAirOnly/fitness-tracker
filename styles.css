@@ -935,3 +935,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 [data-theme="dark"] .travel-note-preview,[data-theme="dark"] .meal-memory-row{background:#18251e;border-color:#40533f}
 [data-theme="dark"] .travel-note-preview small,[data-theme="dark"] .meal-memory-row small{color:#9daf9f}
 @media(max-width:440px){.travel-note-actions{grid-template-columns:1fr}.travel-notes-panel{padding:16px}}
+
+
+/* Meal Memory date/time layout: prevent native iOS controls from colliding. */
+.meal-memory-date-time{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.meal-memory-date-time>.field{min-width:0}
+.meal-memory-date-time input,.meal-memory-date-time select{width:100%;min-width:0;max-width:100%}
+@media(max-width:560px){
+  .meal-memory-date-time{grid-template-columns:1fr}
+}
