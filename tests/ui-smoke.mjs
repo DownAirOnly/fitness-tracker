@@ -24,11 +24,11 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-source=source.replaceAll("'./data.js?v=49'",`'${new URL('data.js',root)}'`);
-source=source.replaceAll("'./cloud-model.js?v=49'",`'${new URL('cloud-model.js',root)}'`);
-source=source.replaceAll("'./import-model.js?v=49'",`'${new URL('import-model.js',root)}'`);
-source=source.replaceAll("'./durability.js?v=49'",`'${new URL('durability.js',root)}'`);
-source=source.replaceAll("'./cloud.js?v=49'",`'${pathToFileURL(fixture)}'`);
+source=source.replaceAll("'./data.js?v=50'",`'${new URL('data.js',root)}'`);
+source=source.replaceAll("'./cloud-model.js?v=50'",`'${new URL('cloud-model.js',root)}'`);
+source=source.replaceAll("'./import-model.js?v=50'",`'${new URL('import-model.js',root)}'`);
+source=source.replaceAll("'./durability.js?v=50'",`'${new URL('durability.js',root)}'`);
+source=source.replaceAll("'./cloud.js?v=50'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
@@ -69,8 +69,9 @@ try{
  const dateInput=document.querySelector('.tracking-date input');dateInput.value='2026-09-20';dateInput.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
  await click('custom-lift');await submit('lift',{exercise:'Test press',weight:'40',reps:'8',difficulty:'7'});
  assert.equal(JSON.parse(state.records.get('bob').payload).lifts[0].date,'2026-09-20');
- await click('home');await click('weight');await submit('weight',{value:'180',bodyFatPercent:'22.4',date:'2026-09-20'});
- await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');
+ await click('home');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
+ await click('progress');await click('body-fat');await submit('body-fat',{value:'22.4',date:'2026-09-20'});
+ await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
  await click('settings');
  let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
  dom.window.HTMLAnchorElement.prototype.click=function(){};
@@ -181,7 +182,7 @@ try{
  assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'),'failed import leaves in-memory data unchanged');
  state.fail=false;await click('settings');await previewFile('csv',oneCSV);await click('commit-import');
  assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,unchanged.foodEntries.length+1);
- await click('settings');await click('import-data');await click('paste-csv');let pasteForm=document.querySelector('[data-form="import"]');pasteForm.elements.text.value='recordType,date,weight,bodyFatPercent\nweight,2026-09-30,179.5,21.9';pasteForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(document.querySelector('.import-scroll'));await click('commit-import');assert.equal(JSON.parse(state.records.get('bob').payload).weights.find(w=>w.date==='2026-09-30').bodyFatPercent,21.9);
+ await click('settings');await click('import-data');await click('paste-csv');let pasteForm=document.querySelector('[data-form="import"]');pasteForm.elements.text.value='recordType,date,bodyFatPercent\nweight,2026-09-30,21.9';pasteForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(document.querySelector('.import-scroll'));await click('commit-import');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat.find(b=>b.date==='2026-09-30').value,21.9);
  await previewFile('csv',oneCSV);assert.ok(document.querySelector('.import-summary').textContent.includes('1 possible duplicates'));await click('close');
  // A read resolving after Cancel must not revive the preview.
  await click('import-data');await click('import-csv');const slowForm=document.querySelector('[data-form="import"]');let finishRead;
