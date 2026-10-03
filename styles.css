@@ -863,3 +863,56 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .food-period-nav{grid-template-columns:36px 1fr 36px}
  .food-period-nav strong{font-size:11px}
 }
+
+
+/* Progress exercise cards reuse the Lifting equipment card treatment. */
+.exercise-progress-list,.exercise-progress-all-list{gap:8px}
+.progress-exercise-card.exercise-progress-link{
+  min-height:78px;
+  padding:13px 16px;
+  border-width:1px;
+  border-style:solid;
+  border-radius:15px;
+  border-top-width:1px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  text-align:left;
+  overflow:hidden;
+}
+.progress-exercise-card.exercise-progress-link:first-child{border-top-width:1px}
+.progress-exercise-card .exercise-copy{flex:1;min-width:0}
+.progress-exercise-card .progress-exercise-value{
+  position:relative;
+  z-index:1;
+  display:grid;
+  gap:3px;
+  min-width:82px;
+  text-align:right;
+}
+.progress-exercise-card .progress-exercise-value b{
+  font-size:13px;
+  color:inherit;
+  font-weight:800;
+}
+.progress-exercise-card .progress-exercise-value small{
+  margin:0;
+  font-size:9px;
+}
+.progress-exercise-card.equipment-dumbbell{border-color:#cbd6dd}
+.progress-exercise-card.equipment-cable{border-color:#c7cbcc}
+.progress-exercise-card.equipment-machine{border-color:#d0ccd7}
+.progress-exercise-card.equipment-bench,
+.progress-exercise-card.equipment-calisthenics,
+.progress-exercise-card.equipment-other{border-color:#e6eae0}
+[data-theme="dark"] .progress-exercise-card.equipment-dumbbell{border-color:#3e505d}
+[data-theme="dark"] .progress-exercise-card.equipment-cable{border-color:#3d4244}
+[data-theme="dark"] .progress-exercise-card.equipment-machine{border-color:#4b4651}
+[data-theme="dark"] .progress-exercise-card.equipment-bench,
+[data-theme="dark"] .progress-exercise-card.equipment-calisthenics,
+[data-theme="dark"] .progress-exercise-card.equipment-other{border-color:#405047}
+@media(max-width:440px){
+  .progress-exercise-card .equipment-art{right:30px}
+  .progress-exercise-card .progress-exercise-value{min-width:72px}
+}
