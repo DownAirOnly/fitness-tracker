@@ -633,7 +633,7 @@ function foodForm(entry=null,card=null) {
 function showFoodUndo(entryId,name){
  clearTimeout(foodUndoTimer);const root=document.querySelector('#overlay');if(!root)return;
  root.innerHTML='<div class="food-undo-toast" role="status"><span><strong>Added '+esc(name)+'</strong><small>Saved to the food log.</small></span><button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button></div>';
- foodUndoTimer=setTimeout(()=>{const toast=document.querySelector('.food-undo-toast');if(toast?.querySelector('[data-id="'+CSS.escape(entryId)+'"]'))root.innerHTML='';},5000);
+ foodUndoTimer=setTimeout(()=>{const toast=document.querySelector('.food-undo-toast'),undo=toast?.querySelector('[data-action="undo-food-add"]');if(undo?.dataset.id===entryId)root.innerHTML='';},5000);
 }
 function liftForm(lift=null,name='',equipment='other') {
  const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type),sets=lift?.sets||prior?.sets||[{weight:0,reps:8},{weight:0,reps:8}],options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${equipmentLabel(x)}</option>`).join('');
