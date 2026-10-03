@@ -11,10 +11,12 @@ test('weekly averages and BMI use entered weights and the configured height',()=
   const weeks=weeklyWeights([{date:'2026-09-21',value:184},{date:'2026-09-25',value:182},{date:'2026-09-20',value:186}],68);
   assert.equal(weeks.length,2);assert.equal(weeks[0].average,182);assert.equal(weeks[0].bmi,bmi(182,68));
 });
-test('morning prompt respects six AM and once per local date',()=>{
+test('morning prompt respects six AM, once per local date, and Cruise Mode',()=>{
   const data=emptyData();const early=new Date(2026,8,25,5,59),late=new Date(2026,8,25,6,1);
   assert.equal(shouldPrompt(data,early),false);assert.equal(shouldPrompt(data,late),true);
-  data.promptDate='2026-09-25';assert.equal(shouldPrompt(data,late),false);
+  data.settings.cruiseMode=true;assert.equal(shouldPrompt(data,late),false);
+  assert.equal(normalizeData(encodeData(data)).settings.cruiseMode,true);
+  data.settings.cruiseMode=false;data.promptDate='2026-09-25';assert.equal(shouldPrompt(data,late),false);
   data.promptDate='';data.weights.push({date:'2026-09-25',value:183});assert.equal(shouldPrompt(data,late),false);
 });
 test('backup validator rejects corrupt records',()=>{
