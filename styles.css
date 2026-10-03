@@ -944,3 +944,25 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media(max-width:560px){
   .meal-memory-date-time{grid-template-columns:1fr}
 }
+
+
+/* v55 Cruise Mode */
+.cruise-mode .nav{grid-template-columns:repeat(4,1fr)}
+.cruise-home-actions{grid-template-columns:1fr}
+.cruise-home-actions .big-action{min-height:132px}
+.cruise-home-banner{position:relative;overflow:hidden;background:#173b2b;color:#fff;border-radius:23px;padding:24px;margin:15px 0 18px}
+.cruise-home-banner h1{margin:2px 0 8px;font-size:clamp(31px,7vw,46px);line-height:1}
+.cruise-home-banner p:last-child{max-width:470px;margin:0;color:#c7d9cb;font-size:12px;line-height:1.5}
+.cruise-home-banner .eyebrow{color:#b8d9c1}
+.cruise-mode-mark{position:absolute;right:18px;bottom:7px;font-size:72px;line-height:1;opacity:.12;transform:rotate(-7deg)}
+.settings-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.version-badge{display:inline-flex;align-items:center;justify-content:center;min-width:48px;padding:7px 10px;border-radius:999px;background:#e8efe5;color:#345a40;font-size:11px;font-weight:900;letter-spacing:.04em}
+.cruise-mode-panel{border-color:#cbdacb}
+.cruise-mode-panel .body-copy{margin-bottom:14px}
+[data-theme="dark"] .version-badge{background:#24362a;color:#cfe1d2}
+[data-theme="dark"] .cruise-mode-panel{border-color:#40533f}
+@media(max-width:440px){
+ .cruise-home-actions .big-action{min-height:120px}
+ .cruise-home-banner{padding:21px}
+ .cruise-mode-mark{font-size:61px}
+}
