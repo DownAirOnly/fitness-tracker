@@ -68,6 +68,9 @@ async function refreshStorageProtection(request=true){
   return storageProtection;
 }
 const currentTrackingDate=(now=new Date())=>trackingDate(now,data.settings.dayResetMinutes??360);
+const weightPromptSeenKey=()=>`everyday-weight-prompt-seen:${offlineWorkspace?'offline-workspace':account?.uid||'device'}`;
+function weightPromptSeen(date){try{return localStorage.getItem(weightPromptSeenKey())===date;}catch{return false;}}
+function markWeightPromptSeen(date){try{localStorage.setItem(weightPromptSeenKey(),date);}catch{}data.promptDate=date;}
 const currentFoodSlot=(now=new Date())=>Math.floor((now.getHours()*60+now.getMinutes())/30);
 const clockLabel=minutes=>{minutes=((minutes%1440)+1440)%1440;const h=Math.floor(minutes/60),m=minutes%60,period=h>=12?'PM':'AM',hour=h%12||12;return hour+':'+String(m).padStart(2,'0')+' '+period;};
 const foodTimeLabel=slot=>Number.isInteger(slot)&&slot>=0&&slot<48?clockLabel(slot*30):'No time';
@@ -802,7 +805,7 @@ document.addEventListener('click',async event=>{
   if(action==='day-note'){dayNoteForm(el.dataset.date||chosenDate);return;}
   if(action==='meal-memory'){mealMemoryForm(null,el.dataset.date||chosenDate);return;}
   if(action==='edit-meal-memory'){mealMemoryForm((data.notes||[]).find(n=>n.id===el.dataset.id));return;}
-  if(action==='later'){data.promptDate=currentTrackingDate();saveCriticalLocalCopy();close(true);return;}
+  if(action==='later'){markWeightPromptSeen(currentTrackingDate());close(true);return;}
   if(action==='edit-weight'){weightForm(data.weights.find(x=>x.id===el.dataset.id));return;}
   if(action==='edit-body-fat'){bodyFatForm((data.bodyFat||[]).find(x=>x.id===el.dataset.id));return;}
   if(action==='food-log'){foodLog();return;}
@@ -943,7 +946,7 @@ async function loadAccount(){
   }
   finally{if(session===active){cloudBusy=false;render();if(active.ready){void syncHealth();promptWeight();}else if(hasLocalCloudFallback())promptWeight();}}
 }
-function promptWeight(){if(shouldPrompt(data))setTimeout(()=>{if(!shouldPrompt(data)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;data.promptDate=currentTrackingDate();saveCriticalLocalCopy();weightForm(null,true);},300);}
+function promptWeight(){const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
     const cloud=await import('./cloud.js?v=51');describeCloudError=cloud.cloudError;
