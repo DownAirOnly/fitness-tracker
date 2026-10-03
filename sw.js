@@ -1,5 +1,5 @@
-const CACHE='everyday-v55-cruise-mode';
-const FILES=['./','./index.html','./theme.js','./styles.css?v=55','./app.js?v=55','./durability.js?v=55','./import-model.js?v=55','./data.js?v=55','./storage-model.js?v=55','./cloud.js?v=55','./cloud-model.js?v=55','./health-model.js?v=55','./health-cloud.js?v=55','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE='everyday-v56-offline-exit-guard';
+const FILES=['./','./index.html','./theme.js','./styles.css?v=56','./app.js?v=56','./durability.js?v=56','./import-model.js?v=56','./data.js?v=56','./storage-model.js?v=56','./cloud.js?v=56','./cloud-model.js?v=56','./health-model.js?v=56','./health-cloud.js?v=56','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('everyday-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
