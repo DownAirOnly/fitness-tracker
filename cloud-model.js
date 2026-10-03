@@ -1,4 +1,4 @@
-import {emptyData, normalizeData, encodeData, round} from './data.js?v=49';
+import {emptyData, normalizeData, encodeData, round} from './data.js?v=50';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -19,7 +19,7 @@ export function nextRecord(current,expected,payload) {
   if(revision!==expected) throw new CloudConflict();
   return {schemaVersion:1,revision:revision+1,payload};
 }
-export function hasRecords(data) { return ['foods','foodEntries','lifts','weights'].some(k=>data[k].length>0); }
+export function hasRecords(data) { return ['foods','foodEntries','lifts','weights','bodyFat'].some(k=>(data[k]||[]).length>0); }
 export function mergeDeviceData(cloud,device) {
   const result=normalizeData(structuredClone(cloud));
   const incoming=normalizeData(structuredClone(device));
@@ -27,7 +27,7 @@ export function mergeDeviceData(cloud,device) {
   const factor=result.settings.unit===incoming.settings.unit?1:result.settings.unit==='kg'?1/2.2046226218:2.2046226218;
   incoming.weights.forEach(w=>w.value=round(w.value*factor));
   incoming.lifts.forEach(l=>l.sets.forEach(s=>s.weight=round(s.weight*factor)));
-  for(const key of ['foods','foodEntries','lifts','weights']) {
+  for(const key of ['foods','foodEntries','lifts','weights','bodyFat']) {
     const existing=new Set(result[key].map(x=>x.id));
     const dates=new Set(result.weights.map(x=>x.date));
     for(const item of incoming[key]) {
