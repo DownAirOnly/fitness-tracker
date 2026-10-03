@@ -1,7 +1,7 @@
 import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=51';
 
-export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries'};
-const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
+export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',notes:'Notes'};
+const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:key==='notes'?[r.date,r.type,r.text,r.t??null]:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 
 // File adapters only parse; all sources feed the same review/candidate pipeline.
@@ -13,7 +13,8 @@ const csvTypeAliases=new Map([
  ['workout','workout'],['workouttemplate','workout'],
  ['lift','lift'],['lifting','lift'],['liftset','lift'],
  ['weight','weight'],['weighin','weight'],['bodyweight','weight'],
- ['bodyfat','bodyFat'],['bodyfatpercentage','bodyFat'],['fatpercentage','bodyFat']
+ ['bodyfat','bodyFat'],['bodyfatpercentage','bodyFat'],['fatpercentage','bodyFat'],
+ ['note','note'],['daynote','dayNote'],['mealnote','mealNote'],['mealmemory','mealNote']
 ]);
 const csvBool=value=>['1','true','yes','y','on','favorite','pinned'].includes(String(value||'').trim().toLowerCase());
 const csvTags=value=>String(value||'').split(/[|;]/).map(x=>x.trim().toLowerCase()).filter(Boolean);
@@ -36,7 +37,7 @@ function parseUniversalCSV(text,current){
  const index=new Map(headers.map((name,i)=>[name,i]));
  const legacy=!index.has('recordtype')&&['date','name','calories','protein'].every(x=>index.has(x));
  if(!legacy&&!index.has('recordtype'))throw Error('Universal CSV needs a recordType column. Legacy food CSVs are still accepted.');
- const raw=emptyData();raw.foods=[];raw.foodEntries=[];raw.lifts=[];raw.weights=[];raw.bodyFat=[];raw.exerciseDefinitions=[];raw.workoutTemplates=[];
+ const raw=emptyData();raw.foods=[];raw.foodEntries=[];raw.lifts=[];raw.weights=[];raw.bodyFat=[];raw.notes=[];raw.exerciseDefinitions=[];raw.workoutTemplates=[];
  const errors=[],warnings=[],workouts=new Map(),liftGroups=new Map();
  const currentExercises=new Map((current.exerciseDefinitions||[]).map(e=>[(e.name.trim().toLowerCase()+'|'+(e.equipment||'other')),e]));
  const importedExercises=new Map();
@@ -90,12 +91,20 @@ function parseUniversalCSV(text,current){
     const date=get('date'),value=csvNumber(get('bodyFatPercent','bodyFat','value'),'bodyFatPercent',{min:0.000001,max:100});
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
     raw.bodyFat.push({id:get('id')||id(),date,value});
+   }else if(type==='note'||type==='dayNote'||type==='mealNote'){
+    const date=get('date'),text=get('text','note','notes');
+    if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
+    if(!text||text.length>1200)throw Error('note text is required and must be 1–1200 characters.');
+    const noteType=type==='mealNote'?'meal':type==='dayNote'?'day':((get('noteType','type')||'day').toLowerCase());
+    if(!['day','meal'].includes(noteType))throw Error('noteType must be day or meal.');
+    const record={id:get('id')||id(),date,type:noteType,text},time=csvTime(get('time','noteTime'));
+    if(time!=null)record.t=time;raw.notes.push(record);
    }
   }catch(error){errors.push('Row '+line+': '+error.message);}
  });
  for(const bucket of workouts.values())raw.workoutTemplates.push({id:bucket.id,name:bucket.name,exercises:bucket.items.sort((a,b)=>a.order-b.order).map(({order,...item})=>item)});
  for(const lift of liftGroups.values())raw.lifts.push({id:lift.id,date:lift.date,exercise:lift.exercise,equipment:lift.equipment,sets:lift.sets.sort((a,b)=>a.order-b.order).map(x=>x.set),notes:lift.notes||''});
- const count=raw.foods.length+raw.foodEntries.length+raw.exerciseDefinitions.length+raw.workoutTemplates.length+raw.lifts.length+raw.weights.length+raw.bodyFat.length;
+ const count=raw.foods.length+raw.foodEntries.length+raw.exerciseDefinitions.length+raw.workoutTemplates.length+raw.lifts.length+raw.weights.length+raw.bodyFat.length+raw.notes.length;
  if(!count&&!errors.length)errors.push('No supported rows found.');
  return{raw,errors,warnings};
 }
@@ -136,7 +145,17 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
  for(const record of raw.weights){const created=structuredClone(record),sig=signature('weights',created),badges=['Adds new record'];if(currentWeightSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}if(weightDates.has(created.date)||current.weights.some(w=>w.date===created.date))badges.push('Multiple weights on this date');weightDates.add(created.date);candidate.weights.push(created);weightRows.push({record:created,badges});added++;}
  const bodyFatRows=[],currentBodyFatSigs=new Set((current.bodyFat||[]).map(r=>signature('bodyFat',r)));
  for(const record of raw.bodyFat){const created=structuredClone(record),sig=signature('bodyFat',created),badges=['Adds new record'];if(currentBodyFatSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}candidate.bodyFat.push(created);bodyFatRows.push({record:created,badges});added++;}
- groups.push({key:'foods',label:'Saved Foods',rows:foodRows,removedRows:[],total:foodRows.length,unchangedCount:0},{key:'foodEntries',label:'Food Entries',rows:entryRows,removedRows:[],total:entryRows.length,unchangedCount:0},{key:'lifts',label:'Lifting Entries',rows:liftRows,removedRows:[],total:liftRows.length,unchangedCount:0},{key:'weights',label:'Weight Entries',rows:weightRows,removedRows:[],total:weightRows.length,unchangedCount:0},{key:'bodyFat',label:'Body Fat Entries',rows:bodyFatRows,removedRows:[],total:bodyFatRows.length,unchangedCount:0});
+ const noteRows=[],currentNoteSigs=new Set((current.notes||[]).map(r=>signature('notes',r)));
+ for(const record of raw.notes){
+   const created=structuredClone(record),sig=signature('notes',created),badges=['Adds new record'];
+   if(currentNoteSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}
+   if(created.type==='day'){
+     const existing=candidate.notes.find(n=>n.type==='day'&&n.date===created.date);
+     if(existing){const previous=structuredClone(existing);Object.assign(existing,created,{id:existing.id});noteRows.push({record:structuredClone(existing),badges:['Replaces day note'],previous});replaced++;continue;}
+   }
+   candidate.notes.push(created);noteRows.push({record:created,badges});added++;
+ }
+ groups.push({key:'foods',label:'Saved Foods',rows:foodRows,removedRows:[],total:foodRows.length,unchangedCount:0},{key:'foodEntries',label:'Food Entries',rows:entryRows,removedRows:[],total:entryRows.length,unchangedCount:0},{key:'lifts',label:'Lifting Entries',rows:liftRows,removedRows:[],total:liftRows.length,unchangedCount:0},{key:'weights',label:'Weight Entries',rows:weightRows,removedRows:[],total:weightRows.length,unchangedCount:0},{key:'bodyFat',label:'Body Fat Entries',rows:bodyFatRows,removedRows:[],total:bodyFatRows.length,unchangedCount:0},{key:'notes',label:'Notes',rows:noteRows,removedRows:[],total:noteRows.length,unchangedCount:0});
  if(duplicates)warnings.unshift(duplicates+' possible duplicate record'+(duplicates===1?'':'s')+' will be kept if you confirm. Nothing is automatically deduplicated.');
  let normalized=null;if(!errors.length){try{normalized=normalizeData(candidate);}catch(error){errors.push(error.message);}}
  const changeCount=groups.reduce((n,g)=>n+g.rows.length,0)+otherChanges.length;
