@@ -141,6 +141,7 @@ try{
  assert.ok(!document.querySelector('.week-setting').textContent.includes('Change'));
  assert.ok(document.querySelectorAll('.weight-progress-panel .list-row').length<=5);
  assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
+ const progressExercise=document.querySelector('.exercise-progress-panel .progress-exercise-card');if(progressExercise){assert.ok(progressExercise.classList.contains('exercise'),'progress uses Lifting exercise card shell');assert.ok(progressExercise.querySelector('.equipment-art'),'progress exercise includes equipment art');assert.ok(progressExercise.className.includes('equipment-'),'progress exercise includes equipment color class');}
  assert.ok(document.querySelector('.food-progress-chart'),'nutrition graph renders');
  assert.equal(document.querySelectorAll('.food-period-tabs [data-action="food-progress-period"]').length,4,'week/month/quarter/year controls render');
  const monthTab=document.querySelector('[data-action="food-progress-period"][data-period="month"]');monthTab.click();await tick();assert.equal(document.querySelector('.food-period-tabs .active')?.dataset.period,'month');
