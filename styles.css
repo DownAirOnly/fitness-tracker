@@ -916,3 +916,22 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .progress-exercise-card .equipment-art{right:30px}
   .progress-exercise-card .progress-exercise-value{min-width:72px}
 }
+
+
+/* Cruise-friendly daily notes and meal memories. */
+.travel-notes-panel{margin-top:16px}
+.travel-notes-compact{margin-top:14px}
+.travel-note-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.travel-note-preview,.meal-memory-row{width:100%;text-align:left;border:1px solid #d9e2db;background:#f8faf7;color:inherit;border-radius:13px;padding:11px 12px}
+.travel-note-preview{display:grid;gap:4px;margin-top:9px}
+.travel-note-preview small,.meal-memory-row small{font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#748178}
+.travel-note-preview strong,.meal-memory-row strong{font-size:12px;line-height:1.35}
+.travel-note-preview strong{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.meal-memory-list{display:grid;gap:7px;margin-top:9px}
+.meal-memory-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.meal-memory-row span{display:grid;gap:3px;min-width:0}
+.meal-memory-row strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.meal-memory-row b{font-size:18px;font-weight:400;color:#647469}
+[data-theme="dark"] .travel-note-preview,[data-theme="dark"] .meal-memory-row{background:#18251e;border-color:#40533f}
+[data-theme="dark"] .travel-note-preview small,[data-theme="dark"] .meal-memory-row small{color:#9daf9f}
+@media(max-width:440px){.travel-note-actions{grid-template-columns:1fr}.travel-notes-panel{padding:16px}}
