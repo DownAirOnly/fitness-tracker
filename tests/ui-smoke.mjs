@@ -72,11 +72,16 @@ try{
  await click('home');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
  await click('progress');await click('body-fat');await submit('body-fat',{value:'22.4',date:'2026-09-20'});
  await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
+ await click('home');assert.ok(document.querySelector('.travel-notes-panel'),'trip notes are available from Home');
+ await click('day-note');await submit('day-note',{date:'2026-09-20',text:'Embarkation day · lots of walking'});
+ await click('meal-memory');await submit('meal-memory',{date:'2026-09-20',text:'Dinner menu and plate photographed',noteTime:'36'});
+ let noteState=JSON.parse(state.records.get('bob').payload);assert.equal(noteState.notes.length,2);assert.equal(noteState.notes.find(n=>n.type==='meal').t,36);
+ await click('food');const noteDate=document.querySelector('.tracking-date input');noteDate.value='2026-09-20';noteDate.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();assert.ok(document.querySelector('.travel-notes-panel').textContent.includes('Dinner menu and plate photographed'));
  await click('settings');
  let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
  dom.window.HTMLAnchorElement.prototype.click=function(){};
  await click('export');const backup=JSON.parse(await exported.text());URL.createObjectURL=originalCreate;
- assert.equal(backup.lifts.length,1);assert.equal(backup.weights.length,1);
+ assert.equal(backup.lifts.length,1);assert.equal(backup.weights.length,1);assert.equal(backup.notes.length,2);
  await click('import-data');await click('import-csv');let form=document.querySelector('[data-form="import"]');
  Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=> 'date,name,calories,protein,quantity\n2026-09-19,CSV meal,300,25,1'}]});
  form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
@@ -210,5 +215,5 @@ try{
  assert.equal(localStorage.getItem('everyday-fitness-v1'),localBefore);
  assert.ok(document.querySelector('.import-alert').textContent.includes('Storage full'));
  await click('close');await click('food');assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'));
- console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, scrubbable nutrition periods, weigh-in see-all, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, account transitions, migration and save recovery.');
+ console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, scrubbable nutrition periods, weigh-in see-all, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, cruise notes, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}
