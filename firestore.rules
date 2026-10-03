@@ -53,26 +53,24 @@ service cloud.firestore {
 
     match /weightBridges/{token} {
       function validSample(s) {
+        let weightKeys = ['value','unit','date','recordedAt'];
+        let bodyFatKeys = ['bodyFatPercent','bodyFatDate','bodyFatRecordedAt'];
+        let hasWeight = s is map && s.keys().hasAny(weightKeys);
+        let hasBodyFat = s is map && s.keys().hasAny(bodyFatKeys);
         return s is map
-          && s.keys().hasAll(['value','unit','date','recordedAt'])
-          && s.keys().hasOnly(['value','unit','date','recordedAt','bodyFatPercent','bodyFatRecordedAt'])
-          && s.value is number
-          && s.value > 0
-          && s.value <= 1500
-          && s.unit in ['lb','kg']
-          && s.date is string
-          && s.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-          && s.recordedAt is string
-          && s.recordedAt.size() >= 20
-          && s.recordedAt.size() <= 40
-          && (!s.keys().hasAny(['bodyFatPercent','bodyFatRecordedAt'])
-            || (s.keys().hasAll(['bodyFatPercent','bodyFatRecordedAt'])
-              && s.bodyFatPercent is number
-              && s.bodyFatPercent > 0
-              && s.bodyFatPercent <= 100
-              && s.bodyFatRecordedAt is string
-              && s.bodyFatRecordedAt.size() >= 20
-              && s.bodyFatRecordedAt.size() <= 40));
+          && s.keys().hasOnly(['value','unit','date','recordedAt','bodyFatPercent','bodyFatDate','bodyFatRecordedAt'])
+          && (hasWeight || hasBodyFat)
+          && (!hasWeight
+            || (s.keys().hasAll(weightKeys)
+              && s.value is number && s.value > 0 && s.value <= 1500
+              && s.unit in ['lb','kg']
+              && s.date is string && s.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+              && s.recordedAt is string && s.recordedAt.size() >= 20 && s.recordedAt.size() <= 40))
+          && (!hasBodyFat
+            || (s.keys().hasAll(bodyFatKeys)
+              && s.bodyFatPercent is number && s.bodyFatPercent > 0 && s.bodyFatPercent <= 100
+              && s.bodyFatDate is string && s.bodyFatDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+              && s.bodyFatRecordedAt is string && s.bodyFatRecordedAt.size() >= 20 && s.bodyFatRecordedAt.size() <= 40));
       }
 
       allow get, delete: if verifiedOwner(resource.data.uid);
