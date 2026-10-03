@@ -16,6 +16,7 @@ Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install
 
 - Daily calorie and protein totals with editable goals (initially 1,600 calories and 130 g protein), plus a Progress chart that can move through weekly, monthly, quarterly, and yearly views.
 - Once-per-tracking-day automatic weigh-in prompt: once it has appeared, Everyday will not automatically ask again until the next tracking day.
+- Cruise Mode hides food and weigh-in logging surfaces and switches Home/Progress/History to a workout-focused view without deleting or changing any underlying food, weight, or body-composition history.
 - Offline-safe daily notes and text-only meal memories for travel context and later photo-based reconstruction.
 - Saved Food cards open a prefilled food-log form for fast quantity/date/time changes, with a five-second Undo after saving. Each log stores its own calorie/protein values so editing a saved definition does not rewrite history.
 - Universal additive CSV import from files or pasted text, with preview and validation, plus pasted/file JSON backup restore.
