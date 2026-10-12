@@ -138,7 +138,7 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
       libraryAction='nutrition-diff';libraryDetail='Log nutrition differs from Saved Food';
       warnings.push('Row '+__sourceRow+' · '+created.name+': imported log keeps '+created.calories+' cal / '+created.protein+'g protein per serving; the Saved Food stays '+card.calories+' cal / '+card.protein+'g.');
     }else if(currentFoodNames.has(key))libraryAction='existing';
-    else libraryAction='new';
+    else libraryAction='new-import';
   }else if(__saveAsFood){
     card={id:id(),name:created.name,calories:created.calories,protein:created.protein,kind:'food',tags:[],pinned:false,accuracy:'',lastUsed:created.date};
     candidate.foods.push(card);foodByName.set(key,card);generatedFoodNames.add(key);foodRows.push({record:structuredClone(card),badges:[],implicit:true,libraryAction:'new'});added++;
@@ -146,7 +146,7 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
   }else{
     libraryAction='one-off';
   }
-  if(!libraryDetail)libraryDetail=libraryAction==='new'?'Will save to Food Library':libraryAction==='existing'?'Uses existing Saved Food':libraryAction==='one-off'?'One-off · will not save to Food Library':'';
+  if(!libraryDetail)libraryDetail=libraryAction==='new'?'Will save to Food Library':libraryAction==='new-import'?'Uses Saved Food added by this import':libraryAction==='existing'?'Uses existing Saved Food':libraryAction==='one-off'?'One-off · will not save to Food Library':'';
   entryRows.push({record:created,badges,sourceRow:__sourceRow,libraryAction,libraryDetail});
  }
  const exerciseIdMap=new Map(),exerciseByKey=new Map((candidate.exerciseDefinitions||[]).map(e=>[e.name.trim().toLowerCase()+'|'+e.equipment,e]));
@@ -184,10 +184,10 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
  const changeCount=groups.reduce((n,g)=>n+g.rows.length,0)+otherChanges.length;
  const explicitFoodRows=foodRows.filter(row=>!row.implicit).length,userChangeCount=entryRows.length+explicitFoodRows+liftRows.length+weightRows.length+bodyFatRows.length+noteRows.length+otherChanges.length;
  const newSavedNames=new Set(),existingSavedNames=new Set();let oneOffEntries=0,nutritionDiff=0;
- for(const row of entryRows){const key=row.record.name.trim().toLowerCase();if(row.libraryAction==='new')newSavedNames.add(key);else if(row.libraryAction==='existing')existingSavedNames.add(key);else if(row.libraryAction==='one-off')oneOffEntries++;else if(row.libraryAction==='nutrition-diff'){existingSavedNames.add(key);nutritionDiff++;}}
+ for(const row of entryRows){const key=row.record.name.trim().toLowerCase();if(row.libraryAction==='new'||row.libraryAction==='new-import')newSavedNames.add(key);else if(row.libraryAction==='existing')existingSavedNames.add(key);else if(row.libraryAction==='one-off')oneOffEntries++;else if(row.libraryAction==='nutrition-diff'){existingSavedNames.add(key);nutritionDiff++;}}
  const foodLibrarySummary={newSaved:newSavedNames.size,existing:existingSavedNames.size,oneOff:oneOffEntries,nutritionDiff};
- const foodOnly=userChangeCount===entryRows.length+explicitFoodRows&&entryRows.length>0;
- const display={count:userChangeCount,label:foodOnly?(entryRows.length+' food entr'+(entryRows.length===1?'y':'ies')+' to import'):(userChangeCount+' item'+(userChangeCount===1?'':'s')+' to import'),foodEntries:entryRows.length,explicitSavedFoods:explicitFoodRows,foodLibrarySummary};
+ const foodOnly=userChangeCount===entryRows.length+explicitFoodRows&&entryRows.length>0,foodLogsOnly=foodOnly&&explicitFoodRows===0;
+ const display={count:userChangeCount,label:foodLogsOnly?(entryRows.length+' food entr'+(entryRows.length===1?'y':'ies')+' to import'):(userChangeCount+' item'+(userChangeCount===1?'':'s')+' to import'),foodEntries:entryRows.length,explicitSavedFoods:explicitFoodRows,foodLibrarySummary};
  return{kind:'csv',base:JSON.stringify(current),candidate:errors.length?null:normalized,groups,errors,warnings:[...new Set(warnings)],duplicates,replaced,removed:0,added,unchanged,changeCount,display,settingChanges:[],otherChanges,promptChanged:false,settings:structuredClone(current.settings),promptDate:current.promptDate||'',currentSettings:structuredClone(current.settings),currentPromptDate:current.promptDate};
 }
 
