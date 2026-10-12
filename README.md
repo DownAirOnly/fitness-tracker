@@ -35,7 +35,7 @@ Supported record types:
 | recordType | Main fields |
 | --- | --- |
 | `savedFood` | `name,calories,protein,kind,tags,favorite,accuracy,lastUsed` |
-| `foodLog` | `date,name,calories,protein,quantity,time` |
+| `foodLog` | `date,name,calories,protein,quantity,time,saveAsFood` |
 | `exercise` | `exercise,equipment,setup` |
 | `workout` | `workout,exercise,equipment,order,repMin,repMax,targetSets,restSeconds` |
 | `lift` | `date,exercise,equipment,group,set,weight,reps,effort,notes` |
@@ -43,7 +43,7 @@ Supported record types:
 | `bodyFat` | `date,bodyFatPercent` |
 | `note` / `dayNote` / `mealNote` | `date,noteType,text,time` |
 
-Workout rows with the same `workout` name are assembled into one template and ordered by `order`. Lift rows with the same `group` are assembled into one lift entry with multiple sets. Dates use `YYYY-MM-DD`. Food time may be a half-hour slot number (0–47) or `HH:MM` on a 30-minute boundary. Tags may be separated by `|` or `;`.
+Workout rows with the same `workout` name are assembled into one template and ordered by `order`. Lift rows with the same `group` are assembled into one lift entry with multiple sets. Dates use `YYYY-MM-DD`. Food time may be a half-hour slot number (0–47) or `HH:MM` on a 30-minute boundary. Tags may be separated by `|` or `;`. For `foodLog`, `saveAsFood` defaults to `true`; set it to `false` for a one-off log that should remain out of the reusable Food Library. The import preview groups food logs by date and shows the Food Library effect on each row instead of exposing auto-created dictionary records as separate changes.
 
 Example mixed CSV:
 
