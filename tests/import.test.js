@@ -114,3 +114,46 @@ test('offline workspace JSON preserves active and finished Workout Buddy data',(
  assert.deepEqual(p.candidate.workoutHistory,workspace.workoutHistory);
  assert.equal(p.candidate.activeWorkout,null);
 });
+
+
+test('CSV food logs can stay one-off or create reusable Saved Foods',()=>{
+ const current=emptyData();
+ current.foods=[{id:'monster',name:'White Monster',calories:10,protein:0,kind:'drink',tags:[],pinned:false,accuracy:'label'}];
+ const csv=[
+  'recordType,date,name,calories,protein,quantity,time,saveAsFood',
+  'foodLog,2026-10-12,Cake slice,250,2,1,14:30,true',
+  'foodLog,2026-10-12,Funyuns,170,2,1,15:30,false',
+  'foodLog,2026-10-12,White Monster,10,0,1,15:30,'
+ ].join('\n');
+ const p=prepareImport('csv',csv,current);
+ assert.equal(p.errors.length,0,p.errors.join(' | '));
+ assert.equal(p.candidate.foodEntries.length,3);
+ assert.ok(p.candidate.foods.some(f=>f.name==='Cake slice'));
+ assert.ok(!p.candidate.foods.some(f=>f.name==='Funyuns'),'saveAsFood=false stays out of reusable library');
+ assert.ok(p.candidate.foods.some(f=>f.name==='White Monster'));
+ assert.equal(p.display.label,'3 food entries to import');
+ assert.deepEqual(p.display.foodLibrarySummary,{newSaved:1,existing:1,oneOff:1,nutritionDiff:0});
+ const rows=p.groups.find(g=>g.key==='foodEntries').rows;
+ assert.equal(rows.find(r=>r.record.name==='Cake slice').libraryDetail,'Will save to Food Library');
+ assert.equal(rows.find(r=>r.record.name==='Funyuns').libraryDetail,'One-off · will not save to Food Library');
+ assert.equal(rows.find(r=>r.record.name==='White Monster').libraryDetail,'Uses existing Saved Food');
+ const generated=p.groups.find(g=>g.key==='foods').rows.find(r=>r.record.name==='Cake slice');
+ assert.equal(generated.implicit,true,'auto-created library definitions remain an internal preview detail');
+});
+
+test('CSV saveAsFood defaults true and rejects ambiguous values',()=>{
+ let p=prepareImport('csv','recordType,date,name,calories,protein\nfoodLog,2026-10-12,Default save,100,5',emptyData());
+ assert.equal(p.errors.length,0);assert.ok(p.candidate.foods.some(f=>f.name==='Default save'));
+ p=prepareImport('csv','recordType,date,name,calories,protein,saveAsFood\nfoodLog,2026-10-12,Bad flag,100,5,maybe',emptyData());
+ assert.equal(p.candidate,null);assert.match(p.errors.join(' '),/Row 2: saveAsFood must be true or false/);
+});
+
+test('CSV food nutrition conflicts identify the source row in review metadata',()=>{
+ const current=emptyData();current.foods=[{id:'cake',name:'Cake slice',calories:200,protein:3}];
+ const p=prepareImport('csv','recordType,date,name,calories,protein\nfoodLog,2026-10-12,Cake slice,250,2',current);
+ assert.equal(p.errors.length,0);
+ assert.match(p.warnings.join(' '),/Row 2 · Cake slice/);
+ const row=p.groups.find(g=>g.key==='foodEntries').rows[0];
+ assert.equal(row.sourceRow,2);assert.equal(row.libraryAction,'nutrition-diff');
+ assert.equal(row.libraryDetail,'Log nutrition differs from Saved Food');
+});
