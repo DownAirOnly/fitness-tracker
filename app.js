@@ -1039,25 +1039,46 @@ function weekSettingsPanel(){
 function importRecord(key,item,unit){
   const r=item.record;
   const title=key==='foods'||key==='foodEntries'?r.name:key==='lifts'?r.exercise:key==='bodyFat'?`${fmt(r.value)}% body fat`:key==='notes'?(r.type==='meal'?'Meal memory':'Day note'):`${fmt(r.value)} ${unit}`;
-  const details=key==='foods'?`${fmt(r.calories)} cal · ${fmt(r.protein)}g protein per serving${r.lastUsed?' · Last used '+r.lastUsed:''}`:key==='foodEntries'?`${r.date} · ${foodEntryDetail(r)} · Per serving: ${fmt(r.calories)} cal / ${fmt(r.protein)}g`:key==='lifts'?`${r.date} · ${r.sets.map(set=>`${fmt(set.weight)} ${unit} × ${set.reps}${set.difficulty?` · effort ${set.difficulty}`:''}`).join(' · ')}`:key==='weights'?r.date:key==='bodyFat'?`${r.date} · Body-fat measurement`:key==='notes'?`${r.date}${r.t!=null?' · '+foodTimeLabel(r.t):''} · ${r.text}`:r.date;
-  return `<div class="list-row import-record"><div><strong>${esc(title)}</strong><small>${esc(details)}</small>${key==='lifts'&&r.notes?`<p class="import-note">${esc(r.notes)}</p>`:''}<div class="import-badges">${item.badges.map(b=>`<span class="import-badge ${/duplicate|Replaces|Removed|Multiple/.test(b)?'attention':''}">${esc(b)}</span>`).join('')}</div>${item.previous?`<details class="import-previous"><summary>Existing record being replaced</summary>${importRecord(key,{record:item.previous,badges:[]},pendingImport.currentSettings.unit)}</details>`:''}</div></div>`;
+  const foodEntryDetails=key==='foodEntries'?`${r.date}${r.t!=null?' · '+foodTimeLabel(r.t):''} · ${fmt(r.calories*r.quantity)} cal · ${fmt(r.protein*r.quantity)}g protein${r.quantity!==1?` · ${fmt(r.quantity)} servings · ${fmt(r.calories)} cal / ${fmt(r.protein)}g each`:''}`:'';
+  const details=key==='foods'?`${fmt(r.calories)} cal · ${fmt(r.protein)}g protein per serving${r.lastUsed?' · Last used '+r.lastUsed:''}`:key==='foodEntries'?foodEntryDetails:key==='lifts'?`${r.date} · ${r.sets.map(set=>`${fmt(set.weight)} ${unit} × ${set.reps}${set.difficulty?` · effort ${set.difficulty}`:''}`).join(' · ')}`:key==='weights'?r.date:key==='bodyFat'?`${r.date} · Body-fat measurement`:key==='notes'?`${r.date}${r.t!=null?' · '+foodTimeLabel(r.t):''} · ${r.text}`:r.date;
+  const badges=(item.badges||[]).filter(Boolean),attention=badges.some(b=>/duplicate|Replaces|Removed|Multiple|differs/i.test(b))||item.libraryAction==='nutrition-diff';
+  const rowRef=item.sourceRow&&attention?`<small class="import-row-ref">CSV row ${item.sourceRow}</small>`:'';
+  const libraryEffect=key==='foodEntries'&&item.libraryDetail?`<div class="import-library-effect ${esc(item.libraryAction||'')}"><span aria-hidden="true">${item.libraryAction==='one-off'?'○':item.libraryAction==='existing'?'✓':item.libraryAction==='nutrition-diff'?'!':'+'}</span><strong>${esc(item.libraryDetail)}</strong></div>`:'';
+  const badgeHtml=badges.length?`<div class="import-badges">${badges.map(b=>`<span class="import-badge ${/duplicate|Replaces|Removed|Multiple|differs/i.test(b)?'attention':''}">${esc(b)}</span>`).join('')}</div>`:'';
+  return `<div class="list-row import-record"><div><strong>${esc(title)}</strong><small>${esc(details)}</small>${rowRef}${libraryEffect}${key==='lifts'&&r.notes?`<p class="import-note">${esc(r.notes)}</p>`:''}${badgeHtml}${item.previous?`<details class="import-previous"><summary>Existing record being replaced</summary>${importRecord(key,{record:item.previous,badges:[]},pendingImport.currentSettings.unit)}</details>`:''}</div></div>`;
 }
+function visibleImportRows(group,removed=false){
+  const rows=removed?group.removedRows:group.rows;
+  return pendingImport?.kind==='csv'&&group.key==='foods'&&!removed?rows.filter(row=>!row.implicit):rows;
+}
+function renderImportRows(groupKey,rows,unit){
+  if(pendingImport?.kind==='csv'&&groupKey==='foodEntries'){
+    const dates=new Map();
+    for(const row of rows){const date=row.record.date;if(!dates.has(date))dates.set(date,[]);dates.get(date).push(row);}
+    return [...dates].map(([date,dateRows])=>`<section class="import-date-block"><p class="import-date-label">${esc(niceDate(date))}<span>${dateRows.length} entr${dateRows.length===1?'y':'ies'}</span></p>${dateRows.map(row=>importRecord(groupKey,row,unit)).join('')}</section>`).join('');
+  }
+  return rows.map(row=>importRecord(groupKey,row,unit)).join('');
+}
+
 function importGroup(group,removed=false){
-  const rows=removed?group.removedRows:group.rows;if(!rows.length)return'';
+  const rows=visibleImportRows(group,removed);if(!rows.length)return'';
   const key=group.key+(removed?'-removed':''),unit=removed?pendingImport.currentSettings.unit:pendingImport.kind==='json'?pendingImport.settings.unit:data.settings.unit;
-  const title=removed?'Removed '+group.label:(pendingImport.kind==='json'?'Changed '+group.label:group.label);
-  return '<details class="import-group" open><summary>'+esc(title)+'<span>'+rows.length+'</span></summary><div id="import-'+key+'">'+rows.slice(0,50).map(row=>importRecord(group.key,row,unit)).join('')+'</div>'+(rows.length>50?button('Show next '+Math.min(50,rows.length-50)+' (50 of '+rows.length+' shown)','import-more','outline small','data-group="'+group.key+'" data-removed="'+removed+'" data-shown="50"'):'')+'</details>';
+  const title=removed?'Removed '+group.label:(pendingImport.kind==='json'?'Changed '+group.label:group.key==='foods'?'Food Library changes':group.key==='foodEntries'?'Food entries':group.label);
+  const open=pendingImport.kind==='csv'&&group.key==='foods'&&!removed?'':' open';
+  return '<details class="import-group import-group-'+group.key+'"'+open+'><summary>'+esc(title)+'<span>'+rows.length+'</span></summary><div id="import-'+key+'">'+renderImportRows(group.key,rows.slice(0,50),unit)+'</div>'+(rows.length>50?button('Show next '+Math.min(50,rows.length-50)+' (50 of '+rows.length+' shown)','import-more','outline small','data-group="'+group.key+'" data-removed="'+removed+'" data-shown="50"'):'')+'</details>';
 }
+
 function expandImportGroup(el){
   if(!pendingImport)return;const g=pendingImport.groups.find(g=>g.key===el.dataset.group);if(!g)return;
-  const removed=el.dataset.removed==='true',rows=removed?g.removedRows:g.rows,shown=Number(el.dataset.shown),next=Math.min(shown+50,rows.length);
+  const removed=el.dataset.removed==='true',rows=visibleImportRows(g,removed),shown=Number(el.dataset.shown),next=Math.min(shown+50,rows.length);
   const unit=removed?pendingImport.currentSettings.unit:pendingImport.kind==='json'?pendingImport.settings.unit:data.settings.unit;
-  document.querySelector('#import-'+g.key+(removed?'-removed':'')).insertAdjacentHTML('beforeend',rows.slice(shown,next).map(r=>importRecord(g.key,r,unit)).join(''));
+  document.querySelector('#import-'+g.key+(removed?'-removed':'')).insertAdjacentHTML('beforeend',renderImportRows(g.key,rows.slice(shown,next),unit));
   if(next===rows.length)el.remove();else{el.dataset.shown=next;el.textContent='Show next '+Math.min(50,rows.length-next)+' ('+next+' of '+rows.length+' shown)';}
 }
+
 function showImportReview(plan,saveError=''){
-  const json=plan.kind==='json',incomingCount=json?plan.groups.reduce((n,g)=>n+g.total,0):plan.changeCount;
-  const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on',dayResetMinutes:'Day resets at'};
+  const json=plan.kind==='json',incomingCount=json?plan.groups.reduce((n,g)=>n+g.total,0):(plan.display?.count??plan.changeCount);
+  const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on',dayResetMinutes:'Day resets at',cruiseMode:'Cruise Mode'};
   const settingValue=(key,value)=>key==='weekStart'?weekDays[value]:key==='dayResetMinutes'?clockLabel(value):typeof value==='object'?JSON.stringify(value):String(value);
   const settingsChanges=plan.settingChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(labels[change.key]||change.key)+'</strong><small>'+esc(settingValue(change.key,change.from))+' → '+esc(settingValue(change.key,change.to))+'</small><span class="import-badge attention">Replaces setting</span></div></div>').join('');
   const promptChange=plan.promptChanged?'<div class="list-row import-record"><div><strong>Daily weight-prompt date</strong><small>'+esc(plan.currentPromptDate||'Not set')+' → '+esc(plan.promptDate||'Not set')+'</small><span class="import-badge attention">Changes</span></div></div>':'';
@@ -1065,13 +1086,18 @@ function showImportReview(plan,saveError=''){
   const changedGroups=plan.groups.map(g=>importGroup(g)).join('');
   const removedGroups=json?plan.groups.map(g=>importGroup(g,true)).join(''):'';
   const changesBody=plan.changeCount?settingsChanges+promptChange+otherChanges+changedGroups+removedGroups:'<p class="empty">No data changes detected in this file.</p>';
-  const summary='<div class="import-summary import-summary-compact"><p class="eyebrow">'+(json?'JSON BACKUP':'CSV IMPORT')+'</p><p>'+incomingCount+' '+(json?'incoming tracked records':'proposed changes')+(json?' · '+plan.unchanged+' unchanged items omitted':'')+(plan.duplicates?' · '+plan.duplicates+' possible duplicates':'')+'</p><strong>Nothing has been imported yet.</strong></div>';
-  const errors=plan.errors.length?'<div class="import-alert" role="alert"><strong>Cannot import · '+plan.errors.length+' issue'+(plan.errors.length===1?'':'s')+'</strong><p>Fix the file and preview it again. No records will be committed, including the valid changes shown above.</p><ul>'+plan.errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>':'';
-  const warnings=plan.warnings.length?'<details class="import-alert"><summary>Review '+plan.warnings.length+' warning'+(plan.warnings.length===1?'':'s')+'</summary><ul>'+plan.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul></details>':'';
+  const errors=plan.errors.length?'<div class="import-alert" role="alert"><strong>Cannot import · '+plan.errors.length+' issue'+(plan.errors.length===1?'':'s')+'</strong><p>Fix the file and preview it again. No records will be committed.</p><ul>'+plan.errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>':'';
+  const warnings=plan.warnings.length?'<details class="import-alert import-needs-review" open><summary>Needs review · '+plan.warnings.length+' warning'+(plan.warnings.length===1?'':'s')+'</summary><ul>'+plan.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul></details>':'';
   const saveAlert=saveError?'<div class="import-alert" role="alert"><strong>Import was not saved</strong><p>'+esc(saveError)+'</p><p>Your current in-memory records are unchanged.</p></div>':'';
-  modal('Review import','<p class="import-filename">'+esc(plan.filename)+'</p><div class="import-scroll" tabindex="0" aria-label="Import changes"><section class="import-changes"><div class="import-changes-head"><p class="eyebrow">CHANGES</p><h3>'+plan.changeCount+' proposed change'+(plan.changeCount===1?'':'s')+'</h3></div>'+changesBody+'</section>'+summary+saveAlert+errors+warnings+'</div><div class="import-footer"><p>'+(json?'Confirmation replaces the current data with this backup. Unchanged items are omitted from the preview.':'Review the additions above before confirming.')+'</p><div class="form-actions">'+(plan.candidate?button(json?'Confirm replacement':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file','choose-import','primary','data-kind="'+plan.kind+'" data-source="'+esc(plan.source||'file')+'"'))+button('Cancel','close','outline')+'</div></div>');
+  const cleanStatus=!saveError&&!plan.errors.length&&!plan.warnings.length?'<div class="import-clean-status"><span>✓</span><strong>No conflicts detected</strong></div>':'';
+  const library=plan.display?.foodLibrarySummary;
+  const libraryBits=!json&&library?[library.newSaved?library.newSaved+' new Saved Food'+(library.newSaved===1?'':'s'):'',library.existing?library.existing+' existing Saved Food'+(library.existing===1?'':'s'):'',library.oneOff?library.oneOff+' one-off entr'+(library.oneOff===1?'y':'ies'):'',library.nutritionDiff?library.nutritionDiff+' nutrition difference'+(library.nutritionDiff===1?'':'s'):''].filter(Boolean):[];
+  const csvHead=!json?'<section class="import-human-summary"><p class="eyebrow">READY TO IMPORT</p><h3>'+esc(plan.display?.label||((plan.display?.count??plan.changeCount)+' items to import'))+'</h3>'+(libraryBits.length?'<p>'+esc(libraryBits.join(' · '))+'</p>':'')+'</section>':'';
+  const jsonSummary=json?'<div class="import-summary import-summary-compact"><p class="eyebrow">JSON BACKUP</p><p>'+incomingCount+' incoming tracked records · '+plan.unchanged+' unchanged items omitted'+(plan.duplicates?' · '+plan.duplicates+' possible duplicates':'')+'</p><strong>This confirmation replaces all current data with the reviewed backup.</strong></div>':'';
+  modal('Review import','<p class="import-filename">'+esc(plan.filename)+'</p><div class="import-scroll" tabindex="0" aria-label="Import changes">'+csvHead+saveAlert+errors+warnings+cleanStatus+jsonSummary+'<section class="import-changes">'+(json?'<div class="import-changes-head"><p class="eyebrow">CHANGES</p><h3>'+plan.changeCount+' proposed change'+(plan.changeCount===1?'':'s')+'</h3></div>':'')+changesBody+'</section></div><div class="import-footer"><p>'+(json?'Confirmation replaces the current data with this backup. Unchanged items are omitted from the preview.':'Review the entries and any Food Library effects above before confirming.')+'</p><div class="form-actions">'+(plan.candidate?button(json?'Confirm replacement':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file','choose-import','primary','data-kind="'+plan.kind+'" data-source="'+esc(plan.source||'file')+'"'))+button('Cancel','close','outline')+'</div></div>');
   document.querySelector('.modal').classList.add('import-dialog');
 }
+
 async function commitImport(){
   const plan=pendingImport;if(!plan?.candidate||importSaving)return;
   if(plan.base!==JSON.stringify(data)){plan.errors.push('Current data changed. Cancel and preview this file again.');plan.candidate=null;showImportReview(plan);return;}
@@ -1084,7 +1110,7 @@ async function commitImport(){
     if(!workspaceMode&&(session!==active||account?.uid!==owner))return;
     data=candidate;if(!workspaceMode&&!account)deviceData=structuredClone(candidate);else if(!workspaceMode)cloudMessage='Saved to your account';
     importSaving=false;cloudBusy=false;render();
-    alert(plan.kind==='json'?(workspaceMode?'Workspace JSON replaced.':'Backup restored.'):`${plan.changeCount} change${plan.changeCount===1?'':'s'} imported.`);
+    alert(plan.kind==='json'?(workspaceMode?'Workspace JSON replaced.':'Backup restored.'):`${plan.display?.count??plan.changeCount} item${(plan.display?.count??plan.changeCount)===1?'':'s'} imported.`);
   }catch(error){
     if(!workspaceMode&&(session!==active||account?.uid!==owner))return;
     importSaving=false;cloudBusy=false;render();pendingImport=plan;showImportReview(plan,workspaceMode?error.message:describeCloudError(error));
