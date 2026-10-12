@@ -24,11 +24,11 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-source=source.replaceAll("'./data.js?v=57'",`'${new URL('data.js',root)}'`);
-source=source.replaceAll("'./cloud-model.js?v=57'",`'${new URL('cloud-model.js',root)}'`);
-source=source.replaceAll("'./import-model.js?v=57'",`'${new URL('import-model.js',root)}'`);
-source=source.replaceAll("'./durability.js?v=57'",`'${new URL('durability.js',root)}'`);
-source=source.replaceAll("'./cloud.js?v=57'",`'${pathToFileURL(fixture)}'`);
+source=source.replaceAll("'./data.js?v=58'",`'${new URL('data.js',root)}'`);
+source=source.replaceAll("'./cloud-model.js?v=58'",`'${new URL('cloud-model.js',root)}'`);
+source=source.replaceAll("'./import-model.js?v=58'",`'${new URL('import-model.js',root)}'`);
+source=source.replaceAll("'./durability.js?v=58'",`'${new URL('durability.js',root)}'`);
+source=source.replaceAll("'./cloud.js?v=58'",`'${pathToFileURL(fixture)}'`);
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
@@ -36,7 +36,7 @@ const submit=async(kind,values)=>{const form=document.querySelector(`[data-form=
 // Node's FormData doesn't consume HTML forms; use the DOM's implementation.
 globalThis.FormData=dom.window.FormData;
 try{
- await import(pathToFileURL(join(temp,'app.mjs')).href+'?v=57');await tick();await tick();
+ await import(pathToFileURL(join(temp,'app.mjs')).href+'?v=58');await tick();await tick();
  assert.equal(persistRequests,1,'startup requests persistent origin storage once');
  const {state}=await import(pathToFileURL(fixture));
  assert.ok(document.querySelector('.home-actions'),'Home cards exist before auth finishes');
