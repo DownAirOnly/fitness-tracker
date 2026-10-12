@@ -144,6 +144,7 @@ function foodMatches(name){
 }
 function renderFoodMatches(form){
  const box=form.querySelector('.food-matches'),matches=foodMatches(form.elements.name.value);form.elements.cardId.value='';
+ const saveOption=form.querySelector('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}
  box.innerHTML=matches.length?'<span class="food-match-label">Saved foods</span>'+matches.map(food=>'<button type="button" class="food-match" data-action="choose-food-match" data-id="'+esc(food.id)+'"><span><strong>'+esc(food.name)+'</strong><small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><b>Use</b></button>').join(''):'';
 }
 function foodLog(){
