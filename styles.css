@@ -974,3 +974,22 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .offline-exit-confirm>button{width:100%}
 .offline-exit-confirm .hint{margin-top:2px}
 .offline-exit-confirm .danger:disabled{opacity:.46;cursor:not-allowed}
+
+
+/* v57 lifting history + one-off food refinements */
+.exercise-name-row{display:flex;align-items:baseline;gap:8px;min-width:0;max-width:calc(100% - 78px)}
+.exercise-name-row>strong{min-width:0}
+.exercise-setup-inline{margin:0!important;font-size:10px!important;font-weight:700!important;color:#718078!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48%}
+.save-new-food-option{display:flex;align-items:flex-start;gap:10px;padding:12px 13px;border:1px solid #dce4d8;border-radius:12px;background:#f7faf6}
+.save-new-food-option[hidden]{display:none}
+.save-new-food-option input{width:18px;height:18px;margin:2px 0 0;accent-color:#24563b;flex:0 0 auto}
+.save-new-food-option>span{display:grid;gap:2px}
+.save-new-food-option strong{font-size:12px}
+.save-new-food-option small{font-size:10px;line-height:1.4;color:#78897a}
+[data-theme="dark"] .exercise-setup-inline{color:#9daf9f!important}
+[data-theme="dark"] .save-new-food-option{background:#17231c;border-color:#394b40}
+[data-theme="dark"] .save-new-food-option small{color:#a9b8ac}
+@media(max-width:440px){
+ .exercise-name-row{gap:6px;max-width:calc(100% - 70px)}
+ .exercise-setup-inline{max-width:44%;font-size:9px!important}
+}
