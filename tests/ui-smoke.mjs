@@ -77,7 +77,7 @@ try{
  await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
  await click('home');assert.ok(!document.querySelector('.travel-notes-panel'),'trip notes stay hidden outside Cruise Mode');
  await click('settings');
- assert.equal(document.querySelector('.settings-page-head .version-badge')?.textContent,'v57','Settings shows build version');
+ assert.equal(document.querySelector('.settings-page-head .version-badge')?.textContent,'v58','Settings shows build version');
  await click('toggle-cruise-mode');
  assert.equal(JSON.parse(state.records.get('bob').payload).settings.cruiseMode,true,'Cruise Mode persists');
  await click('home');assert.ok(document.querySelector('.cruise-home-banner'),'Cruise Mode has focused Home');assert.ok(document.querySelector('.travel-notes-panel'),'trip notes appear only in Cruise Mode');assert.ok(!document.querySelector('[data-action="food"]'),'Food entry point is hidden');assert.ok(!document.querySelector('.today-card'),'calorie/protein card is hidden');assert.ok(!document.querySelector('.weight-strip'),'weight logging is hidden');assert.equal(document.querySelectorAll('.nav button').length,4,'Cruise nav removes Food');
@@ -95,7 +95,7 @@ try{
  await click('export');const backup=JSON.parse(await exported.text());URL.createObjectURL=originalCreate;
  assert.equal(backup.lifts.length,2);assert.equal(backup.weights.length,1);assert.equal(backup.notes.length,2);
 
- // v57: leaving an offline workspace must offer export first and delay the destructive path.
+ // v58: leaving an offline workspace must offer export first and delay the destructive path.
  await click('offline-start');let offlineForm=document.querySelector('[data-form="offline-workspace"]');
  Object.defineProperty(offlineForm.querySelector('[name="file"]'),'files',{value:[{name:'cruise-backup.json',size:100,text:async()=>JSON.stringify(backup)}]});
  offlineForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
@@ -214,12 +214,33 @@ try{
  assert.deepEqual(JSON.parse(state.records.get('bob').payload),unchanged);
  const largeCSV='date,name,calories,protein,quantity\n'+Array.from({length:121},(_,i)=>`2026-09-27,Preview ${i},100,10,1`).join('\n');
  await previewFile('csv',largeCSV);
- assert.equal(document.querySelectorAll('#import-foodEntries>.import-record').length,50);
+ assert.equal(document.querySelectorAll('#import-foodEntries .import-record').length,50);
  const more=document.querySelector('[data-group="foodEntries"]');more.click();await tick();
- assert.equal(document.querySelectorAll('#import-foodEntries>.import-record').length,100);
+ assert.equal(document.querySelectorAll('#import-foodEntries .import-record').length,100);
  document.querySelector('[data-group="foodEntries"]').click();await tick();
- assert.equal(document.querySelectorAll('#import-foodEntries>.import-record').length,121);
+ assert.equal(document.querySelectorAll('#import-foodEntries .import-record').length,121);
  await click('close');assert.deepEqual(JSON.parse(state.records.get('bob').payload),unchanged);
+ const humanCSV=[
+  'recordType,date,name,calories,protein,quantity,time,saveAsFood',
+  'foodLog,2026-10-12,Cake slice,250,2,1,14:30,true',
+  'foodLog,2026-10-12,Funyuns,170,2,1,15:30,false',
+  'foodLog,2026-10-12,White Monster,10,0,1,15:30,true'
+ ].join('\n');
+ const currentBeforeHuman=JSON.parse(state.records.get('bob').payload);currentBeforeHuman.foods.push({id:'white-monster',name:'White Monster',calories:10,protein:0,kind:'drink',tags:[],pinned:false,accuracy:'label'});
+ state.records.set('bob',{...state.records.get('bob'),payload:JSON.stringify(currentBeforeHuman)});
+ await click('close');await click('home');await tick();await tick();await click('settings');await previewFile('csv',humanCSV);
+ assert.equal(document.querySelector('.import-human-summary h3').textContent,'3 food entries to import');
+ assert.ok(document.querySelector('.import-human-summary').textContent.includes('1 new Saved Food'));
+ assert.ok(document.querySelector('.import-human-summary').textContent.includes('1 existing Saved Food'));
+ assert.ok(document.querySelector('.import-human-summary').textContent.includes('1 one-off entry'));
+ assert.ok(document.querySelector('.import-clean-status'),'clean food import says no conflicts');
+ assert.equal(document.querySelectorAll('.import-group-foods').length,0,'implicit Saved Foods are not duplicated as their own group');
+ assert.equal(document.querySelectorAll('.import-group-foodEntries .import-record').length,3);
+ assert.ok(document.querySelector('.import-group-foodEntries').textContent.includes('Will save to Food Library'));
+ assert.ok(document.querySelector('.import-group-foodEntries').textContent.includes('One-off · will not save to Food Library'));
+ assert.ok(document.querySelector('.import-group-foodEntries').textContent.includes('Uses existing Saved Food'));
+ assert.ok(!document.querySelector('.import-group-foodEntries').textContent.includes('Adds new record'));
+ await click('close');
  await previewFile('csv','date,name,calories,protein\n2026-09-27,Valid,100,10\n2026-09-27,Invalid,-1,10');
  assert.ok(document.querySelector('[role="alert"]'));assert.ok(!document.querySelector('[data-action="commit-import"]'));await click('close');
  await previewFile('json','{');assert.ok(!document.querySelector('[data-action="commit-import"]'));await click('close');
@@ -231,7 +252,7 @@ try{
  state.fail=false;await click('settings');await previewFile('csv',oneCSV);await click('commit-import');
  assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,unchanged.foodEntries.length+1);
  await click('settings');await click('import-data');await click('paste-csv');let pasteForm=document.querySelector('[data-form="import"]');pasteForm.elements.text.value='recordType,date,bodyFatPercent\nweight,2026-09-30,21.9';pasteForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();assert.ok(document.querySelector('.import-scroll'));await click('commit-import');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat.find(b=>b.date==='2026-09-30').value,21.9);
- await previewFile('csv',oneCSV);assert.ok(document.querySelector('.import-summary').textContent.includes('1 possible duplicates'));await click('close');
+ await previewFile('csv',oneCSV);assert.ok(document.querySelector('.import-needs-review').textContent.includes('possible duplicate'));await click('close');
  // A read resolving after Cancel must not revive the preview.
  await click('import-data');await click('import-csv');const slowForm=document.querySelector('[data-form="import"]');let finishRead;
  Object.defineProperty(slowForm.querySelector('[name="file"]'),'files',{value:[{size:100,text:()=>new Promise(resolve=>{finishRead=resolve;})}]});
@@ -250,5 +271,5 @@ try{
  assert.equal(localStorage.getItem('everyday-fitness-v1'),localBefore);
  assert.ok(document.querySelector('.import-alert').textContent.includes('Storage full'));
  await click('close');await click('food');assert.ok(!document.querySelector('.food-preview').textContent.includes('Import test'));
- console.log('UI smoke passed: import review, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, scrubbable nutrition periods, weigh-in see-all, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, cruise notes, account transitions, migration and save recovery.');
+ console.log('UI smoke passed: human-first import review, food-library effects, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, scrubbable nutrition periods, weigh-in see-all, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, cruise notes, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}
