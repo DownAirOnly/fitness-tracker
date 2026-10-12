@@ -17,6 +17,12 @@ const csvTypeAliases=new Map([
  ['note','note'],['daynote','dayNote'],['mealnote','mealNote'],['mealmemory','mealNote']
 ]);
 const csvBool=value=>['1','true','yes','y','on','favorite','pinned'].includes(String(value||'').trim().toLowerCase());
+const csvOptionalBool=(value,label='value',fallback=true)=>{
+ const text=String(value??'').trim().toLowerCase();if(!text)return fallback;
+ if(['1','true','yes','y','on'].includes(text))return true;
+ if(['0','false','no','n','off'].includes(text))return false;
+ throw Error(label+' must be true or false.');
+};
 const csvTags=value=>String(value||'').split(/[|;]/).map(x=>x.trim().toLowerCase()).filter(Boolean);
 function csvNumber(value,label,{required=true,min=-Infinity,max=Infinity,integer=false}={}){
  const text=String(value??'').trim();if(!text){if(required)throw Error(label+' is required.');return null;}
@@ -60,9 +66,9 @@ function parseUniversalCSV(text,current){
     const record={id:get('id')||id(),name,calories,protein,kind,tags:csvTags(get('tags')),pinned:csvBool(get('favorite','pinned')),accuracy};
     const lastUsed=get('lastUsed');if(lastUsed)record.lastUsed=lastUsed;raw.foods.push(record);
    }else if(type==='foodLog'){
-    const date=get('date'),name=get('name'),calories=csvNumber(get('calories'),'calories',{min:0}),protein=csvNumber(get('protein'),'protein',{min:0}),quantity=csvNumber(get('quantity'),'quantity',{required:false,min:0.000001})??1;
+    const date=get('date'),name=get('name'),calories=csvNumber(get('calories'),'calories',{min:0}),protein=csvNumber(get('protein'),'protein',{min:0}),quantity=csvNumber(get('quantity'),'quantity',{required:false,min:0.000001})??1,saveAsFood=csvOptionalBool(get('saveAsFood','saveToLibrary'),'saveAsFood',true);
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');if(!name)throw Error('name is required.');
-    const record={id:get('id')||id(),date,name,calories,protein,quantity},time=csvTime(get('time','foodTime'));if(time!=null)record.t=time;raw.foodEntries.push(record);
+    const record={id:get('id')||id(),date,name,calories,protein,quantity,__saveAsFood:saveAsFood,__sourceRow:line},time=csvTime(get('time','foodTime'));if(time!=null)record.t=time;raw.foodEntries.push(record);
    }else if(type==='exercise'){
     const name=get('exercise','name'),equipment=(get('equipment')||'other').toLowerCase(),setup=get('setup');if(!name)throw Error('exercise is required.');if(!csvEquipment.has(equipment))throw Error('equipment is invalid.');if(setup.length>200)throw Error('setup is too long.');
     const record={id:get('id')||id(),name,equipment};if(setup)record.setup=setup;raw.exerciseDefinitions.push(record);importedExercises.set(name.toLowerCase()+'|'+equipment,record);
@@ -110,21 +116,38 @@ function parseUniversalCSV(text,current){
 }
 function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
  const errors=[...initialErrors],warnings=[...initialWarnings],candidate=structuredClone(current),groups=[],otherChanges=[];let duplicates=0,replaced=0,added=0,unchanged=0;
- const foodRows=[],foodByName=new Map(candidate.foods.map(f=>[f.name.trim().toLowerCase(),f]));
+ const foodRows=[],currentFoodNames=new Set(candidate.foods.map(f=>f.name.trim().toLowerCase())),foodByName=new Map(candidate.foods.map(f=>[f.name.trim().toLowerCase(),f])),explicitImportedFoodNames=new Set(),generatedFoodNames=new Set();
  for(const record of raw.foods){
   const key=record.name.trim().toLowerCase(),prior=foodByName.get(key);
   if(prior){
    const next={...prior,...structuredClone(record),id:prior.id,lastUsed:record.lastUsed??prior.lastUsed};
    if(same(prior,next)){unchanged++;continue;}
-   const snapshot=structuredClone(prior);Object.assign(prior,next);foodRows.push({record:structuredClone(prior),badges:['Replaces existing'],previous:snapshot});replaced++;
-  }else{const created=structuredClone(record);candidate.foods.push(created);foodByName.set(key,created);foodRows.push({record:created,badges:['Adds new record']});added++;}
+   const snapshot=structuredClone(prior);Object.assign(prior,next);foodRows.push({record:structuredClone(prior),badges:['Replaces existing'],previous:snapshot,explicit:true});replaced++;explicitImportedFoodNames.add(key);
+  }else{const created=structuredClone(record);candidate.foods.push(created);foodByName.set(key,created);foodRows.push({record:created,badges:[],explicit:true,libraryAction:'new'});added++;explicitImportedFoodNames.add(key);}
  }
  const entryRows=[],currentEntrySigs=new Set(current.foodEntries.map(r=>signature('foodEntries',r)));
  for(const record of raw.foodEntries){
-  const created=structuredClone(record),sig=signature('foodEntries',created),badges=['Adds new record'];if(currentEntrySigs.has(sig)){badges.push('Possible duplicate');duplicates++;}
-  candidate.foodEntries.push(created);entryRows.push({record:created,badges});added++;
-  const key=created.name.trim().toLowerCase();if(!foodByName.has(key)){const card={id:id(),name:created.name,calories:created.calories,protein:created.protein,kind:'food',tags:[],pinned:false,accuracy:'',lastUsed:created.date};candidate.foods.push(card);foodByName.set(key,card);foodRows.push({record:structuredClone(card),badges:['Adds saved food from log']});added++;}
-  else{const card=foodByName.get(key);if(card.calories!==created.calories||card.protein!==created.protein)warnings.push(created.name+': imported log keeps its own nutrition; the saved food definition is unchanged.');}
+  const {__saveAsFood=true,__sourceRow,...persisted}=record,created=structuredClone(persisted),sig=signature('foodEntries',created),badges=[];
+  if(currentEntrySigs.has(sig)){badges.push('Possible duplicate');duplicates++;}
+  candidate.foodEntries.push(created);added++;
+  const key=created.name.trim().toLowerCase();
+  let card=foodByName.get(key),libraryAction='',libraryDetail='';
+  if(card){
+    const differs=card.calories!==created.calories||card.protein!==created.protein;
+    if(differs){
+      libraryAction='nutrition-diff';libraryDetail='Log nutrition differs from Saved Food';
+      warnings.push('Row '+__sourceRow+' · '+created.name+': imported log keeps '+created.calories+' cal / '+created.protein+'g protein per serving; the Saved Food stays '+card.calories+' cal / '+card.protein+'g.');
+    }else if(currentFoodNames.has(key))libraryAction='existing';
+    else libraryAction='new';
+  }else if(__saveAsFood){
+    card={id:id(),name:created.name,calories:created.calories,protein:created.protein,kind:'food',tags:[],pinned:false,accuracy:'',lastUsed:created.date};
+    candidate.foods.push(card);foodByName.set(key,card);generatedFoodNames.add(key);foodRows.push({record:structuredClone(card),badges:[],implicit:true,libraryAction:'new'});added++;
+    libraryAction='new';
+  }else{
+    libraryAction='one-off';
+  }
+  if(!libraryDetail)libraryDetail=libraryAction==='new'?'Will save to Food Library':libraryAction==='existing'?'Uses existing Saved Food':libraryAction==='one-off'?'One-off · will not save to Food Library':'';
+  entryRows.push({record:created,badges,sourceRow:__sourceRow,libraryAction,libraryDetail});
  }
  const exerciseIdMap=new Map(),exerciseByKey=new Map((candidate.exerciseDefinitions||[]).map(e=>[e.name.trim().toLowerCase()+'|'+e.equipment,e]));
  for(const record of raw.exerciseDefinitions){
@@ -159,7 +182,11 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
  if(duplicates)warnings.unshift(duplicates+' possible duplicate record'+(duplicates===1?'':'s')+' will be kept if you confirm. Nothing is automatically deduplicated.');
  let normalized=null;if(!errors.length){try{normalized=normalizeData(candidate);}catch(error){errors.push(error.message);}}
  const changeCount=groups.reduce((n,g)=>n+g.rows.length,0)+otherChanges.length;
- return{kind:'csv',base:JSON.stringify(current),candidate:errors.length?null:normalized,groups,errors,warnings:[...new Set(warnings)],duplicates,replaced,removed:0,added,unchanged,changeCount,settingChanges:[],otherChanges,promptChanged:false,settings:structuredClone(current.settings),promptDate:current.promptDate||'',currentSettings:structuredClone(current.settings),currentPromptDate:current.promptDate};
+ const explicitFoodRows=foodRows.filter(row=>!row.implicit).length,userChangeCount=entryRows.length+explicitFoodRows+liftRows.length+weightRows.length+bodyFatRows.length+noteRows.length+otherChanges.length;
+ const foodLibrarySummary=entryRows.reduce((acc,row)=>{if(row.libraryAction==='new')acc.newSaved++;else if(row.libraryAction==='existing')acc.existing++;else if(row.libraryAction==='one-off')acc.oneOff++;else if(row.libraryAction==='nutrition-diff'){acc.existing++;acc.nutritionDiff++;}return acc;},{newSaved:0,existing:0,oneOff:0,nutritionDiff:0});
+ const foodOnly=userChangeCount===entryRows.length+explicitFoodRows&&entryRows.length>0;
+ const display={count:userChangeCount,label:foodOnly?(entryRows.length+' food entr'+(entryRows.length===1?'y':'ies')+' to import'):(userChangeCount+' item'+(userChangeCount===1?'':'s')+' to import'),foodEntries:entryRows.length,explicitSavedFoods:explicitFoodRows,foodLibrarySummary};
+ return{kind:'csv',base:JSON.stringify(current),candidate:errors.length?null:normalized,groups,errors,warnings:[...new Set(warnings)],duplicates,replaced,removed:0,added,unchanged,changeCount,display,settingChanges:[],otherChanges,promptChanged:false,settings:structuredClone(current.settings),promptDate:current.promptDate||'',currentSettings:structuredClone(current.settings),currentPromptDate:current.promptDate};
 }
 
 export function prepareImport(kind,text,current){
