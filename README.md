@@ -49,14 +49,14 @@ Example mixed CSV:
 
 ```csv
 recordType,date,name,calories,protein,quantity,time,saveAsFood,exercise,equipment,workout,order,repMin,repMax,targetSets,restSeconds,group,set,weight,reps,effort,notes,bodyFatPercent,kind,tags,favorite,accuracy
-savedFood,,Core Power Elite 42g,230,42,,,,,,,,,,,,,,,,,food,protein|drink,true,label
-foodLog,2026-10-02,Core Power Elite 42g,230,42,1,,,,,,,,,,,,,,,,,,,
-exercise,,,,,,Chest Press,machine,,,,,,,,,,,,,,,,
-workout,,,,,,Chest Press,machine,Upper,1,6,12,2,90,,,,,,,,,,,
-lift,2026-10-02,,,,,Chest Press,machine,,,,,,,upper-press,1,60,10,4,,,,,
-lift,2026-10-02,,,,,Chest Press,machine,,,,,,,upper-press,2,60,8,5,,,,,
-weight,2026-10-02,,,,,,,,,,,,,,,181.5,,,,,,,,
-bodyFat,2026-10-02,,,,,,,,,,,,,,,,,,,22.4,,,,
+savedFood,,Core Power Elite 42g,230,42,,,,,,,,,,,,,,,,,,,food,protein|drink,true,label
+foodLog,2026-10-02,Core Power Elite 42g,230,42,1,14:30,true,,,,,,,,,,,,,,,,,,,
+exercise,,,,,,,,Chest Press,machine,,,,,,,,,,,,,,,,,
+workout,,,,,,,,Chest Press,machine,Upper,1,6,12,2,90,,,,,,,,,,,
+lift,2026-10-02,,,,,,,Chest Press,machine,,,,,,,upper-press,1,60,10,4,,,,,,
+lift,2026-10-02,,,,,,,Chest Press,machine,,,,,,,upper-press,2,60,8,5,,,,,,
+weight,2026-10-02,,,,,,,,,,,,,,,,,181.5,,,,,,,,
+bodyFat,2026-10-02,,,,,,,,,,,,,,,,,,,,,22.4,,,,
 ```
 
 The original food-only CSV format remains supported for compatibility:
