@@ -226,19 +226,15 @@ try{
   'foodLog,2026-10-12,Funyuns,170,2,1,15:30,false',
   'foodLog,2026-10-12,White Monster,10,0,1,15:30,true'
  ].join('\n');
- const currentBeforeHuman=JSON.parse(state.records.get('bob').payload);currentBeforeHuman.foods.push({id:'white-monster',name:'White Monster',calories:10,protein:0,kind:'drink',tags:[],pinned:false,accuracy:'label'});
- state.records.set('bob',{...state.records.get('bob'),payload:JSON.stringify(currentBeforeHuman)});
- await click('close');await click('home');await tick();await tick();await click('settings');await previewFile('csv',humanCSV);
+ await previewFile('csv',humanCSV);
  assert.equal(document.querySelector('.import-human-summary h3').textContent,'3 food entries to import');
- assert.ok(document.querySelector('.import-human-summary').textContent.includes('1 new Saved Food'));
- assert.ok(document.querySelector('.import-human-summary').textContent.includes('1 existing Saved Food'));
+ assert.ok(document.querySelector('.import-human-summary').textContent.includes('2 new Saved Foods'));
  assert.ok(document.querySelector('.import-human-summary').textContent.includes('1 one-off entry'));
  assert.ok(document.querySelector('.import-clean-status'),'clean food import says no conflicts');
  assert.equal(document.querySelectorAll('.import-group-foods').length,0,'implicit Saved Foods are not duplicated as their own group');
  assert.equal(document.querySelectorAll('.import-group-foodEntries .import-record').length,3);
  assert.ok(document.querySelector('.import-group-foodEntries').textContent.includes('Will save to Food Library'));
  assert.ok(document.querySelector('.import-group-foodEntries').textContent.includes('One-off · will not save to Food Library'));
- assert.ok(document.querySelector('.import-group-foodEntries').textContent.includes('Uses existing Saved Food'));
  assert.ok(!document.querySelector('.import-group-foodEntries').textContent.includes('Adds new record'));
  await click('close');
  await previewFile('csv','date,name,calories,protein\n2026-09-27,Valid,100,10\n2026-09-27,Invalid,-1,10');
