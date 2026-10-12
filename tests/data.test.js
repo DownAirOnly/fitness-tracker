@@ -86,3 +86,17 @@ test('daily and meal notes survive backup round trips',()=>{
   const bad=emptyData();bad.notes=[{id:'bad',date:'2026-10-03',type:'meal',text:''}];
   assert.throws(()=>normalizeData(bad),/invalid note/);
 });
+
+
+test('one-off food logs stay out of the saved-food library while remaining dictionary-compressed',()=>{
+  const d=emptyData();
+  d.foodEntries=[{id:'entry-one-off',date:'2026-10-12',name:'Cruise one-off dessert',calories:420,protein:6,quantity:1}];
+  const stored=encodeData(d);
+  assert.equal(stored.foods.length,1);
+  assert.equal(stored.foods[0].saved,false);
+  assert.equal(stored.foodEntries[0].foodId,stored.foods[0].id);
+  const restored=normalizeData(stored);
+  assert.equal(restored.foods.length,0,'hidden dictionary item does not become a Saved Food');
+  assert.equal(restored.foodEntries[0].name,'Cruise one-off dessert');
+  assert.equal(restored.foodEntries[0].calories,420);
+});
