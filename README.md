@@ -48,7 +48,7 @@ Workout rows with the same `workout` name are assembled into one template and or
 Example mixed CSV:
 
 ```csv
-recordType,date,name,calories,protein,quantity,exercise,equipment,workout,order,repMin,repMax,targetSets,restSeconds,group,set,weight,reps,effort,notes,bodyFatPercent,kind,tags,favorite,accuracy
+recordType,date,name,calories,protein,quantity,time,saveAsFood,exercise,equipment,workout,order,repMin,repMax,targetSets,restSeconds,group,set,weight,reps,effort,notes,bodyFatPercent,kind,tags,favorite,accuracy
 savedFood,,Core Power Elite 42g,230,42,,,,,,,,,,,,,,,,,food,protein|drink,true,label
 foodLog,2026-10-02,Core Power Elite 42g,230,42,1,,,,,,,,,,,,,,,,,,,
 exercise,,,,,,Chest Press,machine,,,,,,,,,,,,,,,,
