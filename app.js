@@ -323,7 +323,7 @@ function filteredExerciseLibrary(){
 }
 function exerciseLibraryRows(){
  const defs=filteredExerciseLibrary();
- return defs.length?defs.map(e=>`<button type="button" class="exercise library-exercise equipment-${esc(e.equipment)}" data-action="edit-exercise-def" data-id="${esc(e.id)}"><span class="equipment-art" aria-hidden="true">${equipmentGlyph(e.equipment)}</span><span class="exercise-copy"><small class="equipment-label">${equipmentLabel(e.equipment)}</small><span class="exercise-name-row"><strong>${esc(e.name)}</strong>${e.setup?`<small class="exercise-setup-inline">${esc(e.setup)}</small>`:''}</span><small>${e.setup?'Saved setup':'No setup saved'}</small></span><b>›</b></button>`).join(''):'<p class="empty">No exercises match these filters.</p>';
+ return defs.length?defs.map(e=>`<button type="button" class="exercise library-exercise equipment-${esc(e.equipment)}" data-action="edit-exercise-def" data-id="${esc(e.id)}"><span class="equipment-art" aria-hidden="true">${equipmentGlyph(e.equipment)}</span><span class="exercise-copy"><small class="equipment-label">${equipmentLabel(e.equipment)}</small><span class="exercise-name-row"><strong>${esc(e.name)}</strong>${e.setup?`<small class="exercise-setup-inline">${esc(e.setup)}</small>`:''}</span>${e.setup?'':'<small>No setup saved</small>'}</span><b>›</b></button>`).join(''):'<p class="empty">No exercises match these filters.</p>';
 }
 function refreshExerciseLibraryList(){
  const list=document.querySelector('.exercise-library-list'),count=document.querySelector('[data-exercise-library-count]');if(list)list.innerHTML=exerciseLibraryRows();if(count)count.textContent=filteredExerciseLibrary().length+' shown';
