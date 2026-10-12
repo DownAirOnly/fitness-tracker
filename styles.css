@@ -993,3 +993,34 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
  .exercise-name-row{gap:6px;max-width:calc(100% - 70px)}
  .exercise-setup-inline{max-width:44%;font-size:9px!important}
 }
+
+
+/* v58 human-first import review */
+.import-human-summary{padding:4px 2px 12px}
+.import-human-summary h3{font:700 26px 'Outfit',sans-serif;margin:3px 0 5px;letter-spacing:-.5px}
+.import-human-summary>p:last-child{margin:0;color:#718078;font-size:11px;line-height:1.45}
+.import-clean-status{display:flex;align-items:center;gap:8px;background:#edf4e6;color:#376045;border-radius:11px;padding:10px 12px;margin:0 0 12px;font-size:11px}
+.import-clean-status span{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#dceccc;font-weight:900}
+.import-needs-review{margin-top:0}
+.import-date-block{padding-top:2px}
+.import-date-block+.import-date-block{border-top:1px solid #dce4d8;margin-top:8px;padding-top:12px}
+.import-date-label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:2px 0 4px;font-size:10px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;color:#718078}
+.import-date-label span{font-size:9px;letter-spacing:0;text-transform:none;font-weight:700}
+.import-row-ref{display:block;margin-top:4px;color:#9a7142!important;font-size:9px!important;font-weight:800}
+.import-library-effect{display:flex;align-items:center;gap:7px;margin-top:7px;font-size:10px;line-height:1.35;color:#58705f}
+.import-library-effect span{display:grid;place-items:center;flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:#edf2e6;font-weight:900}
+.import-library-effect.one-off{color:#6d756e}
+.import-library-effect.nutrition-diff{color:#8a5a1e}
+.import-library-effect.nutrition-diff span{background:#fff0d6}
+.import-group-foods:not([open]){background:#f8faf7}
+.import-group-foods>summary{color:#627168}
+.import-group-foodEntries .import-record{padding:10px 0}
+[data-theme="dark"] .import-clean-status{background:#293b2e;color:#d9e8d8}
+[data-theme="dark"] .import-clean-status span,[data-theme="dark"] .import-library-effect span{background:#344a39}
+[data-theme="dark"] .import-date-block+.import-date-block{border-color:#40533f}
+[data-theme="dark"] .import-human-summary>p:last-child,[data-theme="dark"] .import-date-label{color:#9daf9f}
+[data-theme="dark"] .import-library-effect{color:#b5c6b8}
+[data-theme="dark"] .import-library-effect.one-off{color:#aeb5af}
+[data-theme="dark"] .import-library-effect.nutrition-diff{color:#f0cf9b}
+[data-theme="dark"] .import-library-effect.nutrition-diff span{background:#423621}
+[data-theme="dark"] .import-group-foods:not([open]){background:#17231c}
