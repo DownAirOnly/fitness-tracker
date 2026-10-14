@@ -122,7 +122,7 @@ function checkLatestRelease(){
       const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store',signal:controller.signal});
       if(!response.ok)return;
       const manifest=await response.json(),next=manifest?.version;
-      if(!/^v\\d+$/.test(next)||Number(next.slice(1))<=Number(APP_VERSION.slice(1)))return;
+      if(!/^v\d+$/.test(next)||Number(next.slice(1))<=Number(APP_VERSION.slice(1)))return;
       latestRelease=next;
       if('serviceWorker' in navigator){
         void navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
