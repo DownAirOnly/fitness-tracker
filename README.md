@@ -24,6 +24,12 @@ Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install
 - Independent weight and body-fat records, individual BMI, separate weight/body-fat charts, and Friday-start weekly average weight/BMI. Height starts at 68 inches and is editable.
 - Google sign-in with private Firestore account storage, save status, conflict protection, and explicit migration from device logs. While signed in, the app also keeps an account-scoped last-confirmed device copy plus an unsaved recovery copy so an iOS process refresh or temporary network loss does not depend on RAM. Conflicting cloud/device revisions are never overwritten automatically. Explicit sign-out clears those account-specific local copies. Device-only mode remains available. See FIREBASE_SETUP.md before enabling cloud accounts. Export JSON regularly for an independent backup.
 
+## Food dates and tracking days (v59)
+
+A food entry's `date` is the actual calendar date eaten, and optional `t` is the local clock time in 30-minute slots (0–47). The site uses `settings.dayResetMinutes` to calculate which tracking day receives it. An entry with no time counts toward its calendar date, because the time is unknown. Changing the reset setting regroups timestamped entries without changing their stored dates.
+
+**No automatic migration:** backups made through v58 may use tracking dates rather than actual calendar dates for early-morning foods. Preserve your old JSON and manually correct the affected dates before relying on historical totals in v59. CSV food dates follow the new actual-date convention.
+
 ## CSV format
 
 CSV is an additive interchange format for normal user-editable Everyday data. It can be uploaded as a file or pasted directly into More → Import & backup → Import data. Every CSV goes through the same preview before it can be committed.

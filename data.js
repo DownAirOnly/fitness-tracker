@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=58';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=59';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -52,11 +52,21 @@ export const emptyData = () => ({version: 1, settings: {calories: 1600, protein:
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
+// Food dates are the calendar dates eaten; t represents the 30-minute clock slot.
+// Entries without a time belong to their calendar dates.
+export const foodTrackingDate = (entry, resetMinutes = 360) => {
+  if(entry.t == null || entry.t*30 >= resetMinutes)return entry.date;
+  const day=new Date(entry.date+'T12:00:00');day.setDate(day.getDate()-1);return localDate(day);
+};
+export const foodCalendarDate = (trackingDay, timeSlot, resetMinutes = 360) => {
+  if(timeSlot == null || timeSlot*30 >= resetMinutes)return trackingDay;
+  const day=new Date(trackingDay+'T12:00:00');day.setDate(day.getDate()+1);return localDate(day);
+};
 export const niceDate = s => new Date(`${s}T12:00:00`).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
 export const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T12:00:00`)) && localDate(new Date(`${s}T12:00:00`)) === s;
 export const round = n => Math.round((Number(n) + Number.EPSILON) * 10) / 10;
 export function bmi(weight, heightInches, unit='lb') { return heightInches > 0 ? round((unit === 'kg' ? weight * 2.2046226218 : weight) * 703 / heightInches ** 2) : null; }
-export function dailyTotals(entries, date) { return entries.filter(x=>x.date===date).reduce((a,x)=>({calories:a.calories+x.calories*x.quantity, protein:a.protein+x.protein*x.quantity}),{calories:0,protein:0}); }
+export function dailyTotals(entries, date, resetMinutes = 360) { return entries.filter(x=>foodTrackingDate(x,resetMinutes)===date).reduce((a,x)=>({calories:a.calories+x.calories*x.quantity, protein:a.protein+x.protein*x.quantity}),{calories:0,protein:0}); }
 export const weekDays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 export function startOfWeek(date, weekStart=5) {
   const d=new Date(`${date}T12:00:00`);

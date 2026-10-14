@@ -1,11 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseFoodCSV,dailyTotals,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData} from '../data.js';
+import {parseFoodCSV,dailyTotals,foodTrackingDate,foodCalendarDate,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData} from '../data.js';
 
 test('CSV supports quoted names and rejects malformed rows before import',()=>{
   const parsed=parseFoodCSV('date,name,calories,protein,quantity\r\n2026-09-25,"Chicken, rice",500,42,0.5\r\n2026-09-26,Bad,hi,4,1');
   assert.equal(parsed.entries.length,1);assert.equal(parsed.entries[0].name,'Chicken, rice');assert.equal(parsed.errors.length,1);
   assert.deepEqual(dailyTotals(parsed.entries,'2026-09-25'),{calories:250,protein:21});
+});
+test('v59 food date and reset grouping preserves actual calendar dates',()=>{
+ const midnight={date:'2026-10-13',t:0,calories:10,protein:0,quantity:1};
+ const morning={date:'2026-10-13',t:12,calories:200,protein:12,quantity:1};
+ const noTime={date:'2026-10-13',calories:30,protein:2,quantity:1};
+ const entries=[midnight,morning,noTime],before=JSON.stringify(entries);
+ assert.equal(foodTrackingDate(midnight,360),'2026-10-12');
+ assert.equal(foodCalendarDate('2026-10-12',0,360),'2026-10-13');
+ assert.equal(foodTrackingDate(noTime,360),'2026-10-13');
+ assert.deepEqual(dailyTotals(entries,'2026-10-12',360),{calories:10,protein:0});
+ assert.deepEqual(dailyTotals(entries,'2026-10-13',360),{calories:230,protein:14});
+ assert.deepEqual(dailyTotals(entries,'2026-10-13',0),{calories:240,protein:14});
+ assert.equal(foodTrackingDate({date:'2027-01-01',t:0},360),'2026-12-31');
+ assert.equal(JSON.stringify(entries),before);
 });
 test('weekly averages and BMI use entered weights and the configured height',()=>{
   const weeks=weeklyWeights([{date:'2026-09-21',value:184},{date:'2026-09-25',value:182},{date:'2026-09-20',value:186}],68);
