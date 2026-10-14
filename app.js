@@ -1,8 +1,8 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=59';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=60';
 
-import {prepareImport,importSections} from './import-model.js?v=59';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=59';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=59';
+import {prepareImport,importSections} from './import-model.js?v=60';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=60';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=60';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 function readOfflineWorkspace(){
   try{
@@ -80,6 +80,61 @@ const foodTimeOptions=value=>'<option value="" '+(value==null?'selected':'')+'>N
 const resetTimeOptions=value=>Array.from({length:48},(_,slot)=>{const minutes=slot*30;return '<option value="'+minutes+'" '+(minutes===value?'selected':'')+'>'+clockLabel(minutes)+'</option>';}).join('');
 
 const APP_VERSION='v'+(new URL(import.meta.url).searchParams.get('v')||'dev');
+
+let latestRelease='', releaseProbe=null, lastReleaseProbe=0, releaseReloading=false;
+function safeToUpdate(){
+  return authChecked && !offlineWorkspace && !data.activeWorkout && !importSaving &&
+    !cloudBusy && !cloudPending && !document.querySelector('.modal,.food-undo-toast') &&
+    !document.activeElement?.matches?.('input,textarea,select');
+}
+function showReleaseNotice(){
+  let node=document.querySelector('#app-update-notice');
+  if(!latestRelease || document.querySelector('.modal') || data.activeWorkout){
+    node?.remove();return;
+  }
+  if(!node){
+    node=document.createElement('div');node.id='app-update-notice';node.setAttribute('role','status');
+    node.innerHTML='<span></span><button type="button">Refresh</button>';
+    node.querySelector('button').addEventListener('click',()=>tryRefreshRelease());
+    document.body.appendChild(node);
+  }
+  node.querySelector('span').textContent=safeToUpdate()?'Update '+latestRelease+' is ready':'Update '+latestRelease+' available · finish saving first';
+  node.querySelector('button').disabled=!safeToUpdate();
+}
+function tryRefreshRelease(){
+  if(!latestRelease||releaseReloading)return;
+  if(!safeToUpdate()){showReleaseNotice();return;}
+  releaseReloading=true;
+  captureCriticalLocalState();
+  // Bypass an older service worker's cached navigation on the first upgrade.
+  const url=new URL(location.href);
+  url.searchParams.set('appUpdate',latestRelease);
+  location.replace(url.href);
+}
+function checkLatestRelease(){
+  if(releaseProbe || document.visibilityState==='hidden' || navigator.onLine===false ||
+     Date.now()-lastReleaseProbe<1500)return releaseProbe;
+  lastReleaseProbe=Date.now();
+  releaseProbe=(async()=>{
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),4500);
+    try{
+      // This file is intentionally not intercepted or cached by the service worker.
+      const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store',signal:controller.signal});
+      if(!response.ok)return;
+      const manifest=await response.json(),next=manifest?.version;
+      if(!/^v\\d+$/.test(next)||Number(next.slice(1))<=Number(APP_VERSION.slice(1)))return;
+      latestRelease=next;
+      if('serviceWorker' in navigator){
+        void navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
+      }
+      tryRefreshRelease();
+      if(!releaseReloading)setTimeout(tryRefreshRelease,6000);
+    }catch{ /* Offline, slow, or blocked checks leave the local app running. */ }
+    finally{clearTimeout(timer);releaseProbe=null;}
+  })();
+  return releaseProbe;
+}
+
 const FIXED_WEEK_START=5;
 const effortLabels={1:'Light',2:'Comfortable',3:'Challenging',4:'Hard',5:'Very Hard',6:'Limit',7:'Failure'};
 const effortChartColors={1:'#bbdabb',2:'#cadba8',3:'#dcd99f',4:'#e1c58d',5:'#e2ad84',6:'#db927e',7:'#d57878'};
@@ -125,6 +180,7 @@ function render() {
   }
   const views={home,food,gym,progress,history,settings};
   shell(views[page]?.()||home());
+  if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
 function home(loading=false) {
   const today=currentTrackingDate();
@@ -720,7 +776,7 @@ function settings() {
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div><p>${esc(intro)} Export backups regularly.</p></div>${cruiseModePanel()}${accountPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts support up to about 800 KB of logs.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
-function close(all=false) {importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();}
+function close(all=false) {importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
 function filteredFoodLibrary(){
  let foods=sortFoods(data.foods,foodLibrarySort),q=foodLibrarySearch.trim().toLowerCase();
  if(q)foods=foods.filter(f=>f.name.toLowerCase().includes(q)||foodKindLabel(f.kind).toLowerCase().includes(q)||foodAccuracyLabel(f.accuracy).toLowerCase().includes(q)||(f.tags||[]).some(tag=>tag.includes(q))||(f.pinned&&'pinned'.includes(q)));
@@ -959,7 +1015,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=59',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('everyday-sw-refresh')){sessionStorage.setItem('everyday-sw-refresh','1');location.reload();}});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=60',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(offlineWorkspace)return '<div class="account-banner offline-workspace-banner" role="status"><span>Offline JSON workspace<small>'+esc(offlineWorkspace.filename)+' · '+(offlineWorkspace.dirty?'changes since export':'saved locally')+'</small></span>'+button('Workspace','account','text-btn')+'</div>';
@@ -1009,7 +1065,7 @@ async function loadAccount(){
 function promptWeight(){if(data.settings.cruiseMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=59');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=60');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -1024,7 +1080,7 @@ async function startCloud(){
 }
 window.addEventListener('beforeunload',event=>{captureCriticalLocalState();if(!offlineWorkspace&&(cloudPending||cloudBusy)){event.preventDefault();event.returnValue='';}});
 window.addEventListener('pagehide',()=>captureCriticalLocalState());
-window.addEventListener('online',()=>{if(offlineWorkspace||!account)return;if(session?.ready&&cloudPending&&!cloudRecoveryConflict)void persist();else if(!session?.ready)void loadAccount();});
+window.addEventListener('online',()=>{void checkLatestRelease();if(offlineWorkspace||!account)return;if(session?.ready&&cloudPending&&!cloudRecoveryConflict)void persist();else if(!session?.ready)void loadAccount();});
 
 function appearancePanel(){
   const selected=window.everydayTheme?.preference || 'system';
@@ -1163,6 +1219,7 @@ function showHealthSetup(){
   modal('Set up Health sync',`<p class="body-copy">Keep your existing Everyday Home Screen icon. Use a separate Sync Everyday Health Shortcut to send your latest scale readings.</p><p class="hint">This private address permits weight and body-fat submissions. Do not share it or publish a Shortcut containing it. Disconnect revokes it.</p>${button('Copy private sync address','health-copy','primary')}<p id="health-copy-status" role="status"></p><label class="field"><span>Private sync address</span><textarea id="health-url" readonly rows="3">${esc(cloudApi.health.url(healthState.token))}</textarea></label><p class="body-copy">Follow the <a href="health-shortcut.html" target="_blank" rel="noopener">Shortcut setup instructions</a>. You can send Weight and Body Fat Percentage independently, each with its own Value and Start Date, using this address. No Google password or Firebase administrator key goes into the Shortcut.</p><p class="hint">Only the latest submitted scale reading waits here. Open Everyday after syncing to import it. Repeated or older readings are ignored; historical backfill and Health deletions are not synced.</p>`);
 }
 document.addEventListener('input',event=>{if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{void syncHealth();void refreshStorageProtection(false);}});
-window.addEventListener('pageshow',()=>{void syncHealth();void refreshStorageProtection(false);});
-window.addEventListener('focus',()=>{void syncHealth();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
+window.addEventListener('pageshow',()=>{void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
+window.addEventListener('focus',()=>{void checkLatestRelease();void syncHealth();});
+void checkLatestRelease();

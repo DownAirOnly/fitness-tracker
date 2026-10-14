@@ -1024,3 +1024,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 [data-theme="dark"] .import-library-effect.nutrition-diff{color:#f0cf9b}
 [data-theme="dark"] .import-library-effect.nutrition-diff span{background:#423621}
 [data-theme="dark"] .import-group-foods:not([open]){background:#17231c}
+
+/* Small update notice; deferred during a workout, open form, or unsaved cloud work. */
+#app-update-notice{position:fixed;z-index:30;left:50%;bottom:calc(82px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(460px,calc(100% - 24px));display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #bed1bb;border-radius:13px;background:#f2f8ed;color:#264832;box-shadow:0 8px 26px #152b2030;font-size:12px;font-weight:700}
+#app-update-notice button{flex-shrink:0;border:0;border-radius:9px;padding:8px 11px;background:#25543b;color:white;font-weight:800;font-size:12px}
+#app-update-notice button:disabled{opacity:.5}
+[data-theme="dark"] #app-update-notice{background:#243c2d;border-color:#547357;color:#e4eee6}
+[data-theme="dark"] #app-update-notice button{background:#b5d58d;color:#172c23}

@@ -12,6 +12,12 @@ npm run dev
 
 Open http://127.0.0.1:4173. Run `npm test` for the data-model checks. To install as an iPhone Home Screen app, serve this folder over HTTPS, open it in Safari, and use Share → Add to Home Screen. The service worker caches the app for offline use after its first load. The app requests persistent origin storage when supported and shows the granted/best-effort status in Settings → Offline protection.
 
+## Online version checks and offline operation (v60)
+
+Every launch and return to the foreground checks `version.json` directly over the network (with caching disabled). When the published version is newer, Everyday refreshes to the latest app after active forms, workouts, imports, cloud saves, and offline workspaces are safely out of the way. A compact refresh notice appears if the update must wait. The check never blocks loading and network failures are ignored, so the already installed app remains usable without a connection.
+
+The service worker uses network-first navigation when online, but its fully precached release when offline. Release metadata is not cached. Update `version.json`, asset references, and the service worker's cache name together when publishing a new version.
+
 ## What is included
 
 - Daily calorie and protein totals with editable goals (initially 1,600 calories and 130 g protein), plus a Progress chart that can move through weekly, monthly, quarterly, and yearly views.
