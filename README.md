@@ -115,3 +115,7 @@ Buddy preserves its current look but switches to a focused in-set display with w
 ## Fixed demo dataset (v63)
 
 When signed out, Home and More provide **Load demo data**. This loads a fully fictional, deterministic 42-day notebook with saved foods, dated food entries (including a post-midnight entry), weigh-ins, body-fat readings, notes, lifting history, and completed Workout Buddy sessions. The sample uses fixed dates and values, not random input or real user data. Demo editing/reloading saves to the separate `everyday-demo-workspace-v1` browser key; **Reset demo data** restores the same original sample. **Exit demo** clears the demo workspace and returns to the original device logs. No demo data is copied into Firebase or the device's normal storage. Sign in and offline JSON workspace mode are unavailable until exiting demo. An already signed-in cloud account takes precedence at startup.
+
+## Workout Buddy refinements (v64)
+
+After a set, its result stays editable and does not appear in Completed Sets until review ends. **Start set** saves edited values and immediately starts the next set's timer; the final set uses **Next exercise**. Tapping the last workout's two-set summary expands in place to show the preceding two sessions. The existing Setup pill is tap-editable and appears even when empty, with Journal inline next to it. Exercise-picker cards now show dedicated colored push/pull corner badges.
