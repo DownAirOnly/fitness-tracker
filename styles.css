@@ -1078,3 +1078,17 @@ body.exercise-progress-modal-open{overflow:hidden}
 [data-theme="dark"] .buddy-setup-editor input{background:#152019;border-color:#48614e;color:#e4eee6}
 [data-theme="dark"] .buddy-journal-row{border-color:#35503c}
 [data-theme="dark"] .buddy-journal-row blockquote{color:#b4cbbb}
+
+/* v63: small, explicit demo controls. Real device/cloud data never shares this workspace. */
+.demo-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border:1px dashed #a7c0ab;border-radius:15px;background:#f0f6eb;margin:0 0 16px}
+.demo-entry span{display:grid;gap:3px}
+.demo-entry strong{font-size:12px;color:#2a593f}
+.demo-entry small{font-size:11px;line-height:1.4;color:#6c8271}
+.demo-entry button{flex-shrink:0}
+.demo-banner{background:#f2eddb;border:1px solid #d9c89a}
+.demo-account-panel>.outline{display:block;margin-top:8px;width:100%;text-align:left}
+[data-theme="dark"] .demo-entry{background:#203429;border-color:#50785c}
+[data-theme="dark"] .demo-entry strong{color:#cde4d0}
+[data-theme="dark"] .demo-entry small{color:#a5c1a9}
+[data-theme="dark"] .demo-banner{background:#423b2a;border-color:#645734}
+@media(max-width:420px){.demo-entry{align-items:flex-start;flex-direction:column}.demo-entry button{width:100%}}

@@ -1,9 +1,16 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=62';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=63';
 
-import {prepareImport,importSections} from './import-model.js?v=62';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=62';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=62';
+import {prepareImport,importSections} from './import-model.js?v=63';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=63';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=63';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=63';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
+const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
+function readDemoWorkspace(){
+ try{const saved=localStorage.getItem(DEMO_WORKSPACE_KEY);if(!saved)return null;const state=JSON.parse(saved);return state.active===true?normalizeData(state.data):null;}catch{return null;}
+}
+function storeDemoWorkspace(next){localStorage.setItem(DEMO_WORKSPACE_KEY,JSON.stringify({active:true,data:encodeData(next)}));}
+
 function readOfflineWorkspace(){
   try{
     const raw=localStorage.getItem(OFFLINE_WORKSPACE_KEY);if(!raw)return null;
@@ -28,14 +35,14 @@ function downloadJsonBackup(filename,markWorkspace=false,sourceData=data){
 }
 
 
-let deviceData=load(),offlineWorkspace=readOfflineWorkspace();
+let deviceData=load(),offlineWorkspace=readOfflineWorkspace(),existingDemo=offlineWorkspace?null:readDemoWorkspace(),demoMode=Boolean(existingDemo);
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud saving paused':'Connecting account service…', cloudReady=false, authChecked=false;
 let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null;
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
-let data=offlineWorkspace?structuredClone(offlineWorkspace.data):deviceData, page='home', chosenDate=trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
+let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodProgressPeriod='week',foodProgressOffset=0;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null;
 const app=document.querySelector('#app');
@@ -54,6 +61,7 @@ function saveCloudRecoveryLocally(markMessage=true){
 function saveCriticalLocalCopy(){
   try{
     if(offlineWorkspace){storeOfflineWorkspace(data,true);return true;}
+    if(demoMode){storeDemoWorkspace(data);return true;}
     if(!account){save(data);deviceData=structuredClone(data);return true;}
     saveCloudRecoveryLocally(true);return true;
   }catch{return false;}
@@ -70,7 +78,7 @@ async function refreshStorageProtection(request=true){
 const currentTrackingDate=(now=new Date())=>trackingDate(now,data.settings.dayResetMinutes??360);
 const currentFoodTrackingDate=entry=>foodTrackingDate(entry,data.settings.dayResetMinutes??360);
 const foodDayTotals=date=>dailyTotals(data.foodEntries,date,data.settings.dayResetMinutes??360);
-const weightPromptSeenKey=()=>`everyday-weight-prompt-seen:${offlineWorkspace?'offline-workspace':account?.uid||'device'}`;
+const weightPromptSeenKey=()=>`everyday-weight-prompt-seen:${demoMode?'demo':offlineWorkspace?'offline-workspace':account?.uid||'device'}`;
 function weightPromptSeen(date){try{return localStorage.getItem(weightPromptSeenKey())===date;}catch{return false;}}
 function markWeightPromptSeen(date){try{localStorage.setItem(weightPromptSeenKey(),date);}catch{}data.promptDate=date;}
 const currentFoodSlot=(now=new Date())=>Math.floor((now.getHours()*60+now.getMinutes())/30);
@@ -142,6 +150,7 @@ const effortChartColor=value=>effortChartColors[Number(value)]||'#91a096';
 const effortText=value=>effortLabels[value]||'';
 const effortOptions=value=>'<option value="">Effort</option>'+Object.entries(effortLabels).map(([n,label])=>`<option value="${n}" ${Number(value)===Number(n)?'selected':''}>${label}</option>`).join('');
 const persist=async()=>{
+  if(demoMode){try{storeDemoWorkspace(data);render();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
   if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';render();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
   if(!account){try{save(data);deviceData=structuredClone(data);render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
   let localSafe=true;
@@ -166,7 +175,7 @@ const persist=async()=>{
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
 function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudConfirmed));}
-function isLoading(){return offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
+function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   const navItems=data.settings.cruiseMode?[['home','⌂','Home'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']]:[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['settings','⚙','More']];
   app.innerHTML=`<div class="shell ${data.settings.cruiseMode?'cruise-mode':''}"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
@@ -190,7 +199,7 @@ function home(loading=false) {
   const totals=foodDayTotals(today),latest=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
   const calRemaining=Math.round(data.settings.calories-totals.calories),proteinRemaining=Math.round(data.settings.protein-totals.protein);
   const remainingBadges='<div class="home-remaining" aria-label="Daily goals remaining"><span class="'+(calRemaining<0?'over':'')+'"><small>CALORIES</small><strong>'+(loading?'—':calRemaining>=0?calRemaining+' left':(-calRemaining)+' over')+'</strong></span><span class="'+(proteinRemaining<=0?'reached':'')+'"><small>PROTEIN</small><strong>'+(loading?'—':proteinRemaining>0?proteinRemaining+'g left':'Goal reached')+'</strong></span></div>';
-  return `<section class="home-actions" aria-label="What do you want to log?"><button class="big-action food-action" data-action="food" ${loading?'disabled':''}><span class="action-icon">◒</span><span><strong>Food</strong><small>Calories, protein & saved foods</small></span><b>↗</b></button><button class="big-action lift-action" data-action="gym" ${loading?'disabled':''}><span class="action-icon">▣</span><span><strong>Lifting</strong><small>Sets, reps & previous workouts</small></span><b>↗</b></button></section><section class="today-card"><div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>Today so far</h2></div>${button('View day ↗','history','text-btn',loading?'disabled':'')}</div><div class="metric-row"><div><b>${loading?'—':Math.round(totals.calories).toLocaleString()}</b><small>of ${loading?'—':data.settings.calories} cal</small>${progressBar(loading?0:totals.calories,data.settings.calories,'#d8eb86')}</div><div><b>${loading?'—':Math.round(totals.protein)}<em>g</em></b><small>of ${loading?'—':data.settings.protein}g protein</small>${progressBar(loading?0:totals.protein,data.settings.protein,'#9fd9bf')}</div></div>${remainingBadges}</section><section class="weight-strip"><div><span class="small-icon">⚖</span><span><strong>${loading?'—':latest?`${fmt(latest.value)} ${data.settings.unit}`:'No weigh-in yet'}</strong><small>${loading?'—':latest?`Last logged ${niceDate(latest.date)}`:'A morning check-in when you are ready'}</small></span></div>${button('Log weight','weight','outline small',loading?'disabled':'')}</section>`;
+  return `<section class="home-actions" aria-label="What do you want to log?"><button class="big-action food-action" data-action="food" ${loading?'disabled':''}><span class="action-icon">◒</span><span><strong>Food</strong><small>Calories, protein & saved foods</small></span><b>↗</b></button><button class="big-action lift-action" data-action="gym" ${loading?'disabled':''}><span class="action-icon">▣</span><span><strong>Lifting</strong><small>Sets, reps & previous workouts</small></span><b>↗</b></button></section>${!account&&!demoMode&&!offlineWorkspace&&authChecked?'<section class="demo-entry"><span><strong>Try Everyday with sample logs</strong><small>Fictional food, weight and workout history · your records stay untouched</small></span>'+button('Load demo data','demo-start','outline small')+'</section>':''}<section class="today-card"><div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>Today so far</h2></div>${button('View day ↗','history','text-btn',loading?'disabled':'')}</div><div class="metric-row"><div><b>${loading?'—':Math.round(totals.calories).toLocaleString()}</b><small>of ${loading?'—':data.settings.calories} cal</small>${progressBar(loading?0:totals.calories,data.settings.calories,'#d8eb86')}</div><div><b>${loading?'—':Math.round(totals.protein)}<em>g</em></b><small>of ${loading?'—':data.settings.protein}g protein</small>${progressBar(loading?0:totals.protein,data.settings.protein,'#9fd9bf')}</div></div>${remainingBadges}</section><section class="weight-strip"><div><span class="small-icon">⚖</span><span><strong>${loading?'—':latest?`${fmt(latest.value)} ${data.settings.unit}`:'No weigh-in yet'}</strong><small>${loading?'—':latest?`Last logged ${niceDate(latest.date)}`:'A morning check-in when you are ready'}</small></span></div>${button('Log weight','weight','outline small',loading?'disabled':'')}</section>`;
 }
 function foodTotals(totals){
   return `<span class="food-total-grid"><span><small>CALORIES</small><span class="food-total-number"><strong>${Math.round(totals.calories)}</strong><span>/ ${data.settings.calories}</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.calories/data.settings.calories*100))}%;background:#d8eb86"></span></span></span><span><small>PROTEIN</small><span class="food-total-number"><strong>${Math.round(totals.protein)}g</strong><span>/ ${data.settings.protein}g</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.protein/data.settings.protein*100))}%;background:#9fd9bf"></span></span></span></span>`;
@@ -757,6 +766,7 @@ function dataHealthDetails(){
  modal('Data diagnostics','<div class="diagnostic-details"><div class="diagnostic-table">'+rows.map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div><section><h3>Errors</h3>'+(d.issues.length?'<ul>'+d.issues.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No structural errors found.</p>')+'</section><section><h3>Things to review</h3>'+(d.warnings.length?'<ul>'+d.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No duplicate definitions detected.</p>')+'</section></div>');
 }
 function offlineWorkspacePanel(){
+  if(demoMode)return '';
   if(offlineWorkspace){
     const status=offlineWorkspace.dirty?'Changes since last export':'No changes since last export/load';
     return '<section class="panel spaced offline-workspace-panel active"><div class="section-head"><div><p class="eyebrow">OFFLINE JSON</p><h2>Workspace active</h2></div><span class="workspace-status '+(offlineWorkspace.dirty?'dirty':'clean')+'">'+(offlineWorkspace.dirty?'Export needed':'Up to date')+'</span></div><p class="body-copy"><strong>'+esc(offlineWorkspace.filename)+'</strong><br>'+esc(status)+'. All edits are saved only on this device while this workspace is active. Firebase and Apple Health are paused.</p><div class="offline-workspace-actions">'+button('Export updated JSON','offline-export','primary')+button('Replace workspace JSON','offline-replace','outline')+button('Exit offline mode','offline-exit','outline')+'</div><p class="hint">After exiting, use the normal Restore JSON backup flow if you want these changes applied to your account. Nothing syncs automatically. For travel, add Everyday to your iPhone Home Screen and open it once online after updates; the cached app can reopen without internet.</p></section>';
@@ -801,7 +811,7 @@ function cruiseModePanel(){
   return '<section class="panel cruise-mode-panel"><div class="section-head"><div><p class="eyebrow">TRAVEL</p><h2>Cruise Mode</h2></div><span class="health-status '+(on?'good':'')+'">'+(on?'On':'Off')+'</span></div><p class="body-copy">'+(on?'Food and weigh-in logging are hidden. Everyday is centered on lifting, Workout Buddy, Progress, History, and Trip Notes.':'Temporarily hide food and weigh-in logging while keeping all existing data intact.')+'</p>'+button(on?'Turn off Cruise Mode':'Turn on Cruise Mode','toggle-cruise-mode',on?'outline':'primary')+'<p class="hint">This changes the interface only. Turning it off restores the normal Food and weight tools with all history unchanged.</p></section>';
 }
 function settings() {
-  const intro=offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
+  const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div><p>${esc(intro)} Export backups regularly.</p></div>${cruiseModePanel()}${accountPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing the weight unit converts existing weights and lift sets. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts support up to about 800 KB of logs.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
@@ -915,11 +925,13 @@ app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
 app.addEventListener('change',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-suggestion-time]')){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,timeSlot:event.target.value===''?null:Number(event.target.value)});return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time)time.value=event.target.value===localDate()?String(currentFoodSlot()):'';return;}if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('click',async event=>{
-  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&action!=='offline-start')||importSaving)return;
-  if(action==='sign-in'){if(offlineWorkspace)return alert('Exit the offline JSON workspace before changing cloud sign-in.');if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
+  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
+  if(action==='demo-start'||action==='demo-reset'){if(account||offlineWorkspace)return;if(demoMode&&action==='demo-start')return;if(demoMode&&action==='demo-reset'&&!confirm('Reset all demo entries to the original sample?'))return;const fixture=createDemoData();try{storeDemoWorkspace(fixture);}catch{alert('This device could not open the demo workspace.');return;}demoMode=true;data=fixture;chosenDate=DEMO_LAST_DATE;page='home';cloudMessage='Demo mode · saved separately on this device';close(true);render();return;}
+  if(action==='demo-exit'){if(!demoMode)return;if(data.activeWorkout&&!confirm('Exit demo during an active workout? The demo session will be discarded.'))return;demoMode=false;try{localStorage.removeItem(DEMO_WORKSPACE_KEY);}catch{}data=structuredClone(deviceData);chosenDate=currentTrackingDate();page='home';cloudMessage='Only on this device · sign in for cloud saving';close(true);render();promptWeight();return;}
+  if(action==='sign-in'){if(demoMode)return alert('Exit demo mode before signing in.');if(offlineWorkspace)return alert('Exit the offline JSON workspace before changing cloud sign-in.');if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
   if(action==='sign-out'){if(offlineWorkspace)return alert('Exit the offline JSON workspace before changing cloud sign-in.');if(cloudBusy||cloudPending)return alert('Finish saving, or export your changes and load cloud data, before signing out.');const uid=account?.uid;try{await cloudApi.signOut();if(uid)clearCloudLocal(uid);}catch(error){cloudMessage=describeCloudError(error);render();}return;}
   if(action==='account'){page='settings';render();return;}
-  if(action==='offline-start'){if(!offlineWorkspace&&account&&(cloudBusy||cloudPending))return alert('Finish or resolve the current cloud save before opening a separate workspace.');void refreshStorageProtection(true);offlineWorkspaceModal(false);return;}
+  if(action==='offline-start'){if(demoMode)return alert('Exit demo mode before starting an offline JSON workspace.');if(!offlineWorkspace&&account&&(cloudBusy||cloudPending))return alert('Finish or resolve the current cloud save before opening a separate workspace.');void refreshStorageProtection(true);offlineWorkspaceModal(false);return;}
   if(action==='offline-replace'){offlineWorkspaceModal(true);return;}
   if(action==='offline-export'){if(!offlineWorkspace)return;downloadJsonBackup(offlineOutputName(),true);return;}
   if(action==='offline-exit'){exitOfflineWorkspace();return;}
@@ -1083,28 +1095,30 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=62',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=63',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
+  if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
   if(offlineWorkspace)return '<div class="account-banner offline-workspace-banner" role="status"><span>Offline JSON workspace<small>'+esc(offlineWorkspace.filename)+' · '+(offlineWorkspace.dirty?'changes since export':'saved locally')+'</small></span>'+button('Workspace','account','text-btn')+'</div>';
   return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
 }
 function cloudSaveWarning(){
-  if(offlineWorkspace||!account)return '';
+  if(demoMode||offlineWorkspace||!account)return '';
   if(cloudRecoveryConflict)return `<div class="save-warning" role="alert"><strong>A device recovery copy needs review.</strong><p>The cloud changed after this device recovery was created, so Everyday did not overwrite either copy. Export the recovery JSON before discarding it if you may need those changes.</p>${button('Export device recovery','cloud-recovery-export','outline small')}${button('Keep cloud · discard recovery','cloud-recovery-discard','outline small')}</div>`;
   if(cloudPending&&!cloudBusy)return `<div class="save-warning" role="alert"><strong>Changes are safe on this device but not confirmed online.</strong><p>${esc(cloudMessage)}</p>${button(session?.ready?'Retry cloud save':'Reconnect & sync','cloud-retry','outline small')}${button('Export unsaved backup','export','outline small')}${button('Load latest cloud data','cloud-load','outline small')}</div>`;
   return '';
 }
 function accountPanel(){
+  if(demoMode)return '<section class="panel demo-account-panel"><h2>Demo data</h2><p class="body-copy">A separate set of fictional nutrition, body weight and Workout Buddy records. No changes can be sent to your account or normal device logs.</p>'+button('Reset demo data','demo-reset','outline')+button('Exit demo','demo-exit','outline')+'</section>';
   if(offlineWorkspace){
     const cloudLine=account?'Signed in as '+account.email+'. Cloud loading and saving resume after you exit this workspace.':'Cloud account access is paused while this workspace is active.';
     return '<section class="panel"><h2>Cloud account paused</h2><p class="body-copy">'+esc(cloudLine)+'</p><p class="hint">Workspace edits cannot overwrite Firebase by accident. Export the workspace JSON, exit offline mode, then use the normal restore preview to apply it deliberately.</p></section>';
   }
   let migrated=false;try{migrated=localStorage.getItem('everyday-migrated:'+account?.uid)==='yes';}catch{}
-  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasRecords(deviceData)&&!migrated?`<p class="body-copy">Original device logs found. You can copy them into this account. This keeps the device copy as a backup.</p>${button('Copy device logs to this account','migrate-device','primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p></section>`;
+  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasRecords(deviceData)&&!migrated?`<p class="body-copy">Original device logs found. You can copy them into this account. This keeps the device copy as a backup.</p>${button('Copy device logs to this account','migrate-device','primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p>${!account?button('Load demo data','demo-start','outline'):''}</section>`;
 }
 async function loadAccount(){
-  if(offlineWorkspace)return;const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
+  if(offlineWorkspace||demoMode)return;const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
   try{
     const loaded=await active.load();if(session!==active)return;
     const recovery=readCloudRecovery(active.uid);cloudRecovery=recovery;cloudRecoveryConflict=null;
@@ -1130,25 +1144,27 @@ async function loadAccount(){
   }
   finally{if(session===active){cloudBusy=false;render();if(active.ready){void syncHealth();promptWeight();}else if(hasLocalCloudFallback())promptWeight();}}
 }
-function promptWeight(){if(data.settings.cruiseMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
+function promptWeight(){if(demoMode||data.settings.cruiseMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=62');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=63');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
       cloudConfirmed=null;cloudRecovery=null;cloudRecoveryConflict=null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
       if(offlineWorkspace){data=structuredClone(offlineWorkspace.data);cloudMessage='Offline JSON workspace · cloud saving paused';render();promptWeight();return;}
+      if(demoMode&&user){demoMode=false;try{localStorage.removeItem(DEMO_WORKSPACE_KEY);}catch{}}
+      if(demoMode&&!user){cloudMessage='Demo mode · saved separately on this device';render();return;}
       data=user?emptyData():structuredClone(deviceData);
       if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';render();promptWeight();}
     });
-    cloudReady=true;render();if(!offlineWorkspace)void syncHealth();
+    cloudReady=true;render();if(!offlineWorkspace&&!demoMode)void syncHealth();
   }catch(error){authChecked=true;cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud unavailable, local editing still works':'Cloud login unavailable. Device logs still work. Reload to retry.';render();promptWeight();}
 }
 window.addEventListener('beforeunload',event=>{captureCriticalLocalState();if(!offlineWorkspace&&(cloudPending||cloudBusy)){event.preventDefault();event.returnValue='';}});
 window.addEventListener('pagehide',()=>captureCriticalLocalState());
-window.addEventListener('online',()=>{void checkLatestRelease();if(offlineWorkspace||!account)return;if(session?.ready&&cloudPending&&!cloudRecoveryConflict)void persist();else if(!session?.ready)void loadAccount();});
+window.addEventListener('online',()=>{void checkLatestRelease();if(demoMode||offlineWorkspace||!account)return;if(session?.ready&&cloudPending&&!cloudRecoveryConflict)void persist();else if(!session?.ready)void loadAccount();});
 
 function appearancePanel(){
   const selected=window.everydayTheme?.preference || 'system';
@@ -1249,6 +1265,7 @@ function healthPanel(){
   return `<section class="panel spaced"><p class="eyebrow">APPLE HEALTH</p><h2>Weight & body fat sync</h2><p class="body-copy">Use an iPhone Shortcut to send your latest weight and, when available, body-fat percentage. Everyday checks when you open or return to the app. Your Home Screen icon stays the same.</p><p role="status">${esc(healthState.status||'Not connected. Weight access is granted in Shortcuts on your iPhone.')}</p>${healthState.enabled?`${button('Check Health','health-check','outline')}${button('Shortcut setup','health-setup','outline')}${button('Disconnect','health-disconnect','text-btn')}`:button('Connect Health Shortcut','health-enable','primary')}<p class="hint">Weight and body fat sync independently and may have different dates. Either measurement may be submitted by itself. Existing manual readings of the same type/date are kept. Everyday does not write back to Apple Health.</p></section>`;
 }
 async function syncHealth(force=false){
+ if(demoMode)return;
   if(offlineWorkspace||!cloudApi?.health||!account||!session?.ready||cloudBusy||cloudPending||importSaving||document.querySelector('.modal'))return;
   if(!force&&(page==='settings'||document.activeElement?.matches('input,textarea,select')||Date.now()-healthCheckedAt<30000))return;
   const active=session;healthCheckedAt=Date.now();cloudBusy=true;
