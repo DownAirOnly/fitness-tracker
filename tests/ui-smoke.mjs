@@ -49,6 +49,21 @@ try{
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'false');
  assert.ok(document.querySelector('main').firstElementChild.classList.contains('home-actions'));
  assert.ok(document.querySelector('main').nextElementSibling.classList.contains('account-banner'));
+ // v63: anonymous demo cannot replace normal device data and can be reset on demand.
+ const deviceBeforeDemo=localStorage.getItem('everyday-fitness-v1');
+ assert.ok(document.querySelector('[data-action="demo-start"]'),'demo entry point for signed-out visitors');
+ await click('demo-start');
+ assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
+ let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
+ assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
+ assert.equal(localStorage.getItem('everyday-fitness-v1'),deviceBeforeDemo,'demo never writes normal device records');
+ await click('settings');await click('demo-reset');
+ sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
+ assert.equal(sample.data.foodEntries.length,158,'reset restores the exact fixture');
+ await click('demo-exit');
+ assert.equal(localStorage.getItem('everyday-demo-workspace-v1'),null,'exit clears only demo workspace');
+ assert.equal(localStorage.getItem('everyday-fitness-v1'),deviceBeforeDemo,'exiting demo restores real device data');
+ assert.ok(!document.querySelector('.demo-banner'));
  await click('food');assert.ok(document.querySelector('.tracking-date input'));await click('new-food');
  assert.equal(document.activeElement.getAttribute('role'),'dialog','opening forms must not autofocus an input');
  const foodFormTest=document.querySelector('form[data-form="food"]');assert.ok(foodFormTest);
