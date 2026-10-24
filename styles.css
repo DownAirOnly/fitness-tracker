@@ -1031,3 +1031,17 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 #app-update-notice button:disabled{opacity:.5}
 [data-theme="dark"] #app-update-notice{background:#243c2d;border-color:#547357;color:#e4eee6}
 [data-theme="dark"] #app-update-notice button{background:#b5d58d;color:#172c23}
+
+.food-quantity-quick{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #dce4d8;border-radius:11px;min-height:44px;background:#fff;padding:4px}
+.food-quantity-quick strong{font-variant-numeric:tabular-nums;font-size:16px}
+.food-quantity-quick button{width:34px;height:34px;border:0;border-radius:8px;background:#e9f1e8;color:#264d34;font-size:22px}
+.food-quantity-presets{display:flex;gap:5px;margin-top:5px}
+.food-quantity-presets button{min-width:34px;border:1px solid #dce4d8;border-radius:8px;background:transparent;padding:4px 7px;color:inherit;font-size:12px}
+.food-csv-block .food-csv-panel{display:grid;gap:5px;margin-top:6px}.food-csv-panel[hidden]{display:none!important}
+.food-csv-panel textarea{width:100%;min-height:74px;resize:vertical;font:12px/1.45 ui-monospace,SFMono-Regular,monospace;padding:9px;border:1px solid #dce4d8;border-radius:9px;background:#fff;color:#172c23}
+.food-csv-panel small{font-size:11px;color:#758779}
+body.exercise-progress-modal-open{overflow:hidden}
+.exercise-progress-all-modal{position:fixed!important;left:50%!important;transform:translate(-50%,-50%)!important;overflow-y:auto;overscroll-behavior:contain}
+[data-theme="dark"] .food-quantity-quick,[data-theme="dark"] .food-csv-panel textarea{background:#152019;border-color:#48614e;color:#e4eee6}
+[data-theme="dark"] .food-quantity-quick button{background:#314735;color:#e4eee6}
+[data-theme="dark"] .food-quantity-presets button{border-color:#48614e;color:#e4eee6}

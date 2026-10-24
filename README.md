@@ -103,3 +103,7 @@ Treat the Shortcut URL as a bearer secret. Disconnect revokes it and creates a n
 `health-cloud.js` imports measurements and acknowledges their processed timestamps in a Firestore transaction. Failed or conflicting writes do not partially acknowledge data. Historical Health backfill and Health deletion mirroring remain out of scope.
 
 Verification targets are `npm test`, `npm run test:ui`, and `npm run test:rules` (Java 21+ for the Firestore emulator). A real-iPhone end-to-end check is still required after publishing the updated rules and editing the Shortcut because desktop tests cannot grant Health permissions.
+
+## Logging refinements (v61)
+
+Food forms offer half-serving step controls and quick ½, 1, and 2 serving presets. A per-entry CSV toggle displays the current foodLog header/row or accepts one CSV food row to fill the form, without saving until confirmation. Quarterly/yearly nutrition averages omit recorded days below 1,000 calories; raw entries and day-level charts are unchanged. The Progress exercise-list modal follows the visual viewport on iPhone.
