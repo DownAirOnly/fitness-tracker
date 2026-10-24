@@ -107,3 +107,7 @@ Verification targets are `npm test`, `npm run test:ui`, and `npm run test:rules`
 ## Logging refinements (v61)
 
 Food forms offer half-serving step controls and quick ½, 1, and 2 serving presets. A per-entry CSV toggle displays the current foodLog header/row or accepts one CSV food row to fill the form, without saving until confirmation. Quarterly/yearly nutrition averages omit recorded days below 1,000 calories; raw entries and day-level charts are unchanged. The Progress exercise-list modal follows the visual viewport on iPhone.
+
+## Workout Buddy refinements (v62)
+
+Buddy preserves its current look but switches to a focused in-set display with weight, reps, and a live set timer. Finish Set preserves the completed set immediately, then opens a post-set review during the rest countdown for corrections to weight, reps and perceived effort. Confirm advances to the next set or exercise. The exercise screen shows the last two sets, expandable recent sessions, a dated exercise journal, and quick editing of the persistent setup note. The circuit stores performed order separately from template order and offers the previous performed sequence next time. Machine/dumbbell/cable cards have subtle distinct accents; push/pull indicators use a name-based heuristic and are not an anatomical classification.
