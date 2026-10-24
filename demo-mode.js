@@ -54,7 +54,7 @@ export function createDemoData(){
    const sets=[reps1,reps2].map((reps,n)=>({weight,reps,difficulty:Math.min(7,3+(s+j+n)%4),startedAt:new Date(start+n*150000).toISOString(),finishedAt:new Date(start+n*150000+52000).toISOString(),durationSeconds:52}));
    const notes=(j===1&&s%3===0)?'Adjusted grip; movement felt smoother.':(j===0&&s%5===0)?'Controlled tempo throughout.':'';
    exercises.push({exerciseId:x.def.id,name:x.def.name,equipment:x.def.equipment,repMin:x.repMin,repMax:x.repMax,targetSets:2,restSeconds:90,status:'done',selectedAt:new Date(start-30000).toISOString(),completedAt:sets[1].finishedAt,sets,notes,...(x.def.setup?{setup:x.def.setup}:{})});
-   d.lifts.push({id:'demo-lift-'+s+'-'+j,exercise:x.def.name,equipment:x.def.equipment,date:day,sets:sets.map(({weight,reps,difficulty})=>({weight,reps,difficulty})),notes,buddySessionId:id});
+   d.lifts.push({id:'demo-lift-'+s+'-'+j,exercise:x.def.name,equipment:x.def.equipment,date:day,sets:sets.map(({weight,reps,difficulty})=>({weight,reps,difficulty})),...(notes?{notes}:{}),buddySessionId:id});
   }
   d.workoutHistory.push({id,workoutId:template.id,type:template.name,date:day,startedAt,completedAt:new Date(Date.parse(exercises.at(-1).completedAt)+120000).toISOString(),phase:'complete',performedOrder:exercises.map(e=>e.name.toLowerCase()+'|'+e.equipment),selected:null,exercises});
  }
