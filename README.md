@@ -119,3 +119,7 @@ When signed out, Home and More provide **Load demo data**. This loads a fully fi
 ## Workout Buddy refinements (v64)
 
 After a set, its result stays editable and does not appear in Completed Sets until review ends. **Start set** saves edited values and immediately starts the next set's timer; the final set uses **Next exercise**. Tapping the last workout's two-set summary expands in place to show the preceding two sessions. The existing Setup pill is tap-editable and appears even when empty, with Journal inline next to it. Exercise-picker cards now show dedicated colored push/pull corner badges.
+
+## Shared exercise cards and viewport polish (v65)
+
+Lifting, Workout Buddy picker, Exercise Library, and Progress use the same `exerciseCardMarkup` component. Equipment colors are shared; push/pull colors appear as translucent gradients strongest at the top-right corner, fading into the card, with small text indicators. Exercise Journal moved into the Notes area. The rest countdown is hidden during the final-set review. Workout Buddy's content scrolls on short screens instead of clipping at the bottom, and the main action remains available.
