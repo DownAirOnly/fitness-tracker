@@ -123,3 +123,7 @@ After a set, its result stays editable and does not appear in Completed Sets unt
 ## Shared exercise cards and viewport polish (v65)
 
 Lifting, Workout Buddy picker, Exercise Library, and Progress use the same `exerciseCardMarkup` component. Equipment colors are shared; push/pull colors appear as translucent gradients strongest at the top-right corner, fading into the card, with small text indicators. Exercise Journal moved into the Notes area. The rest countdown is hidden during the final-set review. Workout Buddy's content scrolls on short screens instead of clipping at the bottom, and the main action remains available.
+
+## Exercise-card consistency (v66)
+
+The workout Add exercise picker now uses the same exerciseCardMarkup renderer as the other five exercise-card surfaces. Editable workout template rows retain their inputs but use the same push/pull classification and soft corner-to-card gradient, keeping all exercise displays visually coherent.

@@ -1,5 +1,5 @@
-const CACHE='everyday-v65-shared-cards';
-const FILES=['./','./index.html','./theme.js','./styles.css?v=65','./app.js?v=65','./durability.js?v=63','./import-model.js?v=63','./data.js?v=63','./demo-mode.js?v=63','./storage-model.js?v=63','./cloud.js?v=63','./cloud-model.js?v=63','./health-model.js?v=63','./health-cloud.js?v=63','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE='everyday-v66-shared-cards-all';
+const FILES=['./','./index.html','./theme.js','./styles.css?v=66','./app.js?v=66','./durability.js?v=63','./import-model.js?v=63','./data.js?v=63','./demo-mode.js?v=63','./storage-model.js?v=63','./cloud.js?v=63','./cloud-model.js?v=63','./health-model.js?v=63','./health-cloud.js?v=63','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('everyday-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});

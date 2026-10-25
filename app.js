@@ -420,7 +420,7 @@ function workoutEditorCapture(){
 }
 function workoutEditorRow(item,i,total){
  const e=resolveWorkoutExercise(item);if(!e)return'';
- return `<section class="workout-template-row" data-workout-row="${i}"><div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}</span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div><div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
+ return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}</span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div><div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
 }
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
@@ -435,7 +435,14 @@ function workoutExercisePicker(){
  if(!workoutEditorState)return;
  workoutEditorCapture();
  const used=new Set(workoutEditorState.exercises.map(x=>x.exerciseId)),defs=[...(data.exerciseDefinitions||[])].filter(e=>!used.has(e.id)).sort((a,b)=>a.name.localeCompare(b.name));
- modal('Add exercise',`<div class="workout-add-picker"><label class="library-search"><span>Search Exercise Library</span><input type="search" data-workout-add-search placeholder="Search exercises"></label><div class="workout-add-list">${defs.length?defs.map(e=>`<button type="button" class="exercise library-exercise equipment-${esc(e.equipment)} workout-add-item" data-action="workout-add-exercise" data-id="${esc(e.id)}" data-search="${esc((e.name+' '+equipmentLabel(e.equipment)+' '+(e.setup||'')).toLowerCase())}"><span class="equipment-art" aria-hidden="true">${equipmentGlyph(e.equipment)}</span><span class="exercise-copy"><small class="equipment-label">${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong><small>${e.setup?'Setup: '+esc(e.setup):'No setup saved'}</small></span><b>+</b></button>`).join(''):'<p class="empty">Every exercise in your library is already in this workout.</p>'}</div></div>`,()=>workoutTemplateForm(null,true));
+ const cards=defs.length?defs.map(e=>exerciseCardMarkup(e,{
+   action:'workout-add-exercise',
+   attrs:'data-id="'+esc(e.id)+'" data-search="'+esc((e.name+' '+equipmentLabel(e.equipment)+' '+(e.setup||'')).toLowerCase())+'"',
+   modifier:'library-exercise workout-add-item',
+   summary:e.setup?'':'No setup saved',
+   trailing:'+'
+ })).join(''):'<p class="empty">Every exercise in your library is already in this workout.</p>';
+ modal('Add exercise','<div class="workout-add-picker"><label class="library-search"><span>Search Exercise Library</span><input type="search" data-workout-add-search placeholder="Search exercises"></label><div class="workout-add-list">'+cards+'</div></div>',()=>workoutTemplateForm(null,true));
 }
 const isoNow=()=>new Date().toISOString();
 const buddySeconds=(a,b=isoNow())=>a&&b?Math.max(0,Math.round((new Date(b)-new Date(a))/1000)):0;
@@ -1106,7 +1113,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=65',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=66',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';

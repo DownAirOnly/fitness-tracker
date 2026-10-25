@@ -37,7 +37,7 @@ const submit=async(kind,values)=>{const form=document.querySelector(`[data-form=
 // Node's FormData doesn't consume HTML forms; use the DOM's implementation.
 globalThis.FormData=dom.window.FormData;
 try{
- await import(pathToFileURL(join(temp,'app.mjs')).href+'?v=65');await tick();await tick();
+ await import(pathToFileURL(join(temp,'app.mjs')).href+'?v=66');await tick();await tick();
  assert.equal(persistRequests,1,'startup requests persistent origin storage once');
  const {state}=await import(pathToFileURL(fixture));
  assert.ok(document.querySelector('.home-actions'),'Home cards exist before auth finishes');
@@ -106,7 +106,7 @@ try{
  await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
  await click('home');assert.ok(!document.querySelector('.travel-notes-panel'),'trip notes stay hidden outside Cruise Mode');
  await click('settings');
- assert.equal(document.querySelector('.settings-page-head .version-badge')?.textContent,'v65','Settings shows build version');
+ assert.equal(document.querySelector('.settings-page-head .version-badge')?.textContent,'v66','Settings shows build version');
  await click('toggle-cruise-mode');
  assert.equal(JSON.parse(state.records.get('bob').payload).settings.cruiseMode,true,'Cruise Mode persists');
  await click('home');assert.ok(document.querySelector('.cruise-home-banner'),'Cruise Mode has focused Home');assert.ok(document.querySelector('.travel-notes-panel'),'trip notes appear only in Cruise Mode');assert.ok(!document.querySelector('[data-action="food"]'),'Food entry point is hidden');assert.ok(!document.querySelector('.today-card'),'calorie/protein card is hidden');assert.ok(!document.querySelector('.weight-strip'),'weight logging is hidden');assert.equal(document.querySelectorAll('.nav button').length,4,'Cruise nav removes Food');

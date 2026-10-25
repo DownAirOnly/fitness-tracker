@@ -1170,3 +1170,14 @@ button.buddy-setup:focus-visible,.buddy-last-toggle:focus-visible,.buddy-journal
 .buddy-notes-row+.buddy-notes-editor{margin-top:7px}
 @media(max-height:700px){.buddy-exercise-view .buddy-a{min-height:70px;padding:11px 16px;border-radius:17px}.buddy-exercise-view .buddy-a b{font-size:23px}}
 @media(max-width:360px){.exercise.exercise-card{padding:12px 10px;gap:8px}.exercise-card .exercise-name-row>strong{font-size:13px}.exercise-card .progress-exercise-value{min-width:65px}.buddy-notes-row .buddy-journal-chip{padding:6px 8px}}
+
+/* v66: editable workout rows share the same direction-corner treatment as all exercise cards. */
+.workout-template-row.exercise-card-surface{isolation:isolate;position:relative;overflow:hidden;--movement-wash:transparent}
+.workout-template-row.exercise-card-surface.movement-push{--movement-wash:rgba(229,145,68,.21);--movement-ink:#885024}
+.workout-template-row.exercise-card-surface.movement-pull{--movement-wash:rgba(83,157,217,.21);--movement-ink:#285c89}
+.workout-template-row.exercise-card-surface::before{content:"";pointer-events:none;position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 220px 125px at 0% 0%,var(--movement-wash) 0%,transparent 90%)}
+.workout-template-row.exercise-card-surface>.buddy-movement-corner{top:5px;left:10px;right:auto;z-index:2;background:transparent!important;color:var(--movement-ink);padding:0;font-size:9px;line-height:1.2}
+.workout-template-row.exercise-card-surface>.workout-template-head,.workout-template-row.exercise-card-surface>.workout-program-grid{position:relative;z-index:1}
+.workout-template-row.exercise-card-surface>.workout-template-head{padding-top:14px}
+[data-theme="dark"] .workout-template-row.exercise-card-surface.movement-push{--movement-ink:#efc087}
+[data-theme="dark"] .workout-template-row.exercise-card-surface.movement-pull{--movement-ink:#a6d0f2}
