@@ -1327,3 +1327,22 @@ html.buddy-active #overlay .modal{z-index:1101}
 .muscle-related-list button small{font-size:10px;opacity:.7}
 .muscle-related-list button b{font-size:20px}
 [data-theme="dark"] .muscle-related-list button{background:#203428;border-color:#45614b;color:#dceedd}
+
+/* v76: one Edit control per completed exercise; same Buddy set inputs in archive modal. */
+.routine-history-exercise-head{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.routine-history-exercise-head>strong{font-size:14px;min-width:0;overflow-wrap:anywhere}
+.routine-history-exercise-head>button{flex:0 0 auto;min-height:32px;padding:6px 12px}
+.routine-history-set{display:block;line-height:1.45;padding:2px 0}
+.routine-history-editor{gap:13px}
+.routine-history-editor>.body-copy{margin:0}
+.routine-history-edit-tabs{display:flex;align-items:center;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;padding:3px 2px 6px}
+.routine-history-edit-tabs button{flex:0 0 auto;min-height:37px;padding:8px 14px;border:1px solid #cbdbcf;border-radius:999px;background:#edf3ee;color:#43644d;font-size:12px;font-weight:800}
+.routine-history-edit-tabs button.selected{border-color:#24543b;background:#24543b;color:#fff}
+.routine-history-editor .buddy-set-editor{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.routine-history-editor .buddy-number-field{min-width:0}
+.routine-history-editor .buddy-effort-wrap{margin-top:0}
+.routine-history-editor .buddy-effort-grid{gap:4px}
+.routine-history-editor textarea{width:100%;min-height:74px;border:1px solid #d6dfd8;border-radius:12px;background:#fff;color:#172c23;padding:11px 12px;font:inherit;resize:vertical}
+[data-theme="dark"] .routine-history-edit-tabs button{background:#25392c;border-color:#45644e;color:#d5e7d8}
+[data-theme="dark"] .routine-history-edit-tabs button.selected{background:#b5d58d;border-color:#b5d58d;color:#172c23}
+[data-theme="dark"] .routine-history-editor textarea{background:#17231c;color:#e5eee7;border-color:#3b5042}
