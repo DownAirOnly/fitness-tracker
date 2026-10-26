@@ -137,3 +137,7 @@ Cruise Mode and associated day/travel/meal-memory notes have been removed from t
 ## v69 — Batch food logging and less intrusive suggestions
 
 Choose **Add another food** to stage the current entry and immediately enter the next. The compact queue can be edited by removal and is only saved on **Save foods**. Untimed entries appear above timed entries. **Suggest rest of day** no longer shows date/time controls: tapping Add stages its recommendations in the regular food form for final date/time selection and confirmation.
+
+## v70 — Routine management, first pass
+
+Lifting now includes a **+ Manage** routine library with Use, Edit and Copy. **Create routine** offers Blank, Upper body, Lower body, Full body, Push day, Pull day and Leg day starter frameworks using the canonical Exercise Library and existing sets/reps/rest editor. Routines can be renamed during editing, and duplicates receive new IDs. A new or duplicate routine is only saved on confirmation. Past workout records and any in-progress session remain unchanged. Empty routines cannot be started in Workout Buddy. Routine archiving and scheduling are reserved for later.

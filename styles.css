@@ -1165,3 +1165,21 @@ button.buddy-setup:focus-visible,.buddy-last-toggle:focus-visible,.buddy-journal
 [data-theme="dark"] .food-batch-row button{background:#314736;color:#bed2c2}
 [data-theme="dark"] .food-batch-row small,[data-theme="dark"] .food-batch-heading small{color:#a6c3ad}
 @media(max-width:430px){form[data-form="food"] .form-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}form[data-form="food"] .form-actions button{min-width:0;white-space:normal}}
+
+/* v70: routine library layered on the existing workout editor. */
+.routine-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:13px 0 6px}
+.routine-toolbar strong{font-size:10px;font-weight:850;letter-spacing:.1em;color:#657a6b}
+.routine-library{display:grid;gap:13px}
+.routine-create{width:100%;min-height:44px}
+.routine-list{display:grid;gap:8px}
+.routine-library-row{display:grid;gap:8px;border:1px solid #d7e1d8;border-radius:13px;padding:11px;background:#f8faf7}
+.routine-library-row>span,.routine-starter>span{display:grid;gap:3px;min-width:0}
+.routine-library-row strong,.routine-starter strong{font-size:13px;line-height:1.3;overflow-wrap:anywhere}
+.routine-library-row small,.routine-starter small{font-size:11px;color:#708476;line-height:1.35}
+.routine-row-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.routine-row-actions button{min-height:36px;border:1px solid #cbd8cc;border-radius:9px;background:#eef4ed;color:#274b35;font-size:12px;font-weight:750}
+.routine-starter{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;gap:9px;padding:13px;border:1px solid #d7e1d8;border-radius:12px;background:#f8faf7;color:inherit}
+.routine-starter b{font-size:20px;color:#63856c}
+[data-theme="dark"] .routine-library-row,[data-theme="dark"] .routine-starter{background:#1c2a21;border-color:#3e5443}
+[data-theme="dark"] .routine-row-actions button{background:#2a4030;border-color:#48604e;color:#d3e5d5}
+[data-theme="dark"] .routine-toolbar strong,[data-theme="dark"] .routine-library-row small,[data-theme="dark"] .routine-starter small{color:#a0b8a5}

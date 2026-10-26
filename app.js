@@ -1,9 +1,9 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=69';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=70';
 
-import {prepareImport,importSections} from './import-model.js?v=69';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=69';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=69';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=69';
+import {prepareImport,importSections} from './import-model.js?v=70';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=70';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=70';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=70';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -423,8 +423,43 @@ function exerciseDefinitionForm(def=null){
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
  modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><p class="hint">This is the shared exercise definition. Workout-specific rep ranges are edited on the workout itself.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>exerciseLibrary());
 }
+
+const routinePresets=[
+ {key:'blank',name:'Blank routine',description:'Build your own exercise list',exercises:[]},
+ {key:'upper',name:'Upper body',description:'Pressing, pulling and arms',source:'Upper'},
+ {key:'lower',name:'Lower body',description:'Legs, glutes and calves',source:'Lower'},
+ {key:'full',name:'Full body',description:'Upper body, lower body and core',source:'Full body'},
+ {key:'push',name:'Push day',description:'Chest, shoulders and triceps',ids:['exercise-machine-chest-press','exercise-machine-shoulder-press','exercise-cable-triceps-pushdown','exercise-dumbbell-lateral-raise']},
+ {key:'pull',name:'Pull day',description:'Back and biceps',ids:['exercise-machine-lat-pulldown','exercise-machine-seated-row','exercise-dumbbell-bicep-curl']},
+ {key:'legs',name:'Leg day',description:'Quads, hamstrings, glutes and calves',ids:['exercise-machine-seated-leg-press','exercise-machine-leg-curl','exercise-machine-leg-extension','exercise-machine-glute-kickback','exercise-machine-calf-extension']}
+];
+function nextRoutineName(base){
+ const used=new Set((data.workoutTemplates||[]).map(w=>w.name.trim().toLowerCase()));
+ const name=String(base||'New routine').trim().slice(0,70)||'New routine';
+ if(!used.has(name.toLowerCase()))return name;
+ let n=2;while(used.has((name+' '+n).toLowerCase()))n++;
+ return name+' '+n;
+}
+function routinePresetExercises(preset){
+ if(preset.source)return structuredClone(templateExercises[preset.source]||[]);
+ if(Array.isArray(preset.ids))return preset.ids.filter(exerciseId=>data.exerciseDefinitions?.some(def=>def.id===exerciseId)).map(exerciseId=>({exerciseId,repMin:exerciseId==='exercise-machine-calf-extension'?10:6,repMax:exerciseId==='exercise-machine-calf-extension'?16:12,targetSets:2,restSeconds:90}));
+ return [];
+}
+function routineStarterPicker(){
+ modal('New routine','<div class="routine-library"><p class="body-copy">Start blank or use an editable framework. Nothing is saved until you confirm.</p><div class="routine-list">'+routinePresets.map(p=>'<button type="button" class="routine-starter" data-action="routine-starter" data-key="'+p.key+'"><span><strong>'+esc(p.name)+'</strong><small>'+esc(p.description)+'</small></span><b>＋</b></button>').join('')+'</div></div>',()=>routineManager());
+}
+function routineManager(){
+ const items=savedWorkouts();
+ modal('My routines','<div class="routine-library"><p class="body-copy">Use, edit or copy your workout routines. Past workout logs are separate records.</p><button type="button" class="primary routine-create" data-action="routine-new">+ Create routine</button><div class="routine-list">'+items.map(w=>'<div class="routine-library-row"><span><strong>'+esc(w.name)+'</strong><small>'+w.exercises.length+' exercise'+(w.exercises.length===1?'':'s')+'</small></span><div class="routine-row-actions"><button type="button" data-action="routine-select" data-id="'+esc(w.id)+'">Use</button><button type="button" data-action="routine-edit" data-id="'+esc(w.id)+'">Edit</button><button type="button" data-action="routine-copy" data-id="'+esc(w.id)+'">Copy</button></div></div>').join('')+'</div></div>');
+}
+function newRoutineEditor(name,exercises){
+ workoutEditorState={id:null,isNew:true,name:nextRoutineName(name),exercises:structuredClone(exercises||[])};
+ workoutTemplateForm(null,true);
+}
+
 function workoutEditorCapture(){
  const form=document.querySelector('form[data-form="workout-template"]');if(!form||!workoutEditorState)return;
+ if(form.elements.workoutName)workoutEditorState.name=form.elements.workoutName.value;
  [...form.querySelectorAll('[data-workout-row]')].forEach(row=>{
    const i=Number(row.dataset.workoutRow),item=workoutEditorState.exercises[i];if(!item)return;
    const min=Number(row.querySelector('[name=repMin]')?.value),max=Number(row.querySelector('[name=repMax]')?.value),sets=Number(row.querySelector('[name=targetSets]')?.value),rest=Number(row.querySelector('[name=restSeconds]')?.value);
@@ -438,11 +473,11 @@ function workoutEditorRow(item,i,total){
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
    const w=workoutByName(name);if(!w)return;
-   workoutEditorState={id:w.id,name:w.name,exercises:structuredClone(w.exercises)};
+   workoutEditorState={id:w.id,isNew:false,name:w.name,exercises:structuredClone(w.exercises)};
  }
  if(!workoutEditorState)return;
  const state=workoutEditorState;
- modal('Edit '+state.name+' workout',`<form class="form workout-template-form" data-form="workout-template"><p class="hint">Exercises are references to your Exercise Library. Order, rep range, target sets, and rest time belong to this workout.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">Save workout</button></div></form>`);
+ modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<p class="hint">Change the order, rep ranges, sets and rest times. Editing a routine never changes completed workout logs.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
 }
 function workoutExercisePicker(){
  if(!workoutEditorState)return;
@@ -533,7 +568,7 @@ function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-c
 
 function gym() {
  const templates=savedWorkouts(),selected=workoutByName(workout);if(selected)workout=selected.name;const logs=data.lifts.filter(x=>x.date===chosenDate).slice().reverse(),exercises=workoutExercises(selected);
- return `<div class="page-head"><p class="eyebrow">TRAINING</p><h1>Lift tracking<span class="accent">.</span></h1><p>Pick an exercise, see last time, and log the sets you actually did.</p></div><section class="buddy-entry"><div><p class="eyebrow">LIVE WORKOUT</p><h2>Workout Buddy</h2><p>${data.activeWorkout?`${esc(data.activeWorkout.type)} workout in progress`:'Fast set entry, rest timing, and exercise transitions.'}</p></div>${data.activeWorkout?`<div class="buddy-entry-actions">${button('Resume','buddy-launch','primary')}${button('End workout','buddy-end','outline small')}</div>`:button('Start','buddy-launch','primary')}</section>${dateHeader('Workout date')}<div class="workout-tabs">${templates.map(x=>button(esc(x.name),'workout',workout===x.name?'selected':'',`data-workout="${esc(x.name)}"`)).join('')}</div><section><div class="section-head"><div><p class="eyebrow">${esc(workout.toUpperCase())} DAY</p><h2>Choose an exercise</h2></div><div class="section-actions">${button('Exercises','exercise-library','outline small')}${button('Edit workout','edit-workout','outline small')}${button('+ Custom','custom-lift','outline small')}</div></div><div class="exercise-list">${exercises.map(exerciseCard).join('')}</div></section><section class="log-section"><div class="section-head"><div><p class="eyebrow">${esc(niceDate(chosenDate).toUpperCase())}</p><h2>Logged lifts</h2></div></div>${logs.length?logs.map(l=>`<div class="list-row"><span><strong>${esc(l.exercise)}</strong><small>${equipmentLabel(l.equipment)} · ${describeLift(l)}</small></span>${button('Edit','edit-lift','text-btn',`data-id="${esc(l.id)}"`)}</div>`).join(''):empty('Your sets will show up here as you log them.')}</section>`;
+ return `<div class="page-head"><p class="eyebrow">TRAINING</p><h1>Lift tracking<span class="accent">.</span></h1><p>Pick an exercise, see last time, and log the sets you actually did.</p></div><section class="buddy-entry"><div><p class="eyebrow">LIVE WORKOUT</p><h2>Workout Buddy</h2><p>${data.activeWorkout?`${esc(data.activeWorkout.type)} workout in progress`:'Fast set entry, rest timing, and exercise transitions.'}</p></div>${data.activeWorkout?`<div class="buddy-entry-actions">${button('Resume','buddy-launch','primary')}${button('End workout','buddy-end','outline small')}</div>`:button('Start','buddy-launch','primary')}</section>${dateHeader('Workout date')}<div class="routine-toolbar"><strong>ROUTINES</strong>${button('+ Manage','routine-manage','outline small')}</div><div class="workout-tabs">${templates.map(x=>button(esc(x.name),'workout',workout===x.name?'selected':'',`data-workout="${esc(x.name)}"`)).join('')}</div><section><div class="section-head"><div><p class="eyebrow">${esc(workout.toUpperCase())} DAY</p><h2>Choose an exercise</h2></div><div class="section-actions">${button('Exercises','exercise-library','outline small')}${button('Edit workout','edit-workout','outline small')}${button('+ Custom','custom-lift','outline small')}</div></div><div class="exercise-list">${exercises.length?exercises.map(exerciseCard).join(''):empty('This routine is empty. Edit it to add exercises.')}</div></section><section class="log-section"><div class="section-head"><div><p class="eyebrow">${esc(niceDate(chosenDate).toUpperCase())}</p><h2>Logged lifts</h2></div></div>${logs.length?logs.map(l=>`<div class="list-row"><span><strong>${esc(l.exercise)}</strong><small>${equipmentLabel(l.equipment)} · ${describeLift(l)}</small></span>${button('Edit','edit-lift','text-btn',`data-id="${esc(l.id)}"`)}</div>`).join(''):empty('Your sets will show up here as you log them.')}</section>`;
 }
 function describeLift(l){return l.sets.map(s=>`${fmt(s.weight)} ${data.settings.unit} × ${s.reps}${s.difficulty?` · ${effortText(s.difficulty)}`:''}`).join(' · ');}
 const exerciseHistoryAliases=new Map([
@@ -1015,12 +1050,18 @@ document.addEventListener('click',async event=>{
   if(action==='exercise-library'){exerciseLibrary();return;}
   if(action==='new-exercise-def'){exerciseDefinitionForm();return;}
   if(action==='edit-exercise-def'){exerciseDefinitionForm(data.exerciseDefinitions?.find(x=>x.id===el.dataset.id));return;}
+  if(action==='routine-manage'){routineManager();return;}
+  if(action==='routine-new'){routineStarterPicker();return;}
+  if(action==='routine-starter'){const preset=routinePresets.find(p=>p.key===el.dataset.key);if(!preset)return;newRoutineEditor(preset.name,routinePresetExercises(preset));return;}
+  if(action==='routine-select'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workout=w.name;close(true);render();return;}
+  if(action==='routine-edit'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workoutTemplateForm(w.name);return;}
+  if(action==='routine-copy'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;newRoutineEditor(w.name+' copy',w.exercises);return;}
   if(action==='edit-workout'){workoutTemplateForm(workout);return;}
   if(action==='workout-move'){workoutEditorCapture();const i=Number(el.dataset.index),d=Number(el.dataset.direction),j=i+d;if(!workoutEditorState||!Number.isInteger(i)||!Number.isInteger(j)||j<0||j>=workoutEditorState.exercises.length)return;[workoutEditorState.exercises[i],workoutEditorState.exercises[j]]=[workoutEditorState.exercises[j],workoutEditorState.exercises[i]];workoutTemplateForm(null,true);return;}
   if(action==='workout-remove'){workoutEditorCapture();const i=Number(el.dataset.index);if(!workoutEditorState||!Number.isInteger(i)||i<0||i>=workoutEditorState.exercises.length)return;workoutEditorState.exercises.splice(i,1);workoutTemplateForm(null,true);return;}
   if(action==='workout-add-picker'){workoutExercisePicker();return;}
   if(action==='workout-add-exercise'){const def=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!def||!workoutEditorState||workoutEditorState.exercises.some(x=>x.exerciseId===def.id))return;workoutEditorState.exercises.push({exerciseId:def.id,repMin:def.name==='Calf Extension'?10:6,repMax:def.name==='Calf Extension'?16:12,targetSets:2,restSeconds:90});workoutTemplateForm(null,true);return;}
-  if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}modal('Start Workout Buddy',`<div class="buddy-start-list">${savedWorkouts().map(x=>`<button data-action="buddy-start" data-workout="${esc(x.name)}"><span><strong>${esc(x.name)}</strong><small>${x.exercises.length} exercises · Bike warm-up first</small></span><b>›</b></button>`).join('')}</div>`);return;}
+  if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}modal('Start Workout Buddy',`<div class="buddy-start-list">${savedWorkouts().filter(x=>x.exercises.length>0).map(x=>`<button data-action="buddy-start" data-workout="${esc(x.name)}"><span><strong>${esc(x.name)}</strong><small>${x.exercises.length} exercises · Bike warm-up first</small></span><b>›</b></button>`).join('')||'<p class="empty">Add exercises to a routine before starting Workout Buddy.</p>'}</div>`);return;}
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
   if(action==='buddy-bike-done'){data.activeWorkout.phase='picker';data.activeWorkout.bikeCompletedAt=isoNow();await buddyPersist();return;}
   if(action==='buddy-choose'){const s=data.activeWorkout,e=buddyFind(s,el.dataset.key);if(!e)return;e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
@@ -1143,7 +1184,22 @@ app.addEventListener('submit',async event=>{
     return;
   }
   if(form.dataset.form==='exercise-definition'){const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200)return alert('Check the exercise definition.');const duplicate=data.exerciseDefinitions?.find(x=>x.id!==v.exerciseId&&x.name.toLowerCase()===name.toLowerCase()&&x.equipment===equipment);if(duplicate)return alert('That exercise already exists with this equipment.');if(existing){const oldName=existing.name,oldEquipment=existing.equipment;Object.assign(existing,{name,equipment});if(setup)existing.setup=setup;else delete existing.setup;data.lifts.forEach(l=>{if(l.exercise.toLowerCase()===oldName.toLowerCase()&&(l.equipment||'other')===oldEquipment){l.exercise=name;l.equipment=equipment;}});}else data.exerciseDefinitions.push({id:id(),name,equipment,...(setup?{setup}:{})});close(true);await persist();render();return;}
-  if(form.dataset.form==='workout-template'){workoutEditorCapture();if(!workoutEditorState)return;const seen=new Set();for(const item of workoutEditorState.exercises){const def=data.exerciseDefinitions?.find(x=>x.id===item.exerciseId);if(!def||seen.has(item.exerciseId)||!Number.isInteger(item.repMin)||!Number.isInteger(item.repMax)||item.repMin<1||item.repMax<item.repMin||item.repMax>100||!Number.isInteger(item.targetSets)||item.targetSets<1||item.targetSets>10||!Number.isInteger(item.restSeconds)||item.restSeconds<0||item.restSeconds>1800)return alert('Check the workout exercises, rep ranges, sets, and rest times.');seen.add(item.exerciseId);}const w=data.workoutTemplates?.find(x=>x.id===workoutEditorState.id);if(!w)return;w.exercises=structuredClone(workoutEditorState.exercises);workoutEditorState=null;close(true);await persist();render();return;}
+  if(form.dataset.form==='workout-template'){
+    workoutEditorCapture();if(!workoutEditorState)return;
+    const state=workoutEditorState,name=state.name.trim();
+    if(!name||name.length>80)return alert('Enter a routine name (up to 80 characters).');
+    if((data.workoutTemplates||[]).some(w=>w.id!==state.id&&w.name.trim().toLowerCase()===name.toLowerCase()))return alert('A routine already has that name.');
+    if(state.isNew&&(data.workoutTemplates||[]).length>=100)return alert('The routine library is at its 100-routine limit.');
+    const seen=new Set();
+    for(const item of state.exercises){
+      const def=data.exerciseDefinitions?.find(x=>x.id===item.exerciseId);
+      if(!def||seen.has(item.exerciseId)||!Number.isInteger(item.repMin)||!Number.isInteger(item.repMax)||item.repMin<1||item.repMax<item.repMin||item.repMax>100||!Number.isInteger(item.targetSets)||item.targetSets<1||item.targetSets>10||!Number.isInteger(item.restSeconds)||item.restSeconds<0||item.restSeconds>1800)return alert('Check the routine exercises, reps, sets and rest times.');
+      seen.add(item.exerciseId);
+    }
+    if(state.isNew)data.workoutTemplates.push({id:id(),name,exercises:structuredClone(state.exercises)});
+    else{const existing=data.workoutTemplates?.find(w=>w.id===state.id);if(!existing)return alert('This routine was not found.');existing.name=name;existing.exercises=structuredClone(state.exercises);}
+    workout=name;workoutEditorState=null;close(true);await persist();render();return;
+  }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();await persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){const factor=v.unit==='kg'?1/2.2046226218:2.2046226218;data.weights.forEach(w=>w.value=round(w.value*factor));data.lifts.forEach(l=>l.sets.forEach(s=>s.weight=round(s.weight*factor)));}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};persist();return;}
   if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,lastUsed:new Date().toISOString()});close(true);await persist();if(origin==='library')foodLibrary();else render();return;}
@@ -1191,7 +1247,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=69',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=70',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1243,7 +1299,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=69');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=70');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
