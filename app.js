@@ -565,6 +565,12 @@ function buddyJournalScreen(head,e){
 function buddyTargetSets(e){const sets=Number(e.targetSets);return Number.isInteger(sets)&&sets>=1&&sets<=10?sets:2;}
 function buddyRepRange(e){return {min:Number(e.repMin)||(e.name==='Calf Extension'?10:6),max:Number(e.repMax)||(e.name==='Calf Extension'?16:12)};}
 function buddyEffortButtons(value){return Object.entries(effortLabels).map(([n,label])=>`<button type="button" class="buddy-effort effort-${n} ${Number(value)===Number(n)?'selected':''}" data-action="buddy-effort" data-value="${n}" aria-pressed="${Number(value)===Number(n)}"><b>${n}</b><span>${label}</span></button>`).join('');}
+
+/* Reuse the exact set controls in Workout Buddy and archived exercise editing. */
+function buddySetControlsMarkup(d){
+ const weightStep=data.settings.unit==='kg'?1.1:2.5;
+ return `<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>PERCEIVED EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>`;
+}
 function buddyReadNotes(){const s=data.activeWorkout,field=document.querySelector('[name=buddyNotes]');if(!s||!field||!s.selected)return;const e=buddyFind(s,s.selected);if(e)e.notes=field.value.slice(0,500);}
 function buddyCaptureUndo(s,label){const snapshot={label,phase:s.phase,selected:s.selected,exercises:structuredClone(s.exercises),performedOrder:structuredClone(s.performedOrder||[])};if(s.completedAt)snapshot.completedAt=s.completedAt;if(s.bikeCompletedAt)snapshot.bikeCompletedAt=s.bikeCompletedAt;s.undo=snapshot;}
 function buddyUndo(s){if(!s?.undo)return;const u=s.undo;s.phase=u.phase;s.selected=u.selected;s.exercises=structuredClone(u.exercises);s.performedOrder=structuredClone(u.performedOrder||[]);if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;if(u.bikeCompletedAt)s.bikeCompletedAt=u.bikeCompletedAt;else delete s.bikeCompletedAt;delete s.undo;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);for(const e of s.exercises)if(e.status==='done')buddyUpsertLift(s,e);}
@@ -587,7 +593,6 @@ function buddyRender(){
  const e=buddyFind(s,s.selected);if(!e)return'';if(e.journalOpen)return buddyJournalScreen(head,e);const reviewing=Number.isInteger(e.reviewSetIndex),i=reviewing?e.reviewSetIndex:e.sets.length,target=buddyTargetSets(e),d=reviewing?e.sets[e.reviewSetIndex]:(e.draft||buddyDraft(e,i)),prior=buddyPrior(e),running=Boolean(e.activeSetStartedAt),resting=Boolean(e.restStartedAt&&!running),showRest=Boolean(e.restStartedAt&&!running)&&e.sets.length<target,left=showRest?Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt)):0,range=buddyRepRange(e);
  const state=reviewing?(showRest?`Edit set ${i+1} · rest is running`:`Review set ${i+1}`):running?`Set ${i+1} in progress`:showRest?(left?`Rest · ${buddyClock(left)} remaining`:'Rest complete'):`Set ${i+1} of ${target}`,action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
  if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view"><div class="buddy-set-status"><span>SET ${i+1} OF ${target} · ACTIVE</span></div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><div class="buddy-action-tools">${buddyUndoControl(s)}</div><button class="buddy-a" data-action="buddy-a"><span>Set ${i+1} in progress</span><b>Finish set ${i+1}</b></button></main></div>`;
- const weightStep=data.settings.unit==='kg'?1.1:2.5;
  const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
  const setProgress=`<div class="buddy-set-status"><span>SET ${Math.min(i+1,target)} OF ${target}</span><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
  const journalButton='<button type="button" class="buddy-journal-chip" data-action="buddy-journal-toggle">Journal ↗</button>';
@@ -597,7 +602,7 @@ function buddyRender(){
  const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setup||'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
 
  const undo='';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${history}${showRest?`<div class="buddy-rest-timer"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></div>`:''}${completedSets}<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>PERCEIVED EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${history}${showRest?`<div class="buddy-rest-timer"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></div>`:''}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
 }
 let buddyTicker=null;
 function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));const state=document.querySelector('[data-buddy-state]');if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));if(state&&!Number.isInteger(e.reviewSetIndex))state.textContent=left?`Rest · ${buddyClock(left)} remaining`:'Rest complete';const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
@@ -645,24 +650,63 @@ function routineHistoryAll(){
  const sessions=recentRoutineSessions();
  modal('Routine history','<div class="routine-history-all">'+(sessions.length?sessions.map(routineHistoryRow).join(''):empty('No saved Workout Buddy sessions yet.'))+'</div>');
 }
+function routineSessionExercisesInOrder(session){
+ const ranks=new Map((session.performedOrder||[]).map((key,index)=>[key,index]));
+ const entries=(session.exercises||[]).map((exercise,exerciseIndex)=>({exercise,exerciseIndex})).filter(x=>x.exercise.sets?.length);
+ const firstSetTime=e=>{const t=Date.parse(e.sets?.[0]?.startedAt||'');return Number.isFinite(t)?t:null;};
+ return entries.sort((a,b)=>{
+  const aTime=firstSetTime(a.exercise),bTime=firstSetTime(b.exercise);
+  if(aTime!==null&&bTime!==null&&aTime!==bTime)return aTime-bTime;
+  const aRank=ranks.get(buddyKey(a.exercise)),bRank=ranks.get(buddyKey(b.exercise));
+  if(aRank!==undefined&&bRank!==undefined&&aRank!==bRank)return aRank-bRank;
+  if(aRank!==undefined&&bRank===undefined)return -1;
+  if(bRank!==undefined&&aRank===undefined)return 1;
+  if(aTime!==null&&bTime===null)return -1;
+  if(bTime!==null&&aTime===null)return 1;
+  return a.exerciseIndex-b.exerciseIndex;
+ });
+}
 function routineHistoryDetail(id,fromFullHistory=false){
  const session=recentRoutineSessions().find(s=>s.id===id);if(!session)return;
  const c=routineSessionCounts(session);
- const exercises=(session.exercises||[]).map((e,exerciseIndex)=>{
-  if(!e.sets?.length)return '';
-  return '<div class="routine-history-exercise"><strong>'+esc(e.name||'Exercise')+'</strong><small>'+e.sets.length+' sets</small>'+
-  e.sets.map((set,i)=>'<div class="routine-history-set"><span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+effortText(set.difficulty):'')+'</span><button type="button" class="outline small" data-action="routine-history-edit-set" data-id="'+esc(session.id)+'" data-exercise-index="'+exerciseIndex+'" data-set-index="'+i+'" data-from-full="'+fromFullHistory+'">Edit</button></div>').join('')+
-  (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>';
- }).join('');
+ const exercises=routineSessionExercisesInOrder(session).map(({exercise:e,exerciseIndex})=>
+  '<div class="routine-history-exercise"><div class="routine-history-exercise-head"><strong>'+esc(e.name||'Exercise')+'</strong><button type="button" class="outline small" data-action="routine-history-edit-exercise" data-id="'+esc(session.id)+'" data-exercise-index="'+exerciseIndex+'" data-from-full="'+fromFullHistory+'">Edit</button></div><small>'+e.sets.length+' sets</small>'+
+  e.sets.map((set,i)=>'<div class="routine-history-set"><span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+effortText(set.difficulty):'')+'</span></div>').join('')+
+  (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>').join('');
  modal(session.type||'Workout','<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
  ' · '+c.exercises+' exercises · '+c.sets+' sets'+(session.savedEarly?' · Saved early':'')+'</p>'+
  (exercises||empty('No sets recorded in this session.'))+'</div>',fromFullHistory?()=>routineHistoryAll():null);
 }
-function routineHistoryEditSet(id,exerciseIndex,setIndex,fromFullHistory=false){
+let routineHistoryEditDraft=null;
+function routineHistoryCaptureDraft(){
+ const state=routineHistoryEditDraft,form=document.querySelector('form[data-form="routine-history-exercise"]');
+ if(!state||!form)return;
+ const set=state.sets[state.setIndex],weight=form.elements.buddyWeight,reps=form.elements.buddyReps,effort=form.elements.buddyDifficulty;
+ if(!set||!weight||!reps||!effort)return;
+ set.weight=weight.value;set.reps=reps.value;
+ const difficulty=Number(effort.value)||0;
+ if(difficulty)set.difficulty=difficulty;else delete set.difficulty;
+ state.notes=form.elements.historyExerciseNotes?.value.slice(0,500)||'';
+}
+function routineHistoryEditExercise(id,exerciseIndex,fromFullHistory=false){
  const session=(data.workoutHistory||[]).find(s=>s.id===id);
- const exercise=session?.exercises?.[exerciseIndex],set=exercise?.sets?.[setIndex];
- if(!session||!exercise||!set)return;
- modal('Edit set '+(setIndex+1),`<form class="form" data-form="routine-history-set"><input type="hidden" name="sessionId" value="${esc(id)}"><input type="hidden" name="exerciseIndex" value="${exerciseIndex}"><input type="hidden" name="setIndex" value="${setIndex}"><input type="hidden" name="fromFullHistory" value="${fromFullHistory}"><p class="body-copy">${esc(exercise.name)} · ${esc(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Saved workout')}</p><div class="form-grid">${input('Weight ('+data.settings.unit+')','weight',set.weight,'number','min="0" step="any" inputmode="decimal" required')}${input('Reps','reps',set.reps,'number','min="1" step="1" inputmode="numeric" required')}</div><label class="field"><span>Perceived effort</span><select name="difficulty">${effortOptions(set.difficulty)}</select></label><div class="form-actions"><button class="primary" type="submit">Save corrected set</button><button class="outline" type="button" data-action="routine-history-detail" data-id="${esc(id)}" data-from-full="${fromFullHistory}">Cancel</button></div></form>`,()=>routineHistoryDetail(id,fromFullHistory));
+ const exercise=Number.isInteger(exerciseIndex)&&exerciseIndex>=0?session?.exercises?.[exerciseIndex]:null;
+ if(!exercise?.sets?.length)return;
+ routineHistoryEditDraft={sessionId:id,exerciseIndex,fromFullHistory,setIndex:0,
+  sets:structuredClone(exercise.sets),notes:exercise.notes||''};
+ routineHistoryRenderEditor();
+}
+function routineHistoryRenderEditor(){
+ const state=routineHistoryEditDraft;if(!state)return;
+ const session=(data.workoutHistory||[]).find(s=>s.id===state.sessionId),exercise=session?.exercises?.[state.exerciseIndex];
+ if(!exercise){routineHistoryEditDraft=null;return;}
+ const set=state.sets[state.setIndex];
+ const tabs=state.sets.map((_,i)=>'<button type="button" class="'+(i===state.setIndex?'selected':'')+'" data-action="routine-history-select-set" data-index="'+i+'" aria-pressed="'+(i===state.setIndex)+'">Set '+(i+1)+'</button>').join('');
+ modal('Edit · '+exercise.name,`<form class="form routine-history-editor" data-form="routine-history-exercise"><p class="body-copy">Adjust each set using the same controls as Workout Buddy. Changes are saved together.</p><div class="routine-history-edit-tabs" role="group" aria-label="Select set to edit">${tabs}</div>${buddySetControlsMarkup(set)}<label class="field"><span>Exercise notes</span><textarea name="historyExerciseNotes" rows="2" maxlength="500" placeholder="Form, setup, pain, anything worth remembering">${esc(state.notes)}</textarea></label><div class="form-actions"><button type="submit" class="primary">Save changes</button><button type="button" class="outline" data-action="routine-history-edit-cancel">Cancel</button></div></form>`,()=>{
+  const current=routineHistoryEditDraft;
+  routineHistoryEditDraft=null;
+  if(current)routineHistoryDetail(current.sessionId,current.fromFullHistory);
+ });
 }
 
 
@@ -1101,7 +1145,7 @@ document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isCom
 app.addEventListener('input',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.matches('[data-food-csv]')){const form=event.target.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');try{pasteFoodFormCSV(form,event.target.value);if(status)status.textContent='Food values loaded. Review and save.';}catch(e){if(status)status.textContent=e.message;}return;}if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
-app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){buddyReadEditor();persist();}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
+app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
 app.addEventListener('change',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('click',async event=>{
@@ -1163,7 +1207,16 @@ document.addEventListener('click',async event=>{
   }
   if(action==='routine-history-all'){routineHistoryAll();return;}
   if(action==='routine-history-detail'){routineHistoryDetail(el.dataset.id,el.dataset.fromFull==='true'||Boolean(el.closest('.routine-history-all')));return;}
-  if(action==='routine-history-edit-set'){routineHistoryEditSet(el.dataset.id,Number(el.dataset.exerciseIndex),Number(el.dataset.setIndex),el.dataset.fromFull==='true');return;}
+  if(action==='routine-history-edit-exercise'){routineHistoryEditExercise(el.dataset.id,Number(el.dataset.exerciseIndex),el.dataset.fromFull==='true');return;}
+  if(action==='routine-history-select-set'){
+    const state=routineHistoryEditDraft,index=Number(el.dataset.index);
+    if(!state||!Number.isInteger(index)||index<0||index>=state.sets.length)return;
+    routineHistoryCaptureDraft();state.setIndex=index;routineHistoryRenderEditor();return;
+  }
+  if(action==='routine-history-edit-cancel'){
+    const state=routineHistoryEditDraft;routineHistoryEditDraft=null;
+    if(state)routineHistoryDetail(state.sessionId,state.fromFullHistory);return;
+  }
   if(action==='exercise-progress'){exerciseProgressModal(el.dataset.name,el.dataset.equipment);return;}
   if(action==='exercise-progress-all'){exerciseProgressAll();return;}
   if(action==='data-health-details'){dataHealthDetails();return;}
@@ -1216,8 +1269,8 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-choose'){const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);if(!e)return;buddyCaptureUndo(s,'start exercise');e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
   if(action==='buddy-setup-toggle'||action==='buddy-setup-save'||action==='buddy-journal-toggle'||action==='buddy-toggle-history'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||e.activeSetStartedAt)return;if(action==='buddy-setup-toggle')e.setupEditing=!e.setupEditing;else if(action==='buddy-setup-save'){const setup=(document.querySelector('[name=buddySetup]')?.value||'').trim().slice(0,200),def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);if(setup){e.setup=setup;if(def)def.setup=setup;}else{delete e.setup;if(def)delete def.setup;}e.setupEditing=false;}else if(action==='buddy-journal-toggle')e.journalOpen=!e.journalOpen;else e.showRecent=!e.showRecent;await buddyPersist();return;}
   if(action==='buddy-review-next'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||!Number.isInteger(e.reviewSetIndex))return;const finished=e.sets.length>=buddyTargetSets(e);buddyCaptureUndo(s,finished?'finish exercise':'start next set');delete e.reviewSetIndex;if(finished)buddyCompleteExercise(s,e);else{e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';}await buddyPersist();return;}
-  if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;buddyReadEditor();persist();return;}
-  if(action==='buddy-effort'){const root=el.closest('.buddy-exercise-view'),input=root?.querySelector('[name=buddyDifficulty]');if(!input)return;input.value=el.dataset.value;root.querySelectorAll('.buddy-effort').forEach(btn=>{const selected=btn===el;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',selected?'true':'false');});buddyReadEditor();persist();return;}
+  if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;if(el.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
+  if(action==='buddy-effort'){const root=el.closest('.buddy-exercise-view,.routine-history-editor'),input=root?.querySelector('[name=buddyDifficulty]');if(!input)return;input.value=el.dataset.value;root.querySelectorAll('.buddy-effort').forEach(btn=>{const selected=btn===el;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',selected?'true':'false');});if(root.matches('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
   if(action==='buddy-notes-toggle'){buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e)return;const opening=!e.notesOpen;e.notesOpen=opening;await buddyPersist();if(opening)requestAnimationFrame(()=>document.querySelector('[name=buddyNotes]')?.focus({preventScroll:true}));return;}
   if(action==='buddy-undo'){buddyReadNotes();const s=data.activeWorkout;if(!s?.undo)return;buddyUndo(s);await buddyPersist();return;}
   if(action==='buddy-picker'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(s){s.phase='picker';s.selected=null;}await buddyPersist();return;}
@@ -1395,19 +1448,26 @@ app.addEventListener('submit',async event=>{
     if(prepared.length===1&&last.savedCard)showFoodUndo(last.entry.id,last.entry.name);
     return;
   }
-  if(form.dataset.form==='routine-history-set'){
-    const session=(data.workoutHistory||[]).find(s=>s.id===v.sessionId),
-      exerciseIndex=Number(v.exerciseIndex),setIndex=Number(v.setIndex),
-      exercise=Number.isInteger(exerciseIndex)&&exerciseIndex>=0?session?.exercises?.[exerciseIndex]:null,
-      set=Number.isInteger(setIndex)&&setIndex>=0?exercise?.sets?.[setIndex]:null,
-      weight=Number(v.weight),reps=Number(v.reps),difficulty=Number(v.difficulty);
-    if(!set)return alert('The saved set could not be found.');
-    if(v.weight===''||v.reps===''||!Number.isFinite(weight)||weight<0||!Number.isInteger(reps)||reps<1||!Number.isInteger(difficulty)||difficulty<0||difficulty>7)return alert('Check the weight, reps and effort.');
-    set.weight=weight;set.reps=reps;
-    if(difficulty)set.difficulty=difficulty;else delete set.difficulty;
+  if(form.dataset.form==='routine-history-exercise'){
+    const state=routineHistoryEditDraft;if(!state)return;
+    routineHistoryCaptureDraft();
+    const session=(data.workoutHistory||[]).find(s=>s.id===state.sessionId),exercise=session?.exercises?.[state.exerciseIndex];
+    if(!exercise||exercise.sets.length!==state.sets.length)return alert('This saved exercise has changed. Close and reopen its editor.');
+    const corrected=[];
+    for(const set of state.sets){
+      const weight=Number(set.weight),reps=Number(set.reps),difficulty=Number(set.difficulty)||0;
+      if(set.weight===''||set.reps===''||!Number.isFinite(weight)||weight<0||!Number.isInteger(reps)||reps<1||!Number.isInteger(difficulty)||difficulty<0||difficulty>7)
+        return alert('Check each set for a valid weight, reps and effort.');
+      const next={...set,weight,reps};if(difficulty)next.difficulty=difficulty;else delete next.difficulty;
+      corrected.push(next);
+    }
+    exercise.sets=corrected;
+    exercise.notes=state.notes;
     buddyUpsertLift(session,exercise);
+    const {sessionId,fromFullHistory}=state;
+    routineHistoryEditDraft=null;
     await persist();
-    routineHistoryDetail(session.id,v.fromFullHistory==='true');
+    routineHistoryDetail(sessionId,fromFullHistory);
     return;
   }
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
@@ -1430,7 +1490,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=75',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=76',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1638,7 +1698,7 @@ function showHealthSetup(){
   if(!healthState.token)return;
   modal('Set up Health sync',`<p class="body-copy">Keep your existing Everyday Home Screen icon. Use a separate Sync Everyday Health Shortcut to send your latest scale readings.</p><p class="hint">This private address permits weight and body-fat submissions. Do not share it or publish a Shortcut containing it. Disconnect revokes it.</p>${button('Copy private sync address','health-copy','primary')}<p id="health-copy-status" role="status"></p><label class="field"><span>Private sync address</span><textarea id="health-url" readonly rows="3">${esc(cloudApi.health.url(healthState.token))}</textarea></label><p class="body-copy">Follow the <a href="health-shortcut.html" target="_blank" rel="noopener">Shortcut setup instructions</a>. You can send Weight and Body Fat Percentage independently, each with its own Value and Start Date, using this address. No Google password or Firebase administrator key goes into the Shortcut.</p><p class="hint">Only the latest submitted scale reading waits here. Open Everyday after syncing to import it. Repeated or older readings are ignored; historical backfill and Health deletions are not synced.</p>`);
 }
-document.addEventListener('input',event=>{if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}});
+document.addEventListener('input',event=>{if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
 window.addEventListener('pageshow',()=>{void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
 window.addEventListener('focus',()=>{void checkLatestRelease();void syncHealth();});
