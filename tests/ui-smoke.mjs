@@ -69,7 +69,7 @@ try{
  const googleMeter=document.querySelector('.google-sync-usage');
  assert.ok(googleMeter,'Google sync meter appears near Account');
  assert.ok(googleMeter.textContent.includes('781.3 KiB'),'shows app-level Google sync payload limit');
- assert.ok(!googleMeter.textContent.includes('browser quota'),'Google meter explains the limit precisely');
+ assert.ok(googleMeter.textContent.includes('browser quota'),'Google meter explicitly distinguishes the browser quota');
  const resetInput=document.querySelector('form[data-form="week-settings"] [name="dayResetMinutes"]');
  assert.ok(resetInput&&resetInput.type==='hidden','reset time uses an inline control');
  const resetRow=resetInput.closest('[data-time-stepper]');
