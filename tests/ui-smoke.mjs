@@ -1,4 +1,5 @@
 import {JSDOM} from 'jsdom';
+import {normalizeData} from '../data.js';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -122,7 +123,7 @@ try{
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
  assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');assert.equal(state.records.has('bob'),false);
  assert.ok(localStorage.getItem('everyday-cloud-recovery-v1:bob'),'failed cloud save leaves an account-scoped device recovery copy');
- state.fail=false;await click('cloud-retry');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries[0].name,'Cloud meal');
+ state.fail=false;await click('cloud-retry');assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries[0].name,'Device meal','cloud record never replaces local data');
@@ -189,9 +190,9 @@ try{
  await setDate('2025-01-02');
  assert.ok(document.querySelector('.food-preview-empty'));
  assert.ok(document.querySelector('.food-day').nextElementSibling.textContent.includes('Saved foods'));
- const savedCountBeforeOneOff=JSON.parse(state.records.get('bob').payload).foods.length;
+ const savedCountBeforeOneOff=normalizeData(JSON.parse(state.records.get('bob').payload)).foods.length;
  await click('new-food');const saveAsFood=document.querySelector('[name="saveAsFood"]');assert.ok(saveAsFood&&saveAsFood.checked,'new manual foods default to saving in the library');saveAsFood.checked=false;await submit('food',{name:'One-off cruise dessert',calories:'420',protein:'6',quantity:'1'});
- let oneOffState=JSON.parse(state.records.get('bob').payload);assert.equal(oneOffState.foods.length,savedCountBeforeOneOff,'unchecked one-off food does not add a Saved Food');assert.ok(oneOffState.foodEntries.some(e=>e.name==='One-off cruise dessert'),'one-off food still logs normally');
+ let oneOffState=normalizeData(JSON.parse(state.records.get('bob').payload));assert.equal(oneOffState.foods.length,savedCountBeforeOneOff,'unchecked one-off food does not add a Saved Food');assert.ok(oneOffState.foodEntries.some(e=>e.name==='One-off cruise dessert'),'one-off food still logs normally');
  await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,0);await click('close');
  for(let i=1;i<=5;i++){
   await click('new-food');await submit('food',{name:'History food '+i,calories:'100',protein:'10',quantity:'2'});
