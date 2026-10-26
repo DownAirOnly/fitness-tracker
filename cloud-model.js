@@ -75,7 +75,7 @@ export function planDeviceMigration(cloud,device) {
    const previous=(candidate[key]||[]).find(row=>row.id===entry.id);
    if(previous){
     if(signature(previous)===signature(entry)){summary.skipped[key]++;continue;}
-    if(options.keepCloudId){summary.skipped[key]++;continue;}
+    if(key!=='lifts'){summary.skipped[key]++;continue;}
    }
    if((candidate[key]||[]).some(row=>signature(withoutId(row))===signature(withoutId(entry)))){
     summary.skipped[key]++;continue;
