@@ -151,3 +151,7 @@ The routine Add exercise picker now has **+ New exercise**, which opens the same
 Workout exercise cards, Workout Buddy's picker and its exercise screen, routine editor rows, and exercise Progress each link to the same locally rendered front/back muscle guide. A compact schematic highlights primary muscle groups in terracotta and secondary groups in blue, with labels and a clear note on anatomical limits. The first pass maps the built-in exercises and several common names; unfamiliar custom exercises show no assumed highlights. Diagrams contain no external image dependency, are cached for offline use, and never modify workout logs or session timing.
 
 **Buddy overlay fix:** The muscle guide opens as a dedicated Workout Buddy subview, not a regular modal hidden under the full-screen workout. Back returns to the exact active workout, and elapsed time still derives from original timestamps.
+
+### v72.1 cache refresh
+
+The Workout Buddy guide fix also gets a new service-worker cache key and JS/CSS revision. This ensures devices that loaded the first v72 package fetch the corrected full-screen guide.
