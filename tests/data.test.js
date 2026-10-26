@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseFoodCSV,dailyTotals,foodTrackingDate,foodEntriesNewestFirst,stepFoodDateTime,foodCalendarDate,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData} from '../data.js';
+import {parseFoodCSV,dailyTotals,foodTrackingDate,foodEntriesNewestFirst,stepFoodDateTime,foodCalendarDate,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData,convertNotebookWeightUnit} from '../data.js';
 
 test('CSV supports quoted names and rejects malformed rows before import',()=>{
   const parsed=parseFoodCSV('date,name,calories,protein,quantity\r\n2026-09-25,"Chicken, rice",500,42,0.5\r\n2026-09-26,Bad,hi,4,1');
@@ -109,4 +109,49 @@ test('midnight rolls the real date, tracking days remain derived from reset time
  assert.deepEqual(stepFoodDateTime('2026-10-25',47,1),{date:'2026-10-26',t:0});
  assert.deepEqual(stepFoodDateTime('2026-10-26',0,-1),{date:'2026-10-25',t:47});
  assert.equal(foodTrackingDate({date:'2026-10-26',t:0},360),'2026-10-25');
+});
+
+test('unit conversion includes body weights, mirrored lift logs and every Workout Buddy weight copy',()=>{
+ const original=emptyData();
+ original.weights=[{id:'w',date:'2026-10-25',value:180}];
+ original.lifts=[{id:'l',exercise:'Chest Press',equipment:'machine',buddySessionId:'done',date:'2026-10-25',sets:[{weight:45,reps:10},{weight:60,reps:8}]}];
+ const exercise={
+  name:'Chest Press',equipment:'machine',
+  sets:[{weight:45,reps:10,difficulty:4,startedAt:'2026-10-25T15:00:00Z',durationSeconds:40},{weight:60,reps:8,difficulty:6}],
+  draft:{weight:65,reps:8,difficulty:5}
+ };
+ original.activeWorkout={id:'active',exercises:[structuredClone(exercise)],undo:{label:'start set',exercises:[structuredClone(exercise)]}};
+ original.workoutHistory=[{id:'done',exercises:[structuredClone(exercise)],undo:{exercises:[structuredClone(exercise)]}}];
+ original.bodyFat=[{id:'bf',date:'2026-10-25',value:21.5}];
+ const input=JSON.stringify(original);
+ const kg=convertNotebookWeightUnit(original,'kg');
+ const expected=x=>Math.round((x/2.2046226218+Number.EPSILON)*10)/10;
+ assert.equal(kg.settings.unit,'kg');
+ assert.equal(kg.weights[0].value,expected(180));
+ assert.deepEqual(kg.lifts[0].sets.map(s=>s.weight),[expected(45),expected(60)]);
+ for(const ex of [kg.activeWorkout.exercises[0],kg.activeWorkout.undo.exercises[0],kg.workoutHistory[0].exercises[0],kg.workoutHistory[0].undo.exercises[0]]){
+  assert.deepEqual(ex.sets.map(s=>s.weight),[expected(45),expected(60)]);
+  assert.equal(ex.draft.weight,expected(65));
+  assert.equal(ex.sets[0].startedAt,'2026-10-25T15:00:00Z');
+  assert.equal(ex.sets[0].durationSeconds,40);
+  assert.equal(ex.sets[0].difficulty,4);
+ }
+ assert.equal(kg.bodyFat[0].value,21.5);
+ assert.equal(JSON.stringify(original),input,'converting must not mutate the old notebook');
+ const lb=convertNotebookWeightUnit(kg,'lb');
+ assert.equal(lb.settings.unit,'lb');
+ assert.ok(Math.abs(lb.weights[0].value-180)<=0.2);
+ assert.ok(Math.abs(lb.workoutHistory[0].exercises[0].sets[1].weight-60)<=0.2);
+ assert.ok(Math.abs(lb.activeWorkout.undo.exercises[0].draft.weight-65)<=0.2);
+ assert.equal(convertNotebookWeightUnit(lb,'lb'),lb,'same-unit conversion does not recalculate weights');
+});
+
+test('unit conversion refuses invalid weights without partially modifying data',()=>{
+ const original=emptyData();
+ original.weights=[{date:'2026-10-25',value:180}];
+ original.workoutHistory=[{id:'bad',exercises:[{sets:[{weight:'oops',reps:8}]}]}];
+ const before=JSON.stringify(original);
+ assert.throws(()=>convertNotebookWeightUnit(original,'kg'),/invalid/i);
+ assert.equal(JSON.stringify(original),before);
+ assert.throws(()=>convertNotebookWeightUnit(original,'stone'),/lb or kg/);
 });
