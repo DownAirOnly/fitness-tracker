@@ -190,7 +190,7 @@ try{
  const setDate=async value=>{const field=document.querySelector('.tracking-date input');field.value=value;field.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();};
  await setDate('2025-01-02');
  assert.ok(document.querySelector('.food-preview-empty'));
- assert.ok(document.querySelector('.food-day').nextElementSibling.textContent.includes('Saved foods'));
+ assert.ok([...document.querySelectorAll('.food-section-title h2')].some(el=>el.textContent==='More foods'),'Food page exposes the current library section');
  const savedCountBeforeOneOff=normalizeData(JSON.parse(state.records.get('bob').payload)).foods.length;
  await click('new-food');const saveAsFood=document.querySelector('[name="saveAsFood"]');assert.ok(saveAsFood&&saveAsFood.checked,'new manual foods default to saving in the library');saveAsFood.checked=false;await submit('food',{name:'One-off cruise dessert',calories:'420',protein:'6',quantity:'1'});
  let oneOffState=normalizeData(JSON.parse(state.records.get('bob').payload));assert.equal(oneOffState.foods.length,savedCountBeforeOneOff,'unchecked one-off food does not add a Saved Food');assert.ok(oneOffState.foodEntries.some(e=>e.name==='One-off cruise dessert'),'one-off food still logs normally');
