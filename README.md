@@ -169,3 +169,7 @@ Tapping one of the three Recent routines on Lifting opens its detail directly an
 ### v73.3: Fixed-position muscle mini and understated movement labels
 
 Workout Buddy's miniature anatomy guide is anchored to the same coordinates in set preparation and active-set views; it no longer inherits their differing exercise-heading margins. A muted inline Push/Pull label appears beside equipment in canonical exercise cards and the Buddy heading without crowding the right-corner muscle view. Existing gradient movement tint remains. SVG redesign exploration and the other recovered feedback are deferred.
+
+### v74: Clear muscle-legend squares and no Buddy diagram overlap
+
+The Primary and Secondary legend indicators now match their rendered class names and display consistently sized terracotta/orange and blue squares. Workout Buddy retains its fixed anatomy thumbnail position between set preparation and active sets, but reserves a vertical header area so the prior-session history and active weight/reps cards cannot sit underneath it. The previous v73.3 Push/Pull labels remain intact. SVG anatomy artwork itself is unchanged; alternative designs are deferred to a separate comparison pass.
