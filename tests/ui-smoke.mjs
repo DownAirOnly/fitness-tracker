@@ -194,19 +194,19 @@ try{
  const savedCountBeforeOneOff=normalizeData(JSON.parse(state.records.get('bob').payload)).foods.length;
  await click('new-food');const saveAsFood=document.querySelector('[name="saveAsFood"]');assert.ok(saveAsFood&&saveAsFood.checked,'new manual foods default to saving in the library');saveAsFood.checked=false;await submit('food',{name:'One-off cruise dessert',calories:'420',protein:'6',quantity:'1'});
  let oneOffState=normalizeData(JSON.parse(state.records.get('bob').payload));assert.equal(oneOffState.foods.length,savedCountBeforeOneOff,'unchecked one-off food does not add a Saved Food');assert.ok(oneOffState.foodEntries.some(e=>e.name==='One-off cruise dessert'),'one-off food still logs normally');
- await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,0);await click('close');
+ await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,1,'one-off food is a real logged entry');await click('close');
  for(let i=1;i<=5;i++){
   await click('new-food');await submit('food',{name:'History food '+i,calories:'100',protein:'10',quantity:'2'});
-  assert.equal(document.querySelectorAll('.food-preview-row').length,Math.min(i,3));
-  assert.equal(document.querySelector('.food-total-number strong').textContent,String(i*200));
+  assert.equal(document.querySelectorAll('.food-preview-row').length,Math.min(i+1,3));
+  assert.equal(document.querySelector('.food-total-number strong').textContent,String(420+i*200));
  }
  assert.deepEqual([...document.querySelectorAll('.food-preview-row strong')].map(e=>e.textContent),['History food 5','History food 4','History food 3']);
- await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,5);
+ await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,6);
  assert.ok(document.querySelector('.modal').textContent.includes('2025-01-02'));
  await click('edit-entry');await submit('food',{name:'Edited historical food',calories:'150',protein:'15',quantity:'2'});
- assert.equal(document.querySelector('.food-total-number strong').textContent,'1100');
+ assert.equal(document.querySelector('.food-total-number strong').textContent,'1520');
  await click('food-log');await click('edit-entry');await click('delete-entry');
- assert.equal(document.querySelector('.food-total-number strong').textContent,'800');
+ assert.equal(document.querySelector('.food-total-number strong').textContent,'1220');
  assert.equal(document.querySelectorAll('.food-preview-row').length,3);
  const countBeforeSaved=JSON.parse(state.records.get('bob').payload).foodEntries.length;
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'),'saved card opens normal food form');assert.equal(document.querySelector('[data-form="food"] [name="date"]').value,'2025-01-02');await submit('food',{quantity:'0.5'});
