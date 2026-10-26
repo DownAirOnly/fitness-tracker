@@ -1,19 +1,73 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Everyday Anatomy Lab — Interactive SVG comparison</title><style>
-:root{color-scheme:light;font-family:system-ui,-apple-system,Arial,sans-serif;background:#f4f6f2;color:#21372b}*{box-sizing:border-box}body{margin:0;padding:clamp(12px,2vw,28px)}main{max-width:1150px;margin:auto}h1{font-size:clamp(27px,4vw,44px);letter-spacing:-.055em;line-height:1.08;margin:5px 0 8px}header{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:start;margin-bottom:18px}header p{font-size:13px;max-width:680px;line-height:1.6;color:#64776a;margin:0}.eyebrow{font-size:11px;text-transform:uppercase;font-weight:850;letter-spacing:.12em;color:#638e70}.tag{background:#e3ede3;border-radius:18px;padding:8px 10px;font-weight:750;font-size:11px;color:#3c654d}.toolbar{display:grid;grid-template-columns:minmax(160px,1fr) repeat(3,max-content);gap:12px;background:white;border:1px solid #d6e1d8;border-radius:15px;padding:14px;margin-bottom:12px;align-items:end}label,.control{display:grid;gap:6px;font-size:11px;font-weight:750;color:#607669}select{background:#fcfdfb;border:1px solid #c6d7ca;border-radius:10px;height:38px;padding:0 9px;font:inherit;font-size:13px;color:#203d2c}.seg{display:flex;border-radius:9px;background:#eff4f0;padding:3px;gap:3px}.seg button{border:none;background:none;color:#4f6a5c;border-radius:7px;padding:9px 11px;font-weight:750;cursor:pointer;font-size:12px}.seg button.on{color:#1c482e;background:white;box-shadow:0 1px 4px #254e3230}.meta{font-size:12px;display:flex;gap:9px;justify-content:space-between;flex-wrap:wrap;color:#6c8073;margin-bottom:12px}.key{display:inline-flex;align-items:center;gap:5px}.dot{width:10px;height:10px;border-radius:3px;background:#d87753}.dot.sec{background:#64aaca}.dot.off{background:#9aaea1}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.card{background:white;border:1px solid #dce5df;border-radius:17px;overflow:hidden;display:flex;flex-direction:column;min-width:0}.cardhead{display:flex;justify-content:space-between;align-items:start;gap:8px;padding:12px 13px 9px}.cardhead h2{font-size:16px;letter-spacing:-.025em;margin:3px 0}.cardhead p{margin:0;color:#7c8c81;font-size:11px;line-height:1.4}.letter{font-size:11px;font-weight:850;color:#51795c}.pick{background:#f7faf6;border:1px solid #b4cebb;border-radius:20px;padding:7px 11px;white-space:nowrap;color:#335941;font-weight:750;cursor:pointer;font-size:12px}.pick[aria-pressed=true]{background:#285540;color:#fff;border-color:#285540}.preview{margin:0 10px 11px;border-radius:11px;min-height:245px;display:flex;justify-content:center;align-items:center;gap:7px;overflow:hidden;padding:8px}.view{display:flex;align-items:center;flex-direction:column;gap:4px;min-width:0}.view span{font-size:9px;letter-spacing:.13em;opacity:.75;font-weight:800}.body{width:95px;height:216px}.preview.mini{min-height:140px}.preview.mini .body{height:95px;width:43px}.preview.mini .view{gap:2px}.foot{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:auto;padding:0 13px 13px}.foot p{font-size:11px;line-height:1.5;margin:0;color:#647a6a;flex:1}.tiny{width:86px;height:95px;border:1px dashed #b1c4b6;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:2px;background:#f2f6f0}.tiny svg{width:39px;height:87px}.caption{font-size:9px;color:#7b8f81;text-align:center;padding-top:3px}.controls{display:flex;gap:9px;align-items:center;flex-wrap:wrap;border-top:1px solid #d7e3d8;margin-top:17px;padding:14px 0;color:#40604c;font-size:12px;font-weight:700}.controls .spacer{flex:1}button{font-family:inherit}.controls button{border:1px solid #bdd1c0;border-radius:9px;background:#ecf3ec;padding:9px 13px;color:#245338;font-size:12px;font-weight:750;cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #5b9d76;outline-offset:2px}.note{font-size:11px;color:#687d70;line-height:1.5;margin-top:8px}
-.preview .sil{fill:var(--base);stroke:var(--stroke);stroke-width:1.7}.preview .muscle{fill:var(--quiet);stroke:var(--stroke);stroke-width:1.0;stroke-linejoin:round}.preview .muscle.primary{fill:var(--hot)}.preview .muscle.secondary{fill:var(--cool)}.preview .contours{fill:none;stroke:var(--stroke);stroke-width:1.1;opacity:.5}.preview .hatch{display:none}.preview.atlas{--base:#e2dace;--quiet:#e9e1d8;--stroke:#716e62;--hot:#ce8c6e;--cool:#8cbbc9;background:#f1eadd;color:#544d3c}.preview.atlas .hatch{display:block;stroke:#5d5346;stroke-width:1;opacity:.5}.preview.atlas .contours{opacity:.8}
-.preview.solid{--base:#2d6248;--quiet:#2d6248;--stroke:#234533;--hot:#ffc081;--cool:#75d1d2;background:#dae9df;color:#31533c}.preview.solid .contours{display:none}.preview.solid .muscle{stroke-width:.6}
-.preview.sculpt{--base:url(#bodygradient);--quiet:url(#neutralgradient);--stroke:#78978a;--hot:url(#warmgradient);--cool:url(#coolgradient);background:radial-gradient(ellipse,#dce5d9,#a4bbb0);color:#315b43}.preview.sculpt .sil{filter:url(#shade)}.preview.sculpt .muscle{filter:url(#relief);stroke-width:1.35}
-.preview.thermal{--base:#203f52;--quiet:#295067;--stroke:#58809c;--hot:#ff7445;--cool:#3ed2ef;background:radial-gradient(circle,#193345,#080f1e);color:#cee1ea}.preview.thermal .muscle.primary{filter:url(#heat)}.preview.thermal .muscle.secondary{filter:url(#coolglow)}.preview.thermal .contours{opacity:.13}
-.preview.blueprint{--base:#153b50;--quiet:#1c4b65;--stroke:#9cdbeb;--hot:#f2b774;--cool:#65d9ed;background-color:#0a2535;background-image:linear-gradient(#a5d8ea20 1px,transparent 1px),linear-gradient(90deg,#a5d8ea20 1px,transparent 1px);background-size:18px 18px;color:#cbecf6}.preview.blueprint .sil{stroke-dasharray:4 2;stroke-width:2}.preview.blueprint .muscle{fill-opacity:.72;stroke-dasharray:2 1}.preview.blueprint .contours{stroke-dasharray:2 4}
-.preview.facets{--base:#668b76;--quiet:#a0b4a7;--stroke:#2d5847;--hot:#e69067;--cool:#80b8d2;background:linear-gradient(140deg,#efeadc,#d0e0d4);color:#375642}.preview.facets .muscle{stroke-width:2;stroke-linejoin:bevel}.preview.facets .contours{display:none}.preview.facets .facet{display:initial}
-.facet{display:none;fill:url(#facets);opacity:.8}
-[data-theme=dark].atlas{--base:#3c443c;--quiet:#455146;--stroke:#d7c6ae;--hot:#e59a76;--cool:#84b7d0;background:#262b27;color:#e2d8cd}
-[data-theme=dark].solid{--base:#446f5e;--quiet:#426e5c;--stroke:#87af9d;--hot:#ffd3a0;--cool:#8edfe6;background:#1c3025;color:#e0f2e1}
-[data-theme=dark].sculpt{background:radial-gradient(ellipse,#4d6255,#1b2d26);color:#e0efe0}
-[data-theme=dark].facets{--base:#456a5a;--quiet:#3f6a57;--stroke:#9fc3b1;--hot:#e7a072;--cool:#91d5df;background:#183227;color:#e1efdf}
-@media(max-width:920px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:550px){.grid{grid-template-columns:1fr}.toolbar{gap:9px}.toolbar label{grid-column:span 2}.seg button{font-size:11px;padding:9px 8px}.preview{min-height:216px}.preview.mini{min-height:130px}body{padding:12px}}
-</style></head><body><main><header><div><span class="eyebrow">Everyday · Design Lab · Pass 2.1</span><h1>Muscle Anatomy Lab</h1><p>Compare six SVG styles using the exact existing exercise-to-muscle mappings. This page is an isolated experiment and does not change Workout Buddy. The controls below work entirely in this page, without any server or external JavaScript.</p></div><span class="tag">DESIGN TEST ONLY · APP v79 UNCHANGED</span></header><section id="toolbar" class="toolbar"><label>Exercise<select id="exercise"><option value="chest press">chest press</option><option value="lat pulldown">lat pulldown</option><option value="seated row">seated row</option><option value="shoulder press">shoulder press</option><option value="bicep curl">bicep curl</option><option value="seated leg press">seated leg press</option><option value="leg curl">leg curl</option><option value="leg extension">leg extension</option><option value="glute kickback">glute kickback</option><option value="squat">squat</option><option value="deadlift">deadlift</option><option value="abdominal crunch">abdominal crunch</option><option value="lateral raise">lateral raise</option></select></label><div class="control"><span>View</span><div class="seg" data-group="angle"><button type="button" data-value="both" class="on">Both</button><button type="button" data-value="front">Front</button><button type="button" data-value="back">Back</button></div></div><div class="control"><span>Size</span><div class="seg" data-group="scale"><button type="button" data-value="detail" class="on">Detail</button><button type="button" data-value="mini">86×95</button></div></div><div class="control"><span>Surface</span><div class="seg" data-group="theme"><button type="button" data-value="light" class="on">Light</button><button type="button" data-value="dark">Dark</button></div></div></section><div class="meta"><span><span class="key"><i class="dot"></i> Primary</span> &nbsp; <span class="key"><i class="dot sec"></i> Secondary</span> &nbsp; <span class="key"><i class="dot off"></i> Other</span></span><span id="status" aria-live="polite">Choose an exercise to see highlights.</span></div><noscript><p>JavaScript is required for the interactive gallery. Open this page in Safari or Chrome with JavaScript enabled.</p></noscript><section id="gallery" class="grid" aria-label="Six anatomy illustration alternatives"></section><div class="controls"><span id="favorites" aria-live="polite">No favorites selected</span><span class="spacer"></span><button id="copy" type="button">Copy picks</button><button id="clear" type="button">Clear</button></div><p class="note">These are six rendering directions applied to the existing simplified SVG anatomy. Muscle placement is illustrative, not a medical reference. No changes to the production app.</p></main><script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Everyday Anatomy Lab — Neon Anatomy Refinement</title><style>
+:root{color-scheme:dark;--ink:#eff6f8;--muted:#9db4bd;--border:#2a4150;--dark:#0a121a;font-family:system-ui,-apple-system,Arial,sans-serif;background:#0b131b;color:var(--ink)}
+*{box-sizing:border-box}body{background:radial-gradient(circle at top,#192e3b,#0b131b 64%);margin:0;padding:clamp(12px,2vw,25px)}
+main{max-width:1180px;margin:auto}header{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;flex-wrap:wrap;margin-bottom:16px}h1{font-size:clamp(29px,5vw,47px);line-height:1.05;letter-spacing:-.05em;margin:5px 0 10px}header p{font-size:13px;line-height:1.55;max-width:740px;color:var(--muted);margin:0}.eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.17em;font-weight:850;color:#87cbdc}.tag{font-size:10px;letter-spacing:.05em;background:#12313d;color:#98dbe9;border:1px solid #285164;border-radius:99px;padding:8px 11px;font-weight:800}
+.toolbar{background:linear-gradient(#14222b,#101c24);border:1px solid var(--border);border-radius:18px;padding:15px;display:grid;gap:12px;margin-bottom:16px}.toolbar-group{display:grid;gap:7px}.toolbar-group>strong{color:#85a8b7;font-size:10px;letter-spacing:.11em;text-transform:uppercase}.group-note{font-weight:500;letter-spacing:0;text-transform:none;color:#637e8b;margin-left:7px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg button,.action{font-family:inherit;background:#152530;color:#bfccd4;border:1px solid #314452;font-size:12px;font-weight:750;padding:10px 12px;border-radius:11px;cursor:pointer;transition:background .15s,border-color .15s}.seg button.on{background:#214352;border-color:#56bcd8;color:#fff;box-shadow:0 0 0 1px #3995ad22 inset}.seg button.warm.on{background:#552f21;border-color:#ff8f63}.seg button:focus-visible,.action:focus-visible{outline:2px solid #98eaff;outline-offset:2px}.toolbar-subgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.stage-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:15px}.stage-card,.side-panel{background:linear-gradient(#14212a,#101b23);border:1px solid var(--border);border-radius:19px;padding:15px}.stage-card{min-width:0}.stage-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.stage-head h2{margin:0 0 5px;letter-spacing:-.03em;font-size:23px}.stage-head p{color:var(--muted);font-size:12px;margin:0;line-height:1.5}.pill{font-size:10px;font-weight:900;color:#b9e7f2;border:1px solid #35677a;border-radius:99px;padding:8px 10px;white-space:nowrap}
+.big-preview{border-radius:16px;min-height:375px;display:flex;align-items:center;justify-content:center;padding:12px;gap:12px;overflow:hidden;position:relative}
+.big-preview[data-theme=dark]{background:radial-gradient(ellipse at 50% 24%,#183647,#070f1b 72%);color:#dce8f4}
+.big-preview[data-theme=light]{background:radial-gradient(ellipse at 50% 24%,#f3f8f3,#bed2c6 82%);color:#263a34}
+.big-preview .view{display:flex;flex-direction:column;align-items:center;gap:3px}.big-preview .view>span{font-size:10px;letter-spacing:.15em;font-weight:850;opacity:.65}
+.big-preview svg.body{width:min(20vw,136px);height:282px;max-width:100%}
+.big-preview.single svg.body{width:180px;height:310px}
+.big-preview.mini{min-height:180px}.big-preview.mini svg.body{width:46px;height:95px}.big-preview.mini.single svg.body{width:48px;height:95px}
+.big-preview.mini .view>span{font-size:9px}
+.inline-info{display:flex;flex-wrap:wrap;justify-content:space-between;gap:7px;color:#9fbdc7;font-size:11px;margin-top:11px}
+.swatch{width:10px;height:10px;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:5px}.swatch.p{background:#ff7445}.swatch.s{background:#36d8ff}.swatch.q{background:#486171}
+.actual-mini{display:flex;align-items:center;justify-content:center;gap:2px;width:86px;height:95px;border:1px dashed #497080;background:#112634;border-radius:9px;overflow:hidden}.actual-mini svg.body{height:86px;width:39px}.actual-mini-wrap{display:grid;justify-items:center;gap:4px;color:#91adb8;font-size:9px;font-weight:800}
+.side-panel{display:grid;gap:14px;align-content:start}.side-panel h3{font-size:13px;letter-spacing:-.01em;margin:0 0 7px}.side-panel p{font-size:12px;color:var(--muted);line-height:1.55;margin:0}.summary-text{font-size:12px;color:#c4d9e2;line-height:1.6}.marker{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:7px}.muscle-pill{font-size:11px;font-weight:750;border-radius:20px;padding:7px 9px;background:#1b313d;color:#bddce5}.muscle-pill.primary{background:#4c291e;color:#ffb695}.muscle-pill.secondary{background:#163b4b;color:#a7ecff}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.action{flex:1}.divider{border-top:1px solid var(--border);padding-top:12px}.note{font-size:11px;color:#869da8;line-height:1.6;margin-top:13px}
+.preview{--base:#254658;--quiet:#335466;--stroke:#77a5bd;--hot:#ff7445;--cool:#36d8ff}
+.preview .sil{fill:var(--base);stroke:var(--stroke);stroke-width:1.75;stroke-linecap:round}.preview .muscle{fill:var(--quiet);stroke:var(--stroke);stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}.preview .muscle.primary{fill:var(--hot)}.preview .muscle.secondary{fill:var(--cool)}.preview .contours{fill:none;stroke:var(--stroke);stroke-width:1.15;opacity:.37}.preview .hatch{display:none}.preview .facet{display:none}
+.preview.thermal .muscle.primary{filter:url(#heat)}.preview.thermal .muscle.secondary{filter:url(#coolglow)}
+.preview.thermal.glow-soft .muscle.primary,.preview.thermal.glow-soft .muscle.secondary{filter:url(#glowsoft)}
+.preview.thermal.glow-off .muscle.primary,.preview.thermal.glow-off .muscle.secondary{filter:none}
+.preview.thermal[data-theme=light]{--base:#5a7a89;--quiet:#7894a0;--stroke:#345467;--hot:#e76337;--cool:#057ca5}
+.preview.atlas{--base:#d7cec1;--quiet:#e4dcd2;--stroke:#675f52;--hot:#d48e70;--cool:#80aebe}
+.preview.solid{--base:#2c654c;--quiet:#326c51;--stroke:#38604c;--hot:#ffbf86;--cool:#8be3e3}
+.preview.sculpt{--base:url(#bodygradient);--quiet:url(#neutralgradient);--stroke:#6b9285;--hot:url(#warmgradient);--cool:url(#coolgradient)}
+.preview.blueprint{--base:#173e55;--quiet:#23506a;--stroke:#aed8e7;--hot:#f5bd76;--cool:#65dcf1;background-image:linear-gradient(#82b0c418 1px,transparent 1px),linear-gradient(90deg,#82b0c418 1px,transparent 1px);background-size:17px 17px}
+.preview.blueprint .sil{stroke-dasharray:3 3}.preview.blueprint .muscle{fill-opacity:.8;stroke-dasharray:2 2}
+.preview.facets{--base:#698f7a;--quiet:#9db5a7;--stroke:#385d4a;--hot:#e8a279;--cool:#80c4da}
+.preview.facets .facet{display:block;fill:url(#facets);opacity:.35}
+.preview.atlas .hatch{display:block;stroke:#5d5346;stroke-width:1;opacity:.43}
+.preview.solid .contours{display:none}
+.preview.sculpt .sil{filter:url(#shade)}.preview.sculpt .muscle{filter:url(#relief)}
+.preview.no-lines .contours,.preview.no-lines .hatch{display:none}
+.preview.single{gap:0}
+@media(min-width:900px){.toolbar-subgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:800px){.stage-layout{grid-template-columns:1fr}.side-panel{grid-template-columns:1fr 1fr}.big-preview svg.body{width:120px;height:245px}}
+@media(max-width:520px){.toolbar-subgrid,.side-panel{grid-template-columns:1fr}.big-preview{min-height:315px;padding:7px;gap:5px}.big-preview svg.body{width:105px;height:218px}.big-preview.single svg.body{width:145px;height:280px}.big-preview.mini{min-height:160px}.big-preview.mini svg.body{height:95px;width:48px}.big-preview.mini.single svg.body{height:95px;width:48px}h1{font-size:31px}}
+</style></head><body><main><header><div><span class="eyebrow">Everyday · Design Lab · Pass 2.2</span><h1>Anatomy Lab · Humanized Neon</h1><p>The Neon Heatmap is now the default. Compare one rendering at a time, test button-based settings, and inspect a more human body silhouette with distinct glute contours. Everyday itself remains unchanged.</p></div><span class="tag">DESIGN TEST ONLY · APP v79 UNCHANGED</span></header>
+<section class="toolbar" id="toolbar">
+ <div class="toolbar-group"><strong>Exercise <span class="group-note">Tap to change highlighted muscles</span></strong><div class="seg" data-group="exercise" id="exerciseOptions"></div></div>
+ <div class="toolbar-group"><strong>Rendering style <span class="group-note">One preview at a time</span></strong><div class="seg" data-group="style" id="styleOptions"></div></div>
+ <div class="toolbar-subgrid">
+ <div class="toolbar-group"><strong>Angle</strong><div class="seg" data-group="angle" id="angleOptions"></div></div>
+ <div class="toolbar-group"><strong>Scale</strong><div class="seg" data-group="scale" id="scaleOptions"></div></div>
+ <div class="toolbar-group"><strong>Background</strong><div class="seg" data-group="theme" id="themeOptions"></div></div>
+ <div class="toolbar-group"><strong>Glow</strong><div class="seg" data-group="glow" id="glowOptions"></div></div>
+ <div class="toolbar-group"><strong>Body proportions</strong><div class="seg" data-group="shape" id="shapeOptions"></div></div>
+ <div class="toolbar-group"><strong>Line details</strong><div class="seg" data-group="lines" id="linesOptions"></div></div>
+ </div>
+</section>
+<section class="stage-layout">
+ <div class="stage-card">
+  <div class="stage-head"><div><h2 id="conceptTitle">Neon Heatmap</h2><p id="conceptDesc"></p></div><span class="pill">Human anatomy experiment</span></div>
+  <div id="mainPreview" class="big-preview preview thermal" data-theme="dark"></div>
+  <div class="inline-info"><span><i class="swatch p"></i>Primary <i class="swatch s"></i>Secondary <i class="swatch q"></i>Other</span><span>Front and rear muscle maps</span></div>
+ </div>
+ <aside class="side-panel">
+  <div><h3 id="exerciseTitle">Chest Press</h3><p id="status"></p></div>
+  <div class="divider"><h3>Primary</h3><div class="marker" id="primaryGroups"></div></div>
+  <div class="divider"><h3>Secondary</h3><div class="marker" id="secondaryGroups"></div></div>
+  <div class="divider"><h3>At actual Buddy scale</h3><div class="actual-mini-wrap"><div id="buddyMini" class="actual-mini preview thermal" data-theme="dark"></div><span>86 × 95 px</span></div></div>
+  <div class="divider"><h3>Design notes</h3><p>Redrawn continuous body silhouette, curved shoulders and legs, with separately bounded glutes instead of overlapping circles. The exercise assignments are unchanged.</p></div>
+  <div class="divider"><div class="actions"><button class="action" id="copy" type="button">Copy settings</button><button class="action" id="reset" type="button">Reset</button></div><p id="feedback" class="note" aria-live="polite"></p></div>
+ </aside>
+</section><p class="note">Experimental design study only. Everyday's production anatomy renderer and workout data remain unchanged. Highlights are illustrative, not a medical atlas.</p>
+</main><script>
 const labels={
  chest:'Chest / pectorals',delts:'Shoulders / deltoids',triceps:'Triceps',
  biceps:'Biceps',forearms:'Forearms',lats:'Latissimus dorsi',upperBack:'Upper back / rhomboids',
@@ -49,11 +103,12 @@ const exercises={
  'plank':{primary:['abs'],secondary:['obliques','delts']}
 };
 
-const silhouette='<ellipse cx="90" cy="22" rx="15" ry="17"/><rect x="82" y="38" width="16" height="14" rx="5"/>'+
- '<path d="M70 49 Q58 51 54 67 L65 104 70 147 63 166 Q90 183 117 166 L110 147 115 104 126 67 Q122 51 110 49 Z"/>'+
- '<path d="M56 57 Q43 57 40 75 L27 145 Q24 154 34 158 L43 151 60 98 66 72 Z"/>'+
- '<path d="M124 57 Q137 57 140 75 L153 145 Q156 154 146 158 L137 151 120 98 114 72 Z"/>'+
- '<path d="M65 162 Q89 170 115 162 L116 179 109 241 105 303 Q102 316 90 315 L89 289 92 240 90 190 88 240 91 289 90 315 Q78 316 75 303 L71 241 64 179 Z"/>';
+const silhouette='<path d="M90 15 C100 15 106 25 106 36 C106 45 101 53 90 54 C79 53 74 45 74 36 C74 25 80 15 90 15Z"/>'+
+'<path d="M83 51 Q89 55 97 51 L100 62 Q90 67 80 62 Z"/>'+
+'<path d="M67 59 Q76 54 90 57 Q104 54 113 59 C122 63 124 74 121 88 L116 127 Q112 146 110 159 Q103 170 90 173 Q77 170 70 159 Q68 146 64 127 L59 88 C56 74 58 63 67 59Z"/>'+
+'<path d="M60 66 C48 67 44 76 42 88 L32 124 Q27 140 27 151 C27 160 33 163 39 160 Q44 157 46 148 L57 117 Q62 97 65 83 Z"/>'+
+'<path d="M120 66 C132 67 136 76 138 88 L148 124 Q153 140 153 151 C153 160 147 163 141 160 Q136 157 134 148 L123 117 Q118 97 115 83 Z"/>'+
+'<path d="M68 163 C74 174 81 178 90 178 C99 178 106 174 112 163 L116 184 Q116 206 111 239 L106 299 C105 310 101 314 95 314 L90 274 L85 314 C79 314 75 310 74 299 L69 239 Q64 206 64 184 Z"/>';
 const front={
  chest:'<path d="M67 73 Q75 65 88 70 L88 91 Q77 100 65 88 Z M92 70 Q105 65 113 73 L115 88 Q103 100 92 91 Z"/>',
  delts:'<ellipse cx="58" cy="67" rx="9" ry="14" transform="rotate(18 58 67)"/><ellipse cx="122" cy="67" rx="9" ry="14" transform="rotate(-18 122 67)"/>',
@@ -72,7 +127,7 @@ const rear={
  triceps:'<ellipse cx="49" cy="102" rx="7" ry="19" transform="rotate(14 49 102)"/><ellipse cx="131" cy="102" rx="7" ry="19" transform="rotate(-14 131 102)"/>',
  forearms:'<path d="M40 120 L47 121 42 150 33 151 Z M140 120 L133 121 138 150 147 151 Z"/>',
  lowerBack:'<path d="M79 128 L101 128 106 154 90 162 74 154 Z"/>',
- glutes:'<ellipse cx="77" cy="169" rx="15" ry="13"/><ellipse cx="103" cy="169" rx="15" ry="13"/>',
+ glutes:'<path d="M66 165 C70 160 77 160 82 162 Q87 164 87 171 L86 179 Q82 188 75 187 C69 184 66 176 66 165Z M98 162 C103 160 110 160 114 165 C114 176 111 184 105 187 Q98 188 94 179 L93 171 Q93 164 98 162Z"/>',
  hamstrings:'<path d="M67 186 Q79 182 87 185 L84 243 73 248 Z M93 185 Q101 182 113 186 L107 248 96 243 Z"/>',
  calves:'<path d="M73 249 Q79 243 86 249 L84 290 78 299 72 287 Z M94 249 Q101 243 107 249 L108 287 102 299 96 290 Z"/>'
 };
@@ -85,10 +140,20 @@ const STYLES=[
 {id:'blueprint',name:'Technical Blueprint',desc:'Drafting lines and grid geometry',focus:'Technical personality'},
 {id:'facets',name:'Polygon / Game Art',desc:'Angular segments and facets',focus:'Distinctive styling'}
 ];
-const state={exercise:'chest press',angle:'both',scale:'detail',theme:'light',picks:[]};
-const opts=document.getElementById('exercise');
-const gallery=document.getElementById('gallery'),status=document.getElementById('status'),favs=document.getElementById('favorites');
-const escapeText=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const OPTIONS={
+ exercise:['chest press','lat pulldown','seated row','shoulder press','bicep curl','seated leg press','leg curl','leg extension','glute kickback','squat','deadlift','abdominal crunch','lateral raise'],
+ style:['thermal','atlas','solid','sculpt','blueprint','facets'],
+ angle:['both','front','back'],
+ scale:['detail','mini'],
+ theme:['dark','light'],
+ glow:['bold','soft','off'],
+ shape:['natural','lean','athletic'],
+ lines:['contours','clean']
+};
+const LABELS={thermal:'Neon Heatmap',atlas:'Anatomical Atlas',solid:'Bold Silhouette',sculpt:'Sculpted Relief',blueprint:'Technical Blueprint',facets:'Polygon / Game Art',both:'Both',front:'Front',back:'Back',detail:'Detail',mini:'86 × 95',dark:'Dark',light:'Light',bold:'Bright',soft:'Soft',off:'Off',natural:'Natural',lean:'Lean',athletic:'Athletic',contours:'Contours',clean:'Clean'};
+const INITIAL={exercise:'chest press',style:'thermal',angle:'both',scale:'detail',theme:'dark',glow:'soft',shape:'natural',lines:'clean'};
+const state={...INITIAL};
 const defs='<defs>'+
 '<linearGradient id="bodygradient" x2="1" y2="1"><stop stop-color="#e8efe3"/><stop offset="1" stop-color="#678a78"/></linearGradient>'+
 '<linearGradient id="neutralgradient" x2="1" y2="1"><stop stop-color="#d7e2d4"/><stop offset="1" stop-color="#95ab9b"/></linearGradient>'+
@@ -98,47 +163,55 @@ const defs='<defs>'+
 '<filter id="relief" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx=".8" dy="1" stdDeviation=".65" flood-opacity=".5"/></filter>'+
 '<filter id="heat" x="-90%" y="-90%" width="280%" height="280%"><feGaussianBlur in="SourceGraphic" stdDeviation="4" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
 '<filter id="coolglow" x="-90%" y="-90%" width="280%" height="280%"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
-'<pattern id="facets" width="18" height="20" patternUnits="userSpaceOnUse"><path d="M0 0L18 0L6 13Z" fill="#fff" fill-opacity=".28"/><path d="M6 13L18 0L18 20Z" fill="#163a29" fill-opacity=".18"/></pattern>'+
-'</defs>';
+'<filter id="glowsoft" x="-90%" y="-90%" width="280%" height="280%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'+
+'<pattern id="facets" width="18" height="20" patternUnits="userSpaceOnUse"><path d="M0 0L18 0L6 13Z" fill="#fff" fill-opacity=".28"/><path d="M6 13L18 0L18 20Z" fill="#163a29" fill-opacity=".18"/></pattern>'+'</defs>';
 const detailPaths={front:'M90 54V145M68 63Q90 74 112 63M77 106H103M77 117H103M77 128H103M64 165Q90 175 116 165',rear:'M90 55V160M68 84Q90 96 112 84M76 112L90 121L104 112M76 132H104M64 164Q90 174 116 164'};
+const $=id=>document.getElementById(id);
+const titleize=x=>x.replace(/\b\w/g,c=>c.toUpperCase());
+function controls(){
+ for(const [key,options] of Object.entries(OPTIONS))
+  $(key+'Options').innerHTML=options.map(value=>'<button type="button" data-group="'+key+'" data-value="'+value+'" class="'+(key==='style'&&value==='thermal'?'warm':'')+'">'+(LABELS[value]||titleize(value))+'</button>').join('');
+}
 function figure(view){
- const profile=exercises[state.exercise], regions=view==='front'?front:rear;
- const area=Object.entries(regions).map(([id,svg])=>'<g class="muscle '+(profile.primary.includes(id)?'primary':profile.secondary.includes(id)?'secondary':'quiet')+'"><title>'+escapeText(labels[id])+'</title>'+svg+'</g>').join('');
- const active=Object.entries(regions).filter(([id])=>profile.primary.includes(id)||profile.secondary.includes(id)).map(pair=>pair[1]).join('');
- return '<svg class="body" viewBox="0 0 180 330" role="img" aria-label="'+view+' muscles">'+defs+
- '<g class="sil">'+silhouette+'</g>'+area+'<g class="facet">'+active+'</g>'+
+ const profile=exercises[state.exercise],regions=view==='front'?front:rear;
+ const markup=Object.entries(regions).map(([id,area])=>'<g class="muscle '+(profile.primary.includes(id)?'primary':profile.secondary.includes(id)?'secondary':'quiet')+'"><title>'+labels[id]+'</title>'+area+'</g>').join('');
+ const active=Object.entries(regions).filter(([id])=>profile.primary.includes(id)||profile.secondary.includes(id)).map(([,area])=>area).join('');
+ const xScale=state.shape==='lean'?0.94:state.shape==='athletic'?1.07:1;
+ return '<svg class="body" viewBox="0 0 180 330" role="img" aria-label="'+view+' body muscle illustration">'+defs+
+ '<g transform="translate(90 0) scale('+xScale+' 1) translate(-90 0)"><g class="sil">'+silhouette+'</g>'+markup+'<g class="facet">'+active+'</g>'+
  '<path class="contours" d="'+detailPaths[view]+'"/>'+
- '<path class="hatch" d="M69 78l17 11m-18-7l15 11m12-4l15-11M74 184l11 19m13-19l11 19" fill="none"/>'+
- '</svg>';
+ '<path class="hatch" d="M69 78l17 11m-18-7l15 11m12-4l15-11M74 184l11 19m13-19l11 19" fill="none"/></g></svg>';
 }
-function render(){
- const sides=state.angle==='both'?['front','rear']:[state.angle==='back'?'rear':'front'];
- gallery.innerHTML=STYLES.map((x,i)=>'<article class="card"><div class="cardhead"><div><span class="letter">'+String.fromCharCode(65+i)+'</span><h2>'+x.name+'</h2><p>'+x.desc+'</p></div><button class="pick" type="button" data-pick="'+x.id+'" aria-pressed="'+state.picks.includes(x.id)+'">'+(state.picks.includes(x.id)?'✓ Picked':'☆ Pick')+'</button></div>'+
- '<div class="preview '+x.id+' '+(state.scale==='mini'?'mini':'')+'" data-theme="'+state.theme+'">'+sides.map(side=>'<div class="view"><span>'+ (side==='rear'?'BACK':'FRONT')+'</span>'+figure(side)+'</div>').join('')+'</div>'+
- '<div class="foot"><p><strong>Best for:</strong> '+x.focus+'<br/>Compare on the 86×95 Buddy preview.</p>'+
- (state.scale==='detail'?'<div><div class="tiny preview '+x.id+'" data-theme="'+state.theme+'">'+figure('front')+figure('rear')+'</div><div class="caption">86 × 95 px</div></div>':'')+'</div></article>').join('');
- const p=exercises[state.exercise];
- status.textContent='Primary: '+p.primary.map(k=>labels[k]).join(', ')+' · Secondary: '+(p.secondary.map(k=>labels[k]).join(', ')||'none');
- favs.textContent=state.picks.length?'Favorites: '+state.picks.map(id=>STYLES.find(x=>x.id===id).name).join(' + '):'No favorites selected';
- document.querySelectorAll('[data-group] button').forEach(el=>{const group=el.closest('[data-group]');el.classList.toggle('on',el.dataset.value===state[group.dataset.group]);el.setAttribute('aria-pressed',String(el.classList.contains('on')))});
+function paint(){
+ document.querySelectorAll('#toolbar [data-value]').forEach(button=>{
+  const active=state[button.dataset.group]===button.dataset.value;
+  button.classList.toggle('on',active);button.setAttribute('aria-pressed',String(active));
+ });
+ const selected=STYLES.find(item=>item.id===state.style),profile=exercises[state.exercise];
+ $('conceptTitle').textContent=selected.name;
+ $('conceptDesc').textContent=selected.desc;
+ $('exerciseTitle').textContent=titleize(state.exercise);
+ $('status').textContent='Primary and supporting muscles follow Everyday’s existing exercise mapping.';
+ $('primaryGroups').innerHTML=profile.primary.map(id=>'<span class="muscle-pill primary">'+labels[id]+'</span>').join('');
+ $('secondaryGroups').innerHTML=profile.secondary.length?profile.secondary.map(id=>'<span class="muscle-pill secondary">'+labels[id]+'</span>').join(''):'<span class="muscle-pill">None</span>';
+ const views=state.angle==='both'?['front','rear']:[state.angle==='back'?'rear':'front'];
+ const classNames=['big-preview','preview',state.style,'glow-'+state.glow,state.scale==='mini'?'mini':'',state.lines==='clean'?'no-lines':'',views.length===1?'single':''].join(' ');
+ $('mainPreview').className=classNames;
+ $('mainPreview').dataset.theme=state.theme;
+ $('mainPreview').innerHTML=views.map(view=>'<div class="view"><span>'+ (view==='rear'?'BACK':'FRONT')+'</span>'+figure(view)+'</div>').join('');
+ $('buddyMini').className=['actual-mini','preview',state.style,'glow-'+state.glow,state.lines==='clean'?'no-lines':''].join(' ');
+ $('buddyMini').dataset.theme=state.theme;
+ $('buddyMini').innerHTML=figure('front')+figure('rear');
 }
-opts.addEventListener('change',()=>{state.exercise=opts.value;render()});
-document.getElementById('toolbar').addEventListener('click',event=>{
- const btn=event.target.closest('[data-value]');if(!btn)return;
- state[btn.closest('[data-group]').dataset.group]=btn.dataset.value;render();
+controls();paint();
+$('toolbar').addEventListener('click',event=>{
+ const button=event.target.closest('[data-group][data-value]');if(!button)return;
+ state[button.dataset.group]=button.dataset.value;paint();
 });
-gallery.addEventListener('click',event=>{
- const button=event.target.closest('[data-pick]');if(!button)return;
- const id=button.dataset.pick;
- if(state.picks.includes(id))state.picks=state.picks.filter(p=>p!==id);
- else if(state.picks.length<2)state.picks.push(id);
- else{status.textContent='Choose at most two. Unpick one first.';return}
- render();
+$('reset').addEventListener('click',()=>{Object.assign(state,INITIAL);paint();$('feedback').textContent='Reset to Neon Heatmap defaults.';});
+$('copy').addEventListener('click',async()=>{
+ const text='Everyday anatomy lab: '+Object.entries(state).map(([key,value])=>key+'='+value).join(', ');
+ try{await navigator.clipboard.writeText(text);$('feedback').textContent='Settings copied.';}
+ catch{$('feedback').textContent=text;window.prompt('Copy settings',text);}
 });
-document.getElementById('clear').addEventListener('click',()=>{state.picks=[];render()});
-document.getElementById('copy').addEventListener('click',async()=>{
- const value=state.picks.length?'Everyday Anatomy Lab favorites: '+state.picks.map(id=>STYLES.find(x=>x.id===id).name).join(' and ')+'. Exercise: '+opts.selectedOptions[0].textContent+'.':'No favorites selected.';
- try{await navigator.clipboard.writeText(value);favs.textContent='Copied selection';}catch{window.prompt('Copy selection:',value)}
-});
-render();
 </script></body></html>
