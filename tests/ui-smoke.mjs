@@ -126,7 +126,7 @@ try{
  state.fail=false;await click('cloud-retry');assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
- assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries[0].name,'Device meal','cloud record never replaces local data');
+ assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');
  await click('gym');assert.ok(document.querySelector('.tracking-date input'));
  const dateInput=document.querySelector('.tracking-date input');dateInput.value='2026-09-20';dateInput.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
  await click('custom-lift');await submit('lift',{exercise:'Test press',weight:'40',reps:'8',difficulty:'7'});
