@@ -131,3 +131,18 @@ test('colliding workout and lift IDs preserve both distinct histories',()=>{
  assert.equal(merged.lifts[1].buddySessionId,merged.workoutHistory[1].id);
  assert.notEqual(merged.lifts[1].id,merged.lifts[0].id);
 });
+
+test('matching exercise setups are accounted for in migration preview',()=>{
+ const cloud=emptyData(),device=emptyData();
+ const def=cloud.exerciseDefinitions.find(e=>e.name==='Chest Press');
+ const source=device.exerciseDefinitions.find(e=>e.name==='Chest Press');
+ assert.equal(def.setup,undefined);
+ source.setup='Machine level 4';
+ const {candidate,summary}=planDeviceMigration(cloud,device);
+ assert.equal(candidate.exerciseDefinitions.find(e=>e.name==='Chest Press').setup,'Machine level 4');
+ assert.equal(summary.filledSetups,1);
+ assert.equal(cloud.exerciseDefinitions.find(e=>e.name==='Chest Press').setup,undefined);
+ const second=planDeviceMigration(candidate,device);
+ assert.equal(second.summary.filledSetups,0);
+ assert.deepEqual(second.candidate,candidate);
+});
