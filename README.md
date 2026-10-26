@@ -165,3 +165,7 @@ Lifting and Workout Buddy exercise cards now show tappable thumbnail front/back 
 ### v73.2: Context-aware routine history navigation
 
 Tapping one of the three Recent routines on Lifting opens its detail directly and closing returns to Lifting. Opening the same routine through **View all** returns to the full routine-history list when closing detail. The full list then closes back to Lifting. No workout data or saved sessions are changed.
+
+### v73.3: Fixed-position muscle mini and understated movement labels
+
+Workout Buddy's miniature anatomy guide is anchored to the same coordinates in set preparation and active-set views; it no longer inherits their differing exercise-heading margins. A muted inline Push/Pull label appears beside equipment in canonical exercise cards and the Buddy heading without crowding the right-corner muscle view. Existing gradient movement tint remains. SVG redesign exploration and the other recovered feedback are deferred.

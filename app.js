@@ -396,9 +396,13 @@ function exerciseMatches(name){const normalize=v=>v.toLowerCase().replace(/[^a-z
 function renderExerciseMatches(form){const box=form.querySelector('.exercise-matches'),matches=exerciseMatches(form.elements.exercise.value);box.innerHTML=matches.length?'<span class="food-match-label">Existing exercises</span>'+matches.map(e=>'<button type="button" class="food-match" data-action="choose-exercise-match" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment)+'"><span><strong>'+esc(e.name)+'</strong><small>'+equipmentLabel(e.equipment)+(lastLift(e.name,'',e.equipment)?.date?' · Last logged '+niceDate(lastLift(e.name,'',e.equipment).date):'')+'</small></span><b>Use</b></button>').join(''):'';}
 
 /* One canonical exercise-card renderer, shared by Lifting, Buddy, Library, and Progress. */
+function buddyMovementLabel(e){
+ const type=buddyMovement(e);if(type==='neutral')return '';
+ return '<span class="exercise-movement-label movement-'+type+'" aria-label="'+type+' movement"><b aria-hidden="true">'+(type==='push'?'↗':'↙')+'</b> '+type.toUpperCase()+'</span>';
+}
 function exerciseCardMarkup(e,{action,attrs='',modifier='',summary='',trailing='›',right='',setup=e.setup||''}={}){
  const equipment=esc(e.equipment||'other'),name=esc(e.name),movement=buddyMovement(e);
- return `<button type="button" class="exercise exercise-card ${esc(modifier)} equipment-${equipment} movement-${movement}" data-action="${esc(action)}" ${attrs}><span class="equipment-art" aria-hidden="true">${equipmentGlyph(e.equipment)}</span>${buddyMovementCorner(e)}<span class="exercise-copy"><small class="equipment-label">${equipmentLabel(e.equipment)}</small><span class="exercise-name-row"><strong>${name}</strong>${setup?`<small class="exercise-setup-inline">${esc(setup)}</small>`:''}</span>${summary?`<small class="exercise-card-summary">${summary}</small>`:''}</span>${right||`<b class="exercise-card-trailing" aria-hidden="true">${esc(trailing)}</b>`}</button>`;
+ return `<button type="button" class="exercise exercise-card ${esc(modifier)} equipment-${equipment} movement-${movement}" data-action="${esc(action)}" ${attrs}><span class="equipment-art" aria-hidden="true">${equipmentGlyph(e.equipment)}</span><span class="exercise-copy"><span class="exercise-card-type-row"><small class="equipment-label">${equipmentLabel(e.equipment)}</small>${buddyMovementLabel(e)}</span><span class="exercise-name-row"><strong>${name}</strong>${setup?`<small class="exercise-setup-inline">${esc(setup)}</small>`:''}</span>${summary?`<small class="exercise-card-summary">${summary}</small>`:''}</span>${right||`<b class="exercise-card-trailing" aria-hidden="true">${esc(trailing)}</b>`}</button>`;
 }
 
 function exerciseCardWithMuscles(e,card){
@@ -558,7 +562,7 @@ function buddyDraft(e,index){const prior=buddyPrior(e),source=e.sets[index-1]||p
 function buddyStart(type){const w=workoutByName(type);if(!w)return;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
 function buddyExerciseHeading(e){
- return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><small>'+equipmentLabel(e.equipment)+'</small><h1>'+esc(e.name)+'</h1></div>'+
+ return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div>'+
  '<button type="button" class="buddy-muscle-mini" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscles for '+esc(e.name)+'">'+muscleMiniMarkup(e.name)+'</button></div>';
 }
 function buddyRender(){
@@ -1375,7 +1379,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=73.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=73.3',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
