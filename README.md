@@ -127,3 +127,7 @@ Lifting, Workout Buddy picker, Exercise Library, and Progress use the same `exer
 ## Exercise-card consistency (v66)
 
 The workout Add exercise picker now uses the same exerciseCardMarkup renderer as the other five exercise-card surfaces. Editable workout template rows retain their inputs but use the same push/pull classification and soft corner-to-card gradient, keeping all exercise displays visually coherent.
+
+## Entry time controls and Google sync meter (v67)
+
+Food entries, meal-memory notes, food suggestions, and reset-time settings now use one shared 30-minute ± time control instead of dropdowns. Optional time values have Now and No time shortcuts; the stored time format and selected calendar dates are unchanged. Time wraps within the selected date. The Google sync payload meter is placed directly after the Account section in Settings, showing estimated encoded notebook data against the 800,000-byte (~781 KiB) Firestore payload budget—not device storage or the overall Google account quota. A separate diagnostics section retains integrity checks.

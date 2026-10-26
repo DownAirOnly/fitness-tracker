@@ -1181,3 +1181,17 @@ button.buddy-setup:focus-visible,.buddy-last-toggle:focus-visible,.buddy-journal
 .workout-template-row.exercise-card-surface>.workout-template-head{padding-top:14px}
 [data-theme="dark"] .workout-template-row.exercise-card-surface.movement-push{--movement-ink:#efc087}
 [data-theme="dark"] .workout-template-row.exercise-card-surface.movement-pull{--movement-ink:#a6d0f2}
+
+/* v67: 30-minute time controls */
+.time-step-control{min-width:0}
+.time-step-row{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center;gap:7px;margin-top:5px}
+.time-step-row>button{border:1px solid #c7d8ca;border-radius:12px;background:#eaf1e9;color:#274836;height:42px;min-width:42px;font-size:24px;font-weight:500;line-height:1}
+.time-step-row>strong{display:flex;align-items:center;justify-content:center;height:42px;min-width:0;white-space:nowrap;font-size:15px;font-variant-numeric:tabular-nums;border:1px solid #d6e0d7;border-radius:12px;background:#fff;color:#193b28}
+.time-step-options{display:flex;gap:5px;justify-content:flex-end;margin-top:4px}
+.time-step-options button{border:0;background:transparent;color:#4d7757;padding:5px 8px;font-size:11px;font-weight:750}
+.google-sync-usage .storage-meter{margin:10px 0 0}
+.google-sync-usage .hint{margin-top:9px}
+[data-theme="dark"] .time-step-row>button{background:#263a2e;border-color:#46624b;color:#dcebdc}
+[data-theme="dark"] .time-step-row>strong{background:#17251b;border-color:#425948;color:#e1ede3}
+[data-theme="dark"] .time-step-options button{color:#a5caaf}
+@media(max-width:360px){.time-step-row{grid-template-columns:38px minmax(0,1fr) 38px;gap:5px}.time-step-row>button{min-width:38px;height:40px}.time-step-row>strong{font-size:13px}}
