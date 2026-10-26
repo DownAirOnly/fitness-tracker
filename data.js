@@ -81,6 +81,45 @@ export function stepFoodDateTime(date,slot,delta){
 export const niceDate = s => new Date(`${s}T12:00:00`).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
 export const validDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T12:00:00`)) && localDate(new Date(`${s}T12:00:00`)) === s;
 export const round = n => Math.round((Number(n) + Number.EPSILON) * 10) / 10;
+/**
+ * Convert all stored body and training weights between lb and kg.
+ * Returns a separate notebook: failure leaves the input untouched.
+ * Workout Buddy has its own historical, draft and undo copies of set weights.
+ * Each represents a value in the notebook's current unit, not a new unit.
+ * Reps, effort, rest durations, timestamps and body-fat percentages never change.
+ */
+export function convertNotebookWeightUnit(notebook,nextUnit) {
+ const priorUnit=notebook?.settings?.unit;
+ if(!['lb','kg'].includes(priorUnit)||!['lb','kg'].includes(nextUnit))throw Error('Choose lb or kg for weight units.');
+ if(priorUnit===nextUnit)return notebook;
+ const converted=structuredClone(notebook);
+ const factor=nextUnit==='kg'?1/2.2046226218:2.2046226218;
+ const convertedObjects=new WeakSet();
+ function convertRecord(record,field) {
+  if(!record||typeof record!=='object'||convertedObjects.has(record))return;
+  convertedObjects.add(record);
+  if(record[field]===undefined||record[field]===null)return;
+  const number=Number(record[field]);
+  if(!Number.isFinite(number)||number<0)throw Error('A saved weight is invalid. Unit conversion was not applied.');
+  record[field]=round(number*factor);
+ }
+ function convertExercise(exercise) {
+  if(!exercise||typeof exercise!=='object')return;
+  if(Array.isArray(exercise.sets))for(const set of exercise.sets)convertRecord(set,'weight');
+  convertRecord(exercise.draft,'weight');
+ }
+ function convertSession(session) {
+  if(!session||typeof session!=='object')return;
+  if(Array.isArray(session.exercises))for(const exercise of session.exercises)convertExercise(exercise);
+  if(Array.isArray(session.undo?.exercises))for(const exercise of session.undo.exercises)convertExercise(exercise);
+ }
+ for(const weight of converted.weights||[])convertRecord(weight,'value');
+ for(const lift of converted.lifts||[])for(const set of lift.sets||[])convertRecord(set,'weight');
+ convertSession(converted.activeWorkout);
+ for(const session of converted.workoutHistory||[])convertSession(session);
+ converted.settings.unit=nextUnit;
+ return converted;
+}
 export function bmi(weight, heightInches, unit='lb') { return heightInches > 0 ? round((unit === 'kg' ? weight * 2.2046226218 : weight) * 703 / heightInches ** 2) : null; }
 export function dailyTotals(entries, date, resetMinutes = 360) { return entries.filter(x=>foodTrackingDate(x,resetMinutes)===date).reduce((a,x)=>({calories:a.calories+x.calories*x.quantity, protein:a.protein+x.protein*x.quantity}),{calories:0,protein:0}); }
 export const weekDays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
