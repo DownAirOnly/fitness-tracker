@@ -629,7 +629,7 @@ function routineHistoryAll(){
  const sessions=recentRoutineSessions();
  modal('Routine history','<div class="routine-history-all">'+(sessions.length?sessions.map(routineHistoryRow).join(''):empty('No saved Workout Buddy sessions yet.'))+'</div>');
 }
-function routineHistoryDetail(id){
+function routineHistoryDetail(id,fromFullHistory=false){
  const session=recentRoutineSessions().find(s=>s.id===id);if(!session)return;
  const c=routineSessionCounts(session);
  const exercises=(session.exercises||[]).filter(e=>e.sets?.length).map(e=>
@@ -638,7 +638,7 @@ function routineHistoryDetail(id){
  (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>').join('');
  modal(session.type||'Workout','<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
  ' · '+c.exercises+' exercises · '+c.sets+' sets'+(session.savedEarly?' · Saved early':'')+'</p>'+
- (exercises||empty('No sets recorded in this session.'))+'</div>',()=>routineHistoryAll());
+ (exercises||empty('No sets recorded in this session.'))+'</div>',fromFullHistory?()=>routineHistoryAll():null);
 }
 
 function describeLift(l){return l.sets.map(s=>`${fmt(s.weight)} ${data.settings.unit} × ${s.reps}${s.difficulty?` · ${effortText(s.difficulty)}`:''}`).join(' · ');}
@@ -1123,7 +1123,7 @@ document.addEventListener('click',async event=>{
     return;
   }
   if(action==='routine-history-all'){routineHistoryAll();return;}
-  if(action==='routine-history-detail'){routineHistoryDetail(el.dataset.id);return;}
+  if(action==='routine-history-detail'){routineHistoryDetail(el.dataset.id,Boolean(el.closest('.routine-history-all')));return;}
   if(action==='exercise-progress'){exerciseProgressModal(el.dataset.name,el.dataset.equipment);return;}
   if(action==='exercise-progress-all'){exerciseProgressAll();return;}
   if(action==='data-health-details'){dataHealthDetails();return;}
@@ -1375,7 +1375,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=73.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=73.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
