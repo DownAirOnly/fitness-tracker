@@ -39,7 +39,7 @@ test('large import retains all records and efficiently detects duplicates',()=>{
 });
 test('CSV saved-card conflicts are disclosed without replacing card values',()=>{
  const current=emptyData();current.foods=[{id:'f',name:'Yogurt',calories:100,protein:10}];const p=prepareImport('csv',csv,current);
- assert.match(p.warnings.join(' '),/different per-serving values/);assert.equal(p.candidate.foods[0].calories,100);assert.equal(p.candidate.foodEntries[0].calories,150);
+ assert.match(p.warnings.join(' '),/imported log keeps 150 cal \/ 20g protein per serving; the Saved Food stays 100 cal \/ 10g/);assert.equal(p.candidate.foods[0].calories,100);assert.equal(p.candidate.foodEntries[0].calories,150);
 });
 
 
