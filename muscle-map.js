@@ -74,6 +74,10 @@ function bodySvg(view,profile){
  }).join('');
  return '<svg class="muscle-body" viewBox="0 0 180 330" role="img" aria-label="'+(view==='front'?'Front':'Back')+' muscle diagram"><g class="muscle-silhouette">'+silhouette+'</g>'+regions+'</svg>';
 }
+export function muscleMiniMarkup(name){
+ const profile=exerciseMuscleProfile(name);
+ return '<span class="muscle-mini-pair" aria-hidden="true"><span class="muscle-mini-view">'+bodySvg('front',profile)+'</span><span class="muscle-mini-view">'+bodySvg('back',profile)+'</span></span>';
+}
 export function muscleGuideMarkup(name){
  const profile=exerciseMuscleProfile(name),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const pills=ids=>ids.map(x=>'<span class="muscle-name">'+escape(labels[x]||x)+'</span>').join('');
