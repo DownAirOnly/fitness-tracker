@@ -1,6 +1,6 @@
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=72';
 
-import {muscleGuideMarkup,muscleMiniMarkup} from './muscle-map.js?v=73';
+import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=73';
 import {prepareImport,importSections} from './import-model.js?v=72';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
 import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=72';
@@ -45,7 +45,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0;
-let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null;
+let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,'');
@@ -413,6 +413,17 @@ function openMuscleGuide(name,equipment='other',onBack=null){
  if(!name)return;
  modal(name+' · Muscles',muscleGuideMarkup(name),onBack);
 }
+function muscleRelatedExercises(group){
+ return (data.exerciseDefinitions||[]).flatMap(e=>{
+  const profile=exerciseMuscleProfile(e.name);
+  const role=profile?.primary.includes(group)?'primary':profile?.secondary.includes(group)?'secondary':null;
+  return role?[{name:e.name,equipment:e.equipment||'other',role}]:[];
+ }).sort((a,b)=>a.name.localeCompare(b.name));
+}
+function openMuscleGroupDetail(group,name){
+ if(!group||!name)return;
+ modal(muscleGroupLabel(group),muscleGroupDetailsMarkup(group,muscleRelatedExercises(group)),()=>openMuscleGuide(name));
+}
 function exerciseCard(e){const prior=lastLift(e.name,'',e.equipment);return exerciseCardMarkup(e,{action:'new-lift',attrs:`data-name="${esc(e.name)}" data-equipment="${esc(e.equipment)}"`,summary:esc(prior?`Last: ${describeLift(prior)}`:'First time · start where you are'),trailing:'+'});}
 
 function filteredExerciseLibrary(){
@@ -555,10 +566,10 @@ function buddyTargetSets(e){const sets=Number(e.targetSets);return Number.isInte
 function buddyRepRange(e){return {min:Number(e.repMin)||(e.name==='Calf Extension'?10:6),max:Number(e.repMax)||(e.name==='Calf Extension'?16:12)};}
 function buddyEffortButtons(value){return Object.entries(effortLabels).map(([n,label])=>`<button type="button" class="buddy-effort effort-${n} ${Number(value)===Number(n)?'selected':''}" data-action="buddy-effort" data-value="${n}" aria-pressed="${Number(value)===Number(n)}"><b>${n}</b><span>${label}</span></button>`).join('');}
 function buddyReadNotes(){const s=data.activeWorkout,field=document.querySelector('[name=buddyNotes]');if(!s||!field||!s.selected)return;const e=buddyFind(s,s.selected);if(e)e.notes=field.value.slice(0,500);}
-function buddyCaptureUndo(s,label){const snapshot={label,phase:s.phase,selected:s.selected,exercises:structuredClone(s.exercises)};if(s.completedAt)snapshot.completedAt=s.completedAt;s.undo=snapshot;}
-function buddyUndo(s){if(!s?.undo)return;const u=s.undo;s.phase=u.phase;s.selected=u.selected;s.exercises=structuredClone(u.exercises);if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;delete s.undo;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);for(const e of s.exercises)if(e.status==='done')buddyUpsertLift(s,e);}
+function buddyCaptureUndo(s,label){const snapshot={label,phase:s.phase,selected:s.selected,exercises:structuredClone(s.exercises),performedOrder:structuredClone(s.performedOrder||[])};if(s.completedAt)snapshot.completedAt=s.completedAt;if(s.bikeCompletedAt)snapshot.bikeCompletedAt=s.bikeCompletedAt;s.undo=snapshot;}
+function buddyUndo(s){if(!s?.undo)return;const u=s.undo;s.phase=u.phase;s.selected=u.selected;s.exercises=structuredClone(u.exercises);s.performedOrder=structuredClone(u.performedOrder||[]);if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;if(u.bikeCompletedAt)s.bikeCompletedAt=u.bikeCompletedAt;else delete s.bikeCompletedAt;delete s.undo;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);for(const e of s.exercises)if(e.status==='done')buddyUpsertLift(s,e);}
 function buddyUndoControl(s){return s.undo?`<button type="button" class="buddy-undo" data-action="buddy-undo">↶ Undo ${esc(s.undo.label||'last action')}</button>`:'';}
-function buddyDraft(e,index){const prior=buddyPrior(e),source=e.sets[index-1]||prior?.sets?.[index]||prior?.sets?.at(-1)||{weight:0,reps:8};return{weight:Number(source.weight)||0,reps:Number(source.reps)||8,difficulty:Number(source.difficulty)||0};}
+function buddyDraft(e,index){const prior=buddyPrior(e),source=prior?.sets?.[index]||e.sets[index-1]||prior?.sets?.at(-1)||{weight:0,reps:8};return{weight:Number(source.weight)||0,reps:Number(source.reps)||8,difficulty:Number(source.difficulty)||0};}
 function buddyStart(type){const w=workoutByName(type);if(!w)return;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
 function buddyExerciseHeading(e){
@@ -568,13 +579,14 @@ function buddyExerciseHeading(e){
 function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
  const head=`<header class="buddy-head"><span><small>${esc(s.type.toUpperCase())}</small><strong>Workout Buddy</strong></span><span class="buddy-head-actions"><span class="buddy-elapsed" data-buddy-elapsed>${buddyClock(buddySeconds(s.startedAt))}</span><button type="button" class="buddy-exit" data-action="buddy-exit">Exit</button></span></header>`;
+ if(buddyMuscleView&&buddyMuscleGroupView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-group-back">‹ Back to muscles</button><h1>${esc(muscleGroupLabel(buddyMuscleGroupView))}</h1>${muscleGroupDetailsMarkup(buddyMuscleGroupView,muscleRelatedExercises(buddyMuscleGroupView))}</main></div>`;
  if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(buddyMuscleView)}</main></div>`;
  if(s.phase==='bike')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-bike"><div class="buddy-step"><span class="buddy-step-number">01</span><p class="eyebrow">WARM-UP</p><h1>Bike · 5 min</h1><p>Head to the bike. Use the bike's timer for five minutes, then continue when you're ready to lift.</p></div><button class="buddy-a" data-action="buddy-bike-done"><span>Bike finished</span><b>Continue</b></button></main></div>`;
  if(s.phase==='picker'){const remaining=s.exercises.filter(e=>e.status!=='done');return `<div class="buddy-screen">${head}<main class="buddy-main"><div class="buddy-progress"><span>${done} of ${total} exercises</span><span>${total-done} remaining</span></div>${buddyUndoControl(s)}<div class="buddy-picker-head"><p class="eyebrow">${done?'CHOOSE WHAT’S NEXT':'READY TO LIFT'}</p><h1>${done?'Next exercise':'Choose your first exercise'}</h1><p>Select what’s available. Timing starts when you start the set.</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;}
  if(s.phase==='complete')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-complete"><div><p class="eyebrow">CIRCUIT COMPLETE</p><h1>${esc(s.type)} finished</h1><p>${done} exercises · ${buddyClock(buddySeconds(s.startedAt,s.completedAt))} total</p></div>${buddyUndoControl(s)}<button class="buddy-a" data-action="buddy-confirm-finish"><span>Ready to wrap up?</span><b>Finish workout</b></button><button class="buddy-secondary" data-action="buddy-back-picker">Back to exercises</button></main></div>`;
  const e=buddyFind(s,s.selected);if(!e)return'';if(e.journalOpen)return buddyJournalScreen(head,e);const reviewing=Number.isInteger(e.reviewSetIndex),i=reviewing?e.reviewSetIndex:e.sets.length,target=buddyTargetSets(e),d=reviewing?e.sets[e.reviewSetIndex]:(e.draft||buddyDraft(e,i)),prior=buddyPrior(e),running=Boolean(e.activeSetStartedAt),resting=Boolean(e.restStartedAt&&!running),showRest=Boolean(e.restStartedAt&&!running)&&e.sets.length<target,left=showRest?Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt)):0,range=buddyRepRange(e);
  const state=reviewing?(showRest?`Edit set ${i+1} · rest is running`:`Review set ${i+1}`):running?`Set ${i+1} in progress`:showRest?(left?`Rest · ${buddyClock(left)} remaining`:'Rest complete'):`Set ${i+1} of ${target}`,action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
- if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view"><div class="buddy-set-status"><span>SET ${i+1} OF ${target} · ACTIVE</span></div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><button class="buddy-a" data-action="buddy-a"><span>Set ${i+1} in progress</span><b>Finish set ${i+1}</b></button></main></div>`;
+ if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view"><div class="buddy-set-status"><span>SET ${i+1} OF ${target} · ACTIVE</span></div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><div class="buddy-action-tools">${buddyUndoControl(s)}</div><button class="buddy-a" data-action="buddy-a"><span>Set ${i+1} in progress</span><b>Finish set ${i+1}</b></button></main></div>`;
  const weightStep=data.settings.unit==='kg'?1.1:2.5;
  const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
  const setProgress=`<div class="buddy-set-status"><span>SET ${Math.min(i+1,target)} OF ${target}</span><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
@@ -584,12 +596,12 @@ function buddyRender(){
  const history=lastSession?'<div class="buddy-history-preview"><button type="button" class="buddy-last-toggle" data-action="buddy-toggle-history" aria-expanded="'+Boolean(e.showRecent)+'"><span><b>LAST · '+esc(niceDate(lastSession.date))+'</b><small>'+esc(buddyLastTwo(lastSession))+'</small></span><span class="buddy-last-chevron" aria-hidden="true">'+(e.showRecent?'⌃':'⌄')+'</span></button>'+(e.showRecent?'<div class="buddy-compact-history">'+recent.slice(1,3).map(l=>'<div><small>'+esc(niceDate(l.date))+'</small><span>'+esc(buddyLastTwo(l))+'</span></div>').join('')+(recent.length===1?'<small>No earlier workouts</small>':'')+'</div>':'')+'</div>':'';
  const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setup||'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
 
- const undo=s.undo?`<div class="buddy-action-tools">${buddyUndoControl(s)}</div>`:'';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${history}${showRest?`<div class="buddy-rest-timer"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></div>`:''}${completedSets}<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>PERCEIVED EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
+ const undo='';
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${history}${showRest?`<div class="buddy-rest-timer"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></div>`:''}${completedSets}<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>PERCEIVED EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
 }
 let buddyTicker=null;
 function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));const state=document.querySelector('[data-buddy-state]');if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));if(state&&!Number.isInteger(e.reviewSetIndex))state.textContent=left?`Rest · ${buddyClock(left)} remaining`:'Rest complete';const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
-function buddyClose(){buddyMuscleView=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
+function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){await persist();if(data.activeWorkout)buddyOpen();}
 function buddyUpsertLift(s,e){if(!e.sets?.length)return;const record={exercise:e.name,equipment:e.equipment,date:s.date,sets:e.sets.map(x=>({weight:x.weight,reps:x.reps,...(x.difficulty?{difficulty:x.difficulty}:{})})),notes:e.notes||'',buddySessionId:s.id};const existing=data.lifts.find(l=>l.buddySessionId===s.id&&l.exercise===e.name&&(l.equipment||'other')===e.equipment);if(existing)Object.assign(existing,record);else data.lifts.push({id:id(),...record});}
 function buddyCompleteExercise(s,e){e.status='done';e.completedAt=isoNow();delete e.activeSetStartedAt;delete e.restStartedAt;delete e.reviewSetIndex;delete e.draft;buddyUpsertLift(s,e);s.selected=null;s.phase=s.exercises.every(x=>x.status==='done')?'complete':'picker';if(s.phase==='complete')s.completedAt=isoNow();}
@@ -636,14 +648,23 @@ function routineHistoryAll(){
 function routineHistoryDetail(id,fromFullHistory=false){
  const session=recentRoutineSessions().find(s=>s.id===id);if(!session)return;
  const c=routineSessionCounts(session);
- const exercises=(session.exercises||[]).filter(e=>e.sets?.length).map(e=>
- '<div class="routine-history-exercise"><strong>'+esc(e.name||'Exercise')+'</strong><small>'+e.sets.length+' sets</small>'+
- e.sets.map((set,i)=>'<span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+effortText(set.difficulty):'')+'</span>').join('')+
- (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>').join('');
+ const exercises=(session.exercises||[]).map((e,exerciseIndex)=>{
+  if(!e.sets?.length)return '';
+  return '<div class="routine-history-exercise"><strong>'+esc(e.name||'Exercise')+'</strong><small>'+e.sets.length+' sets</small>'+
+  e.sets.map((set,i)=>'<div class="routine-history-set"><span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+effortText(set.difficulty):'')+'</span><button type="button" class="outline small" data-action="routine-history-edit-set" data-id="'+esc(session.id)+'" data-exercise-index="'+exerciseIndex+'" data-set-index="'+i+'" data-from-full="'+fromFullHistory+'">Edit</button></div>').join('')+
+  (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>';
+ }).join('');
  modal(session.type||'Workout','<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
  ' · '+c.exercises+' exercises · '+c.sets+' sets'+(session.savedEarly?' · Saved early':'')+'</p>'+
  (exercises||empty('No sets recorded in this session.'))+'</div>',fromFullHistory?()=>routineHistoryAll():null);
 }
+function routineHistoryEditSet(id,exerciseIndex,setIndex,fromFullHistory=false){
+ const session=(data.workoutHistory||[]).find(s=>s.id===id);
+ const exercise=session?.exercises?.[exerciseIndex],set=exercise?.sets?.[setIndex];
+ if(!session||!exercise||!set)return;
+ modal('Edit set '+(setIndex+1),`<form class="form" data-form="routine-history-set"><input type="hidden" name="sessionId" value="${esc(id)}"><input type="hidden" name="exerciseIndex" value="${exerciseIndex}"><input type="hidden" name="setIndex" value="${setIndex}"><input type="hidden" name="fromFullHistory" value="${fromFullHistory}"><p class="body-copy">${esc(exercise.name)} · ${esc(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Saved workout')}</p><div class="form-grid">${input('Weight ('+data.settings.unit+')','weight',set.weight,'number','min="0" step="any" inputmode="decimal" required')}${input('Reps','reps',set.reps,'number','min="1" step="1" inputmode="numeric" required')}</div><label class="field"><span>Perceived effort</span><select name="difficulty">${effortOptions(set.difficulty)}</select></label><div class="form-actions"><button class="primary" type="submit">Save corrected set</button><button class="outline" type="button" data-action="routine-history-detail" data-id="${esc(id)}" data-from-full="${fromFullHistory}">Cancel</button></div></form>`,()=>routineHistoryDetail(id,fromFullHistory));
+}
+
 
 function describeLift(l){return l.sets.map(s=>`${fmt(s.weight)} ${data.settings.unit} × ${s.reps}${s.difficulty?` · ${effortText(s.difficulty)}`:''}`).join(' · ');}
 const exerciseHistoryAliases=new Map([
@@ -1076,6 +1097,7 @@ function importModal(kind,source='file') {
  modal(title,`<form class="form" data-form="import"><input type="hidden" name="kind" value="${kind}"><input type="hidden" name="source" value="${source}">${paste?'<label class="field"><span>Paste '+kind.toUpperCase()+'</span><textarea name="text" rows="12" maxlength="5000000" spellcheck="false" required placeholder="Paste '+kind.toUpperCase()+' here"></textarea></label>':'<label class="field"><span>Choose a .'+kind+' file</span><input type="file" name="file" accept="'+(kind==='csv'?'.csv,text/csv':'.json,application/json')+'" required></label>'}<button type="submit" class="primary">Preview import</button></form><div id="preview" role="status"></div>`);
 }
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
+document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.matches('[data-food-csv]')){const form=event.target.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');try{pasteFoodFormCSV(form,event.target.value);if(status)status.textContent='Food values loaded. Review and save.';}catch(e){if(status)status.textContent=e.message;}return;}if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
@@ -1113,11 +1135,24 @@ document.addEventListener('click',async event=>{
   if(action==='today'){chosenDate=currentTrackingDate();render();return;}
   if(action==='go-date'){chosenDate=el.dataset.date;page='food';render();return;}
   if(action==='muscle-guide'){
-    if(document.body.classList.contains('buddy-active')){buddyReadEditor();buddyReadNotes();buddyMuscleView=el.dataset.name;buddyOpen();}
+    if(document.body.classList.contains('buddy-active')){buddyReadEditor();buddyReadNotes();buddyMuscleView=el.dataset.name;buddyMuscleGroupView=null;buddyOpen();}
     else openMuscleGuide(el.dataset.name,el.dataset.equipment);
     return;
   }
-  if(action==='buddy-muscle-back'){buddyMuscleView=null;buddyOpen();return;}
+  if(action==='buddy-muscle-back'){buddyMuscleView=null;buddyMuscleGroupView=null;buddyOpen();return;}
+  if(action==='buddy-muscle-group-back'){buddyMuscleGroupView=null;buddyOpen();return;}
+  if(action==='muscle-group-detail'){
+    const group=el.dataset.group,name=el.dataset.exercise;
+    if(document.body.classList.contains('buddy-active')){if(!buddyMuscleView)return;buddyMuscleGroupView=group;buddyOpen();}
+    else openMuscleGroupDetail(group,name);
+    return;
+  }
+  if(action==='muscle-related-exercise'){
+    const name=el.dataset.name,equipment=el.dataset.equipment||'other';if(!name)return;
+    if(document.body.classList.contains('buddy-active')){buddyMuscleView=name;buddyMuscleGroupView=null;buddyOpen();}
+    else openMuscleGuide(name,equipment);
+    return;
+  }
   if(action==='routine-muscle-guide'){
     if(!workoutEditorState)return;
     workoutEditorCapture();
@@ -1127,7 +1162,8 @@ document.addEventListener('click',async event=>{
     return;
   }
   if(action==='routine-history-all'){routineHistoryAll();return;}
-  if(action==='routine-history-detail'){routineHistoryDetail(el.dataset.id,Boolean(el.closest('.routine-history-all')));return;}
+  if(action==='routine-history-detail'){routineHistoryDetail(el.dataset.id,el.dataset.fromFull==='true'||Boolean(el.closest('.routine-history-all')));return;}
+  if(action==='routine-history-edit-set'){routineHistoryEditSet(el.dataset.id,Number(el.dataset.exerciseIndex),Number(el.dataset.setIndex),el.dataset.fromFull==='true');return;}
   if(action==='exercise-progress'){exerciseProgressModal(el.dataset.name,el.dataset.equipment);return;}
   if(action==='exercise-progress-all'){exerciseProgressAll();return;}
   if(action==='data-health-details'){dataHealthDetails();return;}
@@ -1176,8 +1212,8 @@ document.addEventListener('click',async event=>{
   if(action==='workout-add-exercise'){const def=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!def||!workoutEditorState||workoutEditorState.exercises.some(x=>x.exerciseId===def.id))return;workoutEditorState.exercises.push({exerciseId:def.id,repMin:def.name==='Calf Extension'?10:6,repMax:def.name==='Calf Extension'?16:12,targetSets:2,restSeconds:90});workoutTemplateForm(null,true);return;}
   if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}modal('Start Workout Buddy',`<div class="buddy-start-list">${savedWorkouts().filter(x=>x.exercises.length>0).map(x=>`<button data-action="buddy-start" data-workout="${esc(x.name)}"><span><strong>${esc(x.name)}</strong><small>${x.exercises.length} exercises · Bike warm-up first</small></span><b>›</b></button>`).join('')||'<p class="empty">Add exercises to a routine before starting Workout Buddy.</p>'}</div>`);return;}
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
-  if(action==='buddy-bike-done'){data.activeWorkout.phase='picker';data.activeWorkout.bikeCompletedAt=isoNow();await buddyPersist();return;}
-  if(action==='buddy-choose'){const s=data.activeWorkout,e=buddyFind(s,el.dataset.key);if(!e)return;e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
+  if(action==='buddy-bike-done'){const s=data.activeWorkout;if(!s||s.phase!=='bike')return;buddyCaptureUndo(s,'bike finished');s.phase='picker';s.bikeCompletedAt=isoNow();await buddyPersist();return;}
+  if(action==='buddy-choose'){const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);if(!e)return;buddyCaptureUndo(s,'start exercise');e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
   if(action==='buddy-setup-toggle'||action==='buddy-setup-save'||action==='buddy-journal-toggle'||action==='buddy-toggle-history'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||e.activeSetStartedAt)return;if(action==='buddy-setup-toggle')e.setupEditing=!e.setupEditing;else if(action==='buddy-setup-save'){const setup=(document.querySelector('[name=buddySetup]')?.value||'').trim().slice(0,200),def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);if(setup){e.setup=setup;if(def)def.setup=setup;}else{delete e.setup;if(def)delete def.setup;}e.setupEditing=false;}else if(action==='buddy-journal-toggle')e.journalOpen=!e.journalOpen;else e.showRecent=!e.showRecent;await buddyPersist();return;}
   if(action==='buddy-review-next'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||!Number.isInteger(e.reviewSetIndex))return;const finished=e.sets.length>=buddyTargetSets(e);buddyCaptureUndo(s,finished?'finish exercise':'start next set');delete e.reviewSetIndex;if(finished)buddyCompleteExercise(s,e);else{e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';}await buddyPersist();return;}
   if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;buddyReadEditor();persist();return;}
@@ -1359,6 +1395,21 @@ app.addEventListener('submit',async event=>{
     if(prepared.length===1&&last.savedCard)showFoodUndo(last.entry.id,last.entry.name);
     return;
   }
+  if(form.dataset.form==='routine-history-set'){
+    const session=(data.workoutHistory||[]).find(s=>s.id===v.sessionId),
+      exerciseIndex=Number(v.exerciseIndex),setIndex=Number(v.setIndex),
+      exercise=Number.isInteger(exerciseIndex)&&exerciseIndex>=0?session?.exercises?.[exerciseIndex]:null,
+      set=Number.isInteger(setIndex)&&setIndex>=0?exercise?.sets?.[setIndex]:null,
+      weight=Number(v.weight),reps=Number(v.reps),difficulty=Number(v.difficulty);
+    if(!set)return alert('The saved set could not be found.');
+    if(v.weight===''||v.reps===''||!Number.isFinite(weight)||weight<0||!Number.isInteger(reps)||reps<1||!Number.isInteger(difficulty)||difficulty<0||difficulty>7)return alert('Check the weight, reps and effort.');
+    set.weight=weight;set.reps=reps;
+    if(difficulty)set.difficulty=difficulty;else delete set.difficulty;
+    buddyUpsertLift(session,exercise);
+    await persist();
+    routineHistoryDetail(session.id,v.fromFullHistory==='true');
+    return;
+  }
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
   if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),...next});if(v.date===currentTrackingDate())markWeightPromptSeen(currentTrackingDate());close(true);persist();return;}
   if(form.dataset.form==='body-fat'){const value=Number(v.value);if(!Number.isFinite(value)||value<=0||value>100||!v.date)return alert('Enter a body-fat percentage from 0.1 to 100 and a date.');const item=(data.bodyFat||[]).find(x=>x.id===v.bodyFatId);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.bodyFat.push({id:id(),...next});close(true);persist();return;}
@@ -1379,7 +1430,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=74',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=75',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
