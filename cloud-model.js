@@ -58,7 +58,7 @@ export function planDeviceMigration(cloud,device) {
  const candidate=normalizeData(structuredClone(cloud));
  let incoming=normalizeData(structuredClone(device));
  const summary={added:Object.fromEntries(migrationKeys.map(k=>[k,0])),skipped:Object.fromEntries(migrationKeys.map(k=>[k,0])),
-  idConflicts:0,renamedRoutines:0,setupConflicts:0,activeWorkout:'none',
+  idConflicts:0,renamedRoutines:0,setupConflicts:0,filledSetups:0,activeWorkout:'none',
   unitFrom:incoming.settings.unit,unitTo:candidate.settings.unit};
  // A brand-new cloud notebook has no personal settings to preserve.
  if(!hasDeviceMigrationContent(candidate)&&signature(candidate.settings)===signature(emptyData().settings))
@@ -93,7 +93,7 @@ export function planDeviceMigration(cloud,device) {
   const matched=defByKey.get(exerciseKey(def));
   if(matched){
    exerciseAliases.set(def.id,matched.id);
-   if(!matched.setup&&def.setup)matched.setup=def.setup;
+   if(!matched.setup&&def.setup){matched.setup=def.setup;summary.filledSetups++;}
    else if(matched.setup&&def.setup&&matched.setup!==def.setup)summary.setupConflicts++;
    summary.skipped.exerciseDefinitions++;
    continue;
