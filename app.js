@@ -1179,8 +1179,8 @@ document.addEventListener('click',async event=>{
       const newDefinitions=candidate.exerciseDefinitions.filter(e=>!data.exerciseDefinitions.some(old=>old.id===e.id));
       const names=(label,items,fn)=>items.length?'<details class="import-previous"><summary>'+label+' ('+items.length+')</summary><ul>'+items.slice(0,30).map(item=>'<li>'+esc(fn(item))+'</li>').join('')+'</ul>'+(items.length>30?'<p class="hint">Showing first 30 only</p>':'')+'</details>':'';
       const details=names('Routines being added',newRoutines,x=>x.name)+names('Saved sessions being added',newSessions,x=>(x.type||'Workout')+' · '+(x.date||x.startedAt||'No date'))+names('Exercises being added',newDefinitions,x=>x.name);
-      const changes=Object.values(summary.added).reduce((n,x)=>n+x,0)+(summary.activeWorkout==='imported'?1:0);
-      const warnings=(summary.idConflicts?'<p class="hint">'+summary.idConflicts+' conflicting IDs will be safely reassigned.</p>':'')+
+      const changes=Object.values(summary.added).reduce((n,x)=>n+x,0)+summary.filledSetups+(summary.activeWorkout==='imported'?1:0);
+      const warnings=(summary.filledSetups?'<p class="hint">'+summary.filledSetups+' missing cloud exercise setups will be filled from the device copy.</p>':'')+(summary.idConflicts?'<p class="hint">'+summary.idConflicts+' conflicting IDs will be safely reassigned.</p>':'')+
        (summary.renamedRoutines?'<p class="hint">'+summary.renamedRoutines+' routine names will gain a “(device)” suffix to keep both versions.</p>':'')+
        (summary.setupConflicts?'<p class="hint">'+summary.setupConflicts+' matching exercise setups differ. The cloud setup is kept; the original device backup retains its version.</p>':'');
       modal('Review device copy','<div class="migration-review"><p class="body-copy"><strong>Copy into '+esc(account.email)+'</strong>. Existing cloud entries stay untouched. Your original device notebook remains available separately.</p>'+
