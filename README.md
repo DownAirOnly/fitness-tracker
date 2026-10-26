@@ -133,3 +133,7 @@ Food entries, food suggestions, and reset-time settings now use one shared 30-mi
 ## v68 — Simplification and true chronology
 
 Cruise Mode and associated day/travel/meal-memory notes have been removed from the app and backup payload. Old JSON backups still load, but retired fields are discarded. Food logs sort by actual date/time, newest first, while untimed entries come last. The 30-minute time buttons now roll the real calendar date across midnight, independently of the configured tracking-day reset. Meal suggestions display the chosen calendar date and use the same rollover behavior.
+
+## v69 — Batch food logging and less intrusive suggestions
+
+Choose **Add another food** to stage the current entry and immediately enter the next. The compact queue can be edited by removal and is only saved on **Save foods**. Untimed entries appear above timed entries. **Suggest rest of day** no longer shows date/time controls: tapping Add stages its recommendations in the regular food form for final date/time selection and confirmation.

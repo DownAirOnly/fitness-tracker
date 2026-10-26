@@ -103,7 +103,7 @@ test('one-off food logs stay out of the saved-food library while remaining dicti
 
 test('retroactive food entries appear in real-time order without mutating records',()=>{
  const e=[{id:'dinner',date:'2026-10-25',t:38},{id:'breakfast',date:'2026-10-25',t:16},{id:'untimed',date:'2026-10-25'},{id:'after-midnight',date:'2026-10-26',t:2},{id:'retro-lunch',date:'2026-10-25',t:28}];
- assert.deepEqual(foodEntriesNewestFirst(e).map(x=>x.id),['after-midnight','dinner','retro-lunch','breakfast','untimed']);assert.equal(e[0].id,'dinner');
+ assert.deepEqual(foodEntriesNewestFirst(e).map(x=>x.id),['untimed','after-midnight','dinner','retro-lunch','breakfast']);assert.equal(e[0].id,'dinner');
 });
 test('midnight rolls the real date, tracking days remain derived from reset time',()=>{
  assert.deepEqual(stepFoodDateTime('2026-10-25',47,1),{date:'2026-10-26',t:0});

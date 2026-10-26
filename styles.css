@@ -1150,3 +1150,18 @@ button.buddy-setup:focus-visible,.buddy-last-toggle:focus-visible,.buddy-journal
 [data-theme="dark"] .time-step-row>strong{background:#17251b;border-color:#425948;color:#e1ede3}
 [data-theme="dark"] .time-step-options button{color:#a5caaf}
 @media(max-width:360px){.time-step-row{grid-template-columns:38px minmax(0,1fr) 38px;gap:5px}.time-step-row>button{min-width:38px;height:40px}.time-step-row>strong{font-size:13px}}
+
+/* v69: compact food queue, unsaved until the user confirms. */
+.food-batch-list{display:grid;gap:6px;border:1px solid #c9d9cd;border-radius:13px;padding:10px;background:#eef4ed;margin-bottom:2px}
+.food-batch-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.food-batch-heading small{font-size:10px;color:#5e7567;font-weight:650}
+.food-batch-row{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:7px 8px;border:1px solid #d4e1d4;background:#fff;border-radius:9px}
+.food-batch-row>span{min-width:0;display:grid;gap:2px}
+.food-batch-row strong{font-size:12px;overflow-wrap:anywhere}
+.food-batch-row small{font-size:10px;line-height:1.4;color:#5e7264}
+.food-batch-row button{flex:0 0 30px;height:30px;border:0;background:#f0f4ef;border-radius:8px;color:#64786a;font-size:19px}
+[data-theme="dark"] .food-batch-list{background:#25372a;border-color:#45664c}
+[data-theme="dark"] .food-batch-row{background:#192b20;border-color:#3e5845}
+[data-theme="dark"] .food-batch-row button{background:#314736;color:#bed2c2}
+[data-theme="dark"] .food-batch-row small,[data-theme="dark"] .food-batch-heading small{color:#a6c3ad}
+@media(max-width:430px){form[data-form="food"] .form-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}form[data-form="food"] .form-actions button{min-width:0;white-space:normal}}

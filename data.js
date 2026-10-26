@@ -66,7 +66,7 @@ export const foodCalendarDate = (trackingDay, timeSlot, resetMinutes = 360) => {
 export function foodEntriesNewestFirst(entries){
  return entries.map((entry,index)=>({entry,index})).sort((a,b)=>{
   const at=Number.isInteger(a.entry.t),bt=Number.isInteger(b.entry.t);
-  if(at!==bt)return at?-1:1;
+  if(at!==bt)return at?1:-1;
   if(at){const dates=b.entry.date.localeCompare(a.entry.date);if(dates)return dates;
    const times=b.entry.t-a.entry.t;if(times)return times;}
   return b.index-a.index;
