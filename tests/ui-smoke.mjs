@@ -143,8 +143,9 @@ try{
  await click('toggle-cruise-mode');
  assert.equal(JSON.parse(state.records.get('bob').payload).settings.cruiseMode,true,'Cruise Mode persists');
  await click('home');assert.ok(document.querySelector('.cruise-home-banner'),'Cruise Mode has focused Home');assert.ok(document.querySelector('.travel-notes-panel'),'trip notes appear only in Cruise Mode');assert.ok(!document.querySelector('[data-action="food"]'),'Food entry point is hidden');assert.ok(!document.querySelector('.today-card'),'calorie/protein card is hidden');assert.ok(!document.querySelector('.weight-strip'),'weight logging is hidden');assert.equal(document.querySelectorAll('.nav button').length,4,'Cruise nav removes Food');
- await click('day-note');await submit('day-note',{date:'2026-09-20',text:'Embarkation day · lots of walking'});
- await click('meal-memory');assert.ok(document.querySelector('.meal-memory-date-time'),'meal memory uses dedicated date/time layout');await submit('meal-memory',{date:'2026-09-20',text:'Dinner menu and plate photographed',noteTime:'36'});
+ const cruiseDay=document.querySelector('[data-action="day-note"]').dataset.date;
+ await click('day-note');await submit('day-note',{date:cruiseDay,text:'Embarkation day · lots of walking'});
+ await click('meal-memory');assert.ok(document.querySelector('.meal-memory-date-time'),'meal memory uses dedicated date/time layout');await submit('meal-memory',{date:cruiseDay,text:'Dinner menu and plate photographed',noteTime:'36'});
  let noteState=JSON.parse(state.records.get('bob').payload);assert.equal(noteState.notes.length,2);assert.equal(noteState.notes.find(n=>n.type==='meal').t,36);
  await click('home');assert.ok(document.querySelector('.travel-notes-panel').textContent.includes('Dinner menu and plate photographed'));
  await click('progress');assert.ok(document.querySelector('.exercise-progress-panel'),'exercise progress remains');assert.ok(!document.querySelector('.weight-progress-panel'),'weight progress is tucked away');assert.ok(!document.querySelector('.food-progress-panel'),'nutrition progress is tucked away');
