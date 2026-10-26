@@ -3,7 +3,7 @@ import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,fo
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=73';
 import {prepareImport,importSections} from './import-model.js?v=72';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=72';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=78';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -43,7 +43,7 @@ let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null;
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
-let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
+let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
@@ -1022,7 +1022,7 @@ function settings() {
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div><p>${esc(intro)} Export backups regularly.</p></div>${accountPanel()}${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts support up to about 800 KB of logs.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
-function close(all=false) {if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
+function close(all=false) {pendingDeviceMigration=null;if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
 function filteredFoodLibrary(){
  let foods=sortFoods(data.foods,foodLibrarySort),q=foodLibrarySearch.trim().toLowerCase();
  if(q)foods=foods.filter(f=>f.name.toLowerCase().includes(q)||foodKindLabel(f.kind).toLowerCase().includes(q)||foodAccuracyLabel(f.accuracy).toLowerCase().includes(q)||(f.tags||[]).some(tag=>tag.includes(q))||(f.pinned&&'pinned'.includes(q)));
@@ -1167,10 +1167,52 @@ document.addEventListener('click',async event=>{
   if(action==='cloud-recovery-discard'){if(!account?.uid||!cloudRecoveryConflict)return;if(!confirm('Discard the saved device recovery copy and keep the cloud version?'))return;clearCloudRecovery(account.uid);cloudRecovery=null;cloudRecoveryConflict=null;cloudPending=false;cloudMessage=session?.ready?'Loaded from your account':'Using the last confirmed device copy';render();return;}
   if(action==='storage-persist'){await refreshStorageProtection(true);return;}
   if(action==='migrate-device'){
-    if(offlineWorkspace||!session?.ready||cloudBusy||cloudPending)return;
-    if(!confirm(`Copy this device’s original logs into ${account.email}? Existing cloud entries with the same ID and same-day cloud weigh-ins will be kept.`))return;
-    data=mergeDeviceData(data,deviceData);
-    if(await persist()){try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}render();}return;
+    if(offlineWorkspace||demoMode||!account||!session?.ready||cloudBusy||cloudPending)return;
+    try{
+      const {candidate,summary}=planDeviceMigration(data,deviceData);
+      pendingDeviceMigration={candidate,summary,uid:account.uid,revision:session.revision,cloudCopy:structuredClone(data),deviceCopy:structuredClone(deviceData)};
+      const labels=[['foods','Saved foods'],['foodEntries','Food entries'],['lifts','Lift logs'],['weights','Weigh-ins'],['bodyFat','Body-fat entries'],['exerciseDefinitions','Exercise definitions'],['workoutTemplates','Workout routines'],['workoutHistory','Saved Workout Buddy sessions']];
+      const rows=labels.filter(([key])=>summary.added[key]||summary.skipped[key])
+        .map(([key,label])=>'<div class="list-row"><span><strong>'+esc(label)+'</strong><small>'+summary.added[key]+' to copy · '+summary.skipped[key]+' already present or kept in cloud</small></span></div>').join('');
+      const newRoutines=candidate.workoutTemplates.filter(w=>!data.workoutTemplates.some(old=>old.id===w.id));
+      const newSessions=(candidate.workoutHistory||[]).filter(w=>!(data.workoutHistory||[]).some(old=>old.id===w.id));
+      const newDefinitions=candidate.exerciseDefinitions.filter(e=>!data.exerciseDefinitions.some(old=>old.id===e.id));
+      const names=(label,items,fn)=>items.length?'<details class="import-previous"><summary>'+label+' ('+items.length+')</summary><ul>'+items.slice(0,30).map(item=>'<li>'+esc(fn(item))+'</li>').join('')+'</ul>'+(items.length>30?'<p class="hint">Showing first 30 only</p>':'')+'</details>':'';
+      const details=names('Routines being added',newRoutines,x=>x.name)+names('Saved sessions being added',newSessions,x=>(x.type||'Workout')+' · '+(x.date||x.startedAt||'No date'))+names('Exercises being added',newDefinitions,x=>x.name);
+      const changes=Object.values(summary.added).reduce((n,x)=>n+x,0)+(summary.activeWorkout==='imported'?1:0);
+      const warnings=(summary.idConflicts?'<p class="hint">'+summary.idConflicts+' conflicting IDs will be safely reassigned.</p>':'')+
+       (summary.renamedRoutines?'<p class="hint">'+summary.renamedRoutines+' routine names will gain a “(device)” suffix to keep both versions.</p>':'')+
+       (summary.setupConflicts?'<p class="hint">'+summary.setupConflicts+' matching exercise setups differ. The cloud setup is kept; the original device backup retains its version.</p>':'');
+      modal('Review device copy','<div class="migration-review"><p class="body-copy"><strong>Copy into '+esc(account.email)+'</strong>. Existing cloud entries stay untouched. Your original device notebook remains available separately.</p>'+
+        '<p class="body-copy">Original units: '+esc(summary.unitFrom)+' · Cloud units: '+esc(summary.unitTo)+(summary.unitFrom!==summary.unitTo?' (all device workout weights will be converted)':'')+'</p>'+
+        (rows||'<p class="body-copy">No additional record entries identified.</p>')+
+        '<p class="body-copy"><strong>Active workout:</strong> '+esc(summary.activeWorkout)+'.</p>'+warnings+details+
+        '<p class="hint">'+(changes?'Review the counts, then copy.':'Nothing new to copy. You can mark this device copy reviewed.')+' No cloud record is deleted or replaced.</p>'+
+        '<div class="form-actions">'+button(changes?'Copy '+changes+' items to cloud':'Mark as reviewed','migrate-device-confirm','primary')+
+        button('Export original device JSON','migrate-device-export','outline')+button('Cancel','close','outline')+'</div></div>');
+    }catch(error){
+      pendingDeviceMigration=null;
+      modal('Device copy paused','<p class="body-copy">'+esc(error.message)+'</p><p class="hint">Nothing has changed in your cloud or original device notebook.</p><div class="form-actions">'+button('Export original device JSON','migrate-device-export','outline')+button('Close','close','outline')+'</div>');
+    }
+    return;
+  }
+  if(action==='migrate-device-export'){downloadJsonBackup('everyday-original-device-'+localDate()+'.json',false,deviceData);return;}
+  if(action==='migrate-device-confirm'){
+    const plan=pendingDeviceMigration;
+    if(!plan||!account||!session?.ready||cloudBusy||cloudPending)return;
+    if(plan.uid!==account.uid||plan.revision!==session.revision||!sameCloudData(plan.cloudCopy,data)||!sameCloudData(plan.deviceCopy,deviceData)){
+      pendingDeviceMigration=null;
+      modal('Review expired','<p class="body-copy">The account or notebook changed after the preview. No migration was performed. Open the device copy review again before saving.</p>'+button('Close','close','outline'));
+      return;
+    }
+    pendingDeviceMigration=null;close(true);
+    if(sameCloudData(plan.candidate,data)){
+      try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}
+      render();return;
+    }
+    data=plan.candidate;
+    if(await persist()){try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}render();}
+    return;
   }
   if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','history','settings','account','export','close','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
   if(['home','food','gym','progress','history','settings'].includes(action)){page=action;render();return;}
@@ -1490,7 +1532,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=77',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=78',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1510,7 +1552,7 @@ function accountPanel(){
     return '<section class="panel"><h2>Cloud account paused</h2><p class="body-copy">'+esc(cloudLine)+'</p><p class="hint">Workspace edits cannot overwrite Firebase by accident. Export the workspace JSON, exit offline mode, then use the normal restore preview to apply it deliberately.</p></section>';
   }
   let migrated=false;try{migrated=localStorage.getItem('everyday-migrated:'+account?.uid)==='yes';}catch{}
-  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasRecords(deviceData)&&!migrated?`<p class="body-copy">Original device logs found. You can copy them into this account. This keeps the device copy as a backup.</p>${button('Copy device logs to this account','migrate-device','primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p>${!account?button('Load demo data','demo-start','outline'):''}</section>`;
+  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasDeviceMigrationContent(deviceData)&&!migrated?`<p class="body-copy">Original device notebook found. Review additions before copying logs, routines and Workout Buddy sessions into this account. The device notebook remains separate.</p>${button('Review & copy device notebook','migrate-device','primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p>${!account?button('Load demo data','demo-start','outline'):''}</section>`;
 }
 async function loadAccount(){
   if(offlineWorkspace||demoMode)return;const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
