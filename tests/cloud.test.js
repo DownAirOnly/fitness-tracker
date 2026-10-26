@@ -49,7 +49,7 @@ test('oversized or unsupported cloud data is rejected before writing',()=>{
 test('full migration preserves custom exercise references, routine variants and saved Buddy history',()=>{
  const cloud=emptyData(),device=emptyData();
  cloud.workoutTemplates[0].exercises=cloud.workoutTemplates[0].exercises.slice(0,1);
- cloud.exerciseDefinitions.push({id:'shared-def',name:'Machine Row Variation',equipment:'machine'});
+ cloud.exerciseDefinitions.push({id:'shared-def',name:'Custom Row Variation',equipment:'machine'});
  device.exerciseDefinitions.push({id:'shared-def',name:'Smith Squat',equipment:'machine',setup:'Seat 2'});
  device.workoutTemplates[0].exercises=device.workoutTemplates[0].exercises.slice(0,2);
  device.workoutTemplates.push({id:'extra-routine',name:'Custom Legs',exercises:[{exerciseId:'shared-def',repMin:8,repMax:12,targetSets:2,restSeconds:90}]});
