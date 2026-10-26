@@ -1312,3 +1312,18 @@ html.buddy-active #overlay .modal{z-index:1101}
 .buddy-exercise-view .buddy-exercise-title{min-height:136px;flex-shrink:0}
 @media(max-width:390px){.buddy-exercise-view .buddy-exercise-title{min-height:116px}}
 @media(max-height:650px){.buddy-exercise-view .buddy-exercise-title{min-height:104px}}
+
+/* v75: compact saved-session corrections and muscle-group detail navigation. */
+.routine-history-set{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.routine-history-set>span{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.45}
+.routine-history-set>button{flex:0 0 auto;min-height:32px;padding:6px 11px}
+.muscle-info{display:grid;gap:12px}
+.muscle-info>p{margin:0;font-size:13px;line-height:1.55}
+.muscle-info h3{font-size:12px;margin:0 0 5px}
+.muscle-info>div>p{margin:0;font-size:12px;line-height:1.5}
+.muscle-related-list{display:grid;gap:6px;margin-top:7px}
+.muscle-related-list button{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:9px 12px;text-align:left;border:1px solid #cbdccd;border-radius:11px;background:#f2f7f1;color:#234b34}
+.muscle-related-list button span{display:grid;gap:3px}
+.muscle-related-list button small{font-size:10px;opacity:.7}
+.muscle-related-list button b{font-size:20px}
+[data-theme="dark"] .muscle-related-list button{background:#203428;border-color:#45614b;color:#dceedd}
