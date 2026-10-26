@@ -61,7 +61,7 @@ export function planDeviceMigration(cloud,device) {
   idConflicts:0,renamedRoutines:0,setupConflicts:0,activeWorkout:'none',
   unitFrom:incoming.settings.unit,unitTo:candidate.settings.unit};
  // A brand-new cloud notebook has no personal settings to preserve.
- if(!hasRecords(candidate)&&!candidate.activeWorkout&&!(candidate.workoutHistory||[]).length)
+ if(!hasDeviceMigrationContent(candidate)&&signature(candidate.settings)===signature(emptyData().settings))
   candidate.settings={...incoming.settings};
  if(incoming.settings.unit!==candidate.settings.unit)
   incoming=convertNotebookWeightUnit(incoming,candidate.settings.unit);
@@ -124,7 +124,7 @@ export function planDeviceMigration(cloud,device) {
   for(const e of routine.exercises)remapExercise(e);
   const existingById=candidate.workoutTemplates.find(w=>w.id===routine.id);
   const duplicate=candidate.workoutTemplates.find(w=>signature(w.exercises)===signature(routine.exercises)&&
-   (w.name===routine.name||w.name.startsWith(routine.name+' (device)')||w.id===routine.id||w.id.startsWith(routine.id+'-device')));
+   (w.name===routine.name||w.name.startsWith(routine.name+' (device)')||w.id.startsWith(routine.id+'-device')));
   if(existingById&&signature(existingById)===signature(routine)){
    routineAliases.set(source.id,existingById.id);summary.skipped.workoutTemplates++;continue;
   }
