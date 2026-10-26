@@ -1183,3 +1183,20 @@ button.buddy-setup:focus-visible,.buddy-last-toggle:focus-visible,.buddy-journal
 [data-theme="dark"] .routine-library-row,[data-theme="dark"] .routine-starter{background:#1c2a21;border-color:#3e5443}
 [data-theme="dark"] .routine-row-actions button{background:#2a4030;border-color:#48604e;color:#d3e5d5}
 [data-theme="dark"] .routine-toolbar strong,[data-theme="dark"] .routine-library-row small,[data-theme="dark"] .routine-starter small{color:#a0b8a5}
+
+/* v71 — routine creation, reversible delete, and no redundant Use button */
+.routine-add-new{width:100%;min-height:43px;margin-bottom:2px}
+.routine-delete-confirm{display:grid;gap:12px}
+.routine-delete-confirm p{margin:0;line-height:1.5}
+.routine-delete-confirm>button{width:100%;min-height:46px}
+.routine-delete-confirm>button:disabled{opacity:.55;cursor:not-allowed}
+.routine-row-actions .routine-delete{background:#f8eae5;border-color:#e6c5bc;color:#8b4839}
+.routine-undo{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #c6d9c9;border-radius:12px;background:#edf5ee;padding:10px 12px}
+.routine-undo span{display:grid;gap:3px;min-width:0}
+.routine-undo strong{font-size:12px}
+.routine-undo small{font-size:10px;color:#557560;line-height:1.35}
+.routine-undo button{border:1px solid #9fbea5;border-radius:9px;padding:9px 12px;background:#fff;color:#275137;font-weight:800;font-size:12px;white-space:nowrap}
+[data-theme="dark"] .routine-row-actions .routine-delete{background:#452b27;border-color:#74433b;color:#ffcab8}
+[data-theme="dark"] .routine-undo{background:#1c3626;border-color:#45654e}
+[data-theme="dark"] .routine-undo small{color:#b5cfb9}
+[data-theme="dark"] .routine-undo button{background:#294b34;border-color:#52765b;color:#e2f3e3}

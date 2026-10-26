@@ -1,9 +1,9 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=70';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek} from './data.js?v=71';
 
-import {prepareImport,importSections} from './import-model.js?v=70';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=70';
-import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=70';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=70';
+import {prepareImport,importSections} from './import-model.js?v=71';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=71';
+import {hasRecords,mergeDeviceData,encodeState} from './cloud-model.js?v=71';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=71';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -44,7 +44,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0;
-let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null;
+let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[];
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,'');
@@ -374,7 +374,7 @@ function food() {
   const pinnedSection=pinned.length?'<section class="pinned-foods"><div class="section-head food-section-title"><h2>Favorites</h2></div><div class="food-grid pinned-food-grid">'+pinned.map(f=>foodQuickCard(f,true)).join('')+'</div></section>':'';
   return '<div class="page-head food-page-head"><p class="eyebrow">NUTRITION</p><h1>Food tracking<span class="accent">.</span></h1></div>'+dateHeader('Viewing')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Suggest rest of day','food-suggest','outline small')+'</div></section>'+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
 }
-function savedWorkouts(){return Array.isArray(data.workoutTemplates)&&data.workoutTemplates.length?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
+function savedWorkouts(){return Array.isArray(data.workoutTemplates)?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
 function workoutByName(name){const list=savedWorkouts();return list.find(w=>w.name===name)||list[0];}
 function exerciseDefinition(exerciseId){return data.exerciseDefinitions?.find(e=>e.id===exerciseId);}
 function resolveWorkoutExercise(item){const def=exerciseDefinition(item.exerciseId);return def?{...def,repMin:item.repMin,repMax:item.repMax,targetSets:item.targetSets||2,restSeconds:item.restSeconds??90}:null;}
@@ -419,9 +419,9 @@ function exerciseLibrary(){
  const equipment=['all','machine','cable','dumbbell','bench','calisthenics','other'];
  modal('Exercise Library',`<div class="exercise-library"><div class="library-intro"><p class="body-copy">Canonical exercise definitions live here. Editing one changes the exercise used by every workout that references it, without logging anything today.</p><button type="button" class="primary small" data-action="new-exercise-def">+ New exercise</button></div><div class="library-search-row"><label class="library-search"><span>Search</span><input type="search" data-library-search="exercise" value="${esc(exerciseLibrarySearch)}" placeholder="Search exercises"></label><label class="sort-control"><span>Filter</span><select data-library-filter="exercise">${equipment.map(x=>`<option value="${x}" ${exerciseLibraryFilter===x?'selected':''}>${x==='all'?'All equipment':equipmentLabel(x)}</option>`).join('')}</select></label><label class="sort-control"><span>Sort</span><select data-sort-scope="exercise-library"><option value="name" ${exerciseLibrarySort==='name'?'selected':''}>A–Z</option><option value="equipment" ${exerciseLibrarySort==='equipment'?'selected':''}>Equipment</option></select></label></div><div class="library-result-count" data-exercise-library-count>${filteredExerciseLibrary().length} shown</div><div class="exercise-library-list">${exerciseLibraryRows()}</div></div>`);
 }
-function exerciseDefinitionForm(def=null){
+function exerciseDefinitionForm(def=null,returnTo='library'){
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><p class="hint">This is the shared exercise definition. Workout-specific rep ranges are edited on the workout itself.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>exerciseLibrary());
+ modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><p class="hint">This is the shared exercise definition. Workout-specific rep ranges are edited on the workout itself.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
 }
 
 const routinePresets=[
@@ -449,9 +449,22 @@ function routineStarterPicker(){
  modal('New routine','<div class="routine-library"><p class="body-copy">Start blank or use an editable framework. Nothing is saved until you confirm.</p><div class="routine-list">'+routinePresets.map(p=>'<button type="button" class="routine-starter" data-action="routine-starter" data-key="'+p.key+'"><span><strong>'+esc(p.name)+'</strong><small>'+esc(p.description)+'</small></span><b>＋</b></button>').join('')+'</div></div>',()=>routineManager());
 }
 function routineManager(){
- const items=savedWorkouts();
- modal('My routines','<div class="routine-library"><p class="body-copy">Use, edit or copy your workout routines. Past workout logs are separate records.</p><button type="button" class="primary routine-create" data-action="routine-new">+ Create routine</button><div class="routine-list">'+items.map(w=>'<div class="routine-library-row"><span><strong>'+esc(w.name)+'</strong><small>'+w.exercises.length+' exercise'+(w.exercises.length===1?'':'s')+'</small></span><div class="routine-row-actions"><button type="button" data-action="routine-select" data-id="'+esc(w.id)+'">Use</button><button type="button" data-action="routine-edit" data-id="'+esc(w.id)+'">Edit</button><button type="button" data-action="routine-copy" data-id="'+esc(w.id)+'">Copy</button></div></div>').join('')+'</div></div>');
+ const items=savedWorkouts(),last=routineDeletedStack.at(-1);
+ const undo=last?'<div class="routine-undo" role="status"><span><strong>'+esc(last.routine.name)+' deleted</strong><small>Undo is available until this tab is reloaded.</small></span><button type="button" data-action="routine-undo-delete">Undo</button></div>':'';
+ modal('My routines','<div class="routine-library"><p class="body-copy">Edit, duplicate, or delete routines here. Choose a routine using the tabs on Lifting. Completed workout history is kept.</p><button type="button" class="primary routine-create" data-action="routine-new">+ Create routine</button>'+undo+'<div class="routine-list">'+(items.length?items.map(w=>'<div class="routine-library-row"><span><strong>'+esc(w.name)+'</strong><small>'+w.exercises.length+' exercise'+(w.exercises.length===1?'':'s')+'</small></span><div class="routine-row-actions"><button type="button" data-action="routine-edit" data-id="'+esc(w.id)+'">Edit</button><button type="button" data-action="routine-copy" data-id="'+esc(w.id)+'">Copy</button><button type="button" class="routine-delete" data-action="routine-delete-prompt" data-id="'+esc(w.id)+'">Delete</button></div></div>').join(''):'<p class="empty">No routines yet. Create one from a starter framework or a blank list.</p>')+'</div></div>');
 }
+function routineDeletePrompt(routine){
+ if(!routine)return;
+ if(data.activeWorkout?.workoutId===routine.id){alert('Finish or end the active workout before deleting its routine.');return;}
+ modal('Delete routine?', '<div class="routine-delete-confirm"><p><strong>'+esc(routine.name)+'</strong> will be deleted from your routine library.</p><p class="hint">Your logged sets and completed workout history will not be deleted. You can undo this deletion until you reload Everyday.</p><button type="button" class="danger" id="routine-delete-confirm" data-action="routine-delete-confirm" data-id="'+esc(routine.id)+'" disabled>Delete routine · 3</button><button type="button" class="outline" data-action="close">Cancel</button></div>',()=>routineManager());
+ const confirmButton=document.querySelector('#routine-delete-confirm');
+ if(!confirmButton)return;
+ for(let seconds=2;seconds>=0;seconds--){
+  const delay=(3-seconds)*1000;
+  setTimeout(()=>{if(!confirmButton.isConnected)return;if(seconds){confirmButton.textContent='Delete routine · '+seconds;}else{confirmButton.disabled=false;confirmButton.textContent='Delete routine';}},delay);
+ }
+}
+
 function newRoutineEditor(name,exercises){
  workoutEditorState={id:null,isNew:true,name:nextRoutineName(name),exercises:structuredClone(exercises||[])};
  workoutTemplateForm(null,true);
@@ -490,7 +503,7 @@ function workoutExercisePicker(){
    summary:e.setup?'':'No setup saved',
    trailing:'+'
  })).join(''):'<p class="empty">Every exercise in your library is already in this workout.</p>';
- modal('Add exercise','<div class="workout-add-picker"><label class="library-search"><span>Search Exercise Library</span><input type="search" data-workout-add-search placeholder="Search exercises"></label><div class="workout-add-list">'+cards+'</div></div>',()=>workoutTemplateForm(null,true));
+ modal('Add exercise','<div class="workout-add-picker"><button type="button" class="primary routine-add-new" data-action="routine-new-exercise">+ New exercise</button><label class="library-search"><span>Search Exercise Library</span><input type="search" data-workout-add-search placeholder="Search exercises"></label><div class="workout-add-list">'+cards+'</div></div>',()=>workoutTemplateForm(null,true));
 }
 const isoNow=()=>new Date().toISOString();
 const buddySeconds=(a,b=isoNow())=>a&&b?Math.max(0,Math.round((new Date(b)-new Date(a))/1000)):0;
@@ -567,8 +580,8 @@ function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-c
 
 
 function gym() {
- const templates=savedWorkouts(),selected=workoutByName(workout);if(selected)workout=selected.name;const logs=data.lifts.filter(x=>x.date===chosenDate).slice().reverse(),exercises=workoutExercises(selected);
- return `<div class="page-head"><p class="eyebrow">TRAINING</p><h1>Lift tracking<span class="accent">.</span></h1><p>Pick an exercise, see last time, and log the sets you actually did.</p></div><section class="buddy-entry"><div><p class="eyebrow">LIVE WORKOUT</p><h2>Workout Buddy</h2><p>${data.activeWorkout?`${esc(data.activeWorkout.type)} workout in progress`:'Fast set entry, rest timing, and exercise transitions.'}</p></div>${data.activeWorkout?`<div class="buddy-entry-actions">${button('Resume','buddy-launch','primary')}${button('End workout','buddy-end','outline small')}</div>`:button('Start','buddy-launch','primary')}</section>${dateHeader('Workout date')}<div class="routine-toolbar"><strong>ROUTINES</strong>${button('+ Manage','routine-manage','outline small')}</div><div class="workout-tabs">${templates.map(x=>button(esc(x.name),'workout',workout===x.name?'selected':'',`data-workout="${esc(x.name)}"`)).join('')}</div><section><div class="section-head"><div><p class="eyebrow">${esc(workout.toUpperCase())} DAY</p><h2>Choose an exercise</h2></div><div class="section-actions">${button('Exercises','exercise-library','outline small')}${button('Edit workout','edit-workout','outline small')}${button('+ Custom','custom-lift','outline small')}</div></div><div class="exercise-list">${exercises.length?exercises.map(exerciseCard).join(''):empty('This routine is empty. Edit it to add exercises.')}</div></section><section class="log-section"><div class="section-head"><div><p class="eyebrow">${esc(niceDate(chosenDate).toUpperCase())}</p><h2>Logged lifts</h2></div></div>${logs.length?logs.map(l=>`<div class="list-row"><span><strong>${esc(l.exercise)}</strong><small>${equipmentLabel(l.equipment)} · ${describeLift(l)}</small></span>${button('Edit','edit-lift','text-btn',`data-id="${esc(l.id)}"`)}</div>`).join(''):empty('Your sets will show up here as you log them.')}</section>`;
+ const templates=savedWorkouts(),selected=workoutByName(workout);workout=selected?.name||'';const logs=data.lifts.filter(x=>x.date===chosenDate).slice().reverse(),exercises=workoutExercises(selected);
+ return `<div class="page-head"><p class="eyebrow">TRAINING</p><h1>Lift tracking<span class="accent">.</span></h1><p>Pick an exercise, see last time, and log the sets you actually did.</p></div><section class="buddy-entry"><div><p class="eyebrow">LIVE WORKOUT</p><h2>Workout Buddy</h2><p>${data.activeWorkout?`${esc(data.activeWorkout.type)} workout in progress`:'Fast set entry, rest timing, and exercise transitions.'}</p></div>${data.activeWorkout?`<div class="buddy-entry-actions">${button('Resume','buddy-launch','primary')}${button('End workout','buddy-end','outline small')}</div>`:button('Start','buddy-launch','primary')}</section>${dateHeader('Workout date')}<div class="routine-toolbar"><strong>ROUTINES</strong>${button('+ Manage','routine-manage','outline small')}</div><div class="workout-tabs">${templates.map(x=>button(esc(x.name),'workout',workout===x.name?'selected':'',`data-workout="${esc(x.name)}"`)).join('')}</div><section><div class="section-head"><div><p class="eyebrow">${esc(workout?workout.toUpperCase()+' ROUTINE':'NO ROUTINE')}</p><h2>Choose an exercise</h2></div><div class="section-actions">${button('Exercises','exercise-library','outline small')}${selected?button('Edit workout','edit-workout','outline small'):''}${button('+ Custom','custom-lift','outline small')}</div></div><div class="exercise-list">${exercises.length?exercises.map(exerciseCard).join(''):empty('This routine is empty. Edit it to add exercises.')}</div></section><section class="log-section"><div class="section-head"><div><p class="eyebrow">${esc(niceDate(chosenDate).toUpperCase())}</p><h2>Logged lifts</h2></div></div>${logs.length?logs.map(l=>`<div class="list-row"><span><strong>${esc(l.exercise)}</strong><small>${equipmentLabel(l.equipment)} · ${describeLift(l)}</small></span>${button('Edit','edit-lift','text-btn',`data-id="${esc(l.id)}"`)}</div>`).join(''):empty('Your sets will show up here as you log them.')}</section>`;
 }
 function describeLift(l){return l.sets.map(s=>`${fmt(s.weight)} ${data.settings.unit} × ${s.reps}${s.difficulty?` · ${effortText(s.difficulty)}`:''}`).join(' · ');}
 const exerciseHistoryAliases=new Map([
@@ -1049,13 +1062,35 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-delete-confirm'){const s=data.activeWorkout;if(!s)return;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);data.activeWorkout=null;close(true);buddyClose();await persist();render();return;}
   if(action==='exercise-library'){exerciseLibrary();return;}
   if(action==='new-exercise-def'){exerciseDefinitionForm();return;}
+  if(action==='routine-new-exercise'){if(!workoutEditorState)return;exerciseDefinitionForm(null,'routine');return;}
   if(action==='edit-exercise-def'){exerciseDefinitionForm(data.exerciseDefinitions?.find(x=>x.id===el.dataset.id));return;}
   if(action==='routine-manage'){routineManager();return;}
   if(action==='routine-new'){routineStarterPicker();return;}
   if(action==='routine-starter'){const preset=routinePresets.find(p=>p.key===el.dataset.key);if(!preset)return;newRoutineEditor(preset.name,routinePresetExercises(preset));return;}
-  if(action==='routine-select'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workout=w.name;close(true);render();return;}
   if(action==='routine-edit'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workoutTemplateForm(w.name);return;}
   if(action==='routine-copy'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;newRoutineEditor(w.name+' copy',w.exercises);return;}
+  if(action==='routine-delete-prompt'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(w)routineDeletePrompt(w);return;}
+  if(action==='routine-delete-confirm'){
+    if(el.disabled)return;
+    const index=(data.workoutTemplates||[]).findIndex(w=>w.id===el.dataset.id);
+    if(index<0)return;
+    const deleted=data.workoutTemplates[index];
+    if(data.activeWorkout?.workoutId===deleted.id)return alert('End the active workout before deleting this routine.');
+    routineDeletedStack.push({routine:structuredClone(deleted),index,wasSelected:workout===deleted.name});
+    data.workoutTemplates.splice(index,1);
+    if(workout===deleted.name)workout=data.workoutTemplates[0]?.name||'';
+    close(true);await persist();render();routineManager();return;
+  }
+  if(action==='routine-undo-delete'){
+    const undo=routineDeletedStack.at(-1);if(!undo)return;
+    if(data.workoutTemplates.some(w=>w.id===undo.routine.id)){routineDeletedStack.pop();routineManager();return;}
+    const restored=structuredClone(undo.routine);
+    if(data.workoutTemplates.some(w=>w.name.trim().toLowerCase()===restored.name.trim().toLowerCase()))restored.name=nextRoutineName(restored.name);
+    data.workoutTemplates.splice(Math.min(undo.index,data.workoutTemplates.length),0,restored);
+    routineDeletedStack.pop();
+    if(undo.wasSelected)workout=restored.name;
+    await persist();render();routineManager();return;
+  }
   if(action==='edit-workout'){workoutTemplateForm(workout);return;}
   if(action==='workout-move'){workoutEditorCapture();const i=Number(el.dataset.index),d=Number(el.dataset.direction),j=i+d;if(!workoutEditorState||!Number.isInteger(i)||!Number.isInteger(j)||j<0||j>=workoutEditorState.exercises.length)return;[workoutEditorState.exercises[i],workoutEditorState.exercises[j]]=[workoutEditorState.exercises[j],workoutEditorState.exercises[i]];workoutTemplateForm(null,true);return;}
   if(action==='workout-remove'){workoutEditorCapture();const i=Number(el.dataset.index);if(!workoutEditorState||!Number.isInteger(i)||i<0||i>=workoutEditorState.exercises.length)return;workoutEditorState.exercises.splice(i,1);workoutTemplateForm(null,true);return;}
@@ -1183,7 +1218,26 @@ app.addEventListener('submit',async event=>{
     }catch(error){if(preview){preview.textContent=error instanceof SyntaxError?'This file is not valid JSON.':error.message;preview.setAttribute('role','alert');}}
     return;
   }
-  if(form.dataset.form==='exercise-definition'){const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200)return alert('Check the exercise definition.');const duplicate=data.exerciseDefinitions?.find(x=>x.id!==v.exerciseId&&x.name.toLowerCase()===name.toLowerCase()&&x.equipment===equipment);if(duplicate)return alert('That exercise already exists with this equipment.');if(existing){const oldName=existing.name,oldEquipment=existing.equipment;Object.assign(existing,{name,equipment});if(setup)existing.setup=setup;else delete existing.setup;data.lifts.forEach(l=>{if(l.exercise.toLowerCase()===oldName.toLowerCase()&&(l.equipment||'other')===oldEquipment){l.exercise=name;l.equipment=equipment;}});}else data.exerciseDefinitions.push({id:id(),name,equipment,...(setup?{setup}:{})});close(true);await persist();render();return;}
+  if(form.dataset.form==='exercise-definition'){
+    const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);
+    if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200)return alert('Check the exercise definition.');
+    const duplicate=data.exerciseDefinitions?.find(x=>x.id!==v.exerciseId&&x.name.toLowerCase()===name.toLowerCase()&&x.equipment===equipment);
+    if(duplicate)return alert('That exercise already exists with this equipment.');
+    let created=null;
+    if(existing){
+      const oldName=existing.name,oldEquipment=existing.equipment;Object.assign(existing,{name,equipment});
+      if(setup)existing.setup=setup;else delete existing.setup;
+      data.lifts.forEach(l=>{if(l.exercise.toLowerCase()===oldName.toLowerCase()&&(l.equipment||'other')===oldEquipment){l.exercise=name;l.equipment=equipment;}});
+    }else{
+      created={id:id(),name,equipment,...(setup?{setup}:{})};data.exerciseDefinitions.push(created);
+    }
+    if(v.returnTo==='routine'&&created&&workoutEditorState&&!workoutEditorState.exercises.some(e=>e.exerciseId===created.id)){
+      workoutEditorState.exercises.push({exerciseId:created.id,repMin:6,repMax:12,targetSets:2,restSeconds:90});
+    }
+    close(true);await persist();
+    if(v.returnTo==='routine'&&workoutEditorState)workoutTemplateForm(null,true);else render();
+    return;
+  }
   if(form.dataset.form==='workout-template'){
     workoutEditorCapture();if(!workoutEditorState)return;
     const state=workoutEditorState,name=state.name.trim();
@@ -1247,7 +1301,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=70',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=71',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1299,7 +1353,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=70');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=71');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

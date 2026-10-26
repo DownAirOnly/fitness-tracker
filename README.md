@@ -141,3 +141,7 @@ Choose **Add another food** to stage the current entry and immediately enter the
 ## v70 — Routine management, first pass
 
 Lifting now includes a **+ Manage** routine library with Use, Edit and Copy. **Create routine** offers Blank, Upper body, Lower body, Full body, Push day, Pull day and Leg day starter frameworks using the canonical Exercise Library and existing sets/reps/rest editor. Routines can be renamed during editing, and duplicates receive new IDs. A new or duplicate routine is only saved on confirmation. Past workout records and any in-progress session remain unchanged. Empty routines cannot be started in Workout Buddy. Routine archiving and scheduling are reserved for later.
+
+## v71 — Routine editor refinement
+
+The routine Add exercise picker now has **+ New exercise**, which opens the same canonical Exercise Library editor used elsewhere. When saved, the new exercise is added to the unsaved routine draft, and its program settings can be edited normally. **My routines** now shows Edit, Copy and Delete; redundant Use was removed (select routines using Lifting tabs). Delete requires a 3-second countdown, never deletes saved lifting history, and can be undone from My routines during the current browser tab session. If an active workout uses a routine, deletion is blocked until the session is ended. Deleting the last routine does not recreate the defaults; **+ Create routine** remains available.
