@@ -13,7 +13,7 @@ test('demo fixture is fixed, realistic, and reproducible',()=>{
  assert.equal(first.weights.length,21);
  assert.equal(first.lifts.length,64);
  assert.equal(first.workoutHistory.length,12);
- assert.ok(first.bodyFat.length>0 && first.notes.length>0);
+ assert.ok(first.bodyFat.length>0);
  assert.ok(first.foodEntries.some(entry=>entry.t===1 && foodTrackingDate(entry,360)!==entry.date),'test midnight grouping');
  first.foodEntries[0].quantity=99;
  assert.notEqual(createDemoData().foodEntries[0].quantity,99,'new load restores the fixture');
@@ -21,7 +21,7 @@ test('demo fixture is fixed, realistic, and reproducible',()=>{
 
 test('demo data survives normal JSON backup encode/decode without missing relationships',()=>{
  const first=createDemoData(),restored=normalizeData(encodeData(first));
- for(const key of ['foods','foodEntries','lifts','weights','bodyFat','notes','workoutHistory','exerciseDefinitions','workoutTemplates'])
+ for(const key of ['foods','foodEntries','lifts','weights','bodyFat','workoutHistory','exerciseDefinitions','workoutTemplates'])
    assert.deepEqual(restored[key],first[key],key+' must roundtrip through normal storage');
  assert.equal(restored.activeWorkout,null);
 });

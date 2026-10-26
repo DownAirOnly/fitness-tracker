@@ -910,54 +910,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 }
 
 
-/* Cruise-friendly daily notes and meal memories. */
-.travel-notes-panel{margin-top:16px}
-.travel-notes-compact{margin-top:14px}
-.travel-note-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.travel-note-preview,.meal-memory-row{width:100%;text-align:left;border:1px solid #d9e2db;background:#f8faf7;color:inherit;border-radius:13px;padding:11px 12px}
-.travel-note-preview{display:grid;gap:4px;margin-top:9px}
-.travel-note-preview small,.meal-memory-row small{font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#748178}
-.travel-note-preview strong,.meal-memory-row strong{font-size:12px;line-height:1.35}
-.travel-note-preview strong{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.meal-memory-list{display:grid;gap:7px;margin-top:9px}
-.meal-memory-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.meal-memory-row span{display:grid;gap:3px;min-width:0}
-.meal-memory-row strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.meal-memory-row b{font-size:18px;font-weight:400;color:#647469}
-[data-theme="dark"] .travel-note-preview,[data-theme="dark"] .meal-memory-row{background:#18251e;border-color:#40533f}
-[data-theme="dark"] .travel-note-preview small,[data-theme="dark"] .meal-memory-row small{color:#9daf9f}
-@media(max-width:440px){.travel-note-actions{grid-template-columns:1fr}.travel-notes-panel{padding:16px}}
-
-
-/* Meal Memory date/time layout: prevent native iOS controls from colliding. */
-.meal-memory-date-time{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-.meal-memory-date-time>.field{min-width:0}
-.meal-memory-date-time input,.meal-memory-date-time select{width:100%;min-width:0;max-width:100%}
-@media(max-width:560px){
-  .meal-memory-date-time{grid-template-columns:1fr}
-}
-
-
-/* v55 Cruise Mode */
-.cruise-mode .nav{grid-template-columns:repeat(4,1fr)}
-.cruise-home-actions{grid-template-columns:1fr}
-.cruise-home-actions .big-action{min-height:132px}
-.cruise-home-banner{position:relative;overflow:hidden;background:#173b2b;color:#fff;border-radius:23px;padding:24px;margin:15px 0 18px}
-.cruise-home-banner h1{margin:2px 0 8px;font-size:clamp(31px,7vw,46px);line-height:1}
-.cruise-home-banner p:last-child{max-width:470px;margin:0;color:#c7d9cb;font-size:12px;line-height:1.5}
-.cruise-home-banner .eyebrow{color:#b8d9c1}
-.cruise-mode-mark{position:absolute;right:18px;bottom:7px;font-size:72px;line-height:1;opacity:.12;transform:rotate(-7deg)}
 .settings-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
 .version-badge{display:inline-flex;align-items:center;justify-content:center;min-width:48px;padding:7px 10px;border-radius:999px;background:#e8efe5;color:#345a40;font-size:11px;font-weight:900;letter-spacing:.04em}
-.cruise-mode-panel{border-color:#cbdacb}
-.cruise-mode-panel .body-copy{margin-bottom:14px}
 [data-theme="dark"] .version-badge{background:#24362a;color:#cfe1d2}
-[data-theme="dark"] .cruise-mode-panel{border-color:#40533f}
-@media(max-width:440px){
- .cruise-home-actions .big-action{min-height:120px}
- .cruise-home-banner{padding:21px}
- .cruise-mode-mark{font-size:61px}
-}
 
 
 /* v56 guarded offline exit */

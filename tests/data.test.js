@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseFoodCSV,dailyTotals,foodTrackingDate,foodCalendarDate,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData} from '../data.js';
+import {parseFoodCSV,dailyTotals,foodTrackingDate,foodEntriesNewestFirst,stepFoodDateTime,foodCalendarDate,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData} from '../data.js';
 
 test('CSV supports quoted names and rejects malformed rows before import',()=>{
   const parsed=parseFoodCSV('date,name,calories,protein,quantity\r\n2026-09-25,"Chicken, rice",500,42,0.5\r\n2026-09-26,Bad,hi,4,1');
@@ -25,12 +25,10 @@ test('weekly averages and BMI use entered weights and the configured height',()=
   const weeks=weeklyWeights([{date:'2026-09-21',value:184},{date:'2026-09-25',value:182},{date:'2026-09-20',value:186}],68);
   assert.equal(weeks.length,2);assert.equal(weeks[0].average,182);assert.equal(weeks[0].bmi,bmi(182,68));
 });
-test('morning prompt respects six AM, once per local date, and Cruise Mode',()=>{
+test('morning prompt respects the day-reset boundary',()=>{
   const data=emptyData();const early=new Date(2026,8,25,5,59),late=new Date(2026,8,25,6,1);
   assert.equal(shouldPrompt(data,early),false);assert.equal(shouldPrompt(data,late),true);
-  data.settings.cruiseMode=true;assert.equal(shouldPrompt(data,late),false);
-  assert.equal(normalizeData(encodeData(data)).settings.cruiseMode,true);
-  data.settings.cruiseMode=false;data.promptDate='2026-09-25';assert.equal(shouldPrompt(data,late),false);
+  data.promptDate='2026-09-25';assert.equal(shouldPrompt(data,late),false);
   data.promptDate='';data.weights.push({date:'2026-09-25',value:183});assert.equal(shouldPrompt(data,late),false);
 });
 test('backup validator rejects corrupt records',()=>{
@@ -89,19 +87,6 @@ test('paired v49 body fat migrates into independent records',()=>{
 });
 
 
-test('daily and meal notes survive backup round trips',()=>{
-  const d=emptyData();
-  d.notes=[
-    {id:'day',date:'2026-10-03',type:'day',text:'Embarkation day'},
-    {id:'meal',date:'2026-10-03',type:'meal',text:'Dinner photographed',t:36}
-  ];
-  const restored=normalizeData(encodeData(d));
-  assert.deepEqual(restored.notes,d.notes);
-  const bad=emptyData();bad.notes=[{id:'bad',date:'2026-10-03',type:'meal',text:''}];
-  assert.throws(()=>normalizeData(bad),/invalid note/);
-});
-
-
 test('one-off food logs stay out of the saved-food library while remaining dictionary-compressed',()=>{
   const d=emptyData();
   d.foodEntries=[{id:'entry-one-off',date:'2026-10-12',name:'Cruise one-off dessert',calories:420,protein:6,quantity:1}];
@@ -113,4 +98,15 @@ test('one-off food logs stay out of the saved-food library while remaining dicti
   assert.equal(restored.foods.length,0,'hidden dictionary item does not become a Saved Food');
   assert.equal(restored.foodEntries[0].name,'Cruise one-off dessert');
   assert.equal(restored.foodEntries[0].calories,420);
+});
+
+
+test('retroactive food entries appear in real-time order without mutating records',()=>{
+ const e=[{id:'dinner',date:'2026-10-25',t:38},{id:'breakfast',date:'2026-10-25',t:16},{id:'untimed',date:'2026-10-25'},{id:'after-midnight',date:'2026-10-26',t:2},{id:'retro-lunch',date:'2026-10-25',t:28}];
+ assert.deepEqual(foodEntriesNewestFirst(e).map(x=>x.id),['after-midnight','dinner','retro-lunch','breakfast','untimed']);assert.equal(e[0].id,'dinner');
+});
+test('midnight rolls the real date, tracking days remain derived from reset time',()=>{
+ assert.deepEqual(stepFoodDateTime('2026-10-25',47,1),{date:'2026-10-26',t:0});
+ assert.deepEqual(stepFoodDateTime('2026-10-26',0,-1),{date:'2026-10-25',t:47});
+ assert.equal(foodTrackingDate({date:'2026-10-26',t:0},360),'2026-10-25');
 });

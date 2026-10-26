@@ -22,8 +22,6 @@ The service worker uses network-first navigation when online, but its fully prec
 
 - Daily calorie and protein totals with editable goals (initially 1,600 calories and 130 g protein), plus a Progress chart that can move through weekly, monthly, quarterly, and yearly views.
 - Once-per-tracking-day automatic weigh-in prompt: once it has appeared, Everyday will not automatically ask again until the next tracking day.
-- Cruise Mode hides food and weigh-in logging surfaces and switches Home/Progress/History to a workout-focused view without deleting or changing any underlying food, weight, or body-composition history.
-- Cruise Mode-only daily notes and text-only meal memories for travel context and later photo-based reconstruction. The note data remains preserved when Cruise Mode is off, but its UI stays hidden.
 - Saved Food cards open a prefilled food-log form for fast quantity/date/time changes, with a five-second Undo after saving. New manual foods default to **Save as new food**, which can be unchecked for one-off entries that should stay out of the reusable Food Library. Each log stores its own calorie/protein values so editing a saved definition does not rewrite history.
 - Universal additive CSV import from files or pasted text, with preview and validation, plus pasted/file JSON backup restore.
 - Upper, lower, and full-body starter exercise lists, custom exercises, sets/reps/weight, difficulty, notes, and canonicalized last-time reference so legacy aliases such as `Dumbbell Lateral Raise` resolve to the current exercise.
@@ -130,4 +128,8 @@ The workout Add exercise picker now uses the same exerciseCardMarkup renderer as
 
 ## Entry time controls and Google sync meter (v67)
 
-Food entries, meal-memory notes, food suggestions, and reset-time settings now use one shared 30-minute ± time control instead of dropdowns. Optional time values have Now and No time shortcuts; the stored time format and selected calendar dates are unchanged. Time wraps within the selected date. The Google sync payload meter is placed directly after the Account section in Settings, showing estimated encoded notebook data against the 800,000-byte (~781 KiB) Firestore payload budget—not device storage or the overall Google account quota. A separate diagnostics section retains integrity checks.
+Food entries, food suggestions, and reset-time settings now use one shared 30-minute ± time control instead of dropdowns. Optional time values have Now and No time shortcuts; the stored time format and selected calendar dates are unchanged. Time wraps within the selected date. The Google sync payload meter is placed directly after the Account section in Settings, showing estimated encoded notebook data against the 800,000-byte (~781 KiB) Firestore payload budget—not device storage or the overall Google account quota. A separate diagnostics section retains integrity checks.
+
+## v68 — Simplification and true chronology
+
+Cruise Mode and associated day/travel/meal-memory notes have been removed from the app and backup payload. Old JSON backups still load, but retired fields are discarded. Food logs sort by actual date/time, newest first, while untimed entries come last. The 30-minute time buttons now roll the real calendar date across midnight, independently of the configured tracking-day reset. Meal suggestions display the chosen calendar date and use the same rollover behavior.

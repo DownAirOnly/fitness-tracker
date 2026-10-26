@@ -1,4 +1,4 @@
-import {emptyData,normalizeData,encodeData} from './data.js?v=63';
+import {emptyData,normalizeData,encodeData} from './data.js?v=68';
 
 // A reproducible, fictional dataset. Never generated from a user's existing logs.
 export const DEMO_LAST_DATE='2026-10-23';
@@ -58,8 +58,6 @@ export function createDemoData(){
   }
   d.workoutHistory.push({id,workoutId:template.id,type:template.name,date:day,startedAt,completedAt:new Date(Date.parse(exercises.at(-1).completedAt)+120000).toISOString(),phase:'complete',performedOrder:exercises.map(e=>e.name.toLowerCase()+'|'+e.equipment),selected:null,exercises});
  }
- const notes=[[4,'Busy shift, but nutrition was reasonably consistent.'],[11,'Recovery day. Slept longer and felt better.'],[19,'Feeling stronger on pressing exercises.'],[29,'Back to the gym after a break.'],[36,'Good session, improved technique on rows.']];
- d.notes=notes.map(([i,text])=>({id:'demo-note-'+i,date:dateAt(i),type:'day',text}));
  d.exerciseDefinitions.find(e=>e.name==='Chest Press').setup='Seat notch 4; handles aligned with chest';
  d.exerciseDefinitions.find(e=>e.name==='Lat Pulldown').setup='Thigh pad setting 5; pull to upper chest';
  // Assert schema compatibility on every fresh load, without changing the dataset.
