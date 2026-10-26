@@ -212,7 +212,7 @@ try{
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'),'saved card opens normal food form');assert.equal(document.querySelector('[data-form="food"] [name="date"]').value,'2025-01-02');await submit('food',{quantity:'0.5'});
  let current=JSON.parse(state.records.get('bob').payload);assert.equal(current.foodEntries.at(-1).date,'2025-01-02');assert.equal(current.foodEntries.at(-1).quantity,0.5);assert.ok(document.querySelector('.food-undo-toast'));
  await click('undo-food-add');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,countBeforeSaved,'saved-food undo removes only the new entry');
- await click('today');assert.ok(document.querySelector('.food-main span').textContent.includes('Add to today'));
+ await click('today');assert.ok(document.querySelector('.food-card-add').textContent.includes('Add to today'));
  assert.ok(!document.querySelector('.food-preview').textContent.includes('History food'));
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'));await submit('food',{quantity:'1'});current=JSON.parse(state.records.get('bob').payload);
  assert.equal(current.foodEntries.at(-1).date,document.querySelector('.tracking-date input').value);
