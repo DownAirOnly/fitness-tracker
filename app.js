@@ -45,7 +45,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0;
-let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[];
+let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,'');
@@ -560,6 +560,7 @@ function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelecto
 function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
  const head=`<header class="buddy-head"><span><small>${esc(s.type.toUpperCase())}</small><strong>Workout Buddy</strong></span><span class="buddy-head-actions"><span class="buddy-elapsed" data-buddy-elapsed>${buddyClock(buddySeconds(s.startedAt))}</span><button type="button" class="buddy-exit" data-action="buddy-exit">Exit</button></span></header>`;
+ if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(buddyMuscleView)}</main></div>`;
  if(s.phase==='bike')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-bike"><div class="buddy-step"><span class="buddy-step-number">01</span><p class="eyebrow">WARM-UP</p><h1>Bike · 5 min</h1><p>Head to the bike. Use the bike's timer for five minutes, then continue when you're ready to lift.</p></div><button class="buddy-a" data-action="buddy-bike-done"><span>Bike finished</span><b>Continue</b></button></main></div>`;
  if(s.phase==='picker'){const remaining=s.exercises.filter(e=>e.status!=='done');return `<div class="buddy-screen">${head}<main class="buddy-main"><div class="buddy-progress"><span>${done} of ${total} exercises</span><span>${total-done} remaining</span></div>${buddyUndoControl(s)}<div class="buddy-picker-head"><p class="eyebrow">${done?'CHOOSE WHAT’S NEXT':'READY TO LIFT'}</p><h1>${done?'Next exercise':'Choose your first exercise'}</h1><p>Select what’s available. Timing starts when you start the set.</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;}
  if(s.phase==='complete')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-complete"><div><p class="eyebrow">CIRCUIT COMPLETE</p><h1>${esc(s.type)} finished</h1><p>${done} exercises · ${buddyClock(buddySeconds(s.startedAt,s.completedAt))} total</p></div>${buddyUndoControl(s)}<button class="buddy-a" data-action="buddy-confirm-finish"><span>Ready to wrap up?</span><b>Finish workout</b></button><button class="buddy-secondary" data-action="buddy-back-picker">Back to exercises</button></main></div>`;
@@ -580,7 +581,7 @@ function buddyRender(){
 }
 let buddyTicker=null;
 function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));const state=document.querySelector('[data-buddy-state]');if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));if(state&&!Number.isInteger(e.reviewSetIndex))state.textContent=left?`Rest · ${buddyClock(left)} remaining`:'Rest complete';const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
-function buddyClose(){document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
+function buddyClose(){buddyMuscleView=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){await persist();if(data.activeWorkout)buddyOpen();}
 function buddyUpsertLift(s,e){if(!e.sets?.length)return;const record={exercise:e.name,equipment:e.equipment,date:s.date,sets:e.sets.map(x=>({weight:x.weight,reps:x.reps,...(x.difficulty?{difficulty:x.difficulty}:{})})),notes:e.notes||'',buddySessionId:s.id};const existing=data.lifts.find(l=>l.buddySessionId===s.id&&l.exercise===e.name&&(l.equipment||'other')===e.equipment);if(existing)Object.assign(existing,record);else data.lifts.push({id:id(),...record});}
 function buddyCompleteExercise(s,e){e.status='done';e.completedAt=isoNow();delete e.activeSetStartedAt;delete e.restStartedAt;delete e.reviewSetIndex;delete e.draft;buddyUpsertLift(s,e);s.selected=null;s.phase=s.exercises.every(x=>x.status==='done')?'complete':'picker';if(s.phase==='complete')s.completedAt=isoNow();}
@@ -1059,7 +1060,12 @@ document.addEventListener('click',async event=>{
   if(action.startsWith('health-')){await healthAction(action);return;}
   if(action==='today'){chosenDate=currentTrackingDate();render();return;}
   if(action==='go-date'){chosenDate=el.dataset.date;page='food';render();return;}
-  if(action==='muscle-guide'){openMuscleGuide(el.dataset.name,el.dataset.equipment);return;}
+  if(action==='muscle-guide'){
+    if(document.body.classList.contains('buddy-active')){buddyReadEditor();buddyReadNotes();buddyMuscleView=el.dataset.name;buddyOpen();}
+    else openMuscleGuide(el.dataset.name,el.dataset.equipment);
+    return;
+  }
+  if(action==='buddy-muscle-back'){buddyMuscleView=null;buddyOpen();return;}
   if(action==='routine-muscle-guide'){
     if(!workoutEditorState)return;
     workoutEditorCapture();

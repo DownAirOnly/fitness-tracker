@@ -1240,3 +1240,10 @@ button.buddy-setup:focus-visible,.buddy-last-toggle:focus-visible,.buddy-journal
 /* Overlay above the active Buddy screen so viewing the diagram never stops set timers. */
 html.buddy-active #overlay .scrim{z-index:1100}
 html.buddy-active #overlay .modal{z-index:1101}
+
+/* Buddy's muscle guide renders inside the full-screen session view. */
+.buddy-muscle-screen{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.buddy-muscle-screen>h1{font-size:clamp(24px,6vw,34px);margin:1px 0 14px;line-height:1.15}
+.buddy-muscle-screen .muscle-guide{padding-bottom:12px}
+.buddy-muscle-screen .muscle-figure{background:#eef3ed}
+[data-theme="dark"] .buddy-muscle-screen .muscle-figure{background:#1b2b21}
