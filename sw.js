@@ -1,5 +1,5 @@
-const CACHE='everyday-v71-routine-exercises-delete';
-const FILES=['./','./index.html','./theme.js','./styles.css?v=71','./app.js?v=71','./durability.js?v=71','./import-model.js?v=71','./data.js?v=71','./demo-mode.js?v=71','./storage-model.js?v=71','./cloud.js?v=71','./cloud-model.js?v=71','./health-model.js?v=71','./health-cloud.js?v=71','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE='everyday-v72-muscle-guide';
+const FILES=['./','./index.html','./theme.js','./styles.css?v=72','./app.js?v=72','./muscle-map.js?v=72','./durability.js?v=72','./import-model.js?v=72','./data.js?v=72','./demo-mode.js?v=72','./storage-model.js?v=72','./cloud.js?v=72','./cloud-model.js?v=72','./health-model.js?v=72','./health-cloud.js?v=72','./health-shortcut.html','./firebase-config.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('everyday-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});

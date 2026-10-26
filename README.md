@@ -145,3 +145,7 @@ Lifting now includes a **+ Manage** routine library with Use, Edit and Copy. **C
 ## v71 — Routine editor refinement
 
 The routine Add exercise picker now has **+ New exercise**, which opens the same canonical Exercise Library editor used elsewhere. When saved, the new exercise is added to the unsaved routine draft, and its program settings can be edited normally. **My routines** now shows Edit, Copy and Delete; redundant Use was removed (select routines using Lifting tabs). Delete requires a 3-second countdown, never deletes saved lifting history, and can be undone from My routines during the current browser tab session. If an active workout uses a routine, deletion is blocked until the session is ended. Deleting the last routine does not recreate the defaults; **+ Create routine** remains available.
+
+## v72 — Body-map muscle reference
+
+Workout exercise cards, Workout Buddy's picker and its exercise screen, routine editor rows, and exercise Progress each link to the same locally rendered front/back muscle guide. A compact schematic highlights primary muscle groups in terracotta and secondary groups in blue, with labels and a clear note on anatomical limits. The first pass maps the built-in exercises and several common names; unfamiliar custom exercises show no assumed highlights. Diagrams contain no external image dependency, are cached for offline use, and never modify workout logs or session timing.

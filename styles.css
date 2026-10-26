@@ -1200,3 +1200,43 @@ button.buddy-setup:focus-visible,.buddy-last-toggle:focus-visible,.buddy-journal
 [data-theme="dark"] .routine-undo{background:#1c3626;border-color:#45654e}
 [data-theme="dark"] .routine-undo small{color:#b5cfb9}
 [data-theme="dark"] .routine-undo button{background:#294b34;border-color:#52765b;color:#e2f3e3}
+
+/* v72: reusable, locally rendered muscle reference diagrams. */
+.exercise-muscle-wrapper{position:relative;min-width:0;width:100%}
+.exercise-muscle-wrapper>.exercise-card{width:100%;padding-right:64px}
+.exercise-muscle-peek{position:absolute;right:9px;bottom:8px;border:1px solid #c9d6ce;border-radius:8px;background:#f6f9f5;color:#43634b;padding:5px 6px;font-size:10px;font-weight:800;z-index:4}
+.buddy-exercise-list .exercise-muscle-wrapper{flex:0 0 auto}
+.buddy-exercise-list .exercise-muscle-wrapper>.exercise-card{min-height:74px}
+.routine-muscle-link,.buddy-muscles-link{align-self:flex-start;border:1px solid #ccdacd;border-radius:9px;background:#eff5ef;color:#3f6b4c;font-size:11px;font-weight:800;padding:7px 10px;min-height:33px}
+.workout-template-title .routine-muscle-link{width:max-content;margin-top:5px;padding:4px 8px;min-height:27px;font-size:10px}
+.buddy-muscles-link{margin:0 0 7px;white-space:nowrap}
+.muscle-guide{display:grid;gap:14px;min-width:0}
+.muscle-figures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.muscle-figure{display:grid;justify-items:center;min-width:0;border:1px solid #d9e4dc;border-radius:14px;background:#f5f8f3;padding:9px 5px 7px}
+.muscle-figure>span{font-size:10px;letter-spacing:.13em;font-weight:900;color:#6b8473}
+.muscle-body{width:100%;max-width:185px;max-height:295px;display:block}
+.muscle-silhouette>*{fill:#e1e8df;stroke:#bdcdbf;stroke-width:1.2}
+.muscle-region>*{stroke:#fff;stroke-width:1.8;stroke-linejoin:round}
+.muscle-region.quiet>*{fill:#d0dad1;stroke:#f6f9f5;opacity:.78}
+.muscle-region.primary>*{fill:#bc6940}
+.muscle-region.secondary>*{fill:#5c9baf}
+.muscle-legend{display:grid;gap:12px}
+.muscle-legend>div{display:grid;grid-template-columns:11px 1fr;gap:7px;align-items:center}
+.muscle-legend strong{font-size:12px}
+.muscle-dot{display:block;width:11px;height:11px;border-radius:3px}
+.muscle-dot.primary{background:#bc6940}
+.muscle-dot.secondary{background:#5c9baf}
+.muscle-names{grid-column:2;display:flex;flex-wrap:wrap;gap:6px}
+.muscle-name{font-size:11px;border:1px solid #d5e2d8;border-radius:999px;background:#eef4ee;padding:5px 8px;color:#294d35}
+.muscle-disclaimer,.muscle-unmapped{font-size:12px;color:#60786a;line-height:1.5;margin:0}
+.muscle-unmapped{border:1px solid #d4ded6;background:#f4f6f3;border-radius:12px;padding:10px}
+[data-theme="dark"] .muscle-figure{background:#1b2b21;border-color:#415b48}
+[data-theme="dark"] .muscle-silhouette>*{fill:#36493b;stroke:#617b68}
+[data-theme="dark"] .muscle-region.quiet>*{fill:#425a4a;stroke:#253a2a}
+[data-theme="dark"] .muscle-name{background:#263d2c;border-color:#46654d;color:#d6ebdc}
+[data-theme="dark"] .muscle-disclaimer,[data-theme="dark"] .muscle-unmapped{color:#bed0c1}
+[data-theme="dark"] .muscle-unmapped{background:#203328;border-color:#3d5745}
+[data-theme="dark"] .exercise-muscle-peek,[data-theme="dark"] .buddy-muscles-link,[data-theme="dark"] .routine-muscle-link{background:#273c2d;color:#c6dfcd;border-color:#42604b}
+/* Overlay above the active Buddy screen so viewing the diagram never stops set timers. */
+html.buddy-active #overlay .scrim{z-index:1100}
+html.buddy-active #overlay .modal{z-index:1101}
