@@ -159,3 +159,5 @@ The Workout Buddy guide fix also gets a new service-worker cache key and JS/CSS 
 ## v73 — Mini muscle diagrams and completed routine history
 
 Lifting and Workout Buddy exercise cards now show tappable thumbnail front/back muscle highlights instead of the text Muscles button. A consistent miniature beside the exercise name appears before and during active sets in Workout Buddy and in the routine editor. The Lifting page replaces the selected day's individual lift list with the latest three completed Workout Buddy sessions; View all opens the archive, and each entry exposes original sets. Manual lift history remains available elsewhere. Session snapshots persist independently of renamed/deleted routines.
+
+### v73.1: Routine history now shows the actual calendar date from session completion or end timestamp, retaining tracking-day data unchanged internally.

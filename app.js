@@ -609,10 +609,15 @@ function routineSessionCounts(s){
  const performed=(s.exercises||[]).filter(x=>Array.isArray(x.sets)&&x.sets.length);
  return {exercises:performed.length,sets:performed.reduce((n,e)=>n+e.sets.length,0)};
 }
+function routineFinishedDate(s){
+ const finished=s.completedAt||s.endedAt||s.startedAt;
+ const parsed=finished?new Date(finished):null;
+ return parsed&&!Number.isNaN(parsed.getTime())?localDate(parsed):s.date||'';
+}
 function routineHistoryRow(s){
  const c=routineSessionCounts(s);
  return '<button type="button" class="routine-history-row" data-action="routine-history-detail" data-id="'+esc(s.id)+'">'+
- '<time>'+esc(s.date?niceDate(s.date):'Unknown date')+'</time><span><strong>'+esc(s.type||'Workout')+'</strong><small>'+c.exercises+' exercises · '+c.sets+' sets'+(s.savedEarly?' · Saved early':'')+'</small></span><b>›</b></button>';
+ '<time>'+esc(routineFinishedDate(s)?niceDate(routineFinishedDate(s)):'Unknown date')+'</time><span><strong>'+esc(s.type||'Workout')+'</strong><small>'+c.exercises+' exercises · '+c.sets+' sets'+(s.savedEarly?' · Saved early':'')+'</small></span><b>›</b></button>';
 }
 function routineHistoryPanel(){
  const sessions=recentRoutineSessions();
@@ -631,7 +636,7 @@ function routineHistoryDetail(id){
  '<div class="routine-history-exercise"><strong>'+esc(e.name||'Exercise')+'</strong><small>'+e.sets.length+' sets</small>'+
  e.sets.map((set,i)=>'<span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+effortText(set.difficulty):'')+'</span>').join('')+
  (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>').join('');
- modal(session.type||'Workout','<div class="routine-history-details"><p class="body-copy">'+(session.date?niceDate(session.date):'Unknown date')+
+ modal(session.type||'Workout','<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
  ' · '+c.exercises+' exercises · '+c.sets+' sets'+(session.savedEarly?' · Saved early':'')+'</p>'+
  (exercises||empty('No sets recorded in this session.'))+'</div>',()=>routineHistoryAll());
 }
@@ -1370,7 +1375,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=73',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=73.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
