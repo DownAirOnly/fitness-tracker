@@ -161,7 +161,7 @@ try{
  let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
  dom.window.HTMLAnchorElement.prototype.click=function(){};
  await click('export');const backup=JSON.parse(await exported.text());URL.createObjectURL=originalCreate;
- assert.equal(backup.lifts.length,2);assert.equal(backup.weights.length,1);assert.equal(backup.notes.length,2);
+ assert.equal(backup.lifts.length,2);assert.equal(backup.weights.length,1);assert.ok(!('notes' in backup),'retired cruise notes do not return in exported backups');
 
  // v58: leaving an offline workspace must offer export first and delay the destructive path.
  await click('offline-start');let offlineForm=document.querySelector('[data-form="offline-workspace"]');
