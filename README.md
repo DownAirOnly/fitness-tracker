@@ -193,3 +193,7 @@ Switching weight units in Settings now converts the complete notebook transactio
 ### v79: Complete migration review availability and setup-preview accuracy
 
 The new Review & copy device notebook action remains available to accounts that used the older migration flow; the previous completion flag no longer hides workout records that earlier releases failed to copy. The preview includes exercise setups being filled into empty cloud fields, in addition to added records, while showing a warning for conflicting setup notes retained in the original device backup. The final assets and cache revision are synchronized for offline update delivery.
+
+## v81 — Finances navigation foundation (Pass 3.1)
+
+The bottom navigation now shows Home, Food, Lifting, Progress, and Finances. Settings is available from the compact gear beside the date in the top header on Home and all other main pages. Finances is an explicitly empty foundation for future transaction logging; it does not record transactions, connect to a bank, or modify any notebook data. Existing cloud and offline features are unchanged.

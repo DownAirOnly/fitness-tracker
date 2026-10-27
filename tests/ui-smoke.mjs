@@ -25,12 +25,12 @@ await writeFile(fixture,`
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
-source=source.replaceAll("'./data.js?v=63'",`'${new URL('data.js',root)}'`);
-source=source.replaceAll("'./demo-mode.js?v=63'",`'${new URL('demo-mode.js',root)}'`);
-source=source.replaceAll("'./cloud-model.js?v=63'",`'${new URL('cloud-model.js',root)}'`);
-source=source.replaceAll("'./import-model.js?v=63'",`'${new URL('import-model.js',root)}'`);
-source=source.replaceAll("'./durability.js?v=63'",`'${new URL('durability.js',root)}'`);
-source=source.replaceAll("'./cloud.js?v=63'",`'${pathToFileURL(fixture)}'`);
+// Load the current production modules into the temporary test app.
+// Use a version-agnostic resolver so smoke tests follow future asset revisions.
+source=source.replace(/(['"])\.\/(data|muscle-map|import-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
+ (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
+source=source.replace(/(['"])\.\/cloud\.js\?v=\d+\1/g,"'"+pathToFileURL(fixture)+"'");
+assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+/.test(source),'all static app imports resolved');
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
@@ -51,6 +51,22 @@ try{
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'false');
  assert.ok(document.querySelector('main').firstElementChild.classList.contains('home-actions'));
  assert.ok(document.querySelector('main').nextElementSibling.classList.contains('account-banner'));
+
+  // v81 navigation regression: five bottom tabs and a header Settings gear.
+  const tabs=[...document.querySelectorAll('nav.nav [data-action]')].map(el=>el.dataset.action);
+  assert.deepEqual(tabs,['home','food','gym','progress','finances'],'Finances replaces More');
+  assert.equal(document.querySelectorAll('nav.nav [data-action="settings"]').length,0,'no Settings bottom tab');
+  assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
+  await click('finances');
+  assert.ok(document.querySelector('.finances-page-head'),'Finances route works');
+  assert.ok(document.querySelector('.finance-intro').textContent.includes('not active yet'),'no premature transaction claims');
+  assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
+  await click('settings');
+  assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
+  assert.equal(document.querySelector('header.top .home-settings').getAttribute('aria-current'),'page','Settings gear active');
+  await click('home');
+  assert.ok(document.querySelector('.home-actions'),'Home navigation still works');
+
  // v63: anonymous demo cannot replace normal device data and can be reset on demand.
  const deviceBeforeDemo=localStorage.getItem('everyday-fitness-v1');
  assert.ok(document.querySelector('[data-action="demo-start"]'),'demo entry point for signed-out visitors');
