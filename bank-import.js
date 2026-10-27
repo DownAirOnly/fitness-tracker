@@ -1,11 +1,11 @@
 // v84: browser-only Bank of America CSV reader and ID-anchored ChatGPT enrichment.
 // Statement identity does not contain the statement label so overlapping exports deduplicate.
 // Bank amounts and bank descriptions stay immutable when enrichment CSV is applied.
-import {parseCSV,validDate,normalizeData,emptyData} from './data.js?v=84';
+import {parseCSV,validDate,normalizeData,emptyData} from './data.js?v=85';
 import {parseFinanceAmount,formatFinanceAmount,financeDuplicateKey} from './finance-model.js?v=83';
 
 const headerKey=value=>String(value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-const dateKeys=['posteddate','postingdate','date'],descriptionKeys=['description','payeedescription','payee','merchant','name'];
+const dateKeys=['posteddate','postingdate','postdate','date'],descriptionKeys=['description','payeedescription','payee','merchant','name'];
 const amountKeys=['amount','transactionamount'],referenceKeys=['referencenumber','reference','transactionid','transactionnumber'];
 const positiveNumber=/^(?:0|[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)(?:\.\d{1,2})?$/;
 const cleanText=(text,max=160)=>String(text??'').trim().slice(0,max);
@@ -40,6 +40,7 @@ function signedBankCents(value){
 function moneyCentsForBalance(value){
  const text=cleanLine(value);
  if(!text)return '';
+ if(/^[-+]?(?:\$)?0(?:\.0{1,2})?$/.test(text))return '0';
  // Running balance is identity evidence only; it is not used to calculate the transaction.
  return String(signedBankCents(text));
 }
@@ -58,7 +59,7 @@ function accountSummaryRow(desc){
 const transferDescription=/(?:\b(?:transfer|xfer)\b|\bcredit card payment\b|\bpayment\s*-\s*thank you\b|\bonline payment\b|\bautopay payment\b)/i;
 function csvCell(value){const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
 const enrichColumns=[
- 'recordType','id','postedDate','kind','amountCents','bankDescription','accountLabel','statementLabel',
+ 'recordType','id','postedDate','kind','amountCents','bankDescription','accountLabel','statementLabel','bankDirection',
  'description','category','subcategory','merchant','note','purchaseDate','time','itemization'
 ];
 export function financeEnrichmentCSV(transactions){
@@ -66,7 +67,7 @@ export function financeEnrichmentCSV(transactions){
  for(const tx of [...transactions].sort((a,b)=>b.date.localeCompare(a.date))){
   const values=[
    'enrichment',tx.id,tx.date,tx.kind,tx.amountCents,tx.bankDescription||'',tx.accountLabel||'',
-   tx.statementLabel||'',tx.description,tx.category,tx.subcategory||'',tx.merchant||'',
+   tx.statementLabel||'',tx.bankDirection||'',tx.description,tx.category,tx.subcategory||'',tx.merchant||'',
    tx.note||'',tx.purchaseDate||'',tx.time||'',tx.itemization||''
   ];
   rows.push(values.map(csvCell).join(','));
@@ -114,7 +115,7 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
    seenIds.add(id);
    const transfer=transferDescription.test(description),kind=transfer?'transfer':signedCents<0?'expense':'income';
    const record={
-    id,date,kind,amountCents:Math.abs(signedCents),description,bankDescription:description,
+    id,date,kind,bankDirection:signedCents<0?'debit':'credit',amountCents:Math.abs(signedCents),description,bankDescription:description,
     category:transfer?'Transfers':'Uncategorized',accountLabel,statementLabel,
     currency:'USD',source:'import',externalId:'bofa:'+bankHash(seed)+':'+occurrence
    };
@@ -133,7 +134,7 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
  if(isCard)warnings.push('Credit-card payments and refunds may be credits. Review the transaction types before confirming.');
  return {records,errors,warnings,details:{headerLine:headerIndex+1,skipped,negative,positive,transfers,accountLabel,statementLabel,format:isCard?'Credit card':'Checking / Savings'}};
 }
-const patchFields=['description','category','subcategory','merchant','note','purchaseDate','time','itemization'];
+const patchFields=['kind','description','category','subcategory','merchant','note','purchaseDate','time','itemization'];
 export function readEnrichmentCSV(text,current){
  const rows=parseCSV(String(text||'').replace(/^\uFEFF/,''));
  if(!rows.length)throw Error('Enrichment CSV is empty.');
@@ -152,8 +153,8 @@ export function readEnrichmentCSV(text,current){
    seen.add(id);
    const existing=byId.get(id);
    if(!existing)throw Error('Transaction ID not found in this notebook. Import the bank statement first.');
-   const checks=[['postedDate','date'],['kind','kind'],['amountCents','amountCents'],
-    ['bankDescription','bankDescription'],['accountLabel','accountLabel']];
+   const checks=[['postedDate','date'],['amountCents','amountCents'],
+    ['bankDescription','bankDescription'],['accountLabel','accountLabel'],['bankDirection','bankDirection']];
    for(const [col,field] of checks){
     const supplied=get(col);
     if(!supplied)continue;

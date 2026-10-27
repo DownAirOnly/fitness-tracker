@@ -1,11 +1,11 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=84';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=85';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=84';
-import {financeEnrichmentCSV} from './bank-import.js?v=84';
+import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=85';
+import {financeEnrichmentCSV} from './bank-import.js?v=85';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=84';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=85';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -229,9 +229,9 @@ function financeFields(tx=null,scope='quick'){
  const amount=tx?formatFinanceAmount(tx.amountCents).slice(1):'',kind=tx?.kind||'expense';
  const bankFacts=isBank?'<section class="finance-bank-facts"><strong>Original bank record · locked</strong><p>'+esc(tx.bankDescription)+'</p>'+
    '<small>'+esc(tx.accountLabel||'Bank of America')+' · Posted '+esc(tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(tx.statementLabel||'')+'</small></section>'+
-   '<input type="hidden" name="amount" value="'+esc(amount)+'"><input type="hidden" name="date" value="'+esc(tx.date)+'"><input type="hidden" name="kind" value="'+esc(kind)+'">':'';
+   '<input type="hidden" name="amount" value="'+esc(amount)+'"><input type="hidden" name="date" value="'+esc(tx.date)+'">':'';
  const amountInput=isBank?'':'<label class="field"><span>Amount (USD)</span><span class="finance-money-input"><strong aria-hidden="true">$</strong><input type="text" name="amount" inputmode="decimal" autocomplete="off" maxlength="20" required value="'+esc(amount)+'" placeholder="0.00" aria-label="Amount in US dollars"></span></label>';
- const kindInput=isBank?'':'<label class="field"><span>Type</span><select name="kind">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+({expense:'Expense',income:'Income',transfer:'Transfer'}[k])+'</option>').join('')+'</select></label>';
+ const kindInput='<label class="field"><span>Type (editable classification)</span><select name="kind">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+({expense:'Expense',income:'Income',transfer:'Transfer'}[k])+'</option>').join('')+'</select></label>';
  const postedInput=isBank?'':input('Calendar date','date',tx?.date||localDate(),'date','required');
  return bankFacts+'<div class="finance-quick-fields '+(isBank?'bank-edit':'')+'">'+amountInput+
   input(isBank?'Your description':'What was it?','description',tx?.description||'','text','placeholder="e.g. Water and protein snacks" maxlength="200" required autocomplete="off"')+
@@ -250,9 +250,9 @@ function financeRecordFromForm(v,existing=null){
   amountCents:parseFinanceAmount(v.amount),description:String(v.description||'').trim(),
   category:String(v.category||'').trim()||'Uncategorized',currency:'USD',source:existing?.source||'manual'};
  if(existing){
-  for(const key of ['externalId','bankDescription','accountLabel','statementLabel'])if(existing[key])next[key]=existing[key];
+  for(const key of ['externalId','bankDescription','accountLabel','statementLabel','bankDirection'])if(existing[key])next[key]=existing[key];
   if(existing.bankDescription){
-   next.date=existing.date;next.kind=existing.kind;next.amountCents=existing.amountCents;
+   next.date=existing.date;next.amountCents=existing.amountCents;
   }
  }
  for(const key of ['time','merchant','note','purchaseDate','subcategory','itemization']){
@@ -323,8 +323,8 @@ function financeEnrichmentPaste(){
  if(title)title.textContent='Paste transaction clarifications';
  const form=dialog?.querySelector('form[data-form="import"]');
  if(!form)return;
- form.querySelector('textarea[name="text"]').placeholder='recordType,id,postedDate,kind,amountCents,bankDescription,accountLabel,description,category,subcategory,merchant,note,purchaseDate,time,itemization\n'+
-  'enrichment,bofa-...,2026-10-27,expense,719,RAW BANK DESCRIPTION,BofA Checking,Water cases,Household Supplies,Water,Wawa,,2026-10-26,15:30,"2 water cases — $7.19"';
+ form.querySelector('textarea[name="text"]').placeholder='recordType,id,postedDate,kind,amountCents,bankDescription,accountLabel,statementLabel,bankDirection,description,category,subcategory,merchant,note,purchaseDate,time,itemization\n'+
+  'enrichment,bofa-...,2026-10-27,expense,719,RAW BANK DESCRIPTION,BofA Checking,October 2026,debit,Water cases,Household Supplies,Water,Wawa,,2026-10-26,15:30,"2 water cases — $7.19"';
  form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste the enrichment CSV returned by ChatGPT using the Everyday export. Rows update existing IDs only. Bank descriptions, bank dates and bank amounts are checked and protected.</p>');
 }
 function financeExportEnrichment(){
@@ -1713,7 +1713,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=84',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=85',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1765,7 +1765,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=84');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=85');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

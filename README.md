@@ -244,3 +244,8 @@ Keep record IDs unchanged. Use a separate `purchaseDate` for receipt dates diffe
 **Duplicate safeguards:** Bank identities use account label, posted date, original description, signed amount, bank reference or running balance (when present), and a fallback same-record occurrence. Changing the batch label does not change identity, so overlapping reexports skip known bank IDs while preserving user labels. Similar existing manual entries are shown as possible duplicates instead of silently merged. For exports without running balances/references, identical charges in overlapping partial exports may be ambiguous and deserve manual review.
 
 **Privacy:** Avoid uploading full account numbers, personal routing information, or sign-in credentials. The generated "for ChatGPT" CSV intentionally contains your chosen account label and spending records, so share it only where you intend. Receipts and original statements are not stored by Everyday unless you explicitly supply parsed text/records. No account balances are inferred.
+
+
+## v85 — Bank classification refinement
+
+Bank of America imports now preserve `bankDirection` (original debit or credit), separate from the editable `kind` classification (expense, income or transfer). The bank editor and ID-anchored enrichment CSV can correct that classification without rewriting the original amount, posting date, bank description or direction. Reimporting an overlapping statement keeps the corrected type and personal labels. The bank import also supports `Post Date` column variants and zero-value running balances. The v84 Bank of America and ChatGPT round-trip workflow remains otherwise unchanged.

@@ -1,4 +1,4 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=84';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=85';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {

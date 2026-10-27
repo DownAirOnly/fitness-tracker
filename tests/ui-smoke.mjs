@@ -158,14 +158,17 @@ try{
   assert.ok(editBank.querySelector('.finance-bank-facts'),'bank values appear read-only');
   assert.equal(editBank.querySelector('[name="date"]').type,'hidden');
   assert.equal(editBank.querySelector('[name="amount"]').type,'hidden');
+  assert.equal(editBank.querySelector('[name="kind"]').tagName,'SELECT','classification remains editable');
   await submit('finance-edit',{
-   description:'Energy drink and protein snack',category:'Convenience Food',subcategory:'Work snacks',
+   description:'Energy drink and protein snack',kind:'transfer',category:'Convenience Food',subcategory:'Work snacks',
    purchaseDate:'2026-10-23',time:'15:20',itemization:'Monster 3.00; protein chips 5.55'
   });
   ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
   const personal=ledger.find(tx=>tx.id===sourceTx.id);
   assert.equal(personal.description,'Energy drink and protein snack');
   assert.equal(personal.bankDescription,'365 MARKET 10994');
+  assert.equal(personal.kind,'transfer','classification can change without altering bank debit');
+  assert.equal(personal.bankDirection,'debit','original bank sign survives classification change');
   assert.equal(personal.amountCents,855);
   assert.equal(personal.date,'2026-10-24');
   assert.equal(personal.category,'Convenience Food');

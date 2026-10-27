@@ -222,6 +222,7 @@ export function normalizeData(input) {
     for(const [key,max] of extras)if(tx[key]!=null&&(typeof tx[key]!=='string'||tx[key].length>max))
       throw Error('Backup has invalid transaction '+key+'.');
     if(tx.purchaseDate!=null&&!validDate(tx.purchaseDate))throw Error('Backup has invalid transaction purchase date.');
+    if(tx.bankDirection!=null&&!['debit','credit'].includes(tx.bankDirection))throw Error('Backup has an invalid original bank direction.');
     if(tx.source!=null&&!['manual','import'].includes(tx.source))throw Error('Backup has invalid transaction source.');
     if(transactionIds.has(tx.id))throw Error('Backup contains duplicate transaction IDs.');
     transactionIds.add(tx.id);
@@ -229,6 +230,7 @@ export function normalizeData(input) {
       description:tx.description.trim(),category:tx.category?.trim()||'Uncategorized',currency:'USD'};
     if(tx.time!=null)clean.time=tx.time;
     if(tx.purchaseDate!=null)clean.purchaseDate=tx.purchaseDate;
+    if(tx.bankDirection)clean.bankDirection=tx.bankDirection;
     for(const [key] of extras)if(tx[key]?.trim())clean[key]=tx[key].trim();
     if(tx.source)clean.source=tx.source;
     return clean;

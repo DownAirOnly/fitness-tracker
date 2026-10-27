@@ -1,6 +1,6 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=84';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=85';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
-import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=84';
+import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=85';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
 const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:key==='transactions'?[r.date,r.time??null,r.kind,r.amountCents,r.description.toLowerCase(),r.category.toLowerCase(),r.merchant??'',r.note??'',r.source??'',r.externalId??'']:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
@@ -262,9 +262,10 @@ export function prepareBankImport(text,current,options){
  for(const item of parsed.records){
   const {__sourceRow,...record}=item,old=existing.get(record.id);
   if(old){
-   if(old.date!==record.date||old.kind!==record.kind||
+   if(old.date!==record.date||
        old.amountCents!==record.amountCents||old.bankDescription!==record.bankDescription||
-       old.accountLabel!==record.accountLabel){
+       old.accountLabel!==record.accountLabel||
+       (old.bankDirection&&old.bankDirection!==record.bankDirection)){
      errors.push('Row '+__sourceRow+': bank identity matches an existing transaction but original values differ. Nothing will be imported.');
    }else unchanged++;
    continue;

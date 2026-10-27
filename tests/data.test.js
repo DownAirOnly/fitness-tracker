@@ -213,7 +213,7 @@ test('v82: non-transaction weight conversion leaves exact cents and transaction 
 
 test('v84: bank metadata validates dates, bounded user classifications and receipt itemization',()=>{
  const valid={id:'bofa1',date:'2026-10-27',kind:'expense',amountCents:719,
-  description:'Wawa water',bankDescription:'WAWA DEBIT POS #1111',
+  description:'Wawa water',bankDescription:'WAWA DEBIT POS #1111',bankDirection:'debit',
   accountLabel:'BofA Checking',statementLabel:'October 2026',
   category:'Household Supplies',subcategory:'Bottled Water',
   purchaseDate:'2026-10-26',time:'17:22',itemization:'2 water cases, 48 bottles',
@@ -222,7 +222,7 @@ test('v84: bank metadata validates dates, bounded user classifications and recei
  const clean=normalizeData(encodeData(state)).transactions[0];
  assert.deepEqual(clean,valid);
  for(const invalid of [
-  {bankDescription:'a'.repeat(241)}, {accountLabel:'b'.repeat(121)},
+  {bankDirection:'refund'},{bankDescription:'a'.repeat(241)}, {accountLabel:'b'.repeat(121)},
   {statementLabel:'c'.repeat(161)}, {subcategory:'d'.repeat(81)},
   {itemization:'e'.repeat(3001)}, {purchaseDate:'2026-02-30'},
   {purchaseDate:'not a date'}, {bankDescription:19},{itemization:null,subcategory:4}

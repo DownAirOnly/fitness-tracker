@@ -29,6 +29,7 @@ test('v84: BofA checking CSV skips summary preamble and blank balance row',()=>{
  assert.deepEqual(result.records.map(r=>r.kind),['expense','expense','income','transfer']);
  assert.equal(result.records[0].date,'2026-09-03');
  assert.equal(result.records[0].bankDescription,'365 MARKET 10994');
+ assert.equal(result.records[0].bankDirection,'debit','immutable bank statement sign is preserved');
  assert.equal(result.records[0].description,result.records[0].bankDescription,'initial friendly name can be replaced later');
  assert.equal(result.records[0].accountLabel,'BofA Checking');
  assert.equal(result.records[0].statementLabel,'January–October 2026');
@@ -179,4 +180,32 @@ test('v84: manually logged duplicates are warned about, never silently overwritt
  assert.ok(plan.groups[0].rows.some(r=>r.badges.includes('Possible duplicate')));
  assert.equal(current.transactions.length,1);
  assert.equal(plan.candidate.transactions.length,5);
+});
+
+
+test('v85: transaction type is an editable classification while original debit direction remains fixed',()=>{
+ const imported=prepareBankImport(statement,emptyData(),options).candidate;
+ const row=imported.transactions.find(tx=>tx.bankDescription==='ONLINE TRANSFER TO SAVINGS');
+ assert.equal(row.bankDirection,'debit');
+ const changed=structuredClone(imported);
+ changed.transactions.find(tx=>tx.id===row.id).kind='expense';
+ const again=prepareBankImport(statement,changed,{...options,statementLabel:'overlapping reexport'});
+ assert.equal(again.errors.length,0);
+ assert.equal(again.changeCount,0);
+ assert.equal(again.candidate.transactions.find(tx=>tx.id===row.id).kind,'expense');
+ assert.equal(again.candidate.transactions.find(tx=>tx.id===row.id).bankDirection,'debit');
+ const csv=financeEnrichmentCSV(changed.transactions);
+ const updated=csv.replace('expense,10000','transfer,10000');
+ const preview=prepareEnrichmentImport(updated,changed);
+ assert.equal(preview.errors.length,0);
+ assert.equal(preview.candidate.transactions.find(tx=>tx.id===row.id).kind,'transfer');
+ assert.equal(preview.candidate.transactions.find(tx=>tx.id===row.id).bankDirection,'debit');
+});
+
+test('v85: zero running balances and Post Date aliases import cleanly',()=>{
+ const csv='Post Date,Payee / Description,Amount,Running Bal.\n10/23/2026,ATM WITHDRAWAL,-20.00,0.00';
+ const plan=prepareBankImport(csv,emptyData(),options);
+ assert.equal(plan.errors.length,0);
+ assert.equal(plan.candidate.transactions[0].amountCents,2000);
+ assert.equal(plan.candidate.transactions[0].bankDirection,'debit');
 });
