@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=68';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=82';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -48,7 +48,7 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
@@ -187,6 +187,9 @@ export function normalizeData(input) {
   }
   data.bodyFat=Array.isArray(input.bodyFat)?input.bodyFat:[];
   if(data.bodyFat.length>50000)throw new Error('Backup is too large.');
+  // Older notebooks had no financial data; absence is not corruption.
+  data.transactions=input.transactions===undefined?[]:input.transactions;
+  if(!Array.isArray(data.transactions)||data.transactions.length>50000)throw new Error('Backup has an invalid transactions section.');
   // Retired travel/day notes are intentionally ignored on backup import.
   // v49 compatibility: body fat was briefly stored on weight records. Migrate it
   // into the independent bodyFat collection using stable IDs, then strip it from weights.
@@ -202,6 +205,32 @@ export function normalizeData(input) {
       delete w.bodyFatPercent;delete w.bodyFatRecordedAt;
     }
   }
+  // USD money is represented in integer cents; 'kind' supplies the cash-flow direction.
+  // The date/time is the actual local calendar clock, independent of food tracking reset.
+  const transactionIds=new Set();
+  data.transactions=data.transactions.map(tx=>{
+    if(!tx||typeof tx!=='object'||Array.isArray(tx)||typeof tx.id!=='string'||!tx.id.trim()||tx.id.length>160||
+      !validDate(tx.date)||!['expense','income','transfer'].includes(tx.kind)||
+      !Number.isSafeInteger(tx.amountCents)||tx.amountCents<=0||
+      typeof tx.description!=='string'||!tx.description.trim()||tx.description.length>200||
+      (tx.category!=null&&(typeof tx.category!=='string'||tx.category.length>80))||
+      (tx.currency!=null&&tx.currency!=='USD'))
+      throw Error('Backup has an invalid financial transaction.');
+    if(tx.time!=null&&!(typeof tx.time==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(tx.time)))
+      throw Error('Backup has an invalid transaction time.');
+    const extras=[['merchant',160],['note',500],['externalId',160]];
+    for(const [key,max] of extras)if(tx[key]!=null&&(typeof tx[key]!=='string'||tx[key].length>max))
+      throw Error('Backup has invalid transaction '+key+'.');
+    if(tx.source!=null&&!['manual','import'].includes(tx.source))throw Error('Backup has invalid transaction source.');
+    if(transactionIds.has(tx.id))throw Error('Backup contains duplicate transaction IDs.');
+    transactionIds.add(tx.id);
+    const clean={id:tx.id,date:tx.date,kind:tx.kind,amountCents:tx.amountCents,
+      description:tx.description.trim(),category:tx.category?.trim()||'Uncategorized',currency:'USD'};
+    if(tx.time!=null)clean.time=tx.time;
+    for(const [key] of extras)if(tx[key]?.trim())clean[key]=tx[key].trim();
+    if(tx.source)clean.source=tx.source;
+    return clean;
+  });
   for(const f of data.foods){if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0)throw new Error('Backup has an invalid saved food.');f.kind=['food','drink'].includes(f.kind)?f.kind:'food';f.tags=Array.isArray(f.tags)?[...new Set(f.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[];f.pinned=f.pinned===true;f.accuracy=['label','estimate'].includes(f.accuracy)?f.accuracy:'';if(f.tags.length>50||f.tags.some(tag=>tag.length>40))throw new Error('Backup has invalid food metadata.');}
   for(const e of data.foodEntries){if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0)throw new Error('Backup has an invalid food entry.');if(e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47))throw new Error('Backup has an invalid food time.');}
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');

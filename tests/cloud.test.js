@@ -146,3 +146,55 @@ test('matching exercise setups are accounted for in migration preview',()=>{
  assert.equal(second.summary.filledSetups,0);
  assert.deepEqual(second.candidate,candidate);
 });
+
+
+const money=(id,amountCents=719,description='Bottled water')=>({
+ id,date:'2026-10-27',time:'15:18',kind:'expense',amountCents,description,category:'Household supplies',currency:'USD'
+});
+
+test('v82: financial entries survive cloud save/load and stay account-scoped',async()=>{
+ const store=memoryStore(),alice=new CloudSession('alice-finances',store),bob=new CloudSession('bob-finances',store);
+ const a=await alice.load();a.transactions.push(money('one'));await alice.save(a);
+ assert.equal((await bob.load()).transactions.length,0);
+ const returning=new CloudSession('alice-finances',store);
+ assert.deepEqual((await returning.load()).transactions,[money('one')]);
+ assert.equal(decodeState(store.records.get('alice-finances')).data.transactions[0].amountCents,719);
+});
+
+test('v82: device migration retains identical purchases with different IDs, and is repeat-safe',()=>{
+ const cloud=emptyData(),device=emptyData();device.transactions=[money('one'),money('two')];
+ assert.equal(hasDeviceMigrationContent(device),true);
+ const first=planDeviceMigration(cloud,device);
+ assert.equal(first.summary.added.transactions,2);
+ assert.equal(first.candidate.transactions.length,2,'two identical purchases are not content-deduplicated');
+ const repeat=planDeviceMigration(first.candidate,device);
+ assert.equal(repeat.summary.added.transactions,0);
+ assert.equal(repeat.summary.skipped.transactions,2);
+ assert.deepEqual(repeat.candidate,first.candidate);
+});
+
+test('v82: distinct transactions with colliding IDs keep the cloud entry and get stable device IDs',()=>{
+ const cloud=emptyData(),device=emptyData();
+ cloud.transactions=[money('collision',100,'Cloud purchase')];
+ device.transactions=[money('collision',200,'Device purchase')];
+ const before=JSON.stringify(device),first=planDeviceMigration(cloud,device);
+ assert.equal(first.summary.added.transactions,1);
+ assert.equal(first.summary.idConflicts,1);
+ assert.equal(first.candidate.transactions[0].description,'Cloud purchase');
+ assert.equal(first.candidate.transactions[1].description,'Device purchase');
+ assert.equal(first.candidate.transactions[1].id,'collision-device');
+ const again=planDeviceMigration(first.candidate,device);
+ assert.equal(again.summary.added.transactions,0);
+ assert.equal(again.summary.skipped.transactions,1);
+ assert.deepEqual(again.candidate,first.candidate);
+ assert.equal(JSON.stringify(device),before,'original device notebook is untouched');
+});
+
+test('v82: stale cloud revisions cannot overwrite newer financial records',async()=>{
+ const store=memoryStore(),a=new CloudSession('same-finance-user',store),b=new CloudSession('same-finance-user',store);
+ const first=await a.load(),stale=await b.load();
+ first.transactions.push(money('rent',100000,'Rent'));await a.save(first);
+ stale.transactions.push(money('groceries',2359,'Groceries'));
+ await assert.rejects(()=>b.save(stale),CloudConflict);
+ assert.deepEqual(decodeState(store.records.get('same-finance-user')).data.transactions,[money('rent',100000,'Rent')]);
+});

@@ -33,3 +33,17 @@ test('an already persistent origin is not requested again',async()=>{
  const result=await requestStorageProtection(true,manager);
  assert.equal(requested,0);assert.equal(result.persisted,true);
 });
+
+
+test('v82: account-specific confirmed and recovery snapshots include financial transactions',()=>{
+ const storage=memoryStorage(),data=emptyData();
+ data.transactions=[{id:'purchase',date:'2026-10-26',kind:'expense',amountCents:1599,description:'Lunch',category:'Restaurants'}];
+ writeCloudConfirmed('alice',2,data,storage);
+ writeCloudRecovery('bob',3,data,storage);
+ assert.equal(readCloudConfirmed('alice',storage).data.transactions[0].amountCents,1599);
+ assert.equal(readCloudRecovery('bob',storage).data.transactions[0].amountCents,1599);
+ assert.equal(readCloudConfirmed('bob',storage),null);
+ clearCloudRecovery('bob',storage);
+ assert.equal(readCloudRecovery('bob',storage),null);
+ assert.equal(readCloudConfirmed('alice',storage).data.transactions.length,1);
+});

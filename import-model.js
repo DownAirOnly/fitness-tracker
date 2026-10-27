@@ -1,7 +1,7 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=68';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=82';
 
-export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries'};
-const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
+export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
+const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:key==='transactions'?[r.date,r.time??null,r.kind,r.amountCents,r.description.toLowerCase(),r.category.toLowerCase(),r.merchant??'',r.note??'',r.source??'',r.externalId??'']:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 
 // File adapters only parse; all sources feed the same review/candidate pipeline.
@@ -183,7 +183,7 @@ export function prepareImport(kind,text,current){
 }
 export function reviewImport(kind,raw,current,initialErrors=[]){
   const errors=[...initialErrors], warnings=[], incoming=emptyData(), groups=[];
-  if(!raw||raw.version!==1||!raw.settings||typeof raw.settings!=='object'||Object.keys(importSections).some(k=>!Array.isArray(raw[k])))throw Error('This is not an Everyday backup. Expected version 1, settings, foods, foodEntries, lifts and weights.');
+  if(!raw||raw.version!==1||!raw.settings||typeof raw.settings!=='object'||Object.keys(importSections).some(k=>!Array.isArray(raw[k])))throw Error('This is not an Everyday backup. Expected a valid Everyday notebook with its record sections.');
   try{incoming.settings=normalizeData({...emptyData(),settings:raw.settings}).settings;}catch(e){errors.push(e.message);}
   incoming.promptDate=normalizeData({...emptyData(),promptDate:raw.promptDate}).promptDate;
   if(kind==='json'&&raw.promptDate&&raw.promptDate!==incoming.promptDate)warnings.push('Invalid weight-prompt date will be reset.');

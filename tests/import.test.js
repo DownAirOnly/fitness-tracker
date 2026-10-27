@@ -141,3 +141,36 @@ test('CSV food nutrition conflicts identify the source row in review metadata',(
  assert.equal(row.sourceRow,2);assert.equal(row.libraryAction,'nutrition-diff');
  assert.equal(row.libraryDetail,'Log nutrition differs from Saved Food');
 });
+
+
+const cash=(id='purchase')=>({id,date:'2026-10-26',kind:'expense',amountCents:625,description:'Coffee',category:'Restaurants',currency:'USD'});
+
+test('v82: JSON restore reviews additions, replacements and removals of financial records',()=>{
+ const current=emptyData();current.transactions=[cash('old')];
+ const incoming=emptyData();incoming.transactions=[{...cash('old'),amountCents:700},cash('new')];
+ const before=JSON.stringify(current);
+ const plan=prepareImport('json',JSON.stringify(encodeData(incoming)),current);
+ assert.equal(plan.errors.length,0);
+ const group=plan.groups.find(g=>g.key==='transactions');
+ assert.ok(group);
+ assert.equal(group.rows.length,2);
+ assert.ok(group.rows.some(r=>r.badges.includes('Replaces existing')));
+ assert.equal(plan.candidate.transactions.length,2);
+ assert.equal(JSON.stringify(current),before);
+ const legacy={...emptyData()};delete legacy.transactions;
+ const replace=prepareImport('json',JSON.stringify(legacy),current);
+ const removed=replace.groups.find(g=>g.key==='transactions').removedRows;
+ assert.equal(removed.length,1,'older backups explicitly preview deletion on full restore');
+});
+
+test('v82: ordinary CSV import keeps existing financial records unchanged',()=>{
+ const current=emptyData();current.transactions=[cash()];
+ const plan=prepareImport('csv',csv,current);
+ assert.equal(plan.errors.length,0);
+ assert.deepEqual(plan.candidate.transactions,current.transactions);
+});
+
+test('v82: corrupt financial JSON cannot reach a saveable import candidate',()=>{
+ const broken=emptyData();broken.transactions=[{...cash(),amountCents:6.25}];
+ assert.throws(()=>prepareImport('json',JSON.stringify(broken),emptyData()),/invalid financial transaction/);
+});

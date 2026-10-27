@@ -197,3 +197,12 @@ The new Review & copy device notebook action remains available to accounts that 
 ## v81 — Finances navigation foundation (Pass 3.1)
 
 The bottom navigation now shows Home, Food, Lifting, Progress, and Finances. Settings is available from the compact gear beside the date in the top header on Home and all other main pages. Finances is an explicitly empty foundation for future transaction logging; it does not record transactions, connect to a bank, or modify any notebook data. Existing cloud and offline features are unchanged.
+
+
+## v82 — Financial transaction storage foundation (Pass 3.2)
+
+Finances now has a durable transaction collection in the Everyday notebook; purchase logging and spending UI follow in later passes. Device-only and cloud accounts, offline JSON workspaces, cloud recovery copies, version-2 compact JSON encoding, full JSON backup/restore, and reviewed device-to-cloud migration retain the collection without interfering with food or workouts. Older version-1 and version-2 backups lacking transactions safely load with an empty list. A full JSON restore still replaces the whole notebook and explicitly previews financial records that would be removed.
+
+Each transaction has fields id, date, kind, amountCents, description, category, currency (USD), and optional time, merchant, note, source, externalId. Date is the actual local YYYY-MM-DD calendar date rather than the food tracking day; time may be HH:MM or omitted. Kind is expense, income or transfer; amountCents is a positive safe integer, preventing floating-point dollar rounding. Category defaults to Uncategorized and source may be manual or import. No bank credentials, account numbers, or inferred balances are stored. Validation rejects invalid amounts, unsupported currencies/types, malformed dates/times, duplicate IDs and excessive text.
+
+Cloud migration previews report financial additions/skips, preserve distinct same-amount purchases, and assign a safe new ID when a cloud/device ID collides. Replaying the same migration doesn't duplicate a transaction. CSV transaction import is intentionally not enabled until the review/deduplication pass.

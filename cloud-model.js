@@ -1,4 +1,4 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=77';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=82';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -20,7 +20,7 @@ export function nextRecord(current,expected,payload) {
   return {schemaVersion:1,revision:revision+1,payload};
 }
 
-export function hasRecords(data) { return ['foods','foodEntries','lifts','weights','bodyFat'].some(k=>(data[k]||[]).length>0); }
+export function hasRecords(data) { return ['foods','foodEntries','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
 export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
  return hasRecords(data)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
@@ -28,7 +28,7 @@ export function hasDeviceMigrationContent(data) {
   JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates);
 }
 
-const migrationKeys=['foods','foodEntries','lifts','weights','bodyFat','exerciseDefinitions','workoutTemplates','workoutHistory'];
+const migrationKeys=['foods','foodEntries','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
 const exerciseKey=e=>String(e.name||'').trim().toLowerCase()+'|'+(e.equipment||'other');
 const signature=value=>JSON.stringify(value,(key,value)=>{
  if(value&&typeof value==='object'&&!Array.isArray(value))
@@ -181,6 +181,21 @@ export function planDeviceMigration(cloud,device) {
    lift.buddySessionId=sessionAliases.get(lift.buddySessionId);
  }
  for(const key of ['foods','foodEntries','weights','bodyFat','lifts'])pushRecords(key);
+ // Financial entries are not content-deduplicated: two identical purchases can be real.
+ // Repeated imports are idempotent by original ID and deterministic "-device" aliases.
+ // Different records sharing an ID are preserved rather than overwritten.
+ const transactionIds=ids('transactions');
+ for(const original of incoming.transactions){
+   const entry=structuredClone(original);
+   const matched=candidate.transactions.find(row=>row.id===entry.id&&signature(row)===signature(entry))||
+     candidate.transactions.find(row=>row.id.startsWith(entry.id+'-device')&&
+       signature(withoutId(row))===signature(withoutId(entry)));
+   if(matched){summary.skipped.transactions++;continue;}
+   if(transactionIds.has(entry.id)){entry.id=nextMigrationId(entry.id,transactionIds);summary.idConflicts++;}
+   else transactionIds.add(entry.id);
+   candidate.transactions.push(entry);summary.added.transactions++;
+ }
+
 
  // Validate all routine references and the encoded cloud payload BEFORE saving.
  // This rejects invalid merges atomically, including oversize backups.

@@ -1,9 +1,9 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=77';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=82';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,importSections} from './import-model.js?v=72';
+import {prepareImport,importSections} from './import-model.js?v=82';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=79';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=82';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -218,9 +218,9 @@ function home(loading=false) {
 // Pass 3.1: the Finances destination is ready, but records are not stored yet.
 function finances(){
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Your spending notebook will live here.</p></div>'+
- '<section class="panel finance-intro"><span class="finance-intro-mark" aria-hidden="true">$</span><h2>Financial logging is next.</h2>'+
- '<p class="body-copy">Transaction logging, history, and spending summaries will arrive in later passes. They are not active yet.</p>'+
- '<p class="hint">No purchases have been recorded or imported. Your existing notebook remains unchanged.</p></section>';
+ '<section class="panel finance-intro"><span class="finance-intro-mark" aria-hidden="true">$</span><h2>Financial data foundation is ready.</h2>'+
+ '<p class="body-copy">Everyday can now safely store transactions in backups and cloud/device notebooks. The purchase-entry form and transaction history will arrive in upcoming passes.</p>'+
+ '<p class="hint">Nothing is recorded automatically, and no bank account is connected. Transaction logging is not available yet.</p></section>';
 }
 function foodTotals(totals){
   return `<span class="food-total-grid"><span><small>CALORIES</small><span class="food-total-number"><strong>${Math.round(totals.calories)}</strong><span>/ ${data.settings.calories}</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.calories/data.settings.calories*100))}%;background:#d8eb86"></span></span></span><span><small>PROTEIN</small><span class="food-total-number"><strong>${Math.round(totals.protein)}g</strong><span>/ ${data.settings.protein}g</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.protein/data.settings.protein*100))}%;background:#9fd9bf"></span></span></span></span>`;
@@ -963,7 +963,7 @@ function dataDiagnostics(){
  for(const items of exerciseGroups.values())if(items.length>1)warnings.push('Duplicate exercise definition: '+items[0].name+' / '+equipmentLabel(items[0].equipment));
  const invalidFoodTimes=data.foodEntries.filter(e=>e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47)).length;if(invalidFoodTimes)issues.push(invalidFoodTimes+' food entr'+(invalidFoodTimes===1?'y has':'ies have')+' an invalid time slot.');
  const workoutRefs=(data.workoutTemplates||[]).reduce((n,w)=>n+(w.exercises?.length||0),0);
- const counts={foods:data.foods.length,foodEntries:data.foodEntries.length,lifts:data.lifts.length,weights:data.weights.length,bodyFat:(data.bodyFat||[]).length,exerciseDefinitions:defs.length,workoutTemplates:(data.workoutTemplates||[]).length,workoutRefs,workoutHistory:(data.workoutHistory||[]).length,notes:(data.notes||[]).length};
+ const counts={foods:data.foods.length,foodEntries:data.foodEntries.length,lifts:data.lifts.length,weights:data.weights.length,bodyFat:(data.bodyFat||[]).length,exerciseDefinitions:defs.length,workoutTemplates:(data.workoutTemplates||[]).length,workoutRefs,workoutHistory:(data.workoutHistory||[]).length,transactions:(data.transactions||[]).length,notes:(data.notes||[]).length};
  return{issues,warnings,payloadBytes,percent:Math.min(100,payloadBytes/800000*100),counts};
 }
 
@@ -980,7 +980,7 @@ function dataHealthPanel(){
  return '<section class="panel spaced data-health-panel"><div class="section-head"><div><p class="eyebrow">DATA HEALTH</p><h2>Diagnostics</h2></div><span class="health-status '+tone+'">'+status+'</span></div><div class="diagnostic-counts"><span><strong>'+d.counts.foodEntries+'</strong><small>food logs</small></span><span><strong>'+d.counts.lifts+'</strong><small>lift logs</small></span><span><strong>'+d.counts.weights+'</strong><small>weights</small></span><span><strong>'+d.counts.bodyFat+'</strong><small>body fat</small></span></div>'+button('View diagnostic details','data-health-details','outline small')+'<p class="hint">Diagnostics are read-only. Nothing is repaired, deleted, or merged automatically.</p></section>';
 }
 function dataHealthDetails(){
- const d=dataDiagnostics(),rows=[['Cloud payload',Math.round(d.payloadBytes/1024)+' KB / ~781 KB'],['Saved foods',d.counts.foods],['Food entries',d.counts.foodEntries],['Exercise definitions',d.counts.exerciseDefinitions],['Workout templates',d.counts.workoutTemplates],['Workout exercise references',d.counts.workoutRefs],['Lift entries',d.counts.lifts],['Weight entries',d.counts.weights],['Body-fat entries',d.counts.bodyFat],['Notes',d.counts.notes],['Workout Buddy history',d.counts.workoutHistory]];
+ const d=dataDiagnostics(),rows=[['Cloud payload',Math.round(d.payloadBytes/1024)+' KB / ~781 KB'],['Saved foods',d.counts.foods],['Food entries',d.counts.foodEntries],['Exercise definitions',d.counts.exerciseDefinitions],['Workout templates',d.counts.workoutTemplates],['Workout exercise references',d.counts.workoutRefs],['Lift entries',d.counts.lifts],['Weight entries',d.counts.weights],['Body-fat entries',d.counts.bodyFat],['Financial transactions',d.counts.transactions],['Notes',d.counts.notes],['Workout Buddy history',d.counts.workoutHistory]];
  modal('Data diagnostics','<div class="diagnostic-details"><div class="diagnostic-table">'+rows.map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div><section><h3>Errors</h3>'+(d.issues.length?'<ul>'+d.issues.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No structural errors found.</p>')+'</section><section><h3>Things to review</h3>'+(d.warnings.length?'<ul>'+d.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No duplicate definitions detected.</p>')+'</section></div>');
 }
 function offlineWorkspacePanel(){
@@ -1178,7 +1178,7 @@ document.addEventListener('click',async event=>{
     try{
       const {candidate,summary}=planDeviceMigration(data,deviceData);
       pendingDeviceMigration={candidate,summary,uid:account.uid,revision:session.revision,cloudCopy:structuredClone(data),deviceCopy:structuredClone(deviceData)};
-      const labels=[['foods','Saved foods'],['foodEntries','Food entries'],['lifts','Lift logs'],['weights','Weigh-ins'],['bodyFat','Body-fat entries'],['exerciseDefinitions','Exercise definitions'],['workoutTemplates','Workout routines'],['workoutHistory','Saved Workout Buddy sessions']];
+      const labels=[['foods','Saved foods'],['foodEntries','Food entries'],['lifts','Lift logs'],['weights','Weigh-ins'],['bodyFat','Body-fat entries'],['transactions','Financial transactions'],['exerciseDefinitions','Exercise definitions'],['workoutTemplates','Workout routines'],['workoutHistory','Saved Workout Buddy sessions']];
       const rows=labels.filter(([key])=>summary.added[key]||summary.skipped[key])
         .map(([key,label])=>'<div class="list-row"><span><strong>'+esc(label)+'</strong><small>'+summary.added[key]+' to copy · '+summary.skipped[key]+' already present or kept in cloud</small></span></div>').join('');
       const newRoutines=candidate.workoutTemplates.filter(w=>!data.workoutTemplates.some(old=>old.id===w.id));
@@ -1539,7 +1539,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=81',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=82',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1591,7 +1591,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=72');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=82');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -1625,9 +1625,9 @@ function weekSettingsPanel(){
 
 function importRecord(key,item,unit){
   const r=item.record;
-  const title=key==='foods'||key==='foodEntries'?r.name:key==='lifts'?r.exercise:key==='bodyFat'?`${fmt(r.value)}% body fat`:`${fmt(r.value)} ${unit}`;
+  const title=key==='foods'||key==='foodEntries'?r.name:key==='lifts'?r.exercise:key==='transactions'?r.description:key==='bodyFat'?`${fmt(r.value)}% body fat`:`${fmt(r.value)} ${unit}`;
   const foodEntryDetails=key==='foodEntries'?`${r.date}${r.t!=null?' · '+foodTimeLabel(r.t):''} · ${fmt(r.calories*r.quantity)} cal · ${fmt(r.protein*r.quantity)}g protein${r.quantity!==1?` · ${fmt(r.quantity)} servings · ${fmt(r.calories)} cal / ${fmt(r.protein)}g each`:''}`:'';
-  const details=key==='foods'?`${fmt(r.calories)} cal · ${fmt(r.protein)}g protein per serving${r.lastUsed?' · Last used '+r.lastUsed:''}`:key==='foodEntries'?foodEntryDetails:key==='lifts'?`${r.date} · ${r.sets.map(set=>`${fmt(set.weight)} ${unit} × ${set.reps}${set.difficulty?` · effort ${set.difficulty}`:''}`).join(' · ')}`:key==='weights'?r.date:key==='bodyFat'?`${r.date} · Body-fat measurement`:r.date;
+  const details=key==='foods'?`${fmt(r.calories)} cal · ${fmt(r.protein)}g protein per serving${r.lastUsed?' · Last used '+r.lastUsed:''}`:key==='foodEntries'?foodEntryDetails:key==='lifts'?`${r.date} · ${r.sets.map(set=>`${fmt(set.weight)} ${unit} × ${set.reps}${set.difficulty?` · effort ${set.difficulty}`:''}`).join(' · ')}`:key==='weights'?r.date:key==='bodyFat'?`${r.date} · Body-fat measurement`:key==='transactions'?`${r.date}${r.time?' '+r.time:''} · ${r.kind} · $${(r.amountCents/100).toFixed(2)} · ${r.category}${r.merchant?' · '+r.merchant:''}`:r.date;
   const badges=(item.badges||[]).filter(Boolean),attention=badges.some(b=>/duplicate|Replaces|Removed|Multiple|differs/i.test(b))||item.libraryAction==='nutrition-diff';
   const rowRef=item.sourceRow&&attention?`<small class="import-row-ref">CSV row ${item.sourceRow}</small>`:'';
   const libraryEffect=key==='foodEntries'&&item.libraryDetail?`<div class="import-library-effect ${esc(item.libraryAction||'')}"><span aria-hidden="true">${item.libraryAction==='one-off'?'○':item.libraryAction==='existing'?'✓':item.libraryAction==='nutrition-diff'?'!':'+'}</span><strong>${esc(item.libraryDetail)}</strong></div>`:'';

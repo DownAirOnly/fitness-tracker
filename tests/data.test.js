@@ -155,3 +155,57 @@ test('unit conversion refuses invalid weights without partially modifying data',
  assert.equal(JSON.stringify(original),before);
  assert.throws(()=>convertNotebookWeightUnit(original,'stone'),/lb or kg/);
 });
+
+
+const money=(id='purchase-1')=>({id,date:'2026-10-27',time:'02:13',kind:'expense',amountCents:719,
+ description:'Wawa bottled water',category:'Household supplies',currency:'USD',merchant:'Wawa',note:'Two cases next time',source:'manual'});
+
+test('v82: legacy v1 and compact v2 notebooks load with an empty financial collection',()=>{
+ const old=emptyData();delete old.transactions;
+ assert.deepEqual(normalizeData(old).transactions,[]);
+ const compact=encodeData(old);delete compact.transactions;
+ assert.equal(compact.version,2);
+ assert.deepEqual(normalizeData(compact).transactions,[]);
+ const original=JSON.stringify(old);normalizeData(old);assert.equal(JSON.stringify(old),original);
+});
+
+test('v82: exact-cent transactions preserve optional metadata in compact backups',()=>{
+ const data=emptyData();data.transactions=[
+   money(),{id:'paycheck',date:'2026-10-26',kind:'income',amountCents:152347,description:'Paycheck',category:'Income'},
+   {id:'transfer',date:'2026-10-26',kind:'transfer',amountCents:10000,description:'Move to bills',category:'Transfers',externalId:'bank-ref-3',source:'import'}
+ ];
+ const original=structuredClone(data),stored=encodeData(data),restored=normalizeData(stored);
+ assert.equal(stored.version,2);
+ assert.deepEqual(restored.transactions,normalizeData(data).transactions);
+ assert.equal(restored.transactions[0].amountCents,719);
+ assert.equal(restored.transactions[0].time,'02:13');
+ assert.equal(restored.transactions[1].currency,'USD');
+ assert.equal(restored.transactions[1].time,undefined);
+ assert.equal(restored.transactions[2].externalId,'bank-ref-3');
+ assert.deepEqual(data,original,'encoding does not mutate inputs');
+ assert.deepEqual(normalizeData(encodeData(restored)).transactions,restored.transactions,'round trips are idempotent');
+});
+
+test('v82: unsafe financial money, dates, kinds, currencies and duplicate IDs are rejected',()=>{
+ const invalid=[
+  {amountCents:7.19},{amountCents:-1},{amountCents:0},{amountCents:Number.MAX_SAFE_INTEGER+1},
+  {kind:'purchase'},{date:'2026-02-30'},{time:'25:00'},{time:'02:60'},{currency:'EUR'},
+  {description:'  '},{description:'z'.repeat(201)},{merchant:4},{note:'x'.repeat(501)},
+  {category:7},{source:'bank'}, {externalId:4}
+ ];
+ for(const patch of invalid){
+   const data=emptyData();data.transactions=[{...money(),...patch}];
+   assert.throws(()=>normalizeData(data),/transaction|transactions/i,JSON.stringify(patch));
+ }
+ const data=emptyData();data.transactions=[money(),{...money(),date:'2026-10-28'}];
+ assert.throws(()=>normalizeData(data),/duplicate transaction IDs/);
+ data.transactions='not an array';assert.throws(()=>normalizeData(data),/transactions section/);
+ data.transactions=null;assert.throws(()=>normalizeData(data),/transactions section/);
+});
+
+test('v82: non-transaction weight conversion leaves exact cents and transaction times unchanged',()=>{
+ const data=emptyData();data.transactions=[money()];data.weights=[{id:'weight',date:'2026-10-27',value:180}];
+ const changed=convertNotebookWeightUnit(data,'kg');
+ assert.deepEqual(changed.transactions,normalizeData(data).transactions);
+ assert.equal(changed.weights[0].value,81.6);
+});
