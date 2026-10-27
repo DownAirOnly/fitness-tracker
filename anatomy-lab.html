@@ -1,204 +1,105 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0c1620">
-<title>Everyday Anatomy Lab · 10 Human Shape Studies</title>
-<style>
-:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#edf7fa;background:#0b141d}
-*{box-sizing:border-box}
-body{margin:0;background:radial-gradient(ellipse at 50% -12%,#1a3547,#0c1720 60%,#091119);min-height:100vh;padding:clamp(14px,2.7vw,31px)}
-main{max-width:1070px;margin:auto}
-.eyebrow{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#79c5d9;font-weight:850}
-h1{margin:8px 0 10px;font-size:clamp(30px,5vw,48px);letter-spacing:-.057em;line-height:1.09;font-weight:850}
-.subtitle{color:#a0b9c6;font-size:13px;max-width:740px;line-height:1.62;margin:0}
-.topline{display:flex;justify-content:space-between;align-items:start;gap:16px;margin-bottom:20px;flex-wrap:wrap}
-.tag{border:1px solid #275063;background:#13313e;color:#a2dfeb;padding:8px 11px;border-radius:999px;font-size:10px;font-weight:850;white-space:nowrap}
-.picker{border:1px solid #28414d;border-radius:20px;background:linear-gradient(#142833,#10212b);padding:16px 16px 17px;margin-bottom:17px}
-.picker-title{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#93b9c6;font-weight:850}
-.picker-title span:last-child{color:#6f97a9}
-.shape-buttons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.shape-button{border:1px solid #35505c;color:#bdd5dd;border-radius:12px;background:#172e3a;min-height:66px;padding:11px 7px;font:inherit;text-align:center;font-size:11.6px;font-weight:730;line-height:1.35;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;transition:background .16s,border-color .16s}
-.shape-button .number{font-size:10px;color:#78a0b0;font-weight:850;letter-spacing:.1em}
-.shape-button[aria-pressed=true]{border-color:#64d5ef;background:linear-gradient(#1c4d60,#174050);color:#f4fbff;box-shadow:inset 0 0 0 1px #55e1fc24}
-.shape-button[aria-pressed=true] .number{color:#9cecff}
-.shape-button:focus-visible{outline:2px solid #baf1fa;outline-offset:2px}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 262px;gap:16px}
-.preview-card,.detail-card{border:1px solid #28414d;border-radius:20px;background:linear-gradient(160deg,#152633,#101e29);padding:17px}
-.preview-head{display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between;align-items:start;margin-bottom:12px}
-.preview-head h2{font-size:23px;letter-spacing:-.035em;line-height:1.15;margin:4px 0 5px}
-.preview-head p{margin:0;max-width:485px;color:#91aebb;font-size:12px;line-height:1.5}
-.exercise-label{font-size:10px;color:#8acde2;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
-.paint-area{background:radial-gradient(ellipse at 51% 30%,#1c3d50,#0d1e2b 50%,#09131d);border:1px solid #2a4352;border-radius:16px;padding:12px;display:flex;gap:clamp(14px,5vw,54px);justify-content:center;align-items:center;min-height:430px;overflow:hidden}
-.person{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
-.person-label{font-size:10px;letter-spacing:.14em;color:#97bbca;font-weight:850}
-.anatomy{width:clamp(124px,20vw,190px);height:365px;max-width:100%;overflow:visible}
-.person:first-child .anatomy{transform:translateZ(0)}
-.details-title{color:#84bccc;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:900;margin:0 0 7px}
-.detail-card{display:flex;flex-direction:column;gap:18px}
-.detail-card h3{font-size:19px;letter-spacing:-.03em;margin:0 0 6px}
-.detail-card p{color:#a3bac4;font-size:12px;line-height:1.65;margin:0}
-.detail-divider{border-top:1px solid #2b4652;padding-top:17px}
-.legend{display:grid;gap:9px}
-.legend-item{display:flex;gap:9px;align-items:center;color:#d7e4e9;font-size:12px}
-.key{height:11px;width:11px;border-radius:3px;flex:0 0 auto}.hot{background:#ff784e;box-shadow:0 0 9px #fc7d4b88}.cool{background:#48d6ff;box-shadow:0 0 9px #48d6ff66}.neutral{background:#416578}
-.thumb-wrap{width:106px;display:grid;gap:6px}
-.thumb{height:95px;width:86px;border:1px dashed #457284;background:radial-gradient(circle,#1d3846,#101b26);display:flex;align-items:center;justify-content:center;gap:2px;padding:3px;border-radius:10px}
-.thumb svg{width:38px;height:86px}
-.thumb-note{color:#829dac;font-size:10px;line-height:1.5}
-.fixed{color:#a6c6d1;font-size:11px;line-height:1.65}
-.fixed strong{color:#d1e8ee}
-.bottom{margin-top:16px;font-size:11px;line-height:1.5;color:#728c9a}
-@media(max-width:900px){.layout{grid-template-columns:minmax(0,1fr)}.detail-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.detail-divider{border-top:0;padding:0}.paint-area{min-height:400px}}
-@media(max-width:660px){.shape-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}.shape-button{min-height:58px}.detail-card{grid-template-columns:1fr}.detail-divider{border-top:1px solid #2b4652;padding-top:14px}.anatomy{width:clamp(112px,38vw,165px);height:320px}.paint-area{min-height:360px;gap:10px;padding:10px}.preview-card,.detail-card{padding:12px}h1{font-size:32px}}
-@media(max-width:370px){.anatomy{width:110px;height:290px}.paint-area{min-height:325px;gap:5px}.shape-button{font-size:11px}}
-</style></head><body>
-<main>
-<header class="topline"><div><div class="eyebrow">Everyday · Anatomy Lab · Shape Selection</div><h1>Ten ways to draw the human body.</h1>
-<p class="subtitle">Same exercise, same neon heatmap, same soft glow and contours. Only the SVG anatomy shapes change. Select a number to inspect one design at a time.</p></div><span class="tag">Standalone preview · Everyday unchanged</span></header>
-<section class="picker" aria-label="Choose an anatomy shape">
-<div class="picker-title"><span>Choose an SVG shape</span><span>01—10</span></div>
-<div class="shape-buttons" id="shapeButtons"></div>
-</section>
-<section class="layout">
-<div class="preview-card"><div class="preview-head"><div><div class="exercise-label">Fixed exercise · Seated Leg Press</div><h2 id="selectedName">Natural Anatomy</h2><p id="selectedSubtitle">Grounded, balanced proportions.</p></div></div>
-<div class="paint-area" id="mainIllustration" aria-label="Front and back anatomy illustration">
-<div class="person"><div class="person-label">FRONT</div><div id="frontFig"></div></div>
-<div class="person"><div class="person-label">BACK</div><div id="backFig"></div></div>
-</div></div>
-<aside class="detail-card">
-<section><div class="details-title">What changes</div><h3 id="selectedDescriptionHead">Natural Anatomy</h3><p id="selectedDescription"></p></section>
-<section class="detail-divider"><div class="details-title">Fixed heatmap</div><div class="legend">
-<div class="legend-item"><i class="key hot"></i><span>Primary · Quadriceps / Glutes</span></div>
-<div class="legend-item"><i class="key cool"></i><span>Secondary · Hamstrings / Calves</span></div>
-<div class="legend-item"><i class="key neutral"></i><span>Unhighlighted anatomy</span></div></div></section>
-<section class="detail-divider"><div class="details-title">Workout Buddy scale</div><div class="thumb-wrap"><div class="thumb" id="tinyFigures"></div><span class="thumb-note">86 × 95 pixel preview</span></div></section>
-<section class="detail-divider"><div class="details-title">Locked settings</div><div class="fixed"><strong>Neon Heatmap</strong>, soft glow, anatomical contour lines, natural shading, dark background and Seated Leg Press.</div></section>
-</aside></section>
-<p class="bottom">Experimental illustrations, not a medical anatomical atlas. Production Workout Buddy and workout records remain unchanged.</p>
-</main>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Everyday Anatomy Lab — Ten Subtle Shape Variants</title><style>
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b151e;color:#e8f5f8}
+*{box-sizing:border-box}body{margin:0;padding:clamp(12px,3vw,28px);background:radial-gradient(circle at 50% -10%,#1b3546,#0b151e 65%);min-height:100vh}main{max-width:1000px;margin:auto}
+header{margin-bottom:17px}.eyebrow{font-size:10px;color:#81cadd;letter-spacing:.14em;text-transform:uppercase;font-weight:850}h1{font-size:clamp(27px,4vw,43px);letter-spacing:-.045em;margin:7px 0}header p{font-size:13px;line-height:1.5;color:#a1bbc5;max-width:690px;margin:0}
+.controls{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:15px 0}
+.controls button{min-height:57px;padding:8px;border:1px solid #315466;border-radius:12px;background:#162a36;color:#c5dce4;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.controls button[aria-pressed=true]{background:#225267;color:#fff;border-color:#6cdcf5;box-shadow:inset 0 0 0 1px #68dfff55}
+.controls button:focus-visible{outline:2px solid #b5edfb;outline-offset:2px}
+.panel{border:1px solid #2a4756;border-radius:18px;background:linear-gradient(160deg,#142735,#0e1b27);padding:16px}
+.heading{display:flex;justify-content:space-between;align-items:start;gap:12px;flex-wrap:wrap}.heading h2{font-size:21px;letter-spacing:-.03em;margin:0 0 5px}.heading p{font-size:12px;color:#9eb9c5;margin:0 0 12px;line-height:1.5}
+.preview{display:flex;justify-content:center;align-items:center;gap:clamp(12px,5vw,60px);background:radial-gradient(ellipse,#1b3a4c,#0a1520 75%);border:1px solid #294657;border-radius:15px;min-height:350px;padding:10px}
+.figure{display:flex;align-items:center;flex-direction:column;gap:4px}.figure span{font-size:10px;letter-spacing:.13em;color:#a1c0ce;font-weight:850}
+.figure svg{width:clamp(115px,22vw,165px);height:315px;overflow:visible}
+.mini{margin-top:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:#90b2c0;font-size:11px;flex-wrap:wrap}
+.tiny{width:86px;height:95px;border:1px dashed #476d7c;background:#122733;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:2px}
+.tiny svg{width:39px;height:87px}
+.sil{fill:#2a4c60;stroke:#7396a9;stroke-width:1.4}
+.muscle{fill:#395a6d;stroke:#7297a8;stroke-width:1.15;stroke-linejoin:round}
+.muscle.primary{fill:#ff7b4f}.muscle.secondary{fill:#45d5f5}
+.glow.primary{fill:#ff7b4f}.glow.secondary{fill:#45d5f5}
+.contour{fill:none;stroke:#a2c4d0;stroke-width:1.1;opacity:.42;stroke-linecap:round}
+@media(max-width:560px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.preview{min-height:280px;gap:8px}.figure svg{width:120px;height:245px}.panel{padding:11px}}
+</style></head><body><main><header><div class="eyebrow">Everyday · Anatomy Lab</div><h1>10 subtle anatomy variations</h1><p>One exercise: Seated Leg Press. Same complete muscle map, neon heatmap, soft glow and contours. Only the human figure's geometry changes.</p></header>
+<div id="controls" class="controls" aria-label="Choose one body shape"></div>
+<section class="panel"><div class="heading"><div><h2 id="name">Baseline Human</h2><p id="description"></p></div></div><div class="preview"><div class="figure"><span>FRONT</span><div id="frontFig"></div></div><div class="figure"><span>BACK</span><div id="backFig"></div></div></div>
+<div class="mini"><span>Warm neon: quadriceps / glutes · Cool neon: hamstrings / calves · Other muscles remain visible.</span><div class="tiny" id="tiny"></div></div></section></main>
 <script>
-'use strict';
-const SHAPES=[
-{id:'natural',name:'Natural Anatomy',subtitle:'Everyday human proportions',description:'Balanced body proportions, relaxed arms, mild thigh definition and anatomically separated glute regions.',sw:49,ww:37,hw:46,tw:36,arm:16,stance:2,shift:0,tilt:0,hips:0,knee:284,elbow:165,head:1,round:.55},
-{id:'classical',name:'Classical Sculpture',subtitle:'Gentle contrapposto and asymmetry',description:'A small counter-tilt of shoulders and hips, soft classical torso lines, and naturally offset legs.',sw:51,ww:35,hw:48,tw:35,arm:15,stance:3,shift:-6,tilt:6,hips:-1,knee:288,elbow:161,head:1,round:.8},
-{id:'athletic',name:'Athletic Taper',subtitle:'Defined shoulders and narrowing waist',description:'Stronger upper-body V-taper, close-fitting midsection and muscular but restrained legs.',sw:61,ww:30,hw:43,tw:37,arm:19,stance:5,shift:0,tilt:0,hips:0,knee:285,elbow:159,head:.94,round:.35},
-{id:'soft',name:'Soft Organic',subtitle:'Fuller continuous body curves',description:'Rounded shoulder transitions, wider waist and pelvis, softer thigh taper and fewer sharp landmarks.',sw:50,ww:45,hw:55,tw:43,arm:18,stance:3,shift:1,tilt:-1,hips:4,knee:282,elbow:168,head:1.04,round:1},
-{id:'runner',name:'Lean Runner',subtitle:'Long-leg endurance proportions',description:'Long narrow limbs, restrained upper-body width and generous negative space between the legs.',sw:43,ww:31,hw:39,tw:29,arm:13,stance:9,shift:0,tilt:1,hips:-10,knee:301,elbow:165,head:.9,round:.5},
-{id:'lifter',name:'Power Lifter',subtitle:'Solid quads and grounded posture',description:'Dense legs, wider shoulders, strong arms, and a stable stance without exaggerated robotic joints.',sw:61,ww:43,hw:54,tw:48,arm:23,stance:11,shift:0,tilt:0,hips:2,knee:283,elbow:165,head:1.02,round:.65},
-{id:'compact',name:'Compact Frame',subtitle:'Shorter limbs, fuller build',description:'Stockier human proportions, deeper ribcage, shorter legs and comfortably broad muscle groups.',sw:54,ww:43,hw:53,tw:43,arm:20,stance:5,shift:0,tilt:0,hips:9,knee:276,elbow:160,head:1.13,round:.65},
-{id:'dancer',name:'Dancer Stance',subtitle:'Open hips and lighter posture',description:'Graceful shoulder angle, slim limbs, open leg stance, and modest hip asymmetry inspired by a neutral dance pose.',sw:46,ww:32,hw:43,tw:31,arm:14,stance:13,shift:7,tilt:-7,hips:-5,knee:290,elbow:156,head:.95,round:.82},
-{id:'contour',name:'S-Curve Contour',subtitle:'Expressive organic waistline',description:'A sweeping torso curve, offset hips and varied leg alignment, emphasizing the flow of the human silhouette.',sw:54,ww:34,hw:48,tw:36,arm:16,stance:7,shift:-8,tilt:9,hips:1,knee:290,elbow:163,head:1.0,round:.92},
-{id:'relaxed',name:'Relaxed Stance',subtitle:'Unposed, naturally asymmetric',description:'Slightly dropped shoulder, broader pelvis, uneven weight distribution and relaxed arms with subtle body asymmetry.',sw:50,ww:40,hw:52,tw:40,arm:18,stance:1,shift:5,tilt:-5,hips:4,knee:287,elbow:174,head:1.02,round:.85}
+const silhouette='<ellipse cx="90" cy="22" rx="15" ry="17"/><rect x="82" y="38" width="16" height="14" rx="5"/>'+
+ '<path d="M70 49 Q58 51 54 67 L65 104 70 147 63 166 Q90 183 117 166 L110 147 115 104 126 67 Q122 51 110 49 Z"/>'+
+ '<path d="M56 57 Q43 57 40 75 L27 145 Q24 154 34 158 L43 151 60 98 66 72 Z"/>'+
+ '<path d="M124 57 Q137 57 140 75 L153 145 Q156 154 146 158 L137 151 120 98 114 72 Z"/>'+
+ '<path d="M65 162 Q89 170 115 162 L116 179 109 241 105 303 Q102 316 90 315 L89 289 92 240 90 190 88 240 91 289 90 315 Q78 316 75 303 L71 241 64 179 Z"/>';
+const front={
+ chest:'<path d="M67 73 Q75 65 88 70 L88 91 Q77 100 65 88 Z M92 70 Q105 65 113 73 L115 88 Q103 100 92 91 Z"/>',
+ delts:'<ellipse cx="58" cy="67" rx="9" ry="14" transform="rotate(18 58 67)"/><ellipse cx="122" cy="67" rx="9" ry="14" transform="rotate(-18 122 67)"/>',
+ biceps:'<ellipse cx="50" cy="103" rx="7" ry="18" transform="rotate(13 50 103)"/><ellipse cx="130" cy="103" rx="7" ry="18" transform="rotate(-13 130 103)"/>',
+ forearms:'<path d="M40 119 Q48 119 47 132 L40 151 Q32 153 32 146 Z M140 119 Q132 119 133 132 L140 151 Q148 153 148 146 Z"/>',
+ abs:'<path d="M77 103 L103 103 103 141 Q90 148 77 141 Z"/>',
+ obliques:'<path d="M70 104 L77 104 77 140 70 148 66 138 Z M110 104 L103 104 103 140 110 148 114 138 Z"/>',
+ quads:'<path d="M66 180 Q78 174 88 181 L85 238 76 251 70 239 Z M92 181 Q102 174 114 180 L110 239 101 251 95 238 Z"/>',
+ calves:'<path d="M74 250 L86 251 84 291 77 301 73 291 Z M94 251 L106 250 107 291 103 301 96 291 Z"/>'
+};
+const rear={
+ traps:'<path d="M82 49 L98 49 114 73 103 83 90 69 77 83 66 73 Z"/>',
+ delts:'<ellipse cx="59" cy="67" rx="9" ry="14" transform="rotate(18 59 67)"/><ellipse cx="121" cy="67" rx="9" ry="14" transform="rotate(-18 121 67)"/>',
+ upperBack:'<path d="M79 79 L101 79 105 109 90 120 75 109 Z"/>',
+ lats:'<path d="M67 83 L76 91 77 114 88 125 88 148 74 138 65 105 Z M113 83 L104 91 103 114 92 125 92 148 106 138 115 105 Z"/>',
+ triceps:'<ellipse cx="49" cy="102" rx="7" ry="19" transform="rotate(14 49 102)"/><ellipse cx="131" cy="102" rx="7" ry="19" transform="rotate(-14 131 102)"/>',
+ forearms:'<path d="M40 120 L47 121 42 150 33 151 Z M140 120 L133 121 138 150 147 151 Z"/>',
+ lowerBack:'<path d="M79 128 L101 128 106 154 90 162 74 154 Z"/>',
+ glutes:'<ellipse cx="77" cy="169" rx="15" ry="13"/><ellipse cx="103" cy="169" rx="15" ry="13"/>',
+ hamstrings:'<path d="M67 186 Q79 182 87 185 L84 243 73 248 Z M93 185 Q101 182 113 186 L107 248 96 243 Z"/>',
+ calves:'<path d="M73 249 Q79 243 86 249 L84 290 78 299 72 287 Z M94 249 Q101 243 107 249 L108 287 102 299 96 290 Z"/>'
+};
+
+const VARIANTS=[
+['Baseline Human','Original anatomy proportions, with cleaned-up glutes.',1,1,1,0,0,0],
+['Softer Shoulders','Slightly rounder shoulder contours.',1,1,1,0,0,1],
+['Narrower Waist','A restrained torso taper.',.96,1,1,0,0,0],
+['Wider Pelvis','A small adjustment to the hip transition.',1,1.025,1,0,0,0],
+['Longer Legs','A few percent more leg length.',1,1,1.025,0,0,0],
+['Shorter Torso','A subtly shorter trunk with normal legs.',1,1,1,0,-4,0],
+['Upper Taper','Slightly broader shoulders, same waist.',1.035,1,1,0,0,0],
+['Straighter Stance','More aligned legs and neutral posture.',1,1,1,-2,0,0],
+['Natural Asymmetry','A tiny posture offset for a less robotic feel.',1,1,1,0,0,2],
+['Fuller Thighs','Subtle lower-body fullness without a bulky torso.',1,1.02,1,2,0,0]
 ];
-const CX=110;
-const f=n=>Number(n).toFixed(1);
-const xy=(x,y)=>f(x)+' '+f(y);
-const P=parts=>parts.join(' ');
-const side=(x,s,offset=0)=>x+s*offset;
-function makeShape(v){
- const sc=CX+v.tilt,hc=CX+v.shift,sy=88+v.hips*.12,hy=195+v.hips,wy=161+v.hips*.6,ky=v.knee,ay=347;
- const shoulder=v.sw,waist=v.ww,hips=v.hw,thigh=v.tw,arm=v.arm,round=v.round;
- const headShift=(v.tilt*.55+v.shift*.18),headcx=CX+headShift,headcy=32;
- const head='<ellipse cx="'+f(headcx)+'" cy="'+f(headcy)+'" rx="'+f(15.5*v.head)+'" ry="'+f(20*v.head)+'"/>';
- const neck='M'+xy(sc-12,54)+' Q'+xy(sc,63)+' '+xy(sc+12,54)+' L'+xy(sc+13,75)+' Q'+xy(sc,80)+' '+xy(sc-13,75)+' Z';
- const torso=P(['M'+xy(sc-shoulder+6,sy),
-  'C'+xy(sc-shoulder+12,72)+' '+xy(sc-21,70)+' '+xy(sc-12,70),
-  'Q'+xy(sc,75)+' '+xy(sc+12,70),
-  'C'+xy(sc+21,70)+' '+xy(sc+shoulder-12,72)+' '+xy(sc+shoulder-6,sy),
-  'C'+xy(sc+shoulder-4,117)+' '+xy(sc+waist+8,wy-21)+' '+xy(sc+waist,wy),
-  'C'+xy(hc+hips+1,hy-14)+' '+xy(hc+hips+5,hy+4)+' '+xy(hc+hips-8,hy+17),
-  'Q'+xy(hc,hy+35)+' '+xy(hc-hips+8,hy+17),
-  'C'+xy(hc-hips-5,hy+4)+' '+xy(hc-hips-1,hy-14)+' '+xy(sc-waist,wy),
-  'C'+xy(sc-waist-8,wy-21)+' '+xy(sc-shoulder+4,117)+' '+xy(sc-shoulder+6,sy)+'Z']);
- const arms=[],legs=[],frontQuads=[],rearHamstrings=[],rearGlutes=[],calves=[],shellCont=[];
- for(const s of [-1,1]){
-  const shoulderX=sc+s*(shoulder-4),outerX=sc+s*(shoulder+arm*.68+round*2.5);
-  const elbowX=sc+s*(shoulder+arm*.5+v.stance*.20+9),wristX=sc+s*(shoulder+arm*.45+v.stance*.08+11);
-  const armPath=P(['M'+xy(shoulderX,sy-2),
-   'C'+xy(outerX,sy+8)+' '+xy(elbowX+s*6,v.elbow-27)+' '+xy(elbowX,v.elbow),
-   'Q'+xy(wristX+s*5,199)+' '+xy(wristX+s*5,218),
-   'Q'+xy(wristX+s*4,231)+' '+xy(wristX-s*6,229),
-   'Q'+xy(wristX-s*8,222)+' '+xy(wristX-s*4,210),
-   'C'+xy(elbowX-s*(arm*.35),175)+' '+xy(sc+s*(shoulder-10),112)+' '+xy(sc+s*(shoulder-13),sy+7)+'Z']);
-  arms.push(armPath);
-  const legCx=hc+s*(22+v.stance),kcx=legCx+s*(v.shift*.09),acx=hc+s*(23+v.stance*1.25);
-  const hOuter=hc+s*(hips-4),hInner=hc+s*7;
-  const kOuter=kcx+s*(thigh*.48),kInner=kcx-s*(thigh*.34);
-  const aOuter=acx+s*10,aInner=acx-s*8;
-  const legPath=P(['M'+xy(hOuter,hy+7),
-   'C'+xy(hOuter+s*9,hy+49)+' '+xy(kOuter+s*6,ky-28)+' '+xy(kOuter,ky),
-   'C'+xy(kOuter+s*1,ky+26)+' '+xy(aOuter+s*3,ay-22)+' '+xy(aOuter,ay),
-   'L'+xy(aOuter+s*6,366),
-   'Q'+xy(acx,375)+' '+xy(aInner-s*5,366),
-   'L'+xy(aInner,ay),
-   'C'+xy(aInner-s*2,ay-30)+' '+xy(kInner-s*1,ky+22)+' '+xy(kInner,ky),
-   'C'+xy(kInner+s*2,ky-35)+' '+xy(hInner+s*2,hy+34)+' '+xy(hInner,hy+11)+'Z']);
-  legs.push(legPath);
-  const qInner=hc+s*13,qOuter=hc+s*(hips-12),endIn=kcx-s*(thigh*.30-2),endOut=kcx+s*(thigh*.42-2);
-  const quad=P(['M'+xy(qInner,hy+20),
-   'Q'+xy(hc+s*(hips*.60),hy+17)+' '+xy(qOuter,hy+19),
-   'C'+xy(qOuter+s*8,hy+43)+' '+xy(endOut+s*4,ky-29)+' '+xy(endOut,ky-12),
-   'Q'+xy(kcx,ky-2)+' '+xy(endIn,ky-12),
-   'C'+xy(endIn+s*2,ky-45)+' '+xy(qInner+s*4,hy+51)+' '+xy(qInner,hy+20)+'Z']);
-  frontQuads.push(quad);
-  const ham=P(['M'+xy(hc+s*13,hy+39),
-   'C'+xy(hc+s*(hips*.68),hy+36)+' '+xy(qOuter+s*2,hy+43)+' '+xy(qOuter+s*4,hy+56),
-   'L'+xy(endOut,ky-12)+' Q'+xy(kcx,ky-3)+' '+xy(endIn,ky-12),
-   'C'+xy(endIn+s*2,ky-40)+' '+xy(hc+s*15,hy+53)+' '+xy(hc+s*13,hy+39)+'Z']);
-  rearHamstrings.push(ham);
-  // Each glute has an entirely separate path; the center seam never intersects.
-  const glute=P(['M'+xy(hc+s*7,hy-12),
-   'C'+xy(hc+s*18,hy-21)+' '+xy(hc+s*(hips-17),hy-21)+' '+xy(hc+s*(hips-8),hy-10),
-   'Q'+xy(hc+s*(hips-4),hy+9)+' '+xy(hc+s*(hips-14),hy+25),
-   'Q'+xy(hc+s*20,hy+37)+' '+xy(hc+s*8,hy+23),
-   'Q'+xy(hc+s*5,hy+5)+' '+xy(hc+s*7,hy-12)+'Z']);
-  rearGlutes.push(glute);
-  const calf=P(['M'+xy(kcx-s*(thigh*.29-2),ky+9),
-   'Q'+xy(kcx,ky+6)+' '+xy(kcx+s*(thigh*.39),ky+13),
-   'C'+xy(acx+s*13,ky+36)+' '+xy(acx+s*11,ay-13)+' '+xy(acx+s*7,ay-9),
-   'Q'+xy(acx,ay-2)+' '+xy(acx-s*5,ay-10),
-   'C'+xy(acx-s*10,ay-32)+' '+xy(kcx-s*(thigh*.24),ky+33)+' '+xy(kcx-s*(thigh*.29-2),ky+9)+'Z']);
-  calves.push(calf);
-  shellCont.push('M'+xy(hc+s*(hips-6),hy+24)+' Q'+xy(kcx+s*(thigh*.45),hy+72)+' '+xy(kcx+s*(thigh*.45),ky-12));
- }
- const chest='M'+xy(sc-shoulder+16,100)+' Q'+xy(sc,112)+' '+xy(sc+shoulder-16,100);
- const waistLine='M'+xy(sc-waist+7,wy-7)+' Q'+xy(sc,wy+9)+' '+xy(sc+waist-7,wy-7);
- const spine='M'+xy(sc,80)+' C'+xy(sc+v.tilt*.22,122)+' '+xy(hc,150)+' '+xy(hc,hy-13);
- return {head,neck,torso,arms,legs,frontQuads,rearHamstrings,rearGlutes,calves,frontContours:[chest,waistLine,...shellCont],backContours:[spine,'M'+xy(sc-shoulder+15,103)+' Q'+xy(sc,125)+' '+xy(sc+shoulder-15,103),...shellCont]};
+const profile={primary:['quads','glutes'],secondary:['hamstrings','calves']};
+const glutes='<path d="M65 166 Q72 160 82 162 Q87 164 87 171 L86 178 Q82 186 76 184 Q69 180 65 166 Z M98 162 Q108 160 115 166 Q111 180 104 184 Q98 186 94 178 L93 171 Q93 164 98 162 Z"/>';
+rear.glutes=glutes;
+const contours={front:'M90 54V145 M68 80Q90 91 112 80 M77 111H103 M77 123H103 M77 135H103 M74 206L84 237 M106 206L96 237',back:'M90 54V156 M70 85Q90 101 110 85 M75 112Q90 126 105 112 M90 163V181 M73 203L84 238 M107 203L96 238'};
+const defs='<defs><filter id="softglow" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="2.3"/></filter></defs>';
+const $=id=>document.getElementById(id);
+function figure(view,index,small=false){
+ const v=VARIANTS[index],muscles=view==='front'?front:rear;
+ const torsoX=v[2],hipX=v[3],legY=v[4],stance=v[5],torsoY=v[6],posture=v[7];
+ // Three local transforms preserve the original anatomical proportions instead of rebuilding a new trunk.
+ const upper='translate(90 0) scale('+torsoX+' 1) translate(-90 0)';
+ const lower='translate(90 0) scale('+hipX+' '+legY+') translate(-90 0)';
+ const renderMuscles=Object.entries(muscles).map(([id,markup])=>{
+  const cls=profile.primary.includes(id)?'primary':profile.secondary.includes(id)?'secondary':'quiet';
+  const lowerMuscle=['glutes','quads','hamstrings','calves'].includes(id);
+  return '<g class="muscle '+cls+'" transform="'+(lowerMuscle?lower:upper)+'" data-muscle="'+id+'"><title>'+id+'</title>'+markup+'</g>';
+ }).join('');
+ const highlighted=Object.entries(muscles).filter(([id])=>profile.primary.includes(id)||profile.secondary.includes(id)).map(([id,markup])=>'<g class="glow '+(profile.primary.includes(id)?'primary':'secondary')+'" transform="'+(['glutes','quads','hamstrings','calves'].includes(id)?lower:upper)+'">'+markup+'</g>').join('');
+ const baseShape=silhouette.replace(/<ellipse cx="90" cy="22" rx="15" ry="17"\/>/,'<ellipse cx="90" cy="22" rx="15" ry="17"/>');
+ const shapeTransform='translate('+posture+' '+torsoY+')';
+ const legShift='translate('+stance+' 0)';
+ return '<svg viewBox="0 0 180 330" role="img" aria-label="'+view+' anatomy shape '+(index+1)+'">'+defs+
+ '<g transform="'+shapeTransform+'"><g class="sil" transform="'+upper+'">'+baseShape+'</g>'+
+ '<g transform="'+legShift+'">'+renderMuscles+'<g filter="url(#softglow)" opacity=".3">'+highlighted+'</g></g>'+
+ '<path class="contour" d="'+contours[view]+'"/></g></svg>';
 }
-function svg(v,view,mini=false){
- const geo=makeShape(v),isFront=view==='front',i=v.id+'-'+view+(mini?'-mini':'');
- const base=[geo.neck,geo.torso,...geo.arms,...geo.legs];
- const primary=isFront?geo.frontQuads:geo.rearGlutes;
- const secondary=isFront?geo.calves:[...geo.rearHamstrings,...geo.calves];
- const areas=(paths,cls)=>paths.map(d=>'<path class="'+cls+'" d="'+d+'"/>').join('');
- return '<svg class="anatomy" viewBox="0 0 220 380" role="img" aria-label="'+(isFront?'Front':'Back')+' human figure">'+
- '<defs><linearGradient id="body-'+i+'" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#547385"/><stop offset=".43" stop-color="#314d5f"/><stop offset="1" stop-color="#1c303d"/></linearGradient>'+
- '<filter id="soft-'+i+'" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="3.2"/></filter>'+
- '<linearGradient id="warm-'+i+'" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffb37d"/><stop offset=".5" stop-color="#ff784e"/><stop offset="1" stop-color="#c9442c"/></linearGradient>'+
- '<linearGradient id="cool-'+i+'" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a5f2ff"/><stop offset=".6" stop-color="#49d5ff"/><stop offset="1" stop-color="#158eac"/></linearGradient></defs>'+
- '<g fill="url(#body-'+i+')" stroke="#7395a5" stroke-width="1.45" stroke-linejoin="round">'+
- '<ellipse cx="'+f(CX+v.tilt*.55+v.shift*.18)+'" cy="32" rx="'+f(15.5*v.head)+'" ry="'+f(20*v.head)+'"/>'+
- base.map(d=>'<path d="'+d+'"/>').join('')+'</g>'+
- '<g filter="url(#soft-'+i+')" opacity=".52">'+areas(primary,'glow-hot')+areas(secondary,'glow-cool')+'</g>'+
- '<g stroke-linejoin="round" stroke-width="1.15" stroke="#38586a">'+areas(secondary,'cool-shape')+areas(primary,'hot-shape')+'</g>'+
- '<g fill="none" stroke="#9bbccb" stroke-linecap="round" stroke-width="1.1" opacity=".35">'+(isFront?geo.frontContours:geo.backContours).map(d=>'<path d="'+d+'"/>').join('')+'</g>'+
- '<style>.glow-hot{fill:#ff844f}.glow-cool{fill:#35cefa}.hot-shape{fill:url(#warm-'+i+')}.cool-shape{fill:url(#cool-'+i+')}</style></svg>';
-}
-const buttons=document.getElementById('shapeButtons');
-const front=document.getElementById('frontFig'),back=document.getElementById('backFig'),tiny=document.getElementById('tinyFigures');
-let active=0;
+let selected=0;
+const buttons=$('controls');
+buttons.innerHTML=VARIANTS.map((v,i)=>'<button type="button" data-index="'+i+'" aria-pressed="'+(i===0)+'">'+String(i+1).padStart(2,'0')+' · '+v[0]+'</button>').join('');
 function render(){
- const shape=SHAPES[active];
- document.getElementById('selectedName').textContent=shape.name;
- document.getElementById('selectedDescriptionHead').textContent=shape.name;
- document.getElementById('selectedSubtitle').textContent=shape.subtitle;
- document.getElementById('selectedDescription').textContent=shape.description;
- front.innerHTML=svg(shape,'front');
- back.innerHTML=svg(shape,'back');
- tiny.innerHTML=svg(shape,'front',true)+svg(shape,'back',true);
- buttons.querySelectorAll('button').forEach((b,i)=>{b.setAttribute('aria-pressed',String(i===active));b.setAttribute('aria-current',i===active?'true':'false');});
+ const v=VARIANTS[selected];$('name').textContent=v[0];$('description').textContent=v[1];
+ $('frontFig').innerHTML=figure('front',selected);$('backFig').innerHTML=figure('back',selected);
+ $('tiny').innerHTML=figure('front',selected,true)+figure('back',selected,true);
+ buttons.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===selected)));
 }
-buttons.innerHTML=SHAPES.map((v,i)=>'<button type="button" class="shape-button" data-index="'+i+'" aria-pressed="'+(i===active)+'"><span class="number">'+String(i+1).padStart(2,'0')+'</span><span>'+v.name+'</span></button>').join('');
-buttons.addEventListener('click',e=>{const b=e.target.closest('button[data-index]');if(!b)return;active=Number(b.dataset.index);render();});
+buttons.addEventListener('click',e=>{const b=e.target.closest('button[data-index]');if(!b)return;selected=Number(b.dataset.index);render();});
 render();
 </script></body></html>
