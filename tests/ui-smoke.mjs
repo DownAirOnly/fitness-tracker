@@ -59,13 +59,67 @@ try{
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('finances');
   assert.ok(document.querySelector('.finances-page-head'),'Finances route works');
-  assert.ok(document.querySelector('.finance-intro').textContent.includes('Transaction logging is not available yet'),'Finances storage is ready but transaction entry remains disabled');
+  assert.ok(document.querySelector('form[data-form="finance"]'),'Finances quick transaction form is ready');
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
   await click('settings');
   assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
   assert.equal(document.querySelector('header.top .home-settings').getAttribute('aria-current'),'page','Settings gear active');
   await click('home');
   assert.ok(document.querySelector('.home-actions'),'Home navigation still works');
+
+  // v83: Quick Log uses exact cents; calendar date changes cannot navigate to Food.
+  await click('finances');
+  assert.ok(document.querySelector('[data-action="finance-paste-csv"]'),'prepared CSV entry point exists');
+  const financeForm=document.querySelector('form[data-form="finance"]');
+  assert.ok(financeForm.querySelector('[name="amount"]'));
+  financeForm.elements.date.value='2026-10-26';
+  financeForm.elements.date.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  await tick();
+  assert.ok(document.querySelector('.finances-page-head'),'changing finance date must not navigate away');
+  await submit('finance',{amount:'7.19',description:'Wawa water',date:'2026-10-26',category:'Household Supplies',merchant:'Wawa'});
+  let financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  assert.equal(financial.length,1);
+  assert.equal(financial[0].amountCents,719);
+  assert.equal(financial[0].kind,'expense');
+  assert.equal(financial[0].date,'2026-10-26');
+  assert.equal(financial[0].merchant,'Wawa');
+  assert.ok(document.querySelector('.finance-row'),'saved transaction appears immediately');
+  await click('finance-edit');
+  assert.ok(document.querySelector('form[data-form="finance-edit"]'));
+  await submit('finance-edit',{amount:'8.25',description:'Corrected Wawa water',category:'Household Supplies'});
+  financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  assert.equal(financial.length,1,'editing does not create a duplicate');
+  assert.equal(financial[0].amountCents,825);
+  assert.equal(financial[0].description,'Corrected Wawa water');
+  await click('finance-edit');await click('finance-delete');
+  financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  assert.equal(financial.length,0,'confirmed deletion removes the transaction');
+
+  await click('finance-csv-example');
+  assert.ok(document.querySelector('.finance-sample').value.includes('recordType,date,time,kind,amount'));
+  await click('finance-paste-csv');
+  assert.ok(document.querySelector('form[data-form="import"]'),'prepared CSV uses the reviewed import form');
+  const transactionCsv=[
+   'recordType,date,kind,amount,description,category,merchant',
+   'transaction,2026-10-26,expense,7.19,Water cases,Household Supplies,Wawa',
+   'transaction,2026-10-26,income,100.00,Reimbursement,Income,'
+  ].join('\n');
+  await submit('import',{text:transactionCsv});
+  assert.ok(document.querySelector('.import-dialog'),'batch has a review before save');
+  assert.ok(document.querySelector('.import-group-transactions'),'financial transaction changes are visible');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'CSV preview is nondestructive');
+  await click('commit-import');
+  financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  assert.equal(financial.length,2,'confirmed CSV imports two transactions atomically');
+  await click('finance-paste-csv');await submit('import',{text:transactionCsv});
+  assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'),'reimport warns of no new entries');
+  await click('close');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'repeat import cannot duplicate purchases');
+  await click('finance-edit');await click('finance-delete');
+  await click('finance-edit');await click('finance-delete');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0);
+  await click('home');
+
 
  // v63: anonymous demo cannot replace normal device data and can be reset on demand.
  const deviceBeforeDemo=localStorage.getItem('everyday-fitness-v1');

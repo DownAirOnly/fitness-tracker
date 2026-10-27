@@ -1,4 +1,5 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=82';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=83';
+import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
 const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:key==='transactions'?[r.date,r.time??null,r.kind,r.amountCents,r.description.toLowerCase(),r.category.toLowerCase(),r.merchant??'',r.note??'',r.source??'',r.externalId??'']:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
@@ -14,6 +15,7 @@ const csvTypeAliases=new Map([
  ['lift','lift'],['lifting','lift'],['liftset','lift'],
  ['weight','weight'],['weighin','weight'],['bodyweight','weight'],
  ['bodyfat','bodyFat'],['bodyfatpercentage','bodyFat'],['fatpercentage','bodyFat'],
+  ['transaction','transaction'],['finance','transaction'],['expense','transaction'],['income','transaction'],['transfer','transaction'],
 ]);
 const csvBool=value=>['1','true','yes','y','on','favorite','pinned'].includes(String(value||'').trim().toLowerCase());
 const csvOptionalBool=(value,label='value',fallback=true)=>{
@@ -42,8 +44,8 @@ function parseUniversalCSV(text,current){
  const index=new Map(headers.map((name,i)=>[name,i]));
  const legacy=!index.has('recordtype')&&['date','name','calories','protein'].every(x=>index.has(x));
  if(!legacy&&!index.has('recordtype'))throw Error('Universal CSV needs a recordType column. Legacy food CSVs are still accepted.');
- const raw=emptyData();raw.foods=[];raw.foodEntries=[];raw.lifts=[];raw.weights=[];raw.bodyFat=[];raw.exerciseDefinitions=[];raw.workoutTemplates=[];
- const errors=[],warnings=[],workouts=new Map(),liftGroups=new Map();
+ const raw=emptyData();raw.foods=[];raw.foodEntries=[];raw.lifts=[];raw.weights=[];raw.bodyFat=[];raw.transactions=[];raw.exerciseDefinitions=[];raw.workoutTemplates=[];
+ const errors=[],warnings=[],workouts=new Map(),liftGroups=new Map(),transactionOccurrences=new Map();
  const currentExercises=new Map((current.exerciseDefinitions||[]).map(e=>[(e.name.trim().toLowerCase()+'|'+(e.equipment||'other')),e]));
  const importedExercises=new Map();
  const getFrom=(row,...names)=>{for(const name of names){const i=index.get(name.toLowerCase());if(i!=null)return String(row[i]??'').trim();}return '';};
@@ -96,12 +98,36 @@ function parseUniversalCSV(text,current){
     const date=get('date'),value=csvNumber(get('bodyFatPercent','bodyFat','value'),'bodyFatPercent',{min:0.000001,max:100});
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
     raw.bodyFat.push({id:get('id')||id(),date,value});
+   }else if(type==='transaction'){
+    const date=get('date'),description=get('description','name'),kind=(get('kind')||(FINANCE_KINDS.includes(requested)?requested:'')).toLowerCase();
+    if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
+    if(!FINANCE_KINDS.includes(kind))throw Error('kind must be expense, income, or transfer.');
+    if(!description)throw Error('description is required.');
+    const amountText=get('amount'),centsText=get('amountCents'),amountCents=amountText?parseFinanceAmount(amountText):
+      csvNumber(centsText,'amountCents',{min:1,max:Number.MAX_SAFE_INTEGER,integer:true});
+    if(centsText&&csvNumber(centsText,'amountCents',{min:1,max:Number.MAX_SAFE_INTEGER,integer:true})!==amountCents)
+      throw Error('amount and amountCents disagree.');
+    if(get('currency')&&get('currency').toUpperCase()!=='USD')throw Error('Only USD transactions are supported.');
+    const transaction={date,kind,amountCents,description,category:get('category')||'Uncategorized',
+      currency:'USD',source:'import',__sourceRow:line};
+    for(const field of ['time','merchant','note','externalId']){
+      const value=get(field,field==='note'?'notes':field);
+      if(value)transaction[field]=value;
+    }
+    if(transaction.time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(transaction.time))
+      throw Error('Transaction time must be HH:MM (24-hour clock).');
+    const base=financeCsvId(transaction),occurrence=(transactionOccurrences.get(base)||0)+1;
+    transactionOccurrences.set(base,occurrence);
+    transaction.id=get('id')||financeCsvId(transaction,occurrence);
+    const {__sourceRow,...validated}=transaction;
+    normalizeData({...emptyData(),transactions:[validated]});
+    raw.transactions.push(transaction);
    }
   }catch(error){errors.push('Row '+line+': '+error.message);}
  });
  for(const bucket of workouts.values())raw.workoutTemplates.push({id:bucket.id,name:bucket.name,exercises:bucket.items.sort((a,b)=>a.order-b.order).map(({order,...item})=>item)});
  for(const lift of liftGroups.values())raw.lifts.push({id:lift.id,date:lift.date,exercise:lift.exercise,equipment:lift.equipment,sets:lift.sets.sort((a,b)=>a.order-b.order).map(x=>x.set),notes:lift.notes||''});
- const count=raw.foods.length+raw.foodEntries.length+raw.exerciseDefinitions.length+raw.workoutTemplates.length+raw.lifts.length+raw.weights.length+raw.bodyFat.length;
+ const count=raw.foods.length+raw.foodEntries.length+raw.exerciseDefinitions.length+raw.workoutTemplates.length+raw.lifts.length+raw.weights.length+raw.bodyFat.length+raw.transactions.length;
  if(!count&&!errors.length)errors.push('No supported rows found.');
  return{raw,errors,warnings};
 }
@@ -159,16 +185,36 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
  for(const record of raw.weights){const created=structuredClone(record),sig=signature('weights',created),badges=['Adds new record'];if(currentWeightSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}if(weightDates.has(created.date)||current.weights.some(w=>w.date===created.date))badges.push('Multiple weights on this date');weightDates.add(created.date);candidate.weights.push(created);weightRows.push({record:created,badges});added++;}
  const bodyFatRows=[],currentBodyFatSigs=new Set((current.bodyFat||[]).map(r=>signature('bodyFat',r)));
  for(const record of raw.bodyFat){const created=structuredClone(record),sig=signature('bodyFat',created),badges=['Adds new record'];if(currentBodyFatSigs.has(sig)){badges.push('Possible duplicate');duplicates++;}candidate.bodyFat.push(created);bodyFatRows.push({record:created,badges});added++;}
- groups.push({key:'foods',label:'Saved Foods',rows:foodRows,removedRows:[],total:foodRows.length,unchangedCount:0},{key:'foodEntries',label:'Food Entries',rows:entryRows,removedRows:[],total:entryRows.length,unchangedCount:0},{key:'lifts',label:'Lifting Entries',rows:liftRows,removedRows:[],total:liftRows.length,unchangedCount:0},{key:'weights',label:'Weight Entries',rows:weightRows,removedRows:[],total:weightRows.length,unchangedCount:0},{key:'bodyFat',label:'Body Fat Entries',rows:bodyFatRows,removedRows:[],total:bodyFatRows.length,unchangedCount:0});
+ const transactionRows=[],existingTransactionIds=new Map((candidate.transactions||[]).map(tx=>[tx.id,tx]));
+ const existingTransactionKeys=new Set((candidate.transactions||[]).map(financeDuplicateKey));
+ for(const rawRecord of raw.transactions){
+   const {__sourceRow,...record}=rawRecord,created=structuredClone(record),old=existingTransactionIds.get(created.id);
+   if(old){
+     if(financeDuplicateKey(old)===financeDuplicateKey(created)){
+       unchanged++;
+       if(old.category!==created.category||old.note!==created.note)
+         warnings.push('Row '+__sourceRow+': previously imported transaction kept its existing category/notes. Edit it in Everyday to correct details.');
+     }else errors.push('Row '+__sourceRow+': transaction ID already exists with different details. Supply a unique externalId or ID to keep separate purchases.');
+     continue;
+   }
+   const badges=['Adds new record'],identity=financeDuplicateKey(created);
+   if(existingTransactionKeys.has(identity)){
+     badges.push('Possible duplicate');duplicates++;
+     warnings.push('Row '+__sourceRow+': looks like an existing transaction. Review before importing; two identical purchases might also be legitimate.');
+   }
+   candidate.transactions.push(created);existingTransactionIds.set(created.id,created);existingTransactionKeys.add(identity);
+   transactionRows.push({record:created,badges,sourceRow:__sourceRow});added++;
+ }
+ groups.push({key:'foods',label:'Saved Foods',rows:foodRows,removedRows:[],total:foodRows.length,unchangedCount:0},{key:'foodEntries',label:'Food Entries',rows:entryRows,removedRows:[],total:entryRows.length,unchangedCount:0},{key:'lifts',label:'Lifting Entries',rows:liftRows,removedRows:[],total:liftRows.length,unchangedCount:0},{key:'weights',label:'Weight Entries',rows:weightRows,removedRows:[],total:weightRows.length,unchangedCount:0},{key:'bodyFat',label:'Body Fat Entries',rows:bodyFatRows,removedRows:[],total:bodyFatRows.length,unchangedCount:0},{key:'transactions',label:'Financial Transactions',rows:transactionRows,removedRows:[],total:transactionRows.length,unchangedCount:0});
  if(duplicates)warnings.unshift(duplicates+' possible duplicate record'+(duplicates===1?'':'s')+' will be kept if you confirm. Nothing is automatically deduplicated.');
  let normalized=null;if(!errors.length){try{normalized=normalizeData(candidate);}catch(error){errors.push(error.message);}}
  const changeCount=groups.reduce((n,g)=>n+g.rows.length,0)+otherChanges.length;
- const explicitFoodRows=foodRows.filter(row=>!row.implicit).length,userChangeCount=entryRows.length+explicitFoodRows+liftRows.length+weightRows.length+bodyFatRows.length+otherChanges.length;
+ const explicitFoodRows=foodRows.filter(row=>!row.implicit).length,userChangeCount=entryRows.length+explicitFoodRows+liftRows.length+weightRows.length+bodyFatRows.length+transactionRows.length+otherChanges.length;
  const newSavedNames=new Set(),existingSavedNames=new Set();let oneOffEntries=0,nutritionDiff=0;
  for(const row of entryRows){const key=row.record.name.trim().toLowerCase();if(row.libraryAction==='new'||row.libraryAction==='new-import')newSavedNames.add(key);else if(row.libraryAction==='existing')existingSavedNames.add(key);else if(row.libraryAction==='one-off')oneOffEntries++;else if(row.libraryAction==='nutrition-diff'){existingSavedNames.add(key);nutritionDiff++;}}
  const foodLibrarySummary={newSaved:newSavedNames.size,existing:existingSavedNames.size,oneOff:oneOffEntries,nutritionDiff};
  const foodOnly=userChangeCount===entryRows.length+explicitFoodRows&&entryRows.length>0,foodLogsOnly=foodOnly&&explicitFoodRows===0;
- const display={count:userChangeCount,label:foodLogsOnly?(entryRows.length+' food entr'+(entryRows.length===1?'y':'ies')+' to import'):(userChangeCount+' item'+(userChangeCount===1?'':'s')+' to import'),foodEntries:entryRows.length,explicitSavedFoods:explicitFoodRows,foodLibrarySummary};
+ const financeOnly=userChangeCount===transactionRows.length&&raw.transactions.length>0,display={count:userChangeCount,label:financeOnly?(transactionRows.length+' financial transaction'+(transactionRows.length===1?'':'s')+' to import'):(foodLogsOnly?(entryRows.length+' food entr'+(entryRows.length===1?'y':'ies')+' to import'):(userChangeCount+' item'+(userChangeCount===1?'':'s')+' to import')),foodEntries:entryRows.length,transactions:transactionRows.length,explicitSavedFoods:explicitFoodRows,foodLibrarySummary};
  return{kind:'csv',base:JSON.stringify(current),candidate:errors.length?null:normalized,groups,errors,warnings:[...new Set(warnings)],duplicates,replaced,removed:0,added,unchanged,changeCount,display,settingChanges:[],otherChanges,promptChanged:false,settings:structuredClone(current.settings),promptDate:current.promptDate||'',currentSettings:structuredClone(current.settings),currentPromptDate:current.promptDate};
 }
 

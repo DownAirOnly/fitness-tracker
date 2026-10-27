@@ -1451,3 +1451,69 @@ html.buddy-active #overlay .modal{z-index:1101}
 .finance-intro .body-copy{max-width:490px}
 .finance-intro .hint{font-size:11px;line-height:1.5}
 [data-theme="dark"] .finance-intro-mark{background:#284b38;color:#cee7bf}
+
+
+/* v83 — Finances Quick Log and prepared transaction CSV workflow */
+.finances-page-head{padding:18px 0 17px}
+.finances-page-head h1{margin:4px 0 8px}
+.finance-log,.finance-recent,.finance-import-card{margin-bottom:17px}
+.finance-log{padding:21px}
+.finance-log .section-head,.finance-recent .section-head{align-items:flex-start;margin-bottom:15px}
+.finance-log .section-head h2,.finance-recent .section-head h2,.finance-import-card h2{margin:3px 0 0}
+.finance-count{color:#57715f;background:#edf3e9;border:1px solid #d5e2d7;border-radius:20px;padding:5px 10px;font-size:11px;font-weight:750;white-space:nowrap}
+.finance-form,.finance-edit-form{display:grid;gap:13px}
+.finance-quick-fields{display:grid;grid-template-columns:minmax(118px,.85fr) minmax(0,1.55fr);gap:10px}
+.finance-money-input{min-height:45px;display:flex;align-items:center;background:#fff;border:1px solid #dce4d8;border-radius:11px;overflow:hidden;color:#1e4730}
+.finance-money-input strong{padding-left:11px;font-size:19px}
+.finance-money-input input{min-width:0;width:100%;border:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;font-size:19px!important;font-weight:750;padding:9px 10px 9px 4px!important;min-height:43px}
+.finance-money-input:focus-within{outline:2px solid #8cbd98;outline-offset:2px}
+.finance-quick-fields>.field{min-width:0}
+.finance-quick-fields .field>input{min-height:45px}
+.finance-more{border:1px solid #dfebde;border-radius:12px;background:#f6f9f3;padding:0 12px}
+.finance-more>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:9px;font-size:12px;color:#42654e;font-weight:800;padding:13px 3px;cursor:pointer}
+.finance-more>summary::-webkit-details-marker{display:none}
+.finance-more>summary:after{content:'+';font-size:19px;font-weight:500}
+.finance-more[open]>summary:after{content:'−'}
+.finance-extra-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;padding:3px 0 15px}
+.finance-extra-fields .field{min-width:0}
+.finance-extra-fields .field input,.finance-extra-fields .field select{min-width:0}
+.finance-extra-fields .finance-note{grid-column:1/-1}
+.finance-extra-fields textarea,.finance-sample{font:inherit;background:#fff;color:#1d3828;border:1px solid #dce4d8;border-radius:11px;padding:11px 12px;resize:vertical;width:100%;font-size:13px;line-height:1.5}
+.finance-save{min-height:47px;font-size:13px}
+.finance-log>.hint,.finance-import-card>.hint{margin-top:11px;line-height:1.55}
+.finance-notice{margin:0 0 11px;border-radius:10px;padding:11px 12px;background:#eaf5e7;color:#2c6345;border:1px solid #c8e4c8;font-size:12px}
+.finance-error{color:#943d2d;background:#fff0e8;border:1px solid #edc6b7;border-radius:10px;padding:10px 12px;margin:0;font-size:12px}
+.finance-recent-list{display:grid;gap:0}
+.finance-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #e6ede5;padding:13px 0;min-width:0}
+.finance-row:last-child{border-bottom:0}
+.finance-row-main{min-width:0;flex:1}
+.finance-row-main strong{display:block;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.finance-row-main small{display:block;color:#799383;font-size:11px;line-height:1.5;margin-top:3px;overflow-wrap:anywhere}
+.finance-row-side{display:flex;flex-direction:column;gap:5px;align-items:end;flex:0 0 auto}
+.finance-row-side b{font-weight:850;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.finance-row-side b.expense{color:#9c523b}.finance-row-side b.income{color:#246f42}.finance-row-side b.transfer{color:#426477}
+.finance-row-side .text-btn{min-height:27px;padding:3px 6px;font-size:11px}
+.finance-recent>.empty{margin:5px 0 0}
+.finance-import-card .body-copy{max-width:600px}
+.finance-import-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.finance-import-actions button{min-height:42px}
+.finance-sample{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;white-space:pre;overflow:auto}
+.finance-edit-form .finance-quick-fields{grid-template-columns:minmax(100px,1fr) minmax(0,1.6fr)}
+[data-theme="dark"] .finance-count{color:#c8e1cf;background:#263b2d;border-color:#48614e}
+[data-theme="dark"] .finance-money-input,[data-theme="dark"] .finance-extra-fields textarea,[data-theme="dark"] .finance-sample{color:#ebf5eb;background:#14251b;border-color:#48614e}
+[data-theme="dark"] .finance-more{background:#192e21;border-color:#344d3a}
+[data-theme="dark"] .finance-more>summary{color:#bddac3}
+[data-theme="dark"] .finance-notice{color:#d4f4d4;background:#20402b;border-color:#3a6544}
+[data-theme="dark"] .finance-error{color:#ffd0bd;background:#43291d;border-color:#8b5241}
+[data-theme="dark"] .finance-row{border-color:#334a38}
+[data-theme="dark"] .finance-row-main small{color:#a8c3ae}
+[data-theme="dark"] .finance-row-side b.expense{color:#e9a58e}
+[data-theme="dark"] .finance-row-side b.income{color:#9ddcb5}
+[data-theme="dark"] .finance-row-side b.transfer{color:#9ac6d8}
+@media(max-width:520px){
+ .finance-log,.finance-recent,.finance-import-card{padding:16px}
+ .finance-quick-fields,.finance-edit-form .finance-quick-fields{grid-template-columns:1fr;gap:10px}
+ .finance-extra-fields{gap:9px}
+ .finance-import-actions button{flex:1 1 155px}
+}
+@media(max-width:355px){.finance-extra-fields{grid-template-columns:1fr}}

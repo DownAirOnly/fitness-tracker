@@ -206,3 +206,20 @@ Finances now has a durable transaction collection in the Everyday notebook; purc
 Each transaction has fields id, date, kind, amountCents, description, category, currency (USD), and optional time, merchant, note, source, externalId. Date is the actual local YYYY-MM-DD calendar date rather than the food tracking day; time may be HH:MM or omitted. Kind is expense, income or transfer; amountCents is a positive safe integer, preventing floating-point dollar rounding. Category defaults to Uncategorized and source may be manual or import. No bank credentials, account numbers, or inferred balances are stored. Validation rejects invalid amounts, unsupported currencies/types, malformed dates/times, duplicate IDs and excessive text.
 
 Cloud migration previews report financial additions/skips, preserve distinct same-amount purchases, and assign a safe new ID when a cloud/device ID collides. Replaying the same migration doesn't duplicate a transaction. CSV transaction import is intentionally not enabled until the review/deduplication pass.
+
+
+## v83 — Quick transaction logging and ChatGPT prepared CSV batches (Pass 3.3)
+
+Finances is now usable. On the Finances tab, Quick Log puts amount and description first, with an expandable Type (expense/income/transfer), Category, actual calendar Date, optional Time, Merchant, and Note section. Each entry uses the validated positive USD integer-cent model from v82 and is saved through Everyday's device, cloud/recovery, offline workspace, or demo workflow. The ten newest transactions are visible, editable and deletable; full searchable history and spending summaries remain future phases.
+
+**Bank screenshot workflow:** Share one or more bank screenshots or a CSV with ChatGPT; ask it to convert the transactions into the Everyday format below. In Finances, choose **Paste prepared CSV**, paste the result, preview the proposed rows, and confirm only after reviewing all dates, amounts, and expense/income/transfer types. Screenshots are supplied to ChatGPT, not uploaded into the Everyday app. CSV amounts are positive dollars; direction belongs in the kind column.
+
+```csv
+recordType,date,time,kind,amount,description,category,merchant,note,externalId
+transaction,2026-10-27,14:15,expense,7.19,Water cases,Household Supplies,Wawa,,
+transaction,2026-10-27,,income,100.00,Paycheck,Income,,,
+```
+
+Use YYYY-MM-DD calendar dates and optional 24-hour HH:MM times. Add a unique transaction reference to `externalId` when the bank provides one. The reviewed CSV importer supports `transaction` (also `expense`, `income`, `transfer` aliases) in universal Everyday CSV, and an alternative `amountCents` exact-integer column. It rejects signed/ambiguous amounts rather than guessing bank debit/credit conventions. Reimporting the same prepared CSV recognizes stable content-based IDs and does not create new entries, including preserving multiple identical purchases within one batch by occurrence number. If a different row resembles a preexisting manual purchase, it receives a visible duplicate warning but is not silently discarded. Conflicting transaction IDs block the whole candidate. Editing a transaction retains its ID. Imported entries can be corrected or deleted individually.
+
+**Direct raw bank-CSV adapters are not available yet.** Actual bank exports differ in column names, date formats, pending/posted status, transfers and signs. They must first be transformed into the reviewed Everyday schema (by ChatGPT or a future format-specific adapter). Avoid sharing full account numbers or authentication details in screenshots/CSV.

@@ -1,9 +1,10 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=82';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=83';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,importSections} from './import-model.js?v=82';
+import {prepareImport,importSections} from './import-model.js?v=83';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=82';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=83';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -44,7 +45,7 @@ let storageProtection={supported:false,persisted:null,usage:null,quota:null,erro
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
-let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0;
+let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -215,13 +216,81 @@ function home(loading=false) {
   const remainingBadges='<div class="home-remaining" aria-label="Daily goals remaining"><span class="'+(calRemaining<0?'over':'')+'"><small>CALORIES</small><strong>'+(loading?'—':calRemaining>=0?calRemaining+' left':(-calRemaining)+' over')+'</strong></span><span class="'+(proteinRemaining<=0?'reached':'')+'"><small>PROTEIN</small><strong>'+(loading?'—':proteinRemaining>0?proteinRemaining+'g left':'Goal reached')+'</strong></span></div>';
   return `<section class="home-actions" aria-label="What do you want to log?"><button class="big-action food-action" data-action="food" ${loading?'disabled':''}><span class="action-icon">◒</span><span><strong>Food</strong><small>Calories, protein & saved foods</small></span><b>↗</b></button><button class="big-action lift-action" data-action="gym" ${loading?'disabled':''}><span class="action-icon">▣</span><span><strong>Lifting</strong><small>Sets, reps & previous workouts</small></span><b>↗</b></button></section>${!account&&!demoMode&&!offlineWorkspace&&authChecked?'<section class="demo-entry"><span><strong>Try Everyday with sample logs</strong><small>Fictional food, weight and workout history · your records stay untouched</small></span>'+button('Load demo data','demo-start','outline small')+'</section>':''}<section class="today-card"><div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>Today so far</h2></div>${button('View day ↗','history','text-btn',loading?'disabled':'')}</div><div class="metric-row"><div><b>${loading?'—':Math.round(totals.calories).toLocaleString()}</b><small>of ${loading?'—':data.settings.calories} cal</small>${progressBar(loading?0:totals.calories,data.settings.calories,'#d8eb86')}</div><div><b>${loading?'—':Math.round(totals.protein)}<em>g</em></b><small>of ${loading?'—':data.settings.protein}g protein</small>${progressBar(loading?0:totals.protein,data.settings.protein,'#9fd9bf')}</div></div>${remainingBadges}</section><section class="weight-strip"><div><span class="small-icon">⚖</span><span><strong>${loading?'—':latest?`${fmt(latest.value)} ${data.settings.unit}`:'No weigh-in yet'}</strong><small>${loading?'—':latest?`Last logged ${niceDate(latest.date)}`:'A morning check-in when you are ready'}</small></span></div>${button('Log weight','weight','outline small',loading?'disabled':'')}</section>`;
 }
-// Pass 3.1: the Finances destination is ready, but records are not stored yet.
-function finances(){
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Your spending notebook will live here.</p></div>'+
- '<section class="panel finance-intro"><span class="finance-intro-mark" aria-hidden="true">$</span><h2>Financial data foundation is ready.</h2>'+
- '<p class="body-copy">Everyday can now safely store transactions in backups and cloud/device notebooks. The purchase-entry form and transaction history will arrive in upcoming passes.</p>'+
- '<p class="hint">Nothing is recorded automatically, and no bank account is connected. Transaction logging is not available yet.</p></section>';
+// Pass 3.3: usable daily transaction logging and reviewed ChatGPT CSV entry.
+const financeNowTime=(date=new Date())=>String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
+const financeKindLabels={expense:'Expense',income:'Income',transfer:'Transfer'};
+const FINANCE_CSV_SAMPLE='recordType,date,time,kind,amount,description,category,merchant,note,externalId\n'+
+ 'transaction,2026-10-27,14:15,expense,7.19,Water cases,Household Supplies,Wawa,,\n'+
+ 'transaction,2026-10-27,,income,100.00,Paycheck,Income,,,';
+function financeFields(tx=null,scope='quick'){
+ const categoryId='finance-category-'+scope,amount=tx?formatFinanceAmount(tx.amountCents).slice(1):'';
+ const kind=tx?.kind||'expense',time=tx?tx.time||'':financeNowTime();
+ return '<div class="finance-quick-fields">'+
+  '<label class="field"><span>Amount (USD)</span><span class="finance-money-input"><strong aria-hidden="true">$</strong><input type="text" name="amount" inputmode="decimal" autocomplete="off" maxlength="20" required value="'+esc(amount)+'" placeholder="0.00" aria-label="Amount in US dollars"></span></label>'+
+  input('What was it?','description',tx?.description||'','text','placeholder="e.g. Wawa water" maxlength="200" required autocomplete="off"')+
+  '</div><details class="finance-more" '+(tx?'open':'')+'><summary>Category, date & more</summary><div class="finance-extra-fields">'+
+  '<label class="field"><span>Type</span><select name="kind">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+financeKindLabels[k]+'</option>').join('')+'</select></label>'+
+  input('Calendar date','date',tx?.date||localDate(),'date','required')+
+  input('Time (optional)','time',time,'time','step="60"')+
+  '<label class="field"><span>Category</span><input name="category" list="'+categoryId+'" maxlength="80" value="'+esc(tx?.category||'Uncategorized')+'" autocomplete="off"></label>'+
+  '<datalist id="'+categoryId+'">'+FINANCE_CATEGORIES.map(c=>'<option value="'+esc(c)+'"></option>').join('')+'</datalist>'+
+  input('Merchant (optional)','merchant',tx?.merchant||'','text','maxlength="160" placeholder="Store or payee"')+
+  '<label class="field finance-note"><span>Note (optional)</span><textarea name="note" rows="2" maxlength="500" placeholder="Anything useful to remember">'+esc(tx?.note||'')+'</textarea></label>'+
+  '</div></details>';
 }
+function financeRecordFromForm(v,existing=null){
+ const next={id:existing?.id||id(),date:String(v.date||''),kind:String(v.kind||'expense'),
+  amountCents:parseFinanceAmount(v.amount),description:String(v.description||'').trim(),
+  category:String(v.category||'').trim()||'Uncategorized',currency:'USD',source:existing?.source||'manual'};
+ for(const key of ['time','merchant','note']){const val=String(v[key]||'').trim();if(val)next[key]=val;}
+ if(existing?.externalId)next.externalId=existing.externalId;
+ if(!next.description)throw Error('Describe the transaction before saving.');
+ return normalizeData({...emptyData(),transactions:[next]}).transactions[0];
+}
+function financeRecent(){
+ const all=[...(data.transactions||[])].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00')));
+ return '<section class="panel finance-recent"><div class="section-head"><div><p class="eyebrow">RECENT TRANSACTIONS</p><h2>Latest entries</h2></div><span class="finance-count">'+all.length+' total</span></div>'+
+  (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(tx=>
+  '<div class="finance-row"><div class="finance-row-main"><strong>'+esc(tx.description)+'</strong><small>'+esc(tx.date)+(tx.time?' · '+esc(tx.time):'')+' · '+esc(tx.category)+(tx.merchant?' · '+esc(tx.merchant):'')+'</small></div>'+
+  '<div class="finance-row-side"><b class="'+esc(tx.kind)+'">'+(tx.kind==='income'?'+':tx.kind==='expense'?'−':'')+formatFinanceAmount(tx.amountCents)+'</b>'+
+  button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div></div>').join('')+'</div>':empty('No transactions yet. Your first entry will appear here.'))+
+  (all.length>10?'<p class="hint">Showing the 10 newest entries. Full searchable history is coming next.</p>':'')+'</section>';
+}
+function finances(){
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Log purchases quickly. Look for patterns once the data is there.</p></div>'+
+ '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>New transaction</h2></div><span class="finance-count">USD</span></div>'+
+ (financeNotice?'<p class="finance-notice" role="status">'+esc(financeNotice)+'</p>':'')+
+ '<form class="finance-form" data-form="finance">'+financeFields()+'<button class="primary finance-save" type="submit">Save transaction</button></form>'+
+ '<p class="hint">Defaults to an expense on today’s calendar date. Expand details for categories, income, transfers, time or notes. No bank connection.</p></section>'+
+ financeRecent()+
+ '<section class="panel finance-import-card"><p class="eyebrow">BULK INPUT</p><h2>Import with ChatGPT</h2>'+
+ '<p class="body-copy">Send screenshots or a bank CSV to ChatGPT and request Everyday transaction CSV. Paste the prepared rows here, review the amounts and categories, then confirm.</p>'+
+ '<div class="finance-import-actions">'+button('Paste prepared CSV','finance-paste-csv','outline')+
+ button('View CSV example','finance-csv-example','text-btn')+'</div>'+
+ '<p class="hint">Reimporting the same prepared rows will not add them again. Possible duplicates are flagged for review. Direct bank-format imports come later.</p></section>';
+}
+function financeEditForm(tx){
+ if(!tx)return;
+ modal('Edit transaction','<form class="form finance-edit-form" data-form="finance-edit"><input type="hidden" name="transactionId" value="'+esc(tx.id)+'">'+financeFields(tx,'edit')+
+  '<div class="form-actions"><button class="primary" type="submit">Save changes</button>'+
+  button('Delete','finance-delete','danger','data-id="'+esc(tx.id)+'"')+'</div></form>');
+}
+function financeCsvExample(){
+ modal('Everyday transaction CSV','<p class="body-copy">This is the format ChatGPT can prepare from your bank screenshots or statement. Amount is positive; kind says expense, income or transfer.</p>'+
+  '<label class="field"><span>Example</span><textarea class="finance-sample" rows="5" readonly spellcheck="false">'+esc(FINANCE_CSV_SAMPLE)+'</textarea></label>'+
+  '<p class="hint">Dates: YYYY-MM-DD. Optional times: HH:MM. An externalId can identify a unique bank transaction. Check uncertain values before importing.</p>'+
+  '<div class="form-actions">'+button('Paste prepared CSV','finance-paste-csv','primary')+button('Close','close','outline')+'</div>');
+}
+function financeCsvPaste(){
+ importModal('csv','paste');
+ const dialog=document.querySelector('.modal'),title=dialog?.querySelector('.modal-top h2');
+ if(title)title.textContent='Paste prepared transactions';
+ const form=dialog?.querySelector('form[data-form="import"]');
+ if(!form)return;
+ form.querySelector('textarea[name="text"]').placeholder=FINANCE_CSV_SAMPLE;
+ form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste prepared transaction CSV from ChatGPT, preview the rows, then confirm. Screenshots are processed in ChatGPT, not uploaded to Everyday.</p>');
+}
+
 function foodTotals(totals){
   return `<span class="food-total-grid"><span><small>CALORIES</small><span class="food-total-number"><strong>${Math.round(totals.calories)}</strong><span>/ ${data.settings.calories}</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.calories/data.settings.calories*100))}%;background:#d8eb86"></span></span></span><span><small>PROTEIN</small><span class="food-total-number"><strong>${Math.round(totals.protein)}g</strong><span>/ ${data.settings.protein}g</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.protein/data.settings.protein*100))}%;background:#9fd9bf"></span></span></span></span>`;
 }
@@ -1141,7 +1210,7 @@ function setRow(i,s={weight:'',reps:'',difficulty:''}) {return `<div class="set-
 function weightForm(w=null,prompt=false) {modal(w?'Edit weigh-in':'Log your weight',`<form class="form" data-form="weight"><input type="hidden" name="weightId" value="${esc(w?.id||'')}">${input(`Weight (${data.settings.unit})`,'value',w?.value??'','number','min="1" step="0.1" required')}${input('Date','date',w?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save weigh-in</button>${w?button('Delete','delete-weight','danger',`data-id="${esc(w.id)}"`):button('Enter later','later','outline')}</div></form><p class="hint">${prompt?'This is today’s only automatic weight prompt. Close it or choose Enter later and Everyday will not ask again until the next tracking day. ':''}Weight is stored independently from body-fat measurements. Same-day weigh-ins replace the earlier weight value.</p>`);}
 function bodyFatForm(b=null){modal(b?'Edit body fat':'Log body fat',`<form class="form" data-form="body-fat"><input type="hidden" name="bodyFatId" value="${esc(b?.id||'')}">${input('Body fat %','value',b?.value??'','number','min="0.1" max="100" step="0.1" required')}${input('Date','date',b?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save body fat</button>${b?button('Delete','delete-body-fat','danger',`data-id="${esc(b.id)}"`):''}</div></form><p class="hint">Body fat is its own measurement stream. It does not require or modify a weight record.</p>`);}
 function importHub(){
- modal('Import data','<div class="import-source-grid"><button type="button" class="outline" data-action="import-csv"><strong>CSV file</strong><small>Mixed Everyday records or legacy food CSV</small></button><button type="button" class="outline" data-action="paste-csv"><strong>Paste CSV</strong><small>Paste CSV text directly</small></button><button type="button" class="outline" data-action="restore"><strong>JSON backup</strong><small>Preview a full backup replacement</small></button><button type="button" class="outline" data-action="paste-json"><strong>Paste JSON</strong><small>Paste a complete Everyday backup</small></button></div><p class="hint">Universal CSV supports saved foods, food logs, exercises, workout templates, lift sets, and independent weight and body-fat records. Every import still goes through the same review screen.</p>');
+ modal('Import data','<div class="import-source-grid"><button type="button" class="outline" data-action="import-csv"><strong>CSV file</strong><small>Mixed Everyday records or legacy food CSV</small></button><button type="button" class="outline" data-action="paste-csv"><strong>Paste CSV</strong><small>Paste CSV text directly</small></button><button type="button" class="outline" data-action="restore"><strong>JSON backup</strong><small>Preview a full backup replacement</small></button><button type="button" class="outline" data-action="paste-json"><strong>Paste JSON</strong><small>Paste a complete Everyday backup</small></button></div><p class="hint">Universal CSV supports saved foods, food logs, exercises, workout templates, lift sets, weights, body fat, and prepared financial transactions. Every import still goes through the same review screen.</p>');
 }
 function importModal(kind,source='file') {
  pendingImport=null;importReadToken++;const paste=source==='paste',title=(paste?'Paste ':'Import ')+(kind==='csv'?'CSV':'JSON');
@@ -1154,7 +1223,7 @@ function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
-app.addEventListener('change',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
+app.addEventListener('change',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
   if(action==='demo-start'||action==='demo-reset'){if(account||offlineWorkspace)return;if(demoMode&&action==='demo-start')return;if(demoMode&&action==='demo-reset'&&!confirm('Reset all demo entries to the original sample?'))return;const fixture=createDemoData();try{storeDemoWorkspace(fixture);}catch{alert('This device could not open the demo workspace.');return;}demoMode=true;data=fixture;chosenDate=DEMO_LAST_DATE;page='home';cloudMessage='Demo mode · saved separately on this device';close(true);render();return;}
@@ -1410,7 +1479,16 @@ document.addEventListener('click',async event=>{
   if(action==='add-set'){const wrap=document.querySelector('#sets'),last=wrap.lastElementChild;wrap.insertAdjacentHTML('beforeend',setRow(wrap.children.length,{weight:last?.querySelector('[name=weight]')?.value||0,reps:last?.querySelector('[name=reps]')?.value||8,difficulty:last?.querySelector('[name=difficulty]')?.value||''}));const row=wrap.lastElementChild;requestAnimationFrame(()=>row.querySelector('[name=weight]')?.focus());return;}
   if(action==='remove-set'){const wrap=document.querySelector('#sets');if(wrap.children.length>1){el.closest('.set-row').remove();[...wrap.children].forEach((r,i)=>r.firstElementChild.textContent=i+1);}return;}
   if(action.startsWith('delete-')) {if(!confirm('Delete this item?'))return;const key={'delete-entry':'foodEntries','delete-card':'foods','delete-lift':'lifts','delete-weight':'weights','delete-body-fat':'bodyFat'}[action];data[key]=data[key].filter(x=>x.id!==el.dataset.id);close(true);persist();return;}
-  if(action==='import-data'){importHub();return;}
+  if(action==='finance-edit'){financeEditForm(data.transactions.find(tx=>tx.id===el.dataset.id));return;}
+   if(action==='finance-paste-csv'){financeCsvPaste();return;}
+   if(action==='finance-csv-example'){financeCsvExample();return;}
+   if(action==='finance-delete'){
+     const record=data.transactions.find(tx=>tx.id===el.dataset.id);
+     if(!record||!confirm('Delete this transaction?'))return;
+     const candidate=structuredClone(data);candidate.transactions=candidate.transactions.filter(tx=>tx.id!==record.id);
+     data=candidate;financeNotice='Transaction removed.';close(true);await persist();return;
+   }
+   if(action==='import-data'){importHub();return;}
   if(action==='import-csv'){importModal('csv','file');return;}
   if(action==='paste-csv'){importModal('csv','paste');return;}
   if(action==='restore'){importModal('json','file');return;}
@@ -1422,7 +1500,29 @@ document.addEventListener('click',async event=>{
 });
 app.addEventListener('submit',async event=>{
   const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(importSaving||(!offlineWorkspace&&account&&(cloudBusy||cloudPending||!session?.ready)))return;const v=Object.fromEntries(new FormData(form));
-  if(form.dataset.form==='offline-workspace'){
+  if(form.dataset.form==='finance'||form.dataset.form==='finance-edit'){
+     const editing=form.dataset.form==='finance-edit',existing=editing?data.transactions.find(tx=>tx.id===v.transactionId):null;
+     if(editing&&!existing)return alert('This transaction no longer exists.');
+     if(!editing&&data.transactions.length>=50000)return alert('Financial transaction limit reached. Export a backup.');
+     const showError=message=>{
+       let status=form.querySelector('[data-finance-error]');
+       if(!status){status=document.createElement('p');status.dataset.financeError='';status.className='finance-error';status.setAttribute('role','alert');form.prepend(status);}
+       status.textContent=message;
+     };
+     let record;
+     try{record=financeRecordFromForm(v,existing);}catch(error){showError(error.message);return;}
+     const candidate=structuredClone(data);
+     if(editing)candidate.transactions=candidate.transactions.map(tx=>tx.id===existing.id?record:tx);
+     else candidate.transactions.push(record);
+     try{normalizeData(candidate);if(account&&!offlineWorkspace)encodeState(candidate);}
+     catch(error){showError(error.message);return;}
+     data=candidate;financeNotice=editing?'Transaction updated.':'Transaction added.';
+     if(editing)close(true);
+     const saved=await persist();
+     if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';render();}
+     return;
+   }
+   if(form.dataset.form==='offline-workspace'){
     const file=form.querySelector('[name=file]').files[0],replace=v.replace==='yes',preview=document.querySelector('#offline-workspace-preview');if(!file)return;
     if(replace&&offlineWorkspace?.dirty&&!confirm('Replace this workspace and discard its changes since the last export?'))return;
     try{
@@ -1539,7 +1639,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=82',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=83',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1591,7 +1691,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=82');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=83');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
