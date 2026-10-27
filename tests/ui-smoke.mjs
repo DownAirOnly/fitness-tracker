@@ -59,7 +59,7 @@ try{
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('finances');
   assert.ok(document.querySelector('.finances-page-head'),'Finances route works');
-  assert.ok(document.querySelector('.finance-intro').textContent.includes('not active yet'),'no premature transaction claims');
+  assert.ok(document.querySelector('.finance-intro').textContent.includes('Transaction logging is not available yet'),'Finances storage is ready but transaction entry remains disabled');
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
   await click('settings');
   assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
