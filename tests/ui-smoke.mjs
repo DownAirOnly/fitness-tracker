@@ -116,11 +116,13 @@ try{
  assert.equal(foodFormTest.elements.foodTime.value,'','No time stays available without a dropdown');
  foodTimeRow.querySelector('[data-action="time-now"]').click();await tick();
  assert.ok(Number.isInteger(Number(foodFormTest.elements.foodTime.value)),'Now adds a valid time slot');
- foodCsv.value='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,23:30,true';
+ const beforeMidnight=foodFormTest.elements.date.value;
+  const afterMidnight=new Date(Date.parse(beforeMidnight+'T12:00:00Z')+86400000).toISOString().slice(0,10);
+  foodCsv.value='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,23:30,true';
  foodCsv.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await tick();
- assert.equal(foodFormTest.elements.foodTime.value,'47');assert.equal(foodFormTest.elements.date.value,'2026-10-25');
+ assert.equal(foodFormTest.elements.foodTime.value,'47');assert.equal(foodFormTest.elements.date.value,beforeMidnight);
  foodTimeRow.querySelector('[data-delta="1"]').click();await tick();
- assert.equal(foodFormTest.elements.foodTime.value,'0');assert.equal(foodFormTest.elements.date.value,'2026-10-26','crossing midnight advances the calendar date');
+ assert.equal(foodFormTest.elements.foodTime.value,'0');assert.equal(foodFormTest.elements.date.value,afterMidnight,'crossing midnight advances the calendar date');
  foodTimeRow.querySelector('[data-delta="-1"]').click();await tick();
  assert.equal(foodFormTest.elements.foodTime.value,'47');
  foodCsv.value='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,14:30,true';
