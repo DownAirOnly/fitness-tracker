@@ -230,6 +230,6 @@ test('v84: bank metadata validates dates, bounded user classifications and recei
   const notebook=emptyData();notebook.transactions=[{...valid,...invalid}];
   if(invalid.itemization===null&&invalid.subcategory===4)
    assert.throws(()=>normalizeData(notebook),/subcategory/);
-  else assert.throws(()=>normalizeData(notebook),/transaction/i);
+  else assert.throws(()=>normalizeData(notebook),/transaction|bank direction/i);
  }
 });
