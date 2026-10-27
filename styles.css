@@ -1346,3 +1346,71 @@ html.buddy-active #overlay .modal{z-index:1101}
 [data-theme="dark"] .routine-history-edit-tabs button{background:#25392c;border-color:#45644e;color:#d5e7d8}
 [data-theme="dark"] .routine-history-edit-tabs button.selected{background:#b5d58d;border-color:#b5d58d;color:#172c23}
 [data-theme="dark"] .routine-history-editor textarea{background:#17231c;color:#e5eee7;border-color:#3b5042}
+
+
+/* v80 — approved Natural Anatomy + Neon Heatmap across Buddy, Exercise Library and guides.
+   Keep quiet muscles visible, with a soft warm/cool glow for the mapped active groups. */
+.muscle-figure,
+.buddy-muscle-screen .muscle-figure,
+.exercise-muscle-peek,
+.routine-muscle-mini,
+.buddy-muscle-mini,
+[data-theme="dark"] .muscle-figure,
+[data-theme="dark"] .buddy-muscle-screen .muscle-figure,
+[data-theme="dark"] .exercise-muscle-peek,
+[data-theme="dark"] .routine-muscle-mini,
+[data-theme="dark"] .buddy-muscle-mini{
+ background:radial-gradient(ellipse at 50% 27%,#234257 0%,#122a3a 48%,#0d1b28 100%);
+ border-color:#375d70;
+}
+.muscle-silhouette>*,
+[data-theme="dark"] .muscle-silhouette>*{
+ fill:#2a4c60;
+ stroke:#7898aa;
+ stroke-width:1.35;
+ stroke-linecap:round;
+ stroke-linejoin:round;
+}
+.muscle-region>*{
+ stroke-width:1.05;
+ stroke-linejoin:round;
+ stroke-linecap:round;
+}
+.muscle-region.quiet>*,
+[data-theme="dark"] .muscle-region.quiet>*{
+ fill:#436579;
+ stroke:#799cae;
+ opacity:.82;
+}
+.muscle-region.primary>*{
+ fill:inherit;
+ stroke:#ffc49d;
+ filter:drop-shadow(0 0 1.6px rgba(255,138,81,.47));
+}
+.muscle-region.secondary>*{
+ fill:inherit;
+ stroke:#b0ecff;
+ filter:drop-shadow(0 0 1.5px rgba(66,213,255,.42));
+}
+.muscle-contours{
+ fill:none;
+ stroke:#a4cad8;
+ stroke-width:1.1;
+ stroke-linecap:round;
+ stroke-linejoin:round;
+ opacity:.3;
+ pointer-events:none;
+}
+.muscle-mini-pair .muscle-contours{opacity:.32}
+.muscle-figure>span,
+[data-theme="dark"] .muscle-figure>span{color:#b1cedc}
+.muscle-dot.primary,.muscle-dot.muscle-primary{background:#ff8958}
+.muscle-dot.secondary,.muscle-dot.muscle-secondary{background:#4dd8ff}
+.muscle-name,
+[data-theme="dark"] .muscle-name{
+ background:#eaf2f5;
+ border-color:#c5d8e1;
+ color:#245169;
+}
+.muscle-guide .muscle-legend{gap:11px}
+.muscle-body{overflow:visible}

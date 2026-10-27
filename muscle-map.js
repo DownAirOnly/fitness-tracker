@@ -39,7 +39,8 @@ export function exerciseMuscleProfile(name){
  const found=exercises[key];
  return found?{primary:[...found.primary],secondary:[...found.secondary]}:null;
 }
-const silhouette='<ellipse cx="90" cy="22" rx="15" ry="17"/><rect x="82" y="38" width="16" height="14" rx="5"/>'+
+// Natural baseline from the approved Anatomy Lab: curved head/neck, original balanced torso and legs.
+const silhouette='<path d="M90 5 C100 5 105 12 105 22 C105 32 100 40 90 40 C80 40 75 32 75 22 C75 12 80 5 90 5 Z"/><path d="M83 38 Q90 41 97 38 L100 52 Q90 56 80 52 Z"/>'+
  '<path d="M70 49 Q58 51 54 67 L65 104 70 147 63 166 Q90 183 117 166 L110 147 115 104 126 67 Q122 51 110 49 Z"/>'+
  '<path d="M56 57 Q43 57 40 75 L27 145 Q24 154 34 158 L43 151 60 98 66 72 Z"/>'+
  '<path d="M124 57 Q137 57 140 75 L153 145 Q156 154 146 158 L137 151 120 98 114 72 Z"/>'+
@@ -62,17 +63,32 @@ const rear={
  triceps:'<ellipse cx="49" cy="102" rx="7" ry="19" transform="rotate(14 49 102)"/><ellipse cx="131" cy="102" rx="7" ry="19" transform="rotate(-14 131 102)"/>',
  forearms:'<path d="M40 120 L47 121 42 150 33 151 Z M140 120 L133 121 138 150 147 151 Z"/>',
  lowerBack:'<path d="M79 128 L101 128 106 154 90 162 74 154 Z"/>',
- glutes:'<ellipse cx="77" cy="169" rx="15" ry="13"/><ellipse cx="103" cy="169" rx="15" ry="13"/>',
+ glutes:'<path d="M65 164 C69 158 77 156 84 160 Q88 164 88 172 C87 179 83 186 76 186 C68 185 65 176 65 164 Z M96 160 C103 156 111 158 115 164 C115 176 112 185 104 186 C97 186 93 179 92 172 Q92 164 96 160 Z"/>',
  hamstrings:'<path d="M67 186 Q79 182 87 185 L84 243 73 248 Z M93 185 Q101 182 113 186 L107 248 96 243 Z"/>',
  calves:'<path d="M73 249 Q79 243 86 249 L84 290 78 299 72 287 Z M94 249 Q101 243 107 249 L108 287 102 299 96 290 Z"/>'
 };
+// A unique gradient namespace prevents repeated Buddy/exercise thumbnails from sharing SVG IDs.
+let anatomySvgSequence=0;
+const contours={
+ front:'M90 55V143 M70 82Q90 91 110 82 M78 106H102 M78 118H102 M78 130H102 M74 204L82 230 M106 204L98 230',
+ back:'M90 56V154 M70 84Q90 97 110 84 M77 112Q90 125 103 112 M90 163V177 M74 203L83 233 M106 203L97 233'
+};
 function bodySvg(view,profile){
  const muscles=view==='front'?front:rear;
+ const uid='anatomy-'+(++anatomySvgSequence);
+ const gradients='<defs>'+
+  '<linearGradient id="'+uid+'-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd1a0"/><stop offset=".55" stop-color="#ff8a56"/><stop offset="1" stop-color="#e65e38"/></linearGradient>'+
+  '<linearGradient id="'+uid+'-cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c3f4ff"/><stop offset=".6" stop-color="#4ed9fd"/><stop offset="1" stop-color="#168bb9"/></linearGradient>'+
+  '</defs>';
  const regions=Object.entries(muscles).map(([id,markup])=>{
   const type=profile?.primary.includes(id)?'primary':profile?.secondary.includes(id)?'secondary':'quiet';
-  return '<g class="muscle-region '+type+'" data-muscle="'+id+'"><title>'+labels[id]+'</title>'+markup+'</g>';
+  const paint=type==='primary'?' style="fill:url(#'+uid+'-warm)"':type==='secondary'?' style="fill:url(#'+uid+'-cool)"':'';
+  return '<g class="muscle-region '+type+'" data-muscle="'+id+'"'+paint+'><title>'+labels[id]+'</title>'+markup+'</g>';
  }).join('');
- return '<svg class="muscle-body" viewBox="0 0 180 330" role="img" aria-label="'+(view==='front'?'Front':'Back')+' muscle diagram"><g class="muscle-silhouette">'+silhouette+'</g>'+regions+'</svg>';
+ return '<svg class="muscle-body" viewBox="0 0 180 330" role="img" aria-label="'+(view==='front'?'Front':'Back')+' muscle diagram">'+
+  gradients+'<g class="muscle-silhouette">'+silhouette+'</g>'+regions+
+  '<path class="muscle-contours" d="'+contours[view]+'" aria-hidden="true"/>'+
+  '</svg>';
 }
 export function muscleMiniMarkup(name){
  const profile=exerciseMuscleProfile(name);

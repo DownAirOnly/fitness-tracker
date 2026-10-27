@@ -1,6 +1,6 @@
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=77';
 
-import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=73';
+import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
 import {prepareImport,importSections} from './import-model.js?v=72';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=79';
@@ -1532,7 +1532,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=79',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=80',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
