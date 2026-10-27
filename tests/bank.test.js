@@ -176,7 +176,7 @@ test('v84: manually logged duplicates are warned about, never silently overwritt
   description:'WAWA STORE 44',category:'Household Supplies',currency:'USD',source:'manual'}];
  const plan=prepareBankImport(statement,current,options);
  assert.equal(plan.errors.length,0);
- assert.match(plan.warnings.join(' '),/similar transaction already logged/);
+ assert.match(plan.warnings.join(' '),/similar to an already logged transaction/);
  assert.ok(plan.groups[0].rows.some(r=>r.badges.includes('Possible duplicate')));
  assert.equal(current.transactions.length,1);
  assert.equal(plan.candidate.transactions.length,5);
