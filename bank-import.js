@@ -59,6 +59,20 @@ function accountSummaryRow(desc){
  return /^(beginning balance|ending balance|total credits|total debits|summary|balance forward|total activity)\b/i.test(desc);
 }
 const transferDescription=/(?:\b(?:transfer|xfer)\b|\bcredit card payment\b|\bpayment\s*-\s*thank you\b|\bonline payment\b|\bautopay payment\b)/i;
+// Classify only explicit bank-to-bank movements and recognizable account payments
+// as transfers. These remain editable: the bank's debit/credit direction never changes.
+// Do not treat all Zelle/Venmo payments as transfers: many represent real spending.
+const debtPaymentDescription=/^(?:discover\b.*\be-payment\b|online scheduled payment to acct#?\s*\d+\b)/i;
+const overdraftProtectionDescription=/^overdraft protection from\b/i;
+const savingsTransferDescription=/^(?:keep the change transfer to acct\b|online (?:banking |scheduled )?transfer (?:from|to) sav\b)/i;
+const peerPaymentDescription=/\b(?:zelle|venmo|cash app|paypal)\b/i;
+function classifyBankRow(description,signedCents){
+ if(overdraftProtectionDescription.test(description))return {kind:'transfer',subcategory:'Overdraft protection'};
+ if(debtPaymentDescription.test(description))return {kind:'transfer',subcategory:'Debt payments'};
+ if(savingsTransferDescription.test(description))return {kind:'transfer',subcategory:'Savings transfers'};
+ if(transferDescription.test(description))return {kind:'transfer',subcategory:'Other transfers'};
+ return {kind:signedCents<0?'expense':'income',subcategory:''};
+}
 function csvCell(value){const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
 const enrichColumns=[
  'recordType','id','postedDate','kind','amountCents','bankDescription','accountLabel','statementLabel','bankDirection',
@@ -144,6 +158,7 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
  const isCard=columns.includes('posteddate')||referenceIndex>=0;
  const errors=[],warnings=[],records=[],occurrences=new Map(),seenIds=new Set();
  let skipped=0,negative=0,positive=0,transfers=0,zeroAmountSkipped=0,canceledZeroNotices=0;
+ let debtPayments=0,overdraftProtection=0,peerPayments=0;
  const unrecognizedZeroRows=[];
  for(let index=headerIndex+1;index<rows.length;index++){
   const row=rows[index],line=index+1,get=(i)=>i<0?'':cleanLine(row[i]);
@@ -172,13 +187,17 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
    const id='bofa-'+bankHash(seed)+'-'+occurrence;
    if(seenIds.has(id))throw Error('Two unrelated bank rows produced the same identity; import stopped.');
    seenIds.add(id);
-   const transfer=transferDescription.test(description),kind=transfer?'transfer':signedCents<0?'expense':'income';
+   const classification=classifyBankRow(description,signedCents),kind=classification.kind;
+   if(classification.subcategory==='Debt payments')debtPayments++;
+   if(classification.subcategory==='Overdraft protection')overdraftProtection++;
+   if(peerPaymentDescription.test(description))peerPayments++;
    const record={
     id,date,kind,bankDirection:signedCents<0?'debit':'credit',amountCents:Math.abs(signedCents),description,bankDescription:description,
-    category:transfer?'Transfers':'Uncategorized',accountLabel,statementLabel,
+    category:kind==='transfer'?'Transfers':'Uncategorized',
+    ...(classification.subcategory?{subcategory:classification.subcategory}:{}),accountLabel,statementLabel,
     currency:'USD',source:'import',externalId:'bofa:'+bankHash(seed)+':'+occurrence
    };
-   if(transfer)transfers++;
+   if(kind==='transfer')transfers++;
    if(signedCents<0)negative++;else positive++;
    if(transactionDateIndex>=0&&get(transactionDateIndex)){
     const purchaseDate=bankDate(get(transactionDateIndex));
@@ -196,11 +215,16 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
    ' because no money moved.'+explanation);
  }
  if(transfers)warnings.push(transfers+' transaction'+(transfers===1?' was':'s were')+
-  ' classified as transfers using the bank wording. Review these classifications in the transaction preview.');
+  ' classified as transfers using the bank wording, including '+debtPayments+
+  ' account/debt payment'+(debtPayments===1?'':'s')+' and '+overdraftProtection+
+  ' overdraft-protection credit'+(overdraftProtection===1?'':'s')+
+  '. These change cash flow, but should not count as consumption or earned income. Review before confirming.');
+ if(peerPayments)warnings.push(peerPayments+' Zelle/Venmo/other person-to-person row'+(peerPayments===1?' needs':'s need')+
+  ' review: the bank description alone cannot determine whether each is a purchase, shared expense, gift, reimbursement or transfer. The original debit/credit is preserved.');
  if(records.length===0&&!errors.length)errors.push('No posted transaction rows found in this CSV.');
  if(balanceIndex<0&&referenceIndex<0)warnings.push('This bank export has no running balance or reference column. Identical charges are distinguished by row occurrence; check overlapping partial exports carefully.');
  if(isCard)warnings.push('Credit-card payments and refunds may be credits. Review the transaction types before confirming.');
- return {records,errors,warnings,details:{headerLine:headerIndex+1,skipped,zeroAmountSkipped,canceledZeroNotices,negative,positive,transfers,accountLabel,statementLabel,format:isCard?'Credit card':'Checking / Savings'}};
+ return {records,errors,warnings,details:{headerLine:headerIndex+1,skipped,zeroAmountSkipped,canceledZeroNotices,negative,positive,transfers,debtPayments,overdraftProtection,peerPayments,accountLabel,statementLabel,format:isCard?'Credit card':'Checking / Savings'}};
 }
 const patchFields=['kind','description','category','subcategory','merchant','note','purchaseDate','time','itemization'];
 export function readEnrichmentCSV(text,current){

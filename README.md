@@ -222,7 +222,7 @@ transaction,2026-10-27,,income,100.00,Paycheck,Income,,,
 
 Use YYYY-MM-DD calendar dates and optional 24-hour HH:MM times. Add a unique transaction reference to `externalId` when the bank provides one. The reviewed CSV importer supports `transaction` (also `expense`, `income`, `transfer` aliases) in universal Everyday CSV, and an alternative `amountCents` exact-integer column. It rejects signed/ambiguous amounts rather than guessing bank debit/credit conventions. Reimporting the same prepared CSV recognizes stable content-based IDs and does not create new entries, including preserving multiple identical purchases within one batch by occurrence number. If a different row resembles a preexisting manual purchase, it receives a visible duplicate warning but is not silently discarded. Conflicting transaction IDs block the whole candidate. Editing a transaction retains its ID. Imported entries can be corrected or deleted individually.
 
-**Direct raw bank-CSV adapters are not available yet.** Actual bank exports differ in column names, date formats, pending/posted status, transfers and signs. They must first be transformed into the reviewed Everyday schema (by ChatGPT or a future format-specific adapter). Avoid sharing full account numbers or authentication details in screenshots/CSV.
+**Direct Bank of America CSV import is supported** (checking/savings and common card layouts). Other banks are not automatically recognized; convert those exports to Everyday's reviewed CSV format first. Always preview classification and omit sensitive account numbers or banking credentials when sharing files.
 
 
 ## v84 — Bank of America imports, source-aware names, and ChatGPT clarification loop
@@ -259,3 +259,14 @@ The direct Bank of America CSV reader now skips zero-dollar bank notices (includ
 ## v87 — Automatic Bank of America statement/batch labels
 
 In **Finances → Import bank CSV**, the **Statement / batch label** field is now automatically suggested when a Bank of America statement is selected. Everyday reads the actual beginning/ending balance dates in the CSV preamble, or falls back to the range of posted transaction dates. For example, the user's August 3–October 27, 2026 export receives **Aug 3 – Oct 27, 2026**. Single-month and cross-year ranges receive readable date labels. The field remains editable for a custom name, and file changes never replace a manually entered name. If the iPhone picker does not emit its change event before submission, the importer infers a label again during Preview. When no valid dates exist, the user receives a clear request to enter a manual label. The account label remains separate and user-defined; bank identity/deduplication continues to be independent of statement/batch labels. No transactions are added until preview confirmation.
+
+ 
+## v88 — Finance import reliability
+
+Bank of America imports recognize explicit **Discover E-PAYMENT**, **Online Scheduled Payment to ACCT#**, and **OVERDRAFT PROTECTION FROM** entries as transfers rather than ordinary consumption/earned income. Savings transfers continue to use the original transfer classification, and recognized transfers get clear subcategories (Debt payments, Overdraft protection, Savings transfers, or Other transfers). Original bank debit/credit directions, amounts, dates, decoded bank descriptions, and IDs remain protected. Bank notices with no movement remain excluded.
+
+**Ambiguous person-to-person payments:** Zelle/Venmo/etc. descriptions do not automatically imply a non-spending transfer. They remain debit-to-expense or credit-to-income by default and receive a grouped review warning. Assign the correct category/type based on what the payment was for (purchase, shared expense, reimbursement, gift, or own-account transfer).
+
+**Duplicate review:** Reimporting the same account/file with the same account label still skips exact IDs. A classification change does not conceal a similar previously logged transaction. When an imported row resembles one saved under a different account label, the importer flags it and summarizes the count, but never merges rows across account labels automatically. Account labels are human-entered metadata, not verified bank account identities; changing labels for the same account between imports requires review. Ambiguous matching rows stay visible in Preview.
+
+This is classification at **import time**, not a migration of existing ledgers. Previously imported records remain untouched, including personalized categories and notes. The actual private bank export is **not committed to the public repository**; unit tests use synthetic examples of its relevant formats.
