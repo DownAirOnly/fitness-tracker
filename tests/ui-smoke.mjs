@@ -135,6 +135,8 @@ try{
  await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'no automatic migration');
  await click('settings');await click('migrate-device');
+  assert.ok(document.querySelector('[data-action="migrate-device-confirm"]'),'device migration requires explicit review');
+  await click('migrate-device-confirm');
  assert.equal(JSON.parse(state.records.get('alice').payload).foodEntries.length,1);
  await click('sign-out');state.user='bob';await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'account separation');
