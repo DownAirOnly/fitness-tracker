@@ -1,8 +1,8 @@
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=85';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=86';
-import {financeEnrichmentCSV} from './bank-import.js?v=86';
+import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=87';
+import {financeEnrichmentCSV,inferBofaStatementLabel} from './bank-import.js?v=87';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=85';
@@ -312,10 +312,33 @@ function financeBankModal(){
  modal('Import Bank of America CSV','<form class="form finance-bank-import" data-form="finance-bank-import">'+
  '<p class="body-copy">Choose the CSV downloaded from Bank of America. The bank name, posted date and exact amount stay as imported; personal labels can be added separately.</p>'+
  input('Account label','accountLabel','BofA Checking','text','maxlength="120" placeholder="e.g. BofA Checking" required')+
- input('Statement / batch label','statementLabel','','text','maxlength="160" placeholder="e.g. January–October 2026" required')+
  '<label class="field"><span>Bank statement CSV</span><input name="file" type="file" accept=".csv,text/csv" required></label>'+
+ input('Statement / batch label','statementLabel','','text','maxlength="160" placeholder="Automatically suggested from CSV dates"')+
+ '<p class="hint" data-bank-label-status aria-live="polite">This label will be filled from the statement dates after you select a CSV. You can edit it.</p>'+
  '<p class="hint">Summary lines before the real Date/Description/Amount header will be skipped. Checking, savings and common card exports are recognized. Review credits, payments and transfers carefully.</p>'+
  '<button type="submit" class="primary">Preview bank records</button></form><div id="preview" role="status"></div>');
+}
+// Automatically name the statement from its actual dates without changing record IDs.
+// If the user wrote their own label, never replace it with an inferred suggestion.
+async function inferSelectedBankLabel(form,file,token){
+ const label=form.elements.statementLabel,status=form.querySelector('[data-bank-label-status]');
+ if(!file)return;
+ if(file.size>5_000_000){if(status)status.textContent='File exceeds the 5 MB import limit.';return;}
+ try{
+  const text=await file.text();
+  if(token!==importReadToken||!form.isConnected)return;
+  const suggested=inferBofaStatementLabel(text);
+  if(!suggested){
+   if(status)status.textContent='Could not determine the statement dates. Enter a batch label manually before previewing.';
+   return;
+  }
+  if(!label.value.trim()||label.value===label.dataset.autoLabel){
+   label.value=suggested;label.dataset.autoLabel=suggested;
+   if(status)status.textContent='Suggested from the bank statement dates. Edit this label if you prefer.';
+  }else if(status)status.textContent='Custom label retained. Suggested date range: '+suggested+'.';
+ }catch(error){
+  if(token===importReadToken&&form.isConnected&&status)status.textContent='Could not read the selected file: '+error.message;
+ }
 }
 function financeEnrichmentPaste(){
  importModal('enrichment','paste');
@@ -1278,7 +1301,7 @@ function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
-app.addEventListener('change',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;importReadToken++;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
+app.addEventListener('change',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
   if(action==='demo-start'||action==='demo-reset'){if(account||offlineWorkspace)return;if(demoMode&&action==='demo-start')return;if(demoMode&&action==='demo-reset'&&!confirm('Reset all demo entries to the original sample?'))return;const fixture=createDemoData();try{storeDemoWorkspace(fixture);}catch{alert('This device could not open the demo workspace.');return;}demoMode=true;data=fixture;chosenDate=DEMO_LAST_DATE;page='home';cloudMessage='Demo mode · saved separately on this device';close(true);render();return;}
@@ -1567,7 +1590,11 @@ app.addEventListener('submit',async event=>{
       if(file.size>5_000_000)throw Error('The bank file must be under 5 MB.');
       const text=await file.text();if(new TextEncoder().encode(text).length>5_000_000)throw Error('Bank CSV is too large.');
       if(token!==importReadToken||!form.isConnected)return;
-      const plan=prepareBankImport(text,data,{accountLabel:v.accountLabel,statementLabel:v.statementLabel});
+      const statementLabel=String(v.statementLabel||'').trim()||inferBofaStatementLabel(text);
+      if(!statementLabel)throw Error('Cannot infer a statement date range from this CSV. Enter a statement/batch label manually.');
+      const labelField=form.elements.statementLabel;
+      if(!labelField.value.trim()){labelField.value=statementLabel;labelField.dataset.autoLabel=statementLabel;}
+      const plan=prepareBankImport(text,data,{accountLabel:v.accountLabel,statementLabel});
       plan.filename=file.name||'Bank of America CSV';plan.source='bank';
       if(!offlineWorkspace&&account&&plan.candidate){try{encodeState(plan.candidate);}catch(e){plan.errors.push(e.message);plan.candidate=null;}}
       pendingImport=plan;showImportReview(plan);
@@ -1713,7 +1740,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=86',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=87',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';

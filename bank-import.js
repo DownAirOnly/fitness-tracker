@@ -76,6 +76,55 @@ export function financeEnrichmentCSV(transactions){
  }
  return rows.join('\r\n')+'\r\n';
 }
+// Infer a human-readable batch name from the bank statement itself, never from
+// the upload date. Prefer the statement's beginning/ending balance dates; use
+// the posted transaction range for exports that omit a statement summary.
+// This label is display metadata only and does not affect transaction IDs.
+export function inferBofaStatementLabel(text){
+ const rows=parseCSV(String(text||'').replace(/^\uFEFF/,''));
+ let headerIndex=-1,columns;
+ let startingSummary=null,endingSummary=null;
+ for(let i=0;i<Math.min(60,rows.length);i++){
+  const row=rows[i],keys=row.map(headerKey);
+  if(firstIndex(keys,dateKeys)>=0&&firstIndex(keys,descriptionKeys)>=0&&firstIndex(keys,amountKeys)>=0){
+   headerIndex=i;columns=keys;break;
+  }
+  const description=String(row[0]||'').trim();
+  const summaryMatch=/^(beginning|ending)\s+balance\s+as\s+of\s+(\d{1,2}\/\d{1,2}\/\d{4}|\d{4}-\d{2}-\d{2})\b/i.exec(description);
+  if(summaryMatch){
+   try{
+    const date=bankDate(summaryMatch[2]);
+    if(summaryMatch[1].toLowerCase()==='beginning')startingSummary=date;
+    else endingSummary=date;
+   }catch{/* A malformed statement summary is not a valid date hint. */}
+  }
+ }
+ if(headerIndex<0)return '';
+ const index=firstIndex(columns,dateKeys),amountIndex=firstIndex(columns,amountKeys);
+ const dates=[];
+ for(let i=headerIndex+1;i<rows.length;i++){
+  const row=rows[i],posted=String(row[index]||'').trim();
+  // Exclude balance-only rows, which have no transaction amount.
+  if(!posted||!String(row[amountIndex]||'').trim())continue;
+  try{dates.push(bankDate(posted));}catch{/* Invalid posted dates are reported during the full import review. */}
+ }
+ dates.sort();
+ const first=startingSummary&&(!dates.length||startingSummary<=dates[0])?startingSummary:dates[0];
+ const last=endingSummary&&(!dates.length||endingSummary>=dates[dates.length-1])?endingSummary:dates[dates.length-1];
+ if(!first||!last||first>last)return '';
+ const parsed=date=>{
+  const [year,month,day]=date.split('-').map(Number);
+  return {year,month,day,label:new Intl.DateTimeFormat('en-US',{month:'short',timeZone:'UTC'}).format(new Date(Date.UTC(year,month-1,day)))};
+ };
+ const a=parsed(first),b=parsed(last);
+ if(first===last)return a.label+' '+a.day+', '+a.year;
+ if(a.year===b.year){
+  if(a.month===b.month)return a.label+' '+a.day+'–'+b.day+', '+a.year;
+  return a.label+' '+a.day+' – '+b.label+' '+b.day+', '+a.year;
+ }
+ return a.label+' '+a.day+', '+a.year+' – '+b.label+' '+b.day+', '+b.year;
+}
+
 export function readBofaCSV(text,{accountLabel,statementLabel}={}){
  accountLabel=checkLabel(accountLabel,'Account label',120);
  statementLabel=checkLabel(statementLabel,'Statement label',160);

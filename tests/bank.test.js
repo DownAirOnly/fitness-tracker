@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyData,normalizeData,encodeData} from '../data.js';
-import {readBofaCSV,readEnrichmentCSV,financeEnrichmentCSV} from '../bank-import.js';
+import {readBofaCSV,readEnrichmentCSV,financeEnrichmentCSV,inferBofaStatementLabel} from '../bank-import.js';
 import {prepareBankImport,prepareEnrichmentImport} from '../import-model.js';
 
 const options={accountLabel:'BofA Checking',statementLabel:'January–October 2026'};
@@ -268,4 +268,42 @@ test('v86: zero-dollar bank notices do not make manual $0 transactions valid',()
  const state=emptyData();
  state.transactions=[{id:'zero',date:'2026-10-27',kind:'expense',amountCents:0,description:'Zero',currency:'USD'}];
  assert.throws(()=>normalizeData(state),/invalid financial transaction/);
+});
+
+
+test('v87: infer a statement name from Bank of America balance-summary dates',()=>{
+ const csv=[
+  'Description,,Summary Amt.',
+  'Beginning balance as of 08/03/2026,,559.96',
+  'Total credits,,"8,360.38"',
+  'Total debits,,"-8,716.84"',
+  'Ending balance as of 10/27/2026,,203.50',
+  '',
+  'Date,Description,Amount,Running Bal.',
+  '08/03/2026,Beginning balance as of 08/03/2026,,559.96',
+  '08/03/2026,COFFEE,-5.00,554.96',
+  '10/27/2026,KEEP THE CHANGE TRANSFER CANCELED-LOW ACCT BALANCE,0.00,203.50'
+ ].join('\n');
+ assert.equal(inferBofaStatementLabel(csv),'Aug 3 – Oct 27, 2026');
+ assert.equal(inferBofaStatementLabel('\uFEFF'+csv),'Aug 3 – Oct 27, 2026','BOM does not prevent inference');
+});
+
+test('v87: infer date range from posted transactions when bank summary is absent',()=>{
+ const csv=[
+  'Posted Date,Payee,Amount,Reference Number',
+  '10/25/2026,Lunch,-9.44,123',
+  '10/24/2026,Coffee,-4.25,124',
+  '10/25/2026,Breakfast,-5.00,125'
+ ].join('\n');
+ assert.equal(inferBofaStatementLabel(csv),'Oct 24–25, 2026');
+ assert.equal(inferBofaStatementLabel('Date,Description,Amount\n10/27/2026,Food,-6.00'),'Oct 27, 2026');
+ assert.equal(inferBofaStatementLabel('Date,Description,Amount\n12/31/2025,Food,-6.00\n01/02/2026,Drink,-3.00'),
+  'Dec 31, 2025 – Jan 2, 2026');
+});
+
+test('v87: malformed exports cannot invent a date range and date-only balance rows do not extend it',()=>{
+ assert.equal(inferBofaStatementLabel('Not,a,bank,CSV\nhello,world'), '');
+ assert.equal(inferBofaStatementLabel('Date,Description,Amount\n10/99/2026,Bad,-3.00'), '');
+ assert.equal(inferBofaStatementLabel('Date,Description,Amount\n10/01/2026,Beginning balance as of 10/01/2026,\n10/20/2026,COFFEE,-3.00'),
+  'Oct 20, 2026');
 });

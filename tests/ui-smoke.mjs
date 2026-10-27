@@ -125,7 +125,7 @@ try{
   const bankForm=document.querySelector('form[data-form="finance-bank-import"]');
   assert.ok(bankForm);
   bankForm.elements.accountLabel.value='BofA Checking';
-  bankForm.elements.statementLabel.value='October 2026 Checking';
+  assert.equal(bankForm.elements.statementLabel.value,'','statement label begins empty and is inferred from file');
   const bankCsv=[
    'Description,,Summary Amt.',
    'Beginning balance as of 10/01/2026,,500.00',
@@ -136,9 +136,13 @@ try{
    '10/24/2026,365 MARKET 10994,-8.55,491.45',
    '10/25/2026,WAWA STORE 44,-7.19,484.26'
   ].join('\n');
-  Object.defineProperty(bankForm.querySelector('[name="file"]'),'files',{
+  const firstBankFile=bankForm.querySelector('[name="file"]');
+  Object.defineProperty(firstBankFile,'files',{
    value:[{name:'bofa-october.csv',size:bankCsv.length,text:async()=>bankCsv}]
   });
+  firstBankFile.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
+  assert.equal(bankForm.elements.statementLabel.value,'Oct 1–25, 2026','CSV selection automatically labels the statement');
+  assert.ok(bankForm.querySelector('[data-bank-label-status]').textContent.includes('Suggested from'),'inferred label explained in UI');
   bankForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
   assert.ok(document.querySelector('.finance-bank-review'),'Bank import opens reviewed preview');
   assert.equal(document.querySelectorAll('.import-group-transactions .import-record').length,2);
@@ -147,7 +151,7 @@ try{
   await click('commit-import');
   let ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
   assert.equal(ledger.length,2);
-  assert.ok(ledger.every(tx=>tx.accountLabel==='BofA Checking'&&tx.statementLabel==='October 2026 Checking'));
+  assert.ok(ledger.every(tx=>tx.accountLabel==='BofA Checking'&&tx.statementLabel==='Oct 1–25, 2026'));
   assert.ok(document.querySelector('.finance-raw-description'),'original bank name shown as quiet subtext');
   const sourceTx=ledger.find(tx=>tx.bankDescription==='365 MARKET 10994');
   assert.ok(sourceTx);
@@ -180,13 +184,28 @@ try{
   const againBank=document.querySelector('form[data-form="finance-bank-import"]');
   againBank.elements.accountLabel.value='BofA Checking';
   againBank.elements.statementLabel.value='Overlapping October export';
-  Object.defineProperty(againBank.querySelector('[name="file"]'),'files',{
+  const secondBankFile=againBank.querySelector('[name="file"]');
+  Object.defineProperty(secondBankFile,'files',{
    value:[{name:'bofa-second.csv',size:bankCsv.length,text:async()=>bankCsv}]
   });
+  secondBankFile.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
+  assert.equal(againBank.elements.statementLabel.value,'Overlapping October export','manual batch label is never overwritten by inference');
   againBank.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
   assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'));
   await click('close');
   assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.find(tx=>tx.id===sourceTx.id).description,'Energy drink and protein snack');
+  // Submit still infers the batch label if a picker does not emit change before submit.
+  await click('finance-bofa-import');
+  const fallbackBank=document.querySelector('form[data-form="finance-bank-import"]');
+  fallbackBank.elements.accountLabel.value='BofA Checking';
+  assert.equal(fallbackBank.elements.statementLabel.value,'');
+  Object.defineProperty(fallbackBank.querySelector('[name="file"]'),'files',{
+   value:[{name:'bofa-third.csv',size:bankCsv.length,text:async()=>bankCsv}]
+  });
+  fallbackBank.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
+  assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'),'blank batch label falls back to inferred range during submit');
+  await click('close');
+
 
   assert.ok(document.querySelector('[data-action="finance-export-enrichment"]'),'export for ChatGPT available');
   await click('finance-enrichment-paste');
