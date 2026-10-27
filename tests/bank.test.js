@@ -307,3 +307,67 @@ test('v87: malformed exports cannot invent a date range and date-only balance ro
  assert.equal(inferBofaStatementLabel('Date,Description,Amount\n10/01/2026,Beginning balance as of 10/01/2026,\n10/20/2026,COFFEE,-3.00'),
   'Oct 20, 2026');
 });
+
+test('v88: account payments and overdraft protection are transfers, but Zelle stays reviewable',()=>{
+ const csv=[
+  'Date,Description,Amount,Running Bal.',
+  '10/03/2026,DISCOVER DES:E-PAYMENT ID:1234,-100.00,400.00',
+  '10/04/2026,Online Scheduled Payment to ACCT# 4468 Confirmation# 1234,-103.00,297.00',
+  '10/05/2026,OVERDRAFT PROTECTION FROM 00000012345,10.70,307.70',
+  '10/06/2026,Zelle payment to friend for lunch,-10.00,297.70',
+  '10/06/2026,Zelle payment from friend,20.00,317.70',
+  '10/07/2026,OVERDRAFT ITEM FEE,-10.00,307.70',
+  '10/08/2026,Online Banking transfer from SAV 3207 Confirmation# 12345,55.84,363.54'
+ ].join('\n');
+ const result=readBofaCSV(csv,options);
+ assert.equal(result.errors.length,0);
+ assert.deepEqual(result.records.map(tx=>tx.kind),
+  ['transfer','transfer','transfer','expense','income','expense','transfer']);
+ assert.equal(result.records[0].subcategory,'Debt payments');
+ assert.equal(result.records[1].subcategory,'Debt payments');
+ assert.equal(result.records[2].subcategory,'Overdraft protection');
+ assert.equal(result.records[6].subcategory,'Savings transfers');
+ assert.equal(result.details.debtPayments,2);
+ assert.equal(result.details.overdraftProtection,1);
+ assert.equal(result.details.peerPayments,2);
+ assert.match(result.warnings.join(' '),/person-to-person/);
+ const plan=prepareBankImport(csv,emptyData(),options);
+ assert.equal(plan.errors.length,0);
+ assert.equal(plan.candidate.transactions.length,7);
+ assert.equal(plan.candidate.transactions[2].bankDirection,'credit');
+ assert.equal(plan.candidate.transactions[2].category,'Transfers');
+});
+
+test('v88: quoted bank descriptions survive CSV decoding and ID-safe reimport',()=>{
+ const csv=[
+  'Date,Description,Amount,Running Bal.',
+  '10/02/2026,"Zelle payment from ""Jordan"", shared dinner",20.00,200.00'
+ ].join('\n');
+ const first=prepareBankImport(csv,emptyData(),options);
+ assert.equal(first.errors.length,0);
+ assert.equal(first.candidate.transactions[0].bankDescription,'Zelle payment from "Jordan", shared dinner');
+ const second=prepareBankImport(csv,first.candidate,options);
+ assert.equal(second.errors.length,0);
+ assert.equal(second.changeCount,0);
+ assert.equal(second.unchanged,1);
+});
+
+test('v88: similar bank rows remain visible even after classification edits or label changes',()=>{
+ const firstCsv='Date,Description,Amount,Running Bal.\n10/01/2026,COFFEE SHOP,-5.00,95.00';
+ const first=prepareBankImport(firstCsv,emptyData(),options);
+ const modified=structuredClone(first.candidate);
+ modified.transactions[0].kind='transfer'; // classification is editable, original debit remains fixed
+ const shifted='Date,Description,Amount,Running Bal.\n10/01/2026,COFFEE SHOP,-5.00,94.00';
+ const overlap=prepareBankImport(shifted,modified,options);
+ assert.equal(overlap.errors.length,0);
+ assert.equal(overlap.changeCount,1,'running balance change generates a different identity');
+ assert.equal(overlap.duplicates,1,'kind edit cannot hide a similar transaction');
+ assert.match(overlap.warnings.join(' '),/similar to an already logged transaction/);
+ const renamed=prepareBankImport(firstCsv,modified,{...options,accountLabel:'Alternate BofA label'});
+ assert.equal(renamed.errors.length,0);
+ assert.equal(renamed.changeCount,1,'different real accounts are not automatically merged');
+ assert.equal(renamed.duplicates,1);
+ assert.ok(renamed.groups[0].rows[0].badges.includes('Different account label'));
+ assert.match(renamed.warnings.join(' '),/different account label/);
+ assert.equal(modified.transactions.length,1,'original notebook remains unchanged');
+});
