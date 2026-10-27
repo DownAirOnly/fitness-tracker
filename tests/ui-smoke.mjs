@@ -1,5 +1,6 @@
 import {JSDOM} from 'jsdom';
 import {normalizeData,localDate as todayCalendarDate} from '../data.js';
+import {financeEnrichmentCSV} from '../bank-import.js';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -27,7 +28,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|finance-model|import-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|finance-model|bank-import|import-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+/.test(source),'all static app imports resolved');
@@ -115,6 +116,89 @@ try{
   assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'),'reimport warns of no new entries');
   await click('close');
   assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'repeat import cannot duplicate purchases');
+  await click('finance-edit');await click('finance-delete');
+  await click('finance-edit');await click('finance-delete');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0);
+
+  // v84: direct BofA statement plus human-friendly descriptions and ID-anchored corrections.
+  await click('finance-bofa-import');
+  const bankForm=document.querySelector('form[data-form="finance-bank-import"]');
+  assert.ok(bankForm);
+  bankForm.elements.accountLabel.value='BofA Checking';
+  bankForm.elements.statementLabel.value='October 2026 Checking';
+  const bankCsv=[
+   'Description,,Summary Amt.',
+   'Beginning balance as of 10/01/2026,,500.00',
+   'Total credits,,100.00',
+   '',
+   'Date,Description,Amount,Running Bal.',
+   '10/23/2026,Beginning balance as of 10/23/2026,,500.00',
+   '10/24/2026,365 MARKET 10994,-8.55,491.45',
+   '10/25/2026,WAWA STORE 44,-7.19,484.26'
+  ].join('\n');
+  Object.defineProperty(bankForm.querySelector('[name="file"]'),'files',{
+   value:[{name:'bofa-october.csv',size:bankCsv.length,text:async()=>bankCsv}]
+  });
+  bankForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
+  assert.ok(document.querySelector('.finance-bank-review'),'Bank import opens reviewed preview');
+  assert.equal(document.querySelectorAll('.import-group-transactions .import-record').length,2);
+  assert.ok(document.querySelector('.import-group-transactions').textContent.includes('365 MARKET 10994'));
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'preview cannot save bank entries');
+  await click('commit-import');
+  let ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  assert.equal(ledger.length,2);
+  assert.ok(ledger.every(tx=>tx.accountLabel==='BofA Checking'&&tx.statementLabel==='October 2026 Checking'));
+  assert.ok(document.querySelector('.finance-raw-description'),'original bank name shown as quiet subtext');
+  const sourceTx=ledger.find(tx=>tx.bankDescription==='365 MARKET 10994');
+  assert.ok(sourceTx);
+  const marketRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('365 MARKET 10994'));
+  assert.ok(marketRow,'365 Market row is available to edit');
+  marketRow.querySelector('[data-action="finance-edit"]').click();await tick();
+  const editBank=document.querySelector('form[data-form="finance-edit"]');
+  assert.ok(editBank.querySelector('.finance-bank-facts'),'bank values appear read-only');
+  assert.equal(editBank.querySelector('[name="date"]').type,'hidden');
+  assert.equal(editBank.querySelector('[name="amount"]').type,'hidden');
+  await submit('finance-edit',{
+   description:'Energy drink and protein snack',category:'Convenience Food',subcategory:'Work snacks',
+   purchaseDate:'2026-10-23',time:'15:20',itemization:'Monster 3.00; protein chips 5.55'
+  });
+  ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  const personal=ledger.find(tx=>tx.id===sourceTx.id);
+  assert.equal(personal.description,'Energy drink and protein snack');
+  assert.equal(personal.bankDescription,'365 MARKET 10994');
+  assert.equal(personal.amountCents,855);
+  assert.equal(personal.date,'2026-10-24');
+  assert.equal(personal.category,'Convenience Food');
+  assert.equal(personal.itemization,'Monster 3.00; protein chips 5.55');
+  assert.ok(document.querySelector('.finance-row-main').textContent.includes('Bank:'));
+
+  // Resubmitting the statement under a different batch name must not undo edits.
+  await click('finance-bofa-import');
+  const againBank=document.querySelector('form[data-form="finance-bank-import"]');
+  againBank.elements.accountLabel.value='BofA Checking';
+  againBank.elements.statementLabel.value='Overlapping October export';
+  Object.defineProperty(againBank.querySelector('[name="file"]'),'files',{
+   value:[{name:'bofa-second.csv',size:bankCsv.length,text:async()=>bankCsv}]
+  });
+  againBank.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
+  assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'));
+  await click('close');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.find(tx=>tx.id===sourceTx.id).description,'Energy drink and protein snack');
+
+  assert.ok(document.querySelector('[data-action="finance-export-enrichment"]'),'export for ChatGPT available');
+  await click('finance-enrichment-paste');
+  assert.ok(document.querySelector('form[data-form="import"]'),'CSV enrichment form exists');
+  const toClarify=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  const clarification=financeEnrichmentCSV(toClarify).replace('Energy drink and protein snack','Monster and snack bundle');
+  await submit('import',{text:clarification});
+  assert.ok(document.querySelector('.import-dialog'),'clarification import is reviewed');
+  assert.equal(document.querySelectorAll('.import-group-transactions .import-record').length,1);
+  assert.ok(document.querySelector('.import-group-transactions').textContent.includes('Bank:'));
+  await click('commit-import');
+  ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
+  assert.equal(ledger.find(tx=>tx.id===sourceTx.id).description,'Monster and snack bundle');
+  assert.equal(ledger.find(tx=>tx.id===sourceTx.id).bankDescription,'365 MARKET 10994');
+  assert.equal(ledger.length,2,'enrichment updates existing IDs rather than creating duplicates');
   await click('finance-edit');await click('finance-delete');
   await click('finance-edit');await click('finance-delete');
   assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0);

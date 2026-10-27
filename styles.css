@@ -1517,3 +1517,51 @@ html.buddy-active #overlay .modal{z-index:1101}
  .finance-import-actions button{flex:1 1 155px}
 }
 @media(max-width:355px){.finance-extra-fields{grid-template-columns:1fr}}
+
+
+/* v84 — Bank of America source/statement separation and receipt enrichment */
+.finance-row-main .finance-raw-description,
+.import-record .finance-raw-description{
+ display:block;font-size:11px;line-height:1.45;color:#84918c;font-weight:500;
+ margin-top:3px;overflow-wrap:anywhere
+}
+.finance-row-main .finance-itemized,.import-record .finance-itemized{
+ display:block;font-size:11px;line-height:1.45;color:#6e856f;
+ white-space:pre-wrap;overflow-wrap:anywhere;margin-top:5px
+}
+.finance-row-main small{line-height:1.55}
+.finance-quick-fields.bank-edit{grid-template-columns:minmax(0,1fr)}
+.finance-bank-facts{
+ padding:13px 14px;border-radius:12px;
+ border:1px solid #dbe5e1;background:#eff5f1;
+ display:flex;flex-direction:column;gap:5px
+}
+.finance-bank-facts>strong{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#607369}
+.finance-bank-facts>p{font-size:13px;line-height:1.5;margin:0;overflow-wrap:anywhere}
+.finance-bank-facts>small{font-size:11px;line-height:1.5;color:#7d9083;overflow-wrap:anywhere}
+.finance-extra-fields>.finance-note{grid-column:1/-1}
+.finance-bank-import .field>input[type=file]{font-size:12px}
+.finance-bank-import .body-copy{line-height:1.55}
+.finance-import-card>.finance-more{margin-top:15px}
+.finance-legacy-csv .finance-import-actions{margin:0 0 12px}
+.finance-legacy-csv .body-copy{font-size:12px;margin:0 0 12px}
+.finance-import-actions{row-gap:8px}
+.finance-import-actions .primary{min-height:43px}
+.finance-bank-review{border:1px solid #cadbcc;border-radius:12px;background:#eef6f0;padding:12px 14px;margin-bottom:12px}
+.finance-bank-review strong{font-size:12px;line-height:1.5;display:block}
+.finance-bank-review small{display:block;font-size:11px;color:#557462;margin-top:4px}
+.finance-bank-review p{font-size:11px;line-height:1.5;margin:7px 0 0}
+[data-theme="dark"] .finance-row-main .finance-raw-description,
+[data-theme="dark"] .import-record .finance-raw-description{color:#96a69d}
+[data-theme="dark"] .finance-row-main .finance-itemized,
+[data-theme="dark"] .import-record .finance-itemized{color:#a7c1ac}
+[data-theme="dark"] .finance-bank-facts{border-color:#385142;background:#1b3023}
+[data-theme="dark"] .finance-bank-facts>strong{color:#a0beac}
+[data-theme="dark"] .finance-bank-facts>small{color:#a4b6a8}
+[data-theme="dark"] .finance-bank-review{border-color:#375b45;background:#1c3727}
+[data-theme="dark"] .finance-bank-review small{color:#b3d2bb}
+@media(max-width:500px){
+ .finance-import-actions{display:grid;grid-template-columns:1fr 1fr}
+ .finance-import-actions .primary{grid-column:1/-1}
+ .finance-import-actions button{min-width:0;white-space:normal}
+}

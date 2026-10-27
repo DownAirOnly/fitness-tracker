@@ -198,3 +198,22 @@ test('v82: stale cloud revisions cannot overwrite newer financial records',async
  await assert.rejects(()=>b.save(stale),CloudConflict);
  assert.deepEqual(decodeState(store.records.get('same-finance-user')).data.transactions,[money('rent',100000,'Rent')]);
 });
+
+
+test('v84: cloud save/load retains bank source, personal label and receipt itemization',async()=>{
+ const store=memoryStore(),session=new CloudSession('bank-metadata',store);
+ const data=await session.load();
+ data.transactions.push({id:'bofa-example',date:'2026-10-25',kind:'expense',amountCents:719,
+  description:'Two water cases',bankDescription:'BofA WAWA #4421 10/24',
+  accountLabel:'BofA Checking',statementLabel:'October 2026',
+  category:'Household Supplies',subcategory:'Bottled Water',purchaseDate:'2026-10-24',time:'14:30',
+  itemization:'2 cases × 24 bottles — $7.19',currency:'USD',source:'import',externalId:'bank-id-1'});
+ await session.save(data);
+ const returning=new CloudSession('bank-metadata',store);
+ const restored=await returning.load();
+ assert.deepEqual(restored.transactions,data.transactions,'normalization and storage never discard enrichment fields');
+ const device=emptyData();device.transactions.push({...data.transactions[0],id:'bofa-second',description:'Wawa water'});
+ const migrated=planDeviceMigration(restored,device);
+ assert.equal(migrated.errors?.length||0,0);
+ assert.ok(migrated.candidate.transactions.some(tx=>tx.id==='bofa-second'&&tx.bankDescription==='BofA WAWA #4421 10/24'));
+});

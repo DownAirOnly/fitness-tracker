@@ -1,10 +1,11 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=83';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=84';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,importSections} from './import-model.js?v=83';
+import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=84';
+import {financeEnrichmentCSV} from './bank-import.js?v=84';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=83';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=84';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -223,51 +224,76 @@ const FINANCE_CSV_SAMPLE='recordType,date,time,kind,amount,description,category,
  'transaction,2026-10-27,14:15,expense,7.19,Water cases,Household Supplies,Wawa,,\n'+
  'transaction,2026-10-27,,income,100.00,Paycheck,Income,,,';
 function financeFields(tx=null,scope='quick'){
- const categoryId='finance-category-'+scope,amount=tx?formatFinanceAmount(tx.amountCents).slice(1):'';
- const kind=tx?.kind||'expense',time=tx?tx.time||'':financeNowTime();
- return '<div class="finance-quick-fields">'+
-  '<label class="field"><span>Amount (USD)</span><span class="finance-money-input"><strong aria-hidden="true">$</strong><input type="text" name="amount" inputmode="decimal" autocomplete="off" maxlength="20" required value="'+esc(amount)+'" placeholder="0.00" aria-label="Amount in US dollars"></span></label>'+
-  input('What was it?','description',tx?.description||'','text','placeholder="e.g. Wawa water" maxlength="200" required autocomplete="off"')+
-  '</div><details class="finance-more" '+(tx?'open':'')+'><summary>Category, date & more</summary><div class="finance-extra-fields">'+
-  '<label class="field"><span>Type</span><select name="kind">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+financeKindLabels[k]+'</option>').join('')+'</select></label>'+
-  input('Calendar date','date',tx?.date||localDate(),'date','required')+
-  input('Time (optional)','time',time,'time','step="60"')+
-  '<label class="field"><span>Category</span><input name="category" list="'+categoryId+'" maxlength="80" value="'+esc(tx?.category||'Uncategorized')+'" autocomplete="off"></label>'+
-  '<datalist id="'+categoryId+'">'+FINANCE_CATEGORIES.map(c=>'<option value="'+esc(c)+'"></option>').join('')+'</datalist>'+
+ const isBank=Boolean(tx?.bankDescription),catId='finance-category-'+scope;
+ const categoryOptions='<datalist id="'+catId+'">'+FINANCE_CATEGORIES.map(c=>'<option value="'+esc(c)+'"></option>').join('')+'</datalist>';
+ const amount=tx?formatFinanceAmount(tx.amountCents).slice(1):'',kind=tx?.kind||'expense';
+ const bankFacts=isBank?'<section class="finance-bank-facts"><strong>Original bank record · locked</strong><p>'+esc(tx.bankDescription)+'</p>'+
+   '<small>'+esc(tx.accountLabel||'Bank of America')+' · Posted '+esc(tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(tx.statementLabel||'')+'</small></section>'+
+   '<input type="hidden" name="amount" value="'+esc(amount)+'"><input type="hidden" name="date" value="'+esc(tx.date)+'"><input type="hidden" name="kind" value="'+esc(kind)+'">':'';
+ const amountInput=isBank?'':'<label class="field"><span>Amount (USD)</span><span class="finance-money-input"><strong aria-hidden="true">$</strong><input type="text" name="amount" inputmode="decimal" autocomplete="off" maxlength="20" required value="'+esc(amount)+'" placeholder="0.00" aria-label="Amount in US dollars"></span></label>';
+ const kindInput=isBank?'':'<label class="field"><span>Type</span><select name="kind">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+({expense:'Expense',income:'Income',transfer:'Transfer'}[k])+'</option>').join('')+'</select></label>';
+ const postedInput=isBank?'':input('Calendar date','date',tx?.date||localDate(),'date','required');
+ return bankFacts+'<div class="finance-quick-fields '+(isBank?'bank-edit':'')+'">'+amountInput+
+  input(isBank?'Your description':'What was it?','description',tx?.description||'','text','placeholder="e.g. Water and protein snacks" maxlength="200" required autocomplete="off"')+
+  '</div><details class="finance-more" '+(tx?'open':'')+'><summary>Category, date & more</summary><div class="finance-extra-fields">'+kindInput+postedInput+
+  input('Purchase date (if different)','purchaseDate',tx?.purchaseDate||'','date','')+
+  input('Time (receipt or purchase)','time',tx?tx.time||'':financeNowTime(),'time','step="60"')+
+  '<label class="field"><span>Category</span><input name="category" list="'+catId+'" maxlength="80" value="'+esc(tx?.category||'Uncategorized')+'" autocomplete="off"></label>'+categoryOptions+
+  input('Subcategory','subcategory',tx?.subcategory||'','text','maxlength="80" placeholder="e.g. Energy drinks"')+
   input('Merchant (optional)','merchant',tx?.merchant||'','text','maxlength="160" placeholder="Store or payee"')+
   '<label class="field finance-note"><span>Note (optional)</span><textarea name="note" rows="2" maxlength="500" placeholder="Anything useful to remember">'+esc(tx?.note||'')+'</textarea></label>'+
+  '<label class="field finance-note"><span>Receipt itemization</span><textarea name="itemization" rows="3" maxlength="3000" placeholder="Example: 2 × water cases — $14.38; snack — $2.49">'+esc(tx?.itemization||'')+'</textarea></label>'+
   '</div></details>';
 }
 function financeRecordFromForm(v,existing=null){
  const next={id:existing?.id||id(),date:String(v.date||''),kind:String(v.kind||'expense'),
   amountCents:parseFinanceAmount(v.amount),description:String(v.description||'').trim(),
   category:String(v.category||'').trim()||'Uncategorized',currency:'USD',source:existing?.source||'manual'};
- for(const key of ['time','merchant','note']){const val=String(v[key]||'').trim();if(val)next[key]=val;}
- if(existing?.externalId)next.externalId=existing.externalId;
+ if(existing){
+  for(const key of ['externalId','bankDescription','accountLabel','statementLabel'])if(existing[key])next[key]=existing[key];
+  if(existing.bankDescription){
+   next.date=existing.date;next.kind=existing.kind;next.amountCents=existing.amountCents;
+  }
+ }
+ for(const key of ['time','merchant','note','purchaseDate','subcategory','itemization']){
+  const val=String(v[key]||'').trim();if(val)next[key]=val;
+ }
  if(!next.description)throw Error('Describe the transaction before saving.');
  return normalizeData({...emptyData(),transactions:[next]}).transactions[0];
 }
 function financeRecent(){
  const all=[...(data.transactions||[])].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00')));
  return '<section class="panel finance-recent"><div class="section-head"><div><p class="eyebrow">RECENT TRANSACTIONS</p><h2>Latest entries</h2></div><span class="finance-count">'+all.length+' total</span></div>'+
-  (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(tx=>
-  '<div class="finance-row"><div class="finance-row-main"><strong>'+esc(tx.description)+'</strong><small>'+esc(tx.date)+(tx.time?' · '+esc(tx.time):'')+' · '+esc(tx.category)+(tx.merchant?' · '+esc(tx.merchant):'')+'</small></div>'+
-  '<div class="finance-row-side"><b class="'+esc(tx.kind)+'">'+(tx.kind==='income'?'+':tx.kind==='expense'?'−':'')+formatFinanceAmount(tx.amountCents)+'</b>'+
-  button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div></div>').join('')+'</div>':empty('No transactions yet. Your first entry will appear here.'))+
+  (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(tx=>{
+    const raw=tx.bankDescription?'<small class="finance-raw-description">Bank: '+esc(tx.bankDescription)+'</small>':'';
+    const account=tx.accountLabel?' · '+esc(tx.accountLabel):'';
+    const statement=tx.statementLabel?' · '+esc(tx.statementLabel):'';
+    const itemized=tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
+    return '<div class="finance-row"><div class="finance-row-main"><strong>'+esc(tx.description)+'</strong>'+raw+
+     '<small>'+esc(tx.date)+(tx.purchaseDate?' · Bought '+esc(tx.purchaseDate):'')+
+     (tx.time?' '+esc(tx.time):'')+' · '+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+account+statement+'</small>'+itemized+'</div>'+
+     '<div class="finance-row-side"><b class="'+esc(tx.kind)+'">'+(tx.kind==='income'?'+':tx.kind==='expense'?'−':'')+
+     formatFinanceAmount(tx.amountCents)+'</b>'+
+     button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div></div>';
+  }).join('')+'</div>':empty('No transactions yet. Your first entry will appear here.'))+
   (all.length>10?'<p class="hint">Showing the 10 newest entries. Full searchable history is coming next.</p>':'')+'</section>';
 }
 function finances(){
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Log purchases quickly. Look for patterns once the data is there.</p></div>'+
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Bank records and personal labels, together without losing the originals.</p></div>'+
  '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>New transaction</h2></div><span class="finance-count">USD</span></div>'+
  (financeNotice?'<p class="finance-notice" role="status">'+esc(financeNotice)+'</p>':'')+
  '<form class="finance-form" data-form="finance">'+financeFields()+'<button class="primary finance-save" type="submit">Save transaction</button></form>'+
- '<p class="hint">Defaults to an expense on today’s calendar date. Expand details for categories, income, transfers, time or notes. No bank connection.</p></section>'+
+ '<p class="hint">Enter an amount and your own description. Expand for category, subcategory, receipt date/time, and itemization.</p></section>'+
  financeRecent()+
- '<section class="panel finance-import-card"><p class="eyebrow">BULK INPUT</p><h2>Import with ChatGPT</h2>'+
- '<p class="body-copy">Send screenshots or a bank CSV to ChatGPT and request Everyday transaction CSV. Paste the prepared rows here, review the amounts and categories, then confirm.</p>'+
- '<div class="finance-import-actions">'+button('Paste prepared CSV','finance-paste-csv','outline')+
- button('View CSV example','finance-csv-example','text-btn')+'</div>'+
- '<p class="hint">Reimporting the same prepared rows will not add them again. Possible duplicates are flagged for review. Direct bank-format imports come later.</p></section>';
+ '<section class="panel finance-import-card"><p class="eyebrow">BANK STATEMENTS</p><h2>Bank of America</h2>'+
+ '<p class="body-copy">Import an original Bank of America transaction CSV, then give the same statement and your receipt photos to ChatGPT. The bank wording stays untouched; your label appears above it.</p>'+
+ '<div class="finance-import-actions">'+button('Import bank CSV','finance-bofa-import','primary')+
+ button('Export for ChatGPT','finance-export-enrichment','outline')+
+ button('Paste clarifications','finance-enrichment-paste','outline')+'</div>'+
+ '<p class="hint">Assign an account and statement label before importing. Every import and every clarification shows a review before saving. Repeated overlapping bank exports won’t replace your personal descriptions.</p>'+
+ '<details class="finance-more finance-legacy-csv"><summary>Other prepared CSV</summary><p class="body-copy">You can still import ordinary Everyday transaction CSV prepared from screenshots.</p><div class="finance-import-actions">'+
+ button('Paste prepared CSV','finance-paste-csv','outline')+button('View CSV example','finance-csv-example','text-btn')+
+ '</div></details></section>';
 }
 function financeEditForm(tx){
  if(!tx)return;
@@ -280,6 +306,35 @@ function financeCsvExample(){
   '<label class="field"><span>Example</span><textarea class="finance-sample" rows="5" readonly spellcheck="false">'+esc(FINANCE_CSV_SAMPLE)+'</textarea></label>'+
   '<p class="hint">Dates: YYYY-MM-DD. Optional times: HH:MM. An externalId can identify a unique bank transaction. Check uncertain values before importing.</p>'+
   '<div class="form-actions">'+button('Paste prepared CSV','finance-paste-csv','primary')+button('Close','close','outline')+'</div>');
+}
+function financeBankModal(){
+ pendingImport=null;importReadToken++;
+ modal('Import Bank of America CSV','<form class="form finance-bank-import" data-form="finance-bank-import">'+
+ '<p class="body-copy">Choose the CSV downloaded from Bank of America. The bank name, posted date and exact amount stay as imported; personal labels can be added separately.</p>'+
+ input('Account label','accountLabel','BofA Checking','text','maxlength="120" placeholder="e.g. BofA Checking" required')+
+ input('Statement / batch label','statementLabel','','text','maxlength="160" placeholder="e.g. January–October 2026" required')+
+ '<label class="field"><span>Bank statement CSV</span><input name="file" type="file" accept=".csv,text/csv" required></label>'+
+ '<p class="hint">Summary lines before the real Date/Description/Amount header will be skipped. Checking, savings and common card exports are recognized. Review credits, payments and transfers carefully.</p>'+
+ '<button type="submit" class="primary">Preview bank records</button></form><div id="preview" role="status"></div>');
+}
+function financeEnrichmentPaste(){
+ importModal('enrichment','paste');
+ const dialog=document.querySelector('.modal'),title=dialog?.querySelector('.modal-top h2');
+ if(title)title.textContent='Paste transaction clarifications';
+ const form=dialog?.querySelector('form[data-form="import"]');
+ if(!form)return;
+ form.querySelector('textarea[name="text"]').placeholder='recordType,id,postedDate,kind,amountCents,bankDescription,accountLabel,description,category,subcategory,merchant,note,purchaseDate,time,itemization\n'+
+  'enrichment,bofa-...,2026-10-27,expense,719,RAW BANK DESCRIPTION,BofA Checking,Water cases,Household Supplies,Water,Wawa,,2026-10-26,15:30,"2 water cases — $7.19"';
+ form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste the enrichment CSV returned by ChatGPT using the Everyday export. Rows update existing IDs only. Bank descriptions, bank dates and bank amounts are checked and protected.</p>');
+}
+function financeExportEnrichment(){
+ if(!(data.transactions||[]).length){alert('Import or log transactions first so there are record IDs to clarify.');return;}
+ const csv=financeEnrichmentCSV(data.transactions);
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),link=document.createElement('a');
+ link.href=URL.createObjectURL(blob);
+ link.download='everyday-finance-for-chatgpt-'+localDate()+'.csv';
+ link.click();
+ setTimeout(()=>URL.revokeObjectURL(link.href),1000);
 }
 function financeCsvPaste(){
  importModal('csv','paste');
@@ -1479,7 +1534,10 @@ document.addEventListener('click',async event=>{
   if(action==='add-set'){const wrap=document.querySelector('#sets'),last=wrap.lastElementChild;wrap.insertAdjacentHTML('beforeend',setRow(wrap.children.length,{weight:last?.querySelector('[name=weight]')?.value||0,reps:last?.querySelector('[name=reps]')?.value||8,difficulty:last?.querySelector('[name=difficulty]')?.value||''}));const row=wrap.lastElementChild;requestAnimationFrame(()=>row.querySelector('[name=weight]')?.focus());return;}
   if(action==='remove-set'){const wrap=document.querySelector('#sets');if(wrap.children.length>1){el.closest('.set-row').remove();[...wrap.children].forEach((r,i)=>r.firstElementChild.textContent=i+1);}return;}
   if(action.startsWith('delete-')) {if(!confirm('Delete this item?'))return;const key={'delete-entry':'foodEntries','delete-card':'foods','delete-lift':'lifts','delete-weight':'weights','delete-body-fat':'bodyFat'}[action];data[key]=data[key].filter(x=>x.id!==el.dataset.id);close(true);persist();return;}
-  if(action==='finance-edit'){financeEditForm(data.transactions.find(tx=>tx.id===el.dataset.id));return;}
+  if(action==='finance-bofa-import'){financeBankModal();return;}
+   if(action==='finance-export-enrichment'){financeExportEnrichment();return;}
+   if(action==='finance-enrichment-paste'){financeEnrichmentPaste();return;}
+   if(action==='finance-edit'){financeEditForm(data.transactions.find(tx=>tx.id===el.dataset.id));return;}
    if(action==='finance-paste-csv'){financeCsvPaste();return;}
    if(action==='finance-csv-example'){financeCsvExample();return;}
    if(action==='finance-delete'){
@@ -1500,6 +1558,22 @@ document.addEventListener('click',async event=>{
 });
 app.addEventListener('submit',async event=>{
   const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(importSaving||(!offlineWorkspace&&account&&(cloudBusy||cloudPending||!session?.ready)))return;const v=Object.fromEntries(new FormData(form));
+  if(form.dataset.form==='finance-bank-import'){
+    const file=form.querySelector('[name=file]')?.files?.[0],preview=form.parentElement.querySelector('#preview');
+    if(!file)return;
+    pendingImport=null;const token=++importReadToken;
+    if(preview)preview.textContent='Reading Bank of America CSV…';
+    try{
+      if(file.size>5_000_000)throw Error('The bank file must be under 5 MB.');
+      const text=await file.text();if(new TextEncoder().encode(text).length>5_000_000)throw Error('Bank CSV is too large.');
+      if(token!==importReadToken||!form.isConnected)return;
+      const plan=prepareBankImport(text,data,{accountLabel:v.accountLabel,statementLabel:v.statementLabel});
+      plan.filename=file.name||'Bank of America CSV';plan.source='bank';
+      if(!offlineWorkspace&&account&&plan.candidate){try{encodeState(plan.candidate);}catch(e){plan.errors.push(e.message);plan.candidate=null;}}
+      pendingImport=plan;showImportReview(plan);
+    }catch(error){if(token===importReadToken&&form.isConnected&&preview){preview.textContent=error.message;preview.setAttribute('role','alert');}}
+    return;
+  }
   if(form.dataset.form==='finance'||form.dataset.form==='finance-edit'){
      const editing=form.dataset.form==='finance-edit',existing=editing?data.transactions.find(tx=>tx.id===v.transactionId):null;
      if(editing&&!existing)return alert('This transaction no longer exists.');
@@ -1639,7 +1713,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=83',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=84',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1691,7 +1765,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=83');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=84');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -1729,10 +1803,13 @@ function importRecord(key,item,unit){
   const foodEntryDetails=key==='foodEntries'?`${r.date}${r.t!=null?' · '+foodTimeLabel(r.t):''} · ${fmt(r.calories*r.quantity)} cal · ${fmt(r.protein*r.quantity)}g protein${r.quantity!==1?` · ${fmt(r.quantity)} servings · ${fmt(r.calories)} cal / ${fmt(r.protein)}g each`:''}`:'';
   const details=key==='foods'?`${fmt(r.calories)} cal · ${fmt(r.protein)}g protein per serving${r.lastUsed?' · Last used '+r.lastUsed:''}`:key==='foodEntries'?foodEntryDetails:key==='lifts'?`${r.date} · ${r.sets.map(set=>`${fmt(set.weight)} ${unit} × ${set.reps}${set.difficulty?` · effort ${set.difficulty}`:''}`).join(' · ')}`:key==='weights'?r.date:key==='bodyFat'?`${r.date} · Body-fat measurement`:key==='transactions'?`${r.date}${r.time?' '+r.time:''} · ${r.kind} · $${(r.amountCents/100).toFixed(2)} · ${r.category}${r.merchant?' · '+r.merchant:''}`:r.date;
   const badges=(item.badges||[]).filter(Boolean),attention=badges.some(b=>/duplicate|Replaces|Removed|Multiple|differs/i.test(b))||item.libraryAction==='nutrition-diff';
-  const rowRef=item.sourceRow&&attention?`<small class="import-row-ref">CSV row ${item.sourceRow}</small>`:'';
+  const rowRef=item.sourceRow?`<small class="import-row-ref">CSV row ${item.sourceRow}</small>`:'';
+  const rawBank=key==='transactions'&&r.bankDescription?`<small class="finance-raw-description">Bank: ${esc(r.bankDescription)}</small>`:'';
+  const sourceBank=key==='transactions'&&r.accountLabel?`<small>${esc(r.accountLabel)} · ${esc(r.statementLabel||'')}</small>`:'';
+  const itemization=key==='transactions'&&r.itemization?`<small class="finance-itemized">${esc(r.itemization)}</small>`:'';
   const libraryEffect=key==='foodEntries'&&item.libraryDetail?`<div class="import-library-effect ${esc(item.libraryAction||'')}"><span aria-hidden="true">${item.libraryAction==='one-off'?'○':item.libraryAction==='existing'?'✓':item.libraryAction==='nutrition-diff'?'!':'+'}</span><strong>${esc(item.libraryDetail)}</strong></div>`:'';
   const badgeHtml=badges.length?`<div class="import-badges">${badges.map(b=>`<span class="import-badge ${/duplicate|Replaces|Removed|Multiple|differs/i.test(b)?'attention':''}">${esc(b)}</span>`).join('')}</div>`:'';
-  return `<div class="list-row import-record"><div><strong>${esc(title)}</strong><small>${esc(details)}</small>${rowRef}${libraryEffect}${key==='lifts'&&r.notes?`<p class="import-note">${esc(r.notes)}</p>`:''}${badgeHtml}${item.previous?`<details class="import-previous"><summary>Existing record being replaced</summary>${importRecord(key,{record:item.previous,badges:[]},pendingImport.currentSettings.unit)}</details>`:''}</div></div>`;
+  return `<div class="list-row import-record"><div><strong>${esc(title)}</strong><small>${esc(details)}</small>${rowRef}${rawBank}${sourceBank}${itemization}${libraryEffect}${key==='lifts'&&r.notes?`<p class="import-note">${esc(r.notes)}</p>`:''}${badgeHtml}${item.previous?`<details class="import-previous"><summary>Existing record being replaced</summary>${importRecord(key,{record:item.previous,badges:[]},pendingImport.currentSettings.unit)}</details>`:''}</div></div>`;
 }
 function visibleImportRows(group,removed=false){
   const rows=removed?group.removedRows:group.rows;
@@ -1765,6 +1842,11 @@ function expandImportGroup(el){
 
 function showImportReview(plan,saveError=''){
   const json=plan.kind==='json',incomingCount=json?plan.groups.reduce((n,g)=>n+g.total,0):(plan.display?.count??plan.changeCount);
+  const bankInfo=plan.kind==='bank'&&plan.bankDetails?
+   '<section class="finance-bank-review"><strong>'+esc(plan.bankDetails.accountLabel)+' · '+esc(plan.bankDetails.statementLabel)+'</strong>'+
+   '<small>'+esc(plan.bankDetails.format)+' · '+plan.bankDetails.negative+' withdrawals · '+plan.bankDetails.positive+' credits · '+plan.bankDetails.skipped+' non-transaction rows skipped</small>'+
+   '<p>Bank date is the posted date. Review transfer and refund classifications before confirming.</p></section>':'';
+
   const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on',dayResetMinutes:'Day resets at'};
   const settingValue=(key,value)=>key==='weekStart'?weekDays[value]:key==='dayResetMinutes'?clockLabel(value):typeof value==='object'?JSON.stringify(value):String(value);
   const settingsChanges=plan.settingChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(labels[change.key]||change.key)+'</strong><small>'+esc(settingValue(change.key,change.from))+' → '+esc(settingValue(change.key,change.to))+'</small><span class="import-badge attention">Replaces setting</span></div></div>').join('');
@@ -1779,9 +1861,9 @@ function showImportReview(plan,saveError=''){
   const cleanStatus=!saveError&&!plan.errors.length&&!plan.warnings.length?'<div class="import-clean-status"><span>✓</span><strong>No conflicts detected</strong></div>':'';
   const library=plan.display?.foodLibrarySummary;
   const libraryBits=!json&&library?[library.newSaved?library.newSaved+' new Saved Food'+(library.newSaved===1?'':'s'):'',library.existing?library.existing+' existing Saved Food'+(library.existing===1?'':'s'):'',library.oneOff?library.oneOff+' one-off entr'+(library.oneOff===1?'y':'ies'):'',library.nutritionDiff?library.nutritionDiff+' nutrition difference'+(library.nutritionDiff===1?'':'s'):''].filter(Boolean):[];
-  const csvHead=!json?'<section class="import-human-summary"><p class="eyebrow">READY TO IMPORT</p><h3>'+esc(plan.display?.label||((plan.display?.count??plan.changeCount)+' items to import'))+'</h3>'+(libraryBits.length?'<p>'+esc(libraryBits.join(' · '))+'</p>':'')+'</section>':'';
+  const csvHead=!json?'<section class="import-human-summary"><p class="eyebrow">'+(plan.kind==='enrichment'?'READY TO CLARIFY':'READY TO IMPORT')+'</p><h3>'+esc(plan.display?.label||((plan.display?.count??plan.changeCount)+' items to import'))+'</h3>'+(libraryBits.length?'<p>'+esc(libraryBits.join(' · '))+'</p>':'')+'</section>':'';
   const jsonSummary=json?'<div class="import-summary import-summary-compact"><p class="eyebrow">JSON BACKUP</p><p>'+incomingCount+' incoming tracked records · '+plan.unchanged+' unchanged items omitted'+(plan.duplicates?' · '+plan.duplicates+' possible duplicates':'')+'</p><strong>This confirmation replaces all current data with the reviewed backup.</strong></div>':'';
-  modal('Review import','<p class="import-filename">'+esc(plan.filename)+'</p><div class="import-scroll" tabindex="0" aria-label="Import changes">'+csvHead+saveAlert+errors+warnings+cleanStatus+jsonSummary+'<section class="import-changes">'+(json?'<div class="import-changes-head"><p class="eyebrow">CHANGES</p><h3>'+plan.changeCount+' proposed change'+(plan.changeCount===1?'':'s')+'</h3></div>':'')+changesBody+'</section></div><div class="import-footer"><p>'+(json?'Confirmation replaces the current data with this backup. Unchanged items are omitted from the preview.':'Review the entries and any Food Library effects above before confirming.')+'</p><div class="form-actions">'+(plan.candidate?button(json?'Confirm replacement':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file','choose-import','primary','data-kind="'+plan.kind+'" data-source="'+esc(plan.source||'file')+'"'))+button('Cancel','close','outline')+'</div></div>');
+  modal('Review import','<p class="import-filename">'+esc(plan.filename)+'</p><div class="import-scroll" tabindex="0" aria-label="Import changes">'+bankInfo+csvHead+saveAlert+errors+warnings+cleanStatus+jsonSummary+'<section class="import-changes">'+(json?'<div class="import-changes-head"><p class="eyebrow">CHANGES</p><h3>'+plan.changeCount+' proposed change'+(plan.changeCount===1?'':'s')+'</h3></div>':'')+changesBody+'</section></div><div class="import-footer"><p>'+(json?'Confirmation replaces the current data with this backup. Unchanged items are omitted from the preview.':'Review each proposed change. The existing notebook is not modified until you confirm.')+'</p><div class="form-actions">'+(plan.candidate?button(json?'Confirm replacement':plan.kind==='enrichment'?'Apply clarifications':'Confirm import','commit-import',json?'danger filled':'primary'):button('Choose another file',plan.kind==='bank'?'finance-bofa-import':plan.kind==='enrichment'?'finance-enrichment-paste':'choose-import','primary',plan.kind==='bank'||plan.kind==='enrichment'?'':'data-kind="'+plan.kind+'" data-source="'+esc(plan.source||'file')+'"'))+button('Cancel','close','outline')+'</div></div>');
   document.querySelector('.modal').classList.add('import-dialog');
 }
 

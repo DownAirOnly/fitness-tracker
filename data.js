@@ -218,15 +218,17 @@ export function normalizeData(input) {
       throw Error('Backup has an invalid financial transaction.');
     if(tx.time!=null&&!(typeof tx.time==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(tx.time)))
       throw Error('Backup has an invalid transaction time.');
-    const extras=[['merchant',160],['note',500],['externalId',160]];
+    const extras=[['merchant',160],['note',500],['externalId',160],['bankDescription',240],['accountLabel',120],['statementLabel',160],['subcategory',80],['itemization',3000]];
     for(const [key,max] of extras)if(tx[key]!=null&&(typeof tx[key]!=='string'||tx[key].length>max))
       throw Error('Backup has invalid transaction '+key+'.');
+    if(tx.purchaseDate!=null&&!validDate(tx.purchaseDate))throw Error('Backup has invalid transaction purchase date.');
     if(tx.source!=null&&!['manual','import'].includes(tx.source))throw Error('Backup has invalid transaction source.');
     if(transactionIds.has(tx.id))throw Error('Backup contains duplicate transaction IDs.');
     transactionIds.add(tx.id);
     const clean={id:tx.id,date:tx.date,kind:tx.kind,amountCents:tx.amountCents,
       description:tx.description.trim(),category:tx.category?.trim()||'Uncategorized',currency:'USD'};
     if(tx.time!=null)clean.time=tx.time;
+    if(tx.purchaseDate!=null)clean.purchaseDate=tx.purchaseDate;
     for(const [key] of extras)if(tx[key]?.trim())clean[key]=tx[key].trim();
     if(tx.source)clean.source=tx.source;
     return clean;

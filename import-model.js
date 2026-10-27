@@ -1,5 +1,6 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=83';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=84';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
+import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=84';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
 const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:key==='transactions'?[r.date,r.time??null,r.kind,r.amountCents,r.description.toLowerCase(),r.category.toLowerCase(),r.merchant??'',r.note??'',r.source??'',r.externalId??'']:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
@@ -218,7 +219,79 @@ function reviewCSVImport(raw,current,initialErrors=[],initialWarnings=[]){
  return{kind:'csv',base:JSON.stringify(current),candidate:errors.length?null:normalized,groups,errors,warnings:[...new Set(warnings)],duplicates,replaced,removed:0,added,unchanged,changeCount,display,settingChanges:[],otherChanges,promptChanged:false,settings:structuredClone(current.settings),promptDate:current.promptDate||'',currentSettings:structuredClone(current.settings),currentPromptDate:current.promptDate};
 }
 
+function financeOnlyPlan(kind,current,rows,errors=[],warnings=[],counts={}){
+ const validated=current?structuredClone(current):emptyData(),summary={
+  added:counts.added||0,replaced:counts.replaced||0,unchanged:counts.unchanged||0,
+  duplicates:counts.duplicates||0
+ };
+ if(!errors.length){
+  const existingIds=new Map(validated.transactions.map((r,i)=>[r.id,i]));
+  for(const row of rows){
+   if(kind==='bank'){
+    if(existingIds.has(row.record.id))throw Error('Internal bank preview tried to add an existing transaction.');
+    validated.transactions.push(structuredClone(row.record));
+   }else if(kind==='enrichment'){
+    const index=existingIds.get(row.record.id);
+    if(index===undefined)throw Error('Enrichment preview refers to a transaction not in the notebook.');
+    validated.transactions[index]=structuredClone(row.record);
+   }
+  }
+ }
+ let normalized=null;
+ if(!errors.length){try{normalized=normalizeData(validated);}catch(e){errors.push(e.message);}}
+ const group={key:'transactions',label:kind==='enrichment'?'Transaction Clarifications':'Bank Transactions',
+  rows,removedRows:[],total:rows.length,unchangedCount:summary.unchanged};
+ return {
+  kind,base:JSON.stringify(current),candidate:errors.length?null:normalized,
+  groups:[group],errors,warnings,duplicates:summary.duplicates,
+  replaced:summary.replaced,removed:0,added:summary.added,unchanged:summary.unchanged,
+  changeCount:rows.length,display:{
+   count:rows.length,transactions:rows.length,
+   label:kind==='enrichment'?rows.length+' existing transaction'+(rows.length===1?'':'s')+' to clarify':
+    rows.length+' Bank of America transaction'+(rows.length===1?'':'s')+' to import'
+  },
+  settingChanges:[],otherChanges:[],promptChanged:false,
+  settings:structuredClone(current.settings),promptDate:current.promptDate||'',
+  currentSettings:structuredClone(current.settings),currentPromptDate:current.promptDate
+ };
+}
+export function prepareBankImport(text,current,options){
+ const parsed=readBofaCSV(text,options),errors=[...parsed.errors],warnings=[...parsed.warnings],rows=[];
+ const existing=new Map((current.transactions||[]).map(tx=>[tx.id,tx]));
+ let unchanged=0,duplicates=0;
+ for(const item of parsed.records){
+  const {__sourceRow,...record}=item,old=existing.get(record.id);
+  if(old){
+   if(old.date!==record.date||old.kind!==record.kind||
+       old.amountCents!==record.amountCents||old.bankDescription!==record.bankDescription||
+       old.accountLabel!==record.accountLabel){
+     errors.push('Row '+__sourceRow+': bank identity matches an existing transaction but original values differ. Nothing will be imported.');
+   }else unchanged++;
+   continue;
+  }
+  const similar=current.transactions.filter(tx=>tx.date===record.date&&tx.kind===record.kind&&
+   tx.amountCents===record.amountCents &&
+   ((tx.bankDescription||tx.description).trim().toLowerCase()===record.bankDescription.trim().toLowerCase()));
+  const badges=['Adds bank record'];
+  if(similar.length){
+   badges.push('Possible duplicate');duplicates++;
+   warnings.push('Row '+__sourceRow+': similar transaction already logged. It is not merged automatically.');
+  }
+  rows.push({record,badges,sourceRow:__sourceRow});
+  existing.set(record.id,record);
+ }
+ const plan=financeOnlyPlan('bank',current,rows,errors,warnings,
+  {added:rows.length,unchanged,duplicates});
+ plan.bankDetails=parsed.details;
+ return plan;
+}
+export function prepareEnrichmentImport(text,current){
+ const parsed=readEnrichmentCSV(text,current);
+ return financeOnlyPlan('enrichment',current,parsed.updates,parsed.errors,parsed.warnings,
+  {replaced:parsed.updates.length,unchanged:parsed.unchanged});
+}
 export function prepareImport(kind,text,current){
+  if(kind==='enrichment')return prepareEnrichmentImport(text,current);
   if(kind==='csv'){
     const parsed=parseUniversalCSV(text,current);
     return reviewCSVImport(parsed.raw,current,parsed.errors,parsed.warnings);
