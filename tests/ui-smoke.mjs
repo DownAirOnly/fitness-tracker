@@ -1,5 +1,5 @@
 import {JSDOM} from 'jsdom';
-import {normalizeData,localDate} from '../data.js';
+import {normalizeData,localDate as todayCalendarDate} from '../data.js';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -220,7 +220,7 @@ try{
  await click('today');assert.ok(document.querySelector('.food-card-add').textContent.includes('Add to today'));
  assert.ok(!document.querySelector('.food-preview').textContent.includes('History food'));
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'));await submit('food',{quantity:'1'});current=JSON.parse(state.records.get('bob').payload);
- assert.equal(current.foodEntries.at(-1).date,localDate(),'new food entries use their actual calendar date, even before the tracking-day reset');
+ assert.equal(current.foodEntries.at(-1).date,todayCalendarDate(),'new food entries use their actual calendar date, even before the tracking-day reset');
  // Pass 3: nested Food dismissal returns exactly one level.
  await click('food-log');await click('edit-entry');
  document.querySelector('.modal .close-btn').click();await tick();
