@@ -21,7 +21,7 @@ const statement=[
 
 test('v84: BofA checking CSV skips summary preamble and blank balance row',()=>{
  const result=readBofaCSV(statement,options);
- assert.equal(result.details.headerLine,6);
+ assert.equal(result.details.headerLine,5,'CSV parser omits blank preamble lines');
  assert.equal(result.details.skipped,1);
  assert.equal(result.records.length,4);
  assert.equal(result.errors.length,0);
