@@ -249,3 +249,8 @@ Keep record IDs unchanged. Use a separate `purchaseDate` for receipt dates diffe
 ## v85 — Bank classification refinement
 
 Bank of America imports now preserve `bankDirection` (original debit or credit), separate from the editable `kind` classification (expense, income or transfer). The bank editor and ID-anchored enrichment CSV can correct that classification without rewriting the original amount, posting date, bank description or direction. Reimporting an overlapping statement keeps the corrected type and personal labels. The bank import also supports `Post Date` column variants and zero-value running balances. The v84 Bank of America and ChatGPT round-trip workflow remains otherwise unchanged.
+
+
+## v86 — Bank of America $0.00 status-notice handling
+
+The direct Bank of America CSV reader now skips zero-dollar bank notices (including `KEEP THE CHANGE TRANSFER CANCELED-LOW ACCT BALANCE`) instead of rejecting the entire statement. Because those rows represent no movement of money, they are not saved as transactions. Import review counts them explicitly; unrecognized $0.00 row descriptions are flagged in a warning. Transfer-classification warnings are summarized rather than producing dozens of near-identical alerts. The August 3–October 27, 2026 checking export with 478 genuine transactions and 3 canceled $0.00 transfer status rows is now covered in the regression tests. Normal manual entries still require strictly positive amounts. No existing transaction amounts, bank descriptions, or saved notebook data are altered.

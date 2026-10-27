@@ -209,3 +209,63 @@ test('v85: zero running balances and Post Date aliases import cleanly',()=>{
  assert.equal(plan.candidate.transactions[0].amountCents,2000);
  assert.equal(plan.candidate.transactions[0].bankDirection,'debit');
 });
+
+
+test('v86: BofA 478 transactions with 3 canceled $0.00 Keep the Change notices import cleanly',()=>{
+ const lines=[
+  'Description,,Summary Amt.',
+  'Beginning balance as of 08/03/2026,,559.96',
+  'Total credits,,"8,360.38"',
+  'Total debits,,"-8,716.84"',
+  '',
+  'Date,Description,Amount,Running Bal.',
+  '08/03/2026,Beginning balance as of 08/03/2026,,559.96'
+ ];
+ // Mirrors the user's statement: 478 money-moving rows + 3 canceled zero-dollar notices.
+ const notices=new Set([43,329,480]);
+ for(let i=0;i<481;i++){
+  if(notices.has(i))lines.push('10/16/2026,KEEP THE CHANGE TRANSFER CANCELED-LOW ACCT BALANCE,0.00,-101.33');
+  else lines.push('10/16/2026,TEST PURCHASE '+i+',-'+(i+1)+'.19,-101.33');
+ }
+ const csv=lines.join('\n'),result=readBofaCSV(csv,options);
+ assert.equal(result.errors.length,0);
+ assert.equal(result.records.length,478);
+ assert.equal(result.details.zeroAmountSkipped,3);
+ assert.equal(result.details.canceledZeroNotices,3);
+ assert.equal(result.details.skipped,4,'balance-only row plus three zero-dollar notices');
+ assert.equal(result.warnings.filter(w=>w.includes('$0.00')).length,1,'one clear zero status summary');
+ assert.equal(result.records.some(x=>x.amountCents===0),false);
+ const plan=prepareBankImport(csv,emptyData(),options);
+ assert.equal(plan.errors.length,0);
+ assert.equal(plan.changeCount,478);
+ assert.equal(plan.candidate.transactions.length,478);
+ assert.equal(plan.bankDetails.zeroAmountSkipped,3);
+ const repeat=prepareBankImport(csv,plan.candidate,options);
+ assert.equal(repeat.errors.length,0);
+ assert.equal(repeat.changeCount,0);
+ assert.equal(repeat.unchanged,478,'a second import cannot duplicate purchases');
+});
+
+test('v86: ambiguous $0.00 bank records skip with a clear warning, not a silent drop',()=>{
+ const csv=[
+  'Date,Description,Amount,Running Bal.',
+  '10/02/2026,COFFEE SHOP,-5.00,95.00',
+  '10/03/2026,ADJUSTMENT PENDING,0.00,95.00',
+  '10/04/2026,ONLINE TRANSFER TO SAVINGS,-10.00,85.00',
+  '10/05/2026,KEEP THE CHANGE TRANSFER CANCELED-LOW ACCT BALANCE,0.00,85.00'
+ ].join('\n');
+ const result=readBofaCSV(csv,options);
+ assert.equal(result.errors.length,0);
+ assert.equal(result.records.length,2);
+ assert.equal(result.details.zeroAmountSkipped,2);
+ assert.equal(result.details.canceledZeroNotices,1);
+ assert.match(result.warnings.join(' '),/Review zero-dollar rows/);
+ assert.equal(result.warnings.filter(w=>/classified as transfers/i.test(w)).length,1,'transfer classification warnings are grouped');
+ assert.equal(result.records[1].kind,'transfer');
+});
+
+test('v86: zero-dollar bank notices do not make manual $0 transactions valid',()=>{
+ const state=emptyData();
+ state.transactions=[{id:'zero',date:'2026-10-27',kind:'expense',amountCents:0,description:'Zero',currency:'USD'}];
+ assert.throws(()=>normalizeData(state),/invalid financial transaction/);
+});

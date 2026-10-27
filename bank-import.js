@@ -34,8 +34,10 @@ function signedBankCents(value){
  else if(text.startsWith('+'))text=text.slice(1);
  if(text.startsWith('$'))text=text.slice(1);
  if(!positiveNumber.test(text))throw Error('Invalid signed dollar amount "'+value+'".');
- const cents=parseFinanceAmount(text);
- return negative?-cents:cents;
+ // BofA exports may contain $0.00 canceled/failed status notices, which are
+ // not valid saved transactions. Parse zero here so the reader can skip them.
+ const cents=/^0(?:\.0{1,2})?$/.test(text)?0:parseFinanceAmount(text);
+ return cents===0?0:(negative?-cents:cents);
 }
 function moneyCentsForBalance(value){
  const text=cleanLine(value);
@@ -92,7 +94,8 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
   transactionDateIndex=getIndex(['transactiondate','purchasedate']);
  const isCard=columns.includes('posteddate')||referenceIndex>=0;
  const errors=[],warnings=[],records=[],occurrences=new Map(),seenIds=new Set();
- let skipped=0,negative=0,positive=0,transfers=0;
+ let skipped=0,negative=0,positive=0,transfers=0,zeroAmountSkipped=0,canceledZeroNotices=0;
+ const unrecognizedZeroRows=[];
  for(let index=headerIndex+1;index<rows.length;index++){
   const row=rows[index],line=index+1,get=(i)=>i<0?'':cleanLine(row[i]);
   if(!row.some(cell=>cleanLine(cell))){skipped++;continue;}
@@ -105,6 +108,13 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
    if(!dateText||!description)throw Error('Date and bank description are required.');
    if(description.length>240)throw Error('Description is longer than 240 characters.');
    const date=bankDate(dateText),signedCents=signedBankCents(amountText);
+   if(signedCents===0){
+    // Status entries do not move money and must not create ledger transactions.
+    skipped++;zeroAmountSkipped++;
+    if(/\b(?:cancel(?:ed|led)?|failed|rejected|declined|void(?:ed)?)\b/i.test(description))canceledZeroNotices++;
+    else unrecognizedZeroRows.push(line);
+    continue;
+   }
    let reference=get(referenceIndex);
    if(reference.length>80)throw Error('Bank reference is too long.');
    const balanceCents=moneyCentsForBalance(get(balanceIndex));
@@ -119,7 +129,7 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
     category:transfer?'Transfers':'Uncategorized',accountLabel,statementLabel,
     currency:'USD',source:'import',externalId:'bofa:'+bankHash(seed)+':'+occurrence
    };
-   if(transfer){transfers++;warnings.push('Row '+line+': "'+description.slice(0,70)+'" was classified as a transfer. Confirm in the preview.');}
+   if(transfer)transfers++;
    if(signedCents<0)negative++;else positive++;
    if(transactionDateIndex>=0&&get(transactionDateIndex)){
     const purchaseDate=bankDate(get(transactionDateIndex));
@@ -129,10 +139,19 @@ export function readBofaCSV(text,{accountLabel,statementLabel}={}){
    records.push({...record,__sourceRow:line});
   }catch(error){errors.push('Row '+line+': '+error.message);}
  }
+ if(zeroAmountSkipped){
+  const explanation=unrecognizedZeroRows.length?
+   ' Review zero-dollar rows '+unrecognizedZeroRows.join(', ')+': no debit or credit was recorded.':
+   ' These are canceled/failed bank notices, not transactions.';
+  warnings.unshift('Skipped '+zeroAmountSkipped+' $0.00 bank row'+(zeroAmountSkipped===1?'':'s')+
+   ' because no money moved.'+explanation);
+ }
+ if(transfers)warnings.push(transfers+' transaction'+(transfers===1?' was':'s were')+
+  ' classified as transfers using the bank wording. Review these classifications in the transaction preview.');
  if(records.length===0&&!errors.length)errors.push('No posted transaction rows found in this CSV.');
  if(balanceIndex<0&&referenceIndex<0)warnings.push('This bank export has no running balance or reference column. Identical charges are distinguished by row occurrence; check overlapping partial exports carefully.');
  if(isCard)warnings.push('Credit-card payments and refunds may be credits. Review the transaction types before confirming.');
- return {records,errors,warnings,details:{headerLine:headerIndex+1,skipped,negative,positive,transfers,accountLabel,statementLabel,format:isCard?'Credit card':'Checking / Savings'}};
+ return {records,errors,warnings,details:{headerLine:headerIndex+1,skipped,zeroAmountSkipped,canceledZeroNotices,negative,positive,transfers,accountLabel,statementLabel,format:isCard?'Credit card':'Checking / Savings'}};
 }
 const patchFields=['kind','description','category','subcategory','merchant','note','purchaseDate','time','itemization'];
 export function readEnrichmentCSV(text,current){

@@ -1,8 +1,8 @@
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=85';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=85';
-import {financeEnrichmentCSV} from './bank-import.js?v=85';
+import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=86';
+import {financeEnrichmentCSV} from './bank-import.js?v=86';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=85';
@@ -1713,7 +1713,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=85',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=86',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1844,7 +1844,7 @@ function showImportReview(plan,saveError=''){
   const json=plan.kind==='json',incomingCount=json?plan.groups.reduce((n,g)=>n+g.total,0):(plan.display?.count??plan.changeCount);
   const bankInfo=plan.kind==='bank'&&plan.bankDetails?
    '<section class="finance-bank-review"><strong>'+esc(plan.bankDetails.accountLabel)+' · '+esc(plan.bankDetails.statementLabel)+'</strong>'+
-   '<small>'+esc(plan.bankDetails.format)+' · '+plan.bankDetails.negative+' withdrawals · '+plan.bankDetails.positive+' credits · '+plan.bankDetails.skipped+' non-transaction rows skipped</small>'+
+   '<small>'+esc(plan.bankDetails.format)+' · '+plan.bankDetails.negative+' withdrawals · '+plan.bankDetails.positive+' credits · '+plan.bankDetails.skipped+' non-transaction rows skipped'+(plan.bankDetails.zeroAmountSkipped?' (including '+plan.bankDetails.zeroAmountSkipped+' $0.00 notices)':'')+'</small>'+
    '<p>Bank date is the posted date. Review transfer and refund classifications before confirming.</p></section>':'';
 
   const labels={calories:'Daily calories',protein:'Daily protein (g)',heightInches:'Height (inches)',unit:'Weight unit',weekStart:'Week starts on',dayResetMinutes:'Day resets at'};
