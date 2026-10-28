@@ -335,7 +335,9 @@ try{
  assert.ok(pausedExercise,'an unfinished Setup editor is retained');
  assert.equal(pausedExercise.setup,'Seat 6','unfinished Setup does not overwrite the committed setting');
  assert.equal(pausedExercise.setupDraft,'Seat 7 - draft','unsaved Setup text has a recovery copy');
- assert.equal(paused.exerciseDefinitions.find(e=>e.id===pausedExercise.exerciseId).setup,'Seat 6','exercise definition remains unchanged until Save');
+ const setupExerciseId=pausedExercise.exerciseId;
+ assert.equal(normalizeData(paused).activeWorkout.exercises.find(e=>e.exerciseId===setupExerciseId).setupDraft,'Seat 7 - draft','normalization preserves a recoverable active Setup draft');
+ assert.equal(paused.exerciseDefinitions.find(e=>e.id===setupExerciseId).setup,'Seat 6','exercise definition remains unchanged until Save');
  await click('buddy-exit');
  await click('buddy-launch');
  assert.equal(document.querySelector('#buddy-root [name=buddySetup]').value,'Seat 7 - draft','draft is restored after reopening Workout Buddy');
@@ -343,7 +345,7 @@ try{
  assert.equal(document.querySelector('#buddy-root [name=buddySetup]'),null,'closing Setup cancels unsaved draft');
  assert.ok(document.querySelector('#buddy-root .buddy-setup').textContent.includes('Seat 6'),'cancel keeps last committed setting');
  paused=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
- pausedExercise=paused.activeWorkout.exercises.find(e=>e.setup==='Seat 6');
+ pausedExercise=paused.activeWorkout.exercises.find(e=>e.exerciseId===setupExerciseId);
  assert.equal(pausedExercise?.setupDraft,undefined,'discarded edit is not retained as a committed change');
  await click('buddy-notes-toggle');
  const noteField=document.querySelector('#buddy-root [name=buddyNotes]');
