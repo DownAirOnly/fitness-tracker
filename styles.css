@@ -1565,3 +1565,21 @@ html.buddy-active #overlay .modal{z-index:1101}
  .finance-import-actions .primary{grid-column:1/-1}
  .finance-import-actions button{min-width:0;white-space:normal}
 }
+
+
+/* v89 — Finance transaction hierarchy: date first, one title, optional bank source/category. */
+.finance-row-main .finance-row-date{
+ display:block;margin:0 0 5px;color:#8b9a90;
+ font-size:10px;font-weight:550;letter-spacing:.015em;line-height:1.35
+}
+.finance-row-main .finance-row-details{
+ display:block;margin-top:4px;color:#84918c;font-size:11px;line-height:1.48;
+ font-weight:500;overflow-wrap:anywhere
+}
+.finance-row-main .finance-row-details .finance-raw-description{
+ display:inline;margin:0;color:inherit;font:inherit;overflow-wrap:anywhere
+}
+.finance-row-main .finance-row-category{display:inline;color:#89a795;font-weight:600}
+[data-theme="dark"] .finance-row-main .finance-row-date{color:#94a99a}
+[data-theme="dark"] .finance-row-main .finance-row-details{color:#9aafa0}
+[data-theme="dark"] .finance-row-main .finance-row-category{color:#b4d2b9}
