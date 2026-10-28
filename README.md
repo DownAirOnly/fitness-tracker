@@ -283,6 +283,14 @@ Finance **Recent transactions** presents the muted posted date above the main pe
 This release does not retroactively rewrite previously imported transaction categories. Reconciliation of older classifications remains a separate, reviewed enrichment step.
 
  
+## v92 — Workout Buddy current-set inheritance and contextual undo
+
+Set 2 and later initialize weight, reps, and effort from the **most recently completed set of the same exercise in the active workout**, including corrections made during set review. Only the first set (or an exercise with no current completed set) uses previous-workout values as a fallback. Explicit edits to a draft remain authoritative and are preserved by the existing local/cloud recovery path.
+
+Undo links are now shown and accepted only for the transition that produced the current screen: start set while active, finish set while reviewing, next set while active, exercise completion from picker/complete, and other immediate transitions. Leaving the exercise using Back clears stale undo snapshots rather than offering an old action later. Undo continues to restore the precise prior session state and any Workout Buddy lift records without changing historical lifts unrelated to the session.
+
+The no-scroll Workout Buddy redesign (v93) and iOS keyboard/zoom improvements (v94) remain **separate planned releases**, not part of v92.
+
 ## v91 — Finance classification review queue (non-destructive)
 
 Finances offers **Review classifications** when saved records need attention. Transaction History can filter by **Needs review**, **Uncategorized**, or **Possible transfers**. The possible-transfer hints reuse Bank of America's explicit payment and overdraft-transfer wording rules and can identify older imported records with mismatched editable types. Hints need human verification; peer-to-peer payments are never assumed to be transfers. Existing Edit updates a specific transaction and preserves immutable bank facts, stable IDs, receipts, notes and cloud recovery.

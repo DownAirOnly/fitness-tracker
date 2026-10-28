@@ -8,7 +8,7 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v91**, non-destructive Finance Classification Review. Verify merged main version and Pages deployment before calling v91 live.
+- **Latest implemented release covered here:** **v92**, Workout Buddy set inheritance and contextual Undo. Reconcile `main`, CI, and Pages before claiming it is live.
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. The previous cycle was **v86–v90**; current is **v91–v95** (suggested chat title: **Fitness Workless 6**); after that **v96–v100**.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -52,7 +52,8 @@
 | v88 | Detect explicit debt payments/overdraft credits as transfers, warn on ambiguous P2P and similar duplicates |
 | v89 | Stop silent rejection of ordinary log submissions when cloud save is pending after iOS app switching; concise Finance rows |
 | v90 | Full transaction history: searchable ledger, type/month/category filters, sorting, 50-row pagination and editing; browsing read-only |
-| **v91** | **Finance classification review queue:** shortcut and review filters for uncategorized records and possible bank transfer mismatches; no automatic changes |
+| v91 | Finance classification review queue: shortcut and review filters for uncategorized records and possible bank transfer mismatches; no automatic changes |
+| **v92** | **Workout Buddy set progression:** later sets inherit the latest completed set from the active workout; undo buttons appear only during corresponding transitions |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -79,6 +80,14 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Inference limits:** Transfer hints reuse existing bank import rules for explicit debt payments, overdraft credits and transfers; no P2P or manual transaction is presumed a transfer. Review flags do not automatically change any saved data.
 - **Coverage:** Added tests/finance-review.test.js and UI smoke checks for queue navigation, filtering and unchanged ledger data. Verify CI, merge and deployment independently. Browser tests are not proof of real iPhone behavior.
 - **Still open:** v89 iPhone background/foreground saving, v90/v91 History on-device checks and confirmation of the nine-row enrichment correction. Previously imported 478 transactions were not reimported or modified by v91.
+
+## v92 release scope and checks
+
+- **Implemented:** `buddy-set-model.js` is a pure helper for next-set defaults and scoped undo eligibility. Current workout's last completed set takes priority over last workout's corresponding set. Existing editing and persistence remain unchanged.
+- **Undo:** undo applies only to the matching current state, and Back to exercises discards stale undo context. Start/finish/next-set and exercise transition undo remain supported.
+- **Tests:** `tests/buddy-set-flow.test.js` covers first, second, and third set progression, edited set propagation, and undo state transitions. UI smoke covers a live demo sequence, including edited first set > active second set and undo. Check CI and Pages before reporting live.
+- **Deferred by planned release:** v93 no-scroll iPhone Workout Buddy layout; v94 focus and iOS keyboard zoom; v95 stabilization and v96–v100 handoff. The anatomy art redesign remains unapproved and separate.
+- **Outstanding earlier verification:** v89 app switching/save, v90/v91 Finance History on iPhone, nine-row enrichment application. No user notebook edits are performed by this release.
 
 ## Outstanding work: next cycle v91–v95
 
