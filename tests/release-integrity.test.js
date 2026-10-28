@@ -9,14 +9,15 @@ test('published version, entry assets, registration and offline bundle stay alig
   read('version.json'),read('index.html'),read('sw.js'),read('app.js')
  ]);
  const version=JSON.parse(manifest).version;
+ const revision=version.slice(1);
  assert.match(version,/^v\d+$/);
  const cacheName=service.match(/const CACHE='([^']+)'/)?.[1];
  assert.ok(cacheName?.startsWith('everyday-'+version+'-'),'service-worker cache belongs to release '+version);
- assert.ok(index.includes('styles.css?v='+version),'HTML loads release stylesheet');
- assert.ok(index.includes('app.js?v='+version),'HTML loads release JS');
- assert.ok(service.includes('"./styles.css?v='+version+'"'),'offline stylesheet matches HTML');
- assert.ok(service.includes('"./app.js?v='+version+'"'),'offline app matches HTML');
- assert.ok(app.includes("register('./sw.js?v="+version+"'"),'app registers the release service worker');
+ assert.ok(index.includes('styles.css?v='+revision),'HTML loads release stylesheet');
+ assert.ok(index.includes('app.js?v='+revision),'HTML loads release JS');
+ assert.ok(service.includes('"./styles.css?v='+revision+'"'),'offline stylesheet matches HTML');
+ assert.ok(service.includes('"./app.js?v='+revision+'"'),'offline app matches HTML');
+ assert.ok(app.includes("register('./sw.js?v="+revision+"'"),'app registers the release service worker');
  // Module imports are pinned to asset revisions. Ensure the corresponding
  // exact URLs are included for offline Home Screen use.
  for(const [,file,revision]of app.matchAll(/from ['"]\.\/([^'"/]+\.js)\?v=(\d+)['"]/g)){
