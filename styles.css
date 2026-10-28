@@ -1606,3 +1606,95 @@ html.buddy-active #overlay .modal{z-index:1101}
 .finance-history-list .empty{margin:20px 0}
 [data-theme="dark"] .finance-history-summary{color:#a8bea9;border-color:#34483a}
 @media(max-width:390px){.finance-history-filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}}
+
+
+/* v93 — Set screens fit the iPhone viewport without draggable page scroll.
+   Only genuinely constrained viewports use the runtime overflow fallback. */
+.buddy-exercise-view{
+ overflow-x:hidden;overflow-y:hidden;overscroll-behavior:none;
+ padding-top:10px;padding-bottom:10px;
+ --buddy-anatomy-top:83px;
+}
+.buddy-exercise-view.buddy-needs-scroll{
+ overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;
+ scroll-padding-bottom:12px;
+}
+.buddy-exercise-view .buddy-back{padding:2px 0 6px;line-height:1.25;flex-shrink:0}
+.buddy-exercise-view .buddy-set-status{margin:0 0 3px;flex-shrink:0}
+.buddy-exercise-view .buddy-action-tools{margin:0 0 3px;flex-shrink:0}
+.buddy-exercise-view .buddy-exercise-title{
+ min-height:116px;margin:2px 0 5px;flex-shrink:0;
+}
+.buddy-exercise-view .buddy-exercise-title h1{font-size:clamp(26px,7.8vw,37px);line-height:1.05}
+.buddy-exercise-view .buddy-muscle-mini{
+ top:var(--buddy-anatomy-top);width:78px;height:86px;min-height:86px;padding:5px;
+}
+.buddy-exercise-view .buddy-muscle-mini .muscle-mini-view{height:66px;width:29px}
+.buddy-exercise-view .buddy-muscle-mini .muscle-mini-pair{height:68px}
+.buddy-exercise-view .buddy-hero-copy{padding-right:91px}
+.buddy-exercise-view .buddy-meta-row{margin-top:4px}
+.buddy-exercise-view .buddy-rep-range,.buddy-exercise-view .buddy-setup{
+ padding:5px 9px;margin-bottom:3px;
+}
+.buddy-exercise-view .buddy-history-preview{
+ position:relative;z-index:9;flex-shrink:0;margin:0 0 6px;
+}
+.buddy-exercise-view .buddy-last-toggle{min-height:36px;padding:5px 10px}
+.buddy-exercise-view .buddy-compact-history{
+ position:absolute;top:calc(100% + 3px);left:0;right:0;
+ margin:0;max-height:min(154px,25dvh);overflow-y:auto;
+ border:1px solid #c6d9cb;border-radius:11px;
+ padding:8px 10px;background:#f3f7f0;
+ box-shadow:0 12px 22px rgba(12,41,24,.20);
+ overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+}
+[data-theme="dark"] .buddy-exercise-view .buddy-compact-history{
+ background:#1d3023;border-color:#496651;
+ box-shadow:0 14px 25px rgba(0,0,0,.35);
+}
+.buddy-exercise-view .buddy-rest-timer{min-height:52px;margin:0 0 6px;padding:6px 12px;flex-shrink:0}
+.buddy-exercise-view .buddy-rest-timer strong{font-size:29px}
+.buddy-exercise-view .buddy-completed-sets{gap:3px;margin:0 0 6px;flex-shrink:0}
+.buddy-exercise-view .buddy-completed-set{min-height:27px;padding:4px 8px}
+.buddy-exercise-view .buddy-set-editor{gap:8px;flex-shrink:0}
+.buddy-exercise-view .buddy-number-field{gap:3px}
+.buddy-exercise-view .buddy-stepper button{height:35px}
+.buddy-exercise-view .buddy-number-field input{height:48px}
+.buddy-exercise-view .buddy-effort-wrap{gap:4px;margin-top:7px}
+.buddy-exercise-view .buddy-effort{height:49px}
+.buddy-exercise-view .buddy-notes-wrap{margin:7px 0 8px;flex-shrink:0}
+.buddy-exercise-view .buddy-notes-toggle{min-height:43px;padding:7px 11px}
+.buddy-exercise-view .buddy-journal-chip{min-height:40px}
+.buddy-exercise-view .buddy-a{
+ position:relative;bottom:auto;z-index:1;flex:0 0 auto;
+ margin-top:auto;min-height:83px;padding:12px 18px;border-radius:21px;
+}
+.buddy-exercise-view .buddy-a b{font-size:25px}
+.buddy-exercise-view.buddy-needs-scroll .buddy-a{position:sticky;bottom:0;z-index:5}
+.buddy-set-active .buddy-exercise-view .buddy-exercise-title{margin:9px 0 12px}
+.buddy-set-active .buddy-exercise-view .buddy-running-values{margin-bottom:12px}
+.buddy-set-active .buddy-exercise-view .buddy-running-values>div{padding:12px}
+.buddy-set-active .buddy-exercise-view .buddy-running-clock{margin:9px 0 auto}
+@media(max-width:390px){
+ .buddy-exercise-view{--buddy-anatomy-top:77px}
+ .buddy-exercise-view .buddy-muscle-mini{
+  width:70px;height:78px;min-height:78px;right:14px;
+ }
+ .buddy-exercise-view .buddy-hero-copy{padding-right:81px}
+}
+@media(max-height:820px){
+ .buddy-exercise-view{padding-top:7px;padding-bottom:8px;--buddy-anatomy-top:72px}
+ .buddy-exercise-view .buddy-exercise-title{min-height:103px;margin:1px 0 3px}
+ .buddy-exercise-view .buddy-muscle-mini{height:76px;min-height:76px}
+ .buddy-exercise-view .buddy-muscle-mini .muscle-mini-view{height:60px}
+ .buddy-exercise-view .buddy-muscle-mini .muscle-mini-pair{height:62px}
+ .buddy-exercise-view .buddy-rest-timer{min-height:47px;padding:5px 11px;margin-bottom:4px}
+ .buddy-exercise-view .buddy-rest-timer strong{font-size:26px}
+ .buddy-exercise-view .buddy-stepper button{height:32px}
+ .buddy-exercise-view .buddy-number-field input{height:44px}
+ .buddy-exercise-view .buddy-effort{height:44px}
+ .buddy-exercise-view .buddy-notes-wrap{margin:5px 0}
+ .buddy-exercise-view .buddy-notes-toggle{min-height:40px}
+ .buddy-exercise-view .buddy-a{min-height:73px;padding:10px 16px}
+ .buddy-exercise-view .buddy-a b{font-size:23px}
+}

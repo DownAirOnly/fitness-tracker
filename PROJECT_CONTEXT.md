@@ -8,7 +8,7 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v92**, Workout Buddy set inheritance and contextual Undo. Reconcile `main`, CI, and Pages before claiming it is live.
+- **Latest implemented release covered here:** **v93**, viewport-fitted Workout Buddy set screens. Verify CI and GitHub Pages against the merged v93 SHA before claiming it is live.
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. The previous cycle was **v86–v90**; current is **v91–v95** (suggested chat title: **Fitness Workless 6**); after that **v96–v100**.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -53,7 +53,8 @@
 | v89 | Stop silent rejection of ordinary log submissions when cloud save is pending after iOS app switching; concise Finance rows |
 | v90 | Full transaction history: searchable ledger, type/month/category filters, sorting, 50-row pagination and editing; browsing read-only |
 | v91 | Finance classification review queue: shortcut and review filters for uncategorized records and possible bank transfer mismatches; no automatic changes |
-| **v92** | **Workout Buddy set progression:** later sets inherit the latest completed set from the active workout; undo buttons appear only during corresponding transitions |
+| v92 | Workout Buddy set progression: later sets inherit the latest completed set from the active workout; undo buttons appear only during corresponding transitions |
+| **v93** | **Workout Buddy no-scroll set layout:** compact first/second set views, anchored anatomy and primary action, overlay previous history and overflow fallback on truly constrained screens |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -88,6 +89,14 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Tests:** `tests/buddy-set-flow.test.js` covers first, second, and third set progression, edited set propagation, and undo state transitions. UI smoke covers a live demo sequence, including edited first set > active second set and undo. Check CI and Pages before reporting live.
 - **Deferred by planned release:** v93 no-scroll iPhone Workout Buddy layout; v94 focus and iOS keyboard zoom; v95 stabilization and v96–v100 handoff. The anatomy art redesign remains unapproved and separate.
 - **Outstanding earlier verification:** v89 app switching/save, v90/v91 Finance History on iPhone, nine-row enrichment application. No user notebook edits are performed by this release.
+
+## v93 release scope and verification
+
+- **Implemented:** Normal Workout Buddy set screens now attempt to fit the iPhone display without inner-page scrolling; title, anatomy, history, rest, completed-set summary, inputs, effort, notes and action use compact spacing. The anatomy graphic remains anchored at one top position for ready, review and active set states.
+- **Expanded history:** Previously logged workout details open in an independent dropdown overlay that does not push the set controls down. The main exercise screen is not scrollable when its full content fits.
+- **Accessibility fallback:** A measured content-height check enables scrolling only when essential controls would otherwise be clipped. Exercise picker, full journal and guide screens keep intended independent scrollability. This fallback does not disable user zoom.
+- **Coverage:** UI smoke tests verify viewport overflow fallback and expanded-history access in synthetic demo. DOM smoke tests cannot establish real iPhone/WebKit geometry; **user on-device confirmation remains required**.
+- **Still to do:** v94 automatically focus Setup and prevent unnecessary iOS form zoom; v95 stability checks and handoff to v96–v100. The nine-row finance correction, iOS background save and v90/v91 review verification are not silently treated as complete. No financial data or past workout logs are mutated by the UI change.
 
 ## Outstanding work: next cycle v91–v95
 

@@ -291,6 +291,24 @@ try{
  await click('buddy-choose');
  const firstSet=document.querySelector('[name=buddyWeight]');
  assert.ok(firstSet,'first Buddy set is editable');
+ // v93: the normal set view is fitted; constrained viewports switch to an explicit safe fallback.
+ const buddyView=document.querySelector('#buddy-root .buddy-exercise-view');
+ assert.ok(buddyView,'the ordinary set uses the compact exercise view');
+ Object.defineProperty(buddyView,'scrollHeight',{configurable:true,value:900});
+ Object.defineProperty(buddyView,'clientHeight',{configurable:true,value:700});
+ window.dispatchEvent(new dom.window.Event('resize'));
+ assert.ok(buddyView.classList.contains('buddy-needs-scroll'),'short viewport enables scrolling rather than clipping controls');
+ Object.defineProperty(buddyView,'clientHeight',{configurable:true,value:1000});
+ window.dispatchEvent(new dom.window.Event('resize'));
+ assert.ok(!buddyView.classList.contains('buddy-needs-scroll'),'roomy viewport remains non-scrolling');
+ if(document.querySelector('[data-action="buddy-toggle-history"]')){
+  await click('buddy-toggle-history');
+  assert.equal(document.querySelector('.buddy-last-toggle').getAttribute('aria-expanded'),'true');
+  assert.ok(document.querySelector('.buddy-compact-history'),'previous workouts remain available as a history dropdown');
+  await click('buddy-toggle-history');
+  assert.equal(document.querySelector('.buddy-last-toggle').getAttribute('aria-expanded'),'false');
+ }
+
  firstSet.value='110';
  document.querySelector('[name=buddyReps]').value='9';
  await click('buddy-a');
