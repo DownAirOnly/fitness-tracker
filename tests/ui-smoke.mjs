@@ -152,7 +152,11 @@ try{
   let ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
   assert.equal(ledger.length,2);
   assert.ok(ledger.every(tx=>tx.accountLabel==='BofA Checking'&&tx.statementLabel==='Oct 1–25, 2026'));
-  assert.ok(document.querySelector('.finance-raw-description'),'original bank name shown as quiet subtext');
+  assert.ok(!document.querySelector('.finance-raw-description'),'do not duplicate an unchanged bank description beneath the identical personal title');
+  assert.ok(document.querySelector('.finance-row-date'),'posted date appears above the transaction title');
+  assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('BofA Checking'),'account label omitted from compact history rows');
+  assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('Oct 1–25, 2026'),'statement range omitted from compact history rows');
+  assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('Uncategorized'),'empty classifications omitted from history');
   const sourceTx=ledger.find(tx=>tx.bankDescription==='365 MARKET 10994');
   assert.ok(sourceTx);
   const marketRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('365 MARKET 10994'));
@@ -177,7 +181,11 @@ try{
   assert.equal(personal.date,'2026-10-24');
   assert.equal(personal.category,'Convenience Food');
   assert.equal(personal.itemization,'Monster 3.00; protein chips 5.55');
-  assert.ok(document.querySelector('.finance-row-main').textContent.includes('Bank:'));
+  const personalizedRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('Energy drink and protein snack'));
+  assert.ok(personalizedRow.querySelector('.finance-raw-description'),'original bank name remains when personal name differs');
+  assert.ok(personalizedRow.querySelector('.finance-row-details').textContent.includes('365 MARKET 10994 · Convenience Food / Work snacks'));
+  assert.ok(personalizedRow.querySelector('.finance-row-date').textContent.includes('Oct 24, 2026'));
+  assert.ok(!personalizedRow.textContent.includes('Bank:'),'no verbose Bank prefix');
 
   // Resubmitting the statement under a different batch name must not undo edits.
   await click('finance-bofa-import');
@@ -303,7 +311,16 @@ try{
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
  assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');assert.equal(state.records.has('bob'),false);
  assert.ok(localStorage.getItem('everyday-cloud-recovery-v1:bob'),'failed cloud save leaves an account-scoped device recovery copy');
+ // v89: a pending cloud save must not silently disable unrelated forms after
+ // returning from another app. A new finance entry is journaled on-device.
+ await click('finances');
+ await submit('finance',{amount:'4.25',description:'Logged while cloud unavailable',date:'2026-10-27',category:'Convenience Food'});
+ const pendingNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data);
+ assert.ok(pendingNotebook.transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'new finance log is retained in recovery while cloud pending');
  state.fail=false;await click('cloud-retry');assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
+ assert.ok(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'local finance log syncs after retry');
+ await click('finances');await click('finance-edit');await click('finance-delete');
+ assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.length,0,'test transaction cleanup leaves existing cloud fixture intact');
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');

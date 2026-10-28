@@ -270,3 +270,12 @@ Bank of America imports recognize explicit **Discover E-PAYMENT**, **Online Sche
 **Duplicate review:** Reimporting the same account/file with the same account label still skips exact IDs. A classification change does not conceal a similar previously logged transaction. When an imported row resembles one saved under a different account label, the importer flags it and summarizes the count, but never merges rows across account labels automatically. Account labels are human-entered metadata, not verified bank account identities; changing labels for the same account between imports requires review. Ambiguous matching rows stay visible in Preview.
 
 This is classification at **import time**, not a migration of existing ledgers. Previously imported records remain untouched, including personalized categories and notes. The actual private bank export is **not committed to the public repository**; unit tests use synthetic examples of its relevant formats.
+
+
+## v89 — Reliable iOS resume logging and concise transaction rows
+
+Ordinary Food, Finance, workout, and measurement form submissions no longer silently fail when an iOS background/foreground transition leaves a cloud save pending or busy. They use the existing device recovery journal first; cloud-sync status remains visible if cloud saving is incomplete. On foreground resume, the app retries an unconfirmed save when safe. During a competing Health pull, locally recorded edits are never silently replaced by the Health response; a genuine cloud/device conflict requires review. Full statement/backup imports still require a synchronized account and display an explicit form error rather than silently ignoring a submit.
+
+Finance **Recent transactions** presents the muted posted date above the main personal transaction name, an original bank description in quiet text only when it differs from the personal name, and a category/subcategory only when classified. No "Uncategorized", repeated bank text, account label, or statement/batch range is shown in the compact list. Bank facts and account/source metadata remain available in the transaction editor and stored backup.
+
+This release does not retroactively rewrite previously imported transaction categories. Reconciliation of older classifications remains a separate, reviewed enrichment step.
