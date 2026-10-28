@@ -8,8 +8,8 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v94**, iPhone Workout Buddy keyboard focus and text input viewport fixes. Verify the merged `main` SHA, CI and Pages before calling v94 live.
-- **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. The previous cycle was **v86–v90**; current is **v91–v95** (suggested chat title: **Fitness Workless 6**); after that **v96–v100**.
+- **Latest implemented release covered here:** **v95**, Workout Buddy interrupted Setup draft recovery, release-integrity tests, and v96–v100 handoff. Confirm the merged `main` SHA, tests and Pages before claiming v95 is live.
+- **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. Completed scope: **v91–v95** (Fitness Workless 6). **Next cycle: v96–v100**, suggested title **Fitness Workless 7**. These are release boundaries, not an already approved roadmap.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
 ## What to do at the beginning of the next conversation
@@ -55,7 +55,8 @@
 | v91 | Finance classification review queue: shortcut and review filters for uncategorized records and possible bank transfer mismatches; no automatic changes |
 | v92 | Workout Buddy set progression: later sets inherit the latest completed set from the active workout; undo buttons appear only during corresponding transitions |
 | v93 | Workout Buddy no-scroll set layout: compact first/second set views, anchored anatomy and primary action, overlay history and fallback on constrained screens |
-| **v94** | **iPhone Workout Buddy input fixes:** same-tap Setup/Notes focus, 16px text-input minimum, visual viewport keyboard fitting and normal layout restoration after dismissal |
+| v94 | iPhone Workout Buddy input fixes: same-tap Setup/Notes focus, 16px text-input minimum, visual viewport keyboard fitting and layout restoration |
+| **v95** | **Stabilization:** interrupted Setup edits preserved as cancelable drafts, version/cache consistency test, and complete v96–v100 handoff |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -107,7 +108,14 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **No migrations:** Data model, cloud recovery, bank stable IDs and prior workout/financial records remain unchanged.
 - **Next scope:** v95 stabilization and v96–v100 handoff, including any iPhone-reported regression from v92–v94. Previous v89 background saving, v90/v91 Finance history verification and nine-row BofA correction application remain unconfirmed, not silently resolved.
 
-## Outstanding work: next cycle v91–v95
+## v95 release scope and verification
+
+- **Fix:** When a Workout Buddy Setup editor has uncommitted text, typing saves it as `setupDraft` on the active session in the existing device recovery path. Hiding the app, navigating away via pagehide or exiting the session captures the draft. Reopening the session shows the draft, whereas closing the Setup editor without pressing Save discards it. Only Save changes `e.setup` and the saved exercise definition. This does not rewrite completed workouts or the bank ledger.
+- **Tests:** `tests/ui-smoke.mjs` now asserts draft capture after a simulated app interruption, stored definition remains untouched, re-entry restores text, and cancel discards it. `tests/release-integrity.test.js` requires the HTML, service worker, offline precache, import URLs and `version.json` to agree; pinch zoom must remain enabled.
+- **Verification boundaries:** CI and GitHub Pages are independently verified after merging, not proof of real iOS WebKit. **No reported real iPhone confirmation** of v89 resume, v90/v91 Finance History, v92 set progression, v93 no-scroll, or v94 input zoom/keyboard. The nine-record BofA correction import remains unconfirmed; the previously imported 478 bank transactions were not changed by v95.
+- **Cycle closure:** v91 (Finance review), v92 (set/Undo), v93 (no-scroll), v94 (iPhone keyboard), v95 (stabilize) implemented. Future feature suggestions are not preapproved requirements.
+
+## Open work and candidate priorities — next cycle v96–v100
 
 **These are candidates, NOT an agreed fixed release plan or automatic orders. Re-prioritize with the user's next request.**
 
@@ -117,7 +125,7 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 4. **Workout anatomy SVG design alternatives:** user wants to explore visually better diagrams in a **separate redesign comparison pass**; current miniature positions and subtle Push/Pull labels were fixed in earlier versions. Do not replace anatomy art without explicit approval.
 5. **General reliability and usability:** data recovery, iPhone resume/foreground flows, offline behavior, quick-entry performance and UI consistency; make changes in small, reviewed steps.
 
-Avoid inventing a v91 roadmap as if already approved. The next chat should take the user's actual immediate direction first.
+Avoid inventing a v91 roadmap as if already approved. The next chat should take the user's actual immediate direction first. Before proposing new releases, distinguish device-verification issues from approved new work; don't use a new version just to report a test result.
 
 ## Interaction and implementation preferences
 
@@ -137,8 +145,8 @@ Avoid inventing a v91 roadmap as if already approved. The next chat should take 
 4. Update **this file** with delivered functionality, limitations and new open items; add detailed release notes to README when substantive. Keep historical versions accurate rather than rewriting past history.
 5. Open PR, confirm CI tests and successful UI smoke; if failure, inspect job logs and fix before merging. Merge to `main` only after checks pass.
 6. Verify GitHub Pages deployment status; **do not claim live** before successful deployment. Provide user a short how-to-test checklist, especially for real iPhone.
-7. At the end of v95, update this file for the next cycle **v96–v100** and use a similarly short new chat opener.
+7. At the end of a five-version cycle, update this file and provide a concise opener for the next conversation. v91–v95 is documented here; next is v96–v100.
 
 ## Suggested new-conversation opener
 
-> This is **Fitness Workless 6**, covering **Everyday v91–v95**. Work from the connected GitHub repository `DownAirOnly/fitness-tracker`. **First read `PROJECT_CONTEXT.md`** and verify `version.json` plus the latest deployment. The living context documents implemented features, open issues, data-safety rules and the roadmap candidates. Don't ask me to re-upload code already available via GitHub. Keep releases small, test selectively, deploy with GitHub Actions, and update `PROJECT_CONTEXT.md` after every version. Prioritize anything still unresolved before proposing the next feature.
+> This is **Fitness Workless 7 — Everyday v96–v100**. Continue directly in my connected GitHub repository `https://github.com/DownAirOnly/fitness-tracker`. **First read `PROJECT_CONTEXT.md`**, then verify `version.json`, recent commits, open pull requests and GitHub Pages deployment. The v91–v95 cycle implemented Finance classification review, Workout Buddy current-set inheritance/Undo, no-scroll screens, iPhone Setup/Notes keyboard handling, and recoverable unsaved Setup drafts. Preserve all real notebook data, cloud/device recovery, and stable bank identifiers; no migrations or unreviewed imports. Outstanding: real-device verification of v89–v94 behaviors and Finance History, plus unconfirmed application of the nine-row BofA correction. Broader classification, spending insights, and additional workout enhancements are **candidates**, not approved requirements. Choose next work based on current user priorities, make focused changes, test selectively, verify Pages deployment, and update `PROJECT_CONTEXT.md` after each release. Prepare the next handoff at v100.
