@@ -323,6 +323,28 @@ try{
  await click('buddy-setup-save');
  assert.ok(document.querySelector('#buddy-root .buddy-setup').textContent.includes('Seat 6'),'Setup saves the edited setting');
  assert.equal(document.querySelector('#buddy-root .buddy-screen').style.height,'','layout restores after Setup');
+ // v95: an unfinished Setup edit survives backgrounding without changing the saved setting.
+ await click('buddy-setup-toggle');
+ const interrupted=document.querySelector('#buddy-root [name=buddySetup]');
+ assert.equal(document.activeElement,interrupted);
+ interrupted.value='Seat 7 - draft';
+ interrupted.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ window.dispatchEvent(new dom.window.Event('pagehide'));
+ let paused=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
+ let pausedExercise=paused.activeWorkout.exercises.find(e=>e.setupEditing);
+ assert.ok(pausedExercise,'an unfinished Setup editor is retained');
+ assert.equal(pausedExercise.setup,'Seat 6','unfinished Setup does not overwrite the committed setting');
+ assert.equal(pausedExercise.setupDraft,'Seat 7 - draft','unsaved Setup text has a recovery copy');
+ assert.equal(paused.exerciseDefinitions.find(e=>e.id===pausedExercise.exerciseId).setup,'Seat 6','exercise definition remains unchanged until Save');
+ await click('buddy-exit');
+ await click('buddy-launch');
+ assert.equal(document.querySelector('#buddy-root [name=buddySetup]').value,'Seat 7 - draft','draft is restored after reopening Workout Buddy');
+ await click('buddy-setup-toggle');
+ assert.equal(document.querySelector('#buddy-root [name=buddySetup]'),null,'closing Setup cancels unsaved draft');
+ assert.ok(document.querySelector('#buddy-root .buddy-setup').textContent.includes('Seat 6'),'cancel keeps last committed setting');
+ paused=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
+ pausedExercise=paused.activeWorkout.exercises.find(e=>e.setup==='Seat 6');
+ assert.equal(pausedExercise?.setupDraft,undefined,'discarded edit is not retained as a committed change');
  await click('buddy-notes-toggle');
  const noteField=document.querySelector('#buddy-root [name=buddyNotes]');
  assert.ok(noteField,'Notes editor opens');
