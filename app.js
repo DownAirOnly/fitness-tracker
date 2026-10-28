@@ -47,6 +47,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
+let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -202,7 +203,7 @@ function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudCo
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['finances','$','Finances']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${page===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${page===p?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&page==='financeHistory'))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&page==='financeHistory'))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -211,7 +212,7 @@ function render() {
     const offlineOption=!offlineWorkspace?`<section class="panel loading-offline-option"><h2>Need to work offline?</h2><p class="body-copy">Open an Everyday JSON backup in a separate local workspace while cloud access is unavailable.</p>${button('Open offline JSON workspace','offline-start','outline')}</section>`:'';
     shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+offlineOption+error);return;
   }
-  const views={home,food,gym,progress,finances,history,settings};
+  const views={home,food,gym,progress,finances,financeHistory,history,settings};
   shell(views[page]?.()||home());
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
@@ -266,24 +267,83 @@ function financeRecordFromForm(v,existing=null){
  if(!next.description)throw Error('Describe the transaction before saving.');
  return normalizeData({...emptyData(),transactions:[next]}).transactions[0];
 }
+// Reuse the same compact, source-preserving transaction row in Recent and History.
+function financeRow(tx){
+ const displayDate=new Date(tx.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+ const raw=tx.bankDescription&&tx.bankDescription.trim()!==tx.description.trim()?
+  '<span class="finance-raw-description">'+esc(tx.bankDescription)+'</span>':'';
+ const category=tx.category&&tx.category.toLowerCase()!=='uncategorized'?
+  '<span class="finance-row-category">'+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+'</span>':'';
+ const details=raw||category?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+'</small>':'';
+ const itemized=tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
+ return '<div class="finance-row"><div class="finance-row-main"><small class="finance-row-date">'+esc(displayDate)+(tx.time?' · '+esc(tx.time):'')+'</small>'+
+  '<strong>'+esc(tx.description)+'</strong>'+details+itemized+'</div>'+
+  '<div class="finance-row-side"><b class="'+esc(tx.kind)+'">'+(tx.kind==='income'?'+':tx.kind==='expense'?'−':'')+
+  formatFinanceAmount(tx.amountCents)+'</b>'+
+  button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div></div>';
+}
+function financeNewestFirst(transactions){
+ return [...transactions].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00'))||a.id.localeCompare(b.id));
+}
 function financeRecent(){
- const all=[...(data.transactions||[])].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00')));
+ const all=financeNewestFirst(data.transactions||[]);
  return '<section class="panel finance-recent"><div class="section-head"><div><p class="eyebrow">RECENT TRANSACTIONS</p><h2>Latest entries</h2></div><span class="finance-count">'+all.length+' total</span></div>'+
-  (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(tx=>{
-    const displayDate=new Date(tx.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-    const raw=tx.bankDescription&&tx.bankDescription.trim()!==tx.description.trim()?
-     '<span class="finance-raw-description">'+esc(tx.bankDescription)+'</span>':'';
-    const category=tx.category&&tx.category.toLowerCase()!=='uncategorized'?
-     '<span class="finance-row-category">'+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+'</span>':'';
-    const details=raw||category?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+'</small>':'';
-    const itemized=tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
-    return '<div class="finance-row"><div class="finance-row-main"><small class="finance-row-date">'+esc(displayDate)+(tx.time?' · '+esc(tx.time):'')+'</small>'+
-     '<strong>'+esc(tx.description)+'</strong>'+details+itemized+'</div>'+
-     '<div class="finance-row-side"><b class="'+esc(tx.kind)+'">'+(tx.kind==='income'?'+':tx.kind==='expense'?'−':'')+
-     formatFinanceAmount(tx.amountCents)+'</b>'+
-     button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div></div>';
-  }).join('')+'</div>':empty('No transactions yet. Your first entry will appear here.'))+
-  (all.length>10?'<p class="hint">Showing the 10 newest entries. Full searchable history is coming next.</p>':'')+'</section>';
+  (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(financeRow).join('')+'</div>':empty('No transactions yet. Your first entry will appear here.'))+
+  (all.length>10?'<p class="hint">Showing the 10 newest entries.</p>':'')+
+  button('View all transactions','finance-history-open','outline finance-history-open')+'</section>';
+}
+function financeHistoryOptions(values,selected,allLabel){
+ return '<option value="all"'+(selected==='all'?' selected':'')+'>'+esc(allLabel)+'</option>'+
+  values.map(value=>'<option value="'+esc(value)+'"'+(value===selected?' selected':'')+'>'+esc(value)+'</option>').join('');
+}
+function financeHistoryMatches(){
+ const query=financeHistoryQuery.trim().toLocaleLowerCase();
+ const matches=(data.transactions||[]).filter(tx=>{
+  if(financeHistoryKind!=='all'&&tx.kind!==financeHistoryKind)return false;
+  if(financeHistoryMonth!=='all'&&!tx.date.startsWith(financeHistoryMonth))return false;
+  if(financeHistoryCategory!=='all'&&(tx.category||'Uncategorized')!==financeHistoryCategory)return false;
+  if(!query)return true;
+  const text=[tx.description,tx.bankDescription,tx.category,tx.subcategory,tx.merchant,tx.note,
+   tx.itemization,tx.purchaseDate,tx.date,tx.amountCents?formatFinanceAmount(tx.amountCents):'']
+   .filter(Boolean).join(' ').toLocaleLowerCase();
+  return text.includes(query);
+ });
+ const sorted=financeNewestFirst(matches);
+ return financeHistorySort==='oldest'?sorted.reverse():sorted;
+}
+function financeHistoryListMarkup(matches){
+ if(!matches.length)return '<p class="empty">No transactions match these filters. Try a different search, month, type, or category.</p>';
+ const shown=matches.slice(0,financeHistoryVisible);
+ return shown.map(financeRow).join('')+
+  (matches.length>shown.length?button('Show '+Math.min(50,matches.length-shown.length)+' more','finance-history-more','outline finance-history-more'):'');
+}
+function financeHistory(){
+ const all=data.transactions||[];
+ const months=[...new Set(all.map(tx=>tx.date.slice(0,7)))].sort().reverse();
+ const categories=[...new Set(all.map(tx=>tx.category||'Uncategorized'))].sort((a,b)=>a.localeCompare(b));
+ const monthOptions=financeHistoryOptions(months,financeHistoryMonth,'All months');
+ const categoryOptions=financeHistoryOptions(categories,financeHistoryCategory,'All categories');
+ const matches=financeHistoryMatches();
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Transaction history<span class="accent">.</span></h1>'+
+  '<p>Search and review every saved purchase, payment, and transfer.</p>'+button('← Back to Finances','finance-history-back','outline finance-history-back')+'</div>'+
+  '<section class="panel finance-history"><label class="field finance-history-search"><span>Search transactions</span>'+
+  '<input type="search" data-finance-history-search placeholder="Merchant, bank description, amount…" value="'+esc(financeHistoryQuery)+'" autocomplete="off"></label>'+
+  '<div class="finance-history-filters"><label class="field"><span>Type</span><select data-finance-history-filter="kind">'+
+  financeHistoryOptions(['expense','income','transfer'],financeHistoryKind,'All types')+'</select></label>'+
+  '<label class="field"><span>Month</span><select data-finance-history-filter="month">'+monthOptions+'</select></label>'+
+  '<label class="field"><span>Category</span><select data-finance-history-filter="category">'+categoryOptions+'</select></label>'+
+  '<label class="field"><span>Order</span><select data-finance-history-filter="sort"><option value="newest"'+(financeHistorySort==='newest'?' selected':'')+'>Newest first</option><option value="oldest"'+(financeHistorySort==='oldest'?' selected':'')+'>Oldest first</option></select></label></div>'+
+  '<div class="finance-history-summary" data-finance-history-summary role="status">'+matches.length+' of '+all.length+' transactions</div>'+
+  '<div class="finance-recent-list finance-history-list" data-finance-history-list>'+financeHistoryListMarkup(matches)+'</div>'+
+  '<p class="hint">Dates are bank-posted dates when imported. Filters do not change transaction classifications or stored records.</p></section>';
+}
+function refreshFinanceHistoryList(){
+ const list=document.querySelector('[data-finance-history-list]');
+ if(!list)return;
+ const matches=financeHistoryMatches();
+ list.innerHTML=financeHistoryListMarkup(matches);
+ const summary=document.querySelector('[data-finance-history-summary]');
+ if(summary)summary.textContent=matches.length+' of '+(data.transactions||[]).length+' transactions';
 }
 function finances(){
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Bank records and personal labels, together without losing the originals.</p></div>'+
@@ -1303,12 +1363,25 @@ function importModal(kind,source='file') {
 }
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
-app.addEventListener('input',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.matches('[data-food-csv]')){const form=event.target.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');try{pasteFoodFormCSV(form,event.target.value);if(status)status.textContent='Food values loaded. Review and save.';}catch(e){if(status)status.textContent=e.message;}return;}if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
+app.addEventListener('input',event=>{
+ if(event.target.matches('[data-finance-history-search]')){
+  financeHistoryQuery=event.target.value;financeHistoryVisible=50;refreshFinanceHistoryList();return;
+ }
+ if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.matches('[data-food-csv]')){const form=event.target.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');try{pasteFoodFormCSV(form,event.target.value);if(status)status.textContent='Food values loaded. Review and save.';}catch(e){if(status)status.textContent=e.message;}return;}if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
-app.addEventListener('change',event=>{if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
+app.addEventListener('change',event=>{
+ if(event.target.dataset.financeHistoryFilter){
+  const field=event.target.dataset.financeHistoryFilter,value=event.target.value;
+  if(field==='kind')financeHistoryKind=value;
+  else if(field==='month')financeHistoryMonth=value;
+  else if(field==='category')financeHistoryCategory=value;
+  else if(field==='sort')financeHistorySort=value;
+  financeHistoryVisible=50;refreshFinanceHistoryList();return;
+ }
+ if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
   if(action==='demo-start'||action==='demo-reset'){if(account||offlineWorkspace)return;if(demoMode&&action==='demo-start')return;if(demoMode&&action==='demo-reset'&&!confirm('Reset all demo entries to the original sample?'))return;const fixture=createDemoData();try{storeDemoWorkspace(fixture);}catch{alert('This device could not open the demo workspace.');return;}demoMode=true;data=fixture;chosenDate=DEMO_LAST_DATE;page='home';cloudMessage='Demo mode · saved separately on this device';close(true);render();return;}
@@ -1376,6 +1449,9 @@ document.addEventListener('click',async event=>{
     return;
   }
   if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
+  if(action==='finance-history-open'){page='financeHistory';financeHistoryVisible=50;render();return;}
+  if(action==='finance-history-back'){page='finances';render();return;}
+  if(action==='finance-history-more'){financeHistoryVisible+=50;refreshFinanceHistoryList();return;}
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
   if(action.startsWith('health-')){await healthAction(action);return;}
