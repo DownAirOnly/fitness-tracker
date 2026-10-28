@@ -1698,3 +1698,21 @@ html.buddy-active #overlay .modal{z-index:1101}
  .buddy-exercise-view .buddy-a{min-height:73px;padding:10px 16px}
  .buddy-exercise-view .buddy-a b{font-size:23px}
 }
+
+
+/* v94 — iOS keyboard focus without Safari's under-16px input zoom.
+   Preserve pinch-to-zoom accessibility; never lock the viewport scale. */
+#buddy-root .buddy-setup-editor input,
+#buddy-root .buddy-notes-wrap textarea,
+.routine-history-editor textarea{font-size:16px;line-height:1.35}
+#buddy-root .buddy-number-field input,
+.routine-history-editor .buddy-number-field input{font-size:20px}
+#buddy-root .buddy-screen.buddy-keyboard-editing{bottom:auto}
+#buddy-root .buddy-screen.buddy-keyboard-editing .buddy-exercise-view{
+ overscroll-behavior-y:contain;
+ scroll-padding-bottom:16px;
+}
+#buddy-root .buddy-screen.buddy-keyboard-editing .buddy-a{min-height:68px}
+#buddy-root .buddy-setup-editor input:focus-visible,
+#buddy-root .buddy-notes-wrap textarea:focus-visible,
+#buddy-root .buddy-number-field input:focus-visible{outline:2px solid #739d81;outline-offset:1px}
