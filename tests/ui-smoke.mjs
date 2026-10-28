@@ -28,7 +28,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|finance-model|bank-import|import-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+/.test(source),'all static app imports resolved');
@@ -286,6 +286,26 @@ try{
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
+ // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
+ await click('gym');await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
+ await click('buddy-choose');
+ const firstSet=document.querySelector('[name=buddyWeight]');
+ assert.ok(firstSet,'first Buddy set is editable');
+ firstSet.value='110';
+ document.querySelector('[name=buddyReps]').value='9';
+ await click('buddy-a');
+ assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set 1'));
+ await click('buddy-a');
+ assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo finish set 1'));
+ assert.ok(!document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set'));
+ document.querySelector('[name=buddyWeight]').value='120';
+ await click('buddy-review-next');
+ assert.ok(document.querySelector('.buddy-running-values').textContent.includes('120'),'set 2 inherits edited set 1 from this workout');
+ assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start next set'));
+ await click('buddy-undo');
+ assert.equal(document.querySelector('[name=buddyWeight]').value,'120','undo start next set restores the edited first set');
+ await click('buddy-exit');
+
  assert.equal(localStorage.getItem('everyday-fitness-v1'),deviceBeforeDemo,'demo never writes normal device records');
  await click('settings');await click('demo-reset');
  sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
