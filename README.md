@@ -283,6 +283,12 @@ Finance **Recent transactions** presents the muted posted date above the main pe
 This release does not retroactively rewrite previously imported transaction categories. Reconciliation of older classifications remains a separate, reviewed enrichment step.
 
  
+## v91 — Finance classification review queue (non-destructive)
+
+Finances offers **Review classifications** when saved records need attention. Transaction History can filter by **Needs review**, **Uncategorized**, or **Possible transfers**. The possible-transfer hints reuse Bank of America's explicit payment and overdraft-transfer wording rules and can identify older imported records with mismatched editable types. Hints need human verification; peer-to-peer payments are never assumed to be transfers. Existing Edit updates a specific transaction and preserves immutable bank facts, stable IDs, receipts, notes and cloud recovery.
+
+This release makes no migration or new stored fields. It does not apply the nine-row enrichment file. iOS app-switching and history still need real-device confirmation.
+
 ## v90 — Full Finance Transaction History and living development handoff
 
 Finances → **View all transactions** now opens a full history view of the saved financial ledger instead of only ten recent entries. Search considers the personal description, original bank description, merchant, category/subcategory, notes, itemization, dates and amount. Filter by **expense/income/transfer**, posted month and category; sort newest or oldest first. Results load in groups of 50 to keep the mobile page responsive. The entry card retains the v89 visual hierarchy: small muted posted date, personal name, optional distinct bank source, optional meaningful category, amount and Edit. Editing from the history updates the same stored transaction; navigation returns to the Finances tab without duplicating data. Filtering and scrolling do not mutate transaction records, classifications or source facts.
