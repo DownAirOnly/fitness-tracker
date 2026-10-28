@@ -283,6 +283,14 @@ Finance **Recent transactions** presents the muted posted date above the main pe
 This release does not retroactively rewrite previously imported transaction categories. Reconciliation of older classifications remains a separate, reviewed enrichment step.
 
  
+## v95 — Workout Buddy interruption safety and next-cycle handoff
+
+An unfinished Workout Buddy **Setup** edit is now journaled as a recoverable `setupDraft` in the active workout on typing and on lifecycle interruption (background, pagehide, or exit). Reopening the active workout restores the draft in the editor. **Only explicitly pressing Save** commits that draft to the exercise and its saved definition; tapping Setup again to close cancels the draft. This closes the remaining v94 keyboard-editing data-loss gap without modifying saved lift history, other exercise definitions, or finance records.
+
+Added a regression check ensuring `version.json`, the HTML's asset query revisions, the service-worker cache/precache, production JS module references and app SW registration stay aligned. Extended UI smoke testing for the interrupted edit/reopen/cancel sequence and normal Save semantics. No migrations or changes to the existing recovery model.
+
+**v95 finishes the v91–v95 release-number cycle.** The detailed handoff for **v96–v100** lives in `PROJECT_CONTEXT.md`. Real-device checks of v89 resume, v90/v91 Finance History, v92–v94 Workout Buddy scroll/zoom/keyboard behavior, and application of the previously prepared nine-row bank enrichment file remain unconfirmed until tested or reported by the user.
+
 ## v94 — iPhone keyboard and Setup editing
 
 Workout Buddy's **Setup** chip now opens an editable text field and **focuses/selects it synchronously in the same tap** rather than waiting for persistence first, so iOS can present its keyboard without requiring a second tap. The Notes editor likewise focuses in the originating tap. Both retain their normal save/dismiss actions; pressing Return on Setup still saves.
