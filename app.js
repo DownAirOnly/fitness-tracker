@@ -2,7 +2,7 @@ import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,fo
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
 import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=88';
-import {financeEnrichmentCSV,inferBofaStatementLabel} from './bank-import.js?v=88';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=91';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=85';
@@ -47,7 +47,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
-let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistorySort='newest',financeHistoryVisible=50;
+let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -268,7 +268,7 @@ function financeRecordFromForm(v,existing=null){
  return normalizeData({...emptyData(),transactions:[next]}).transactions[0];
 }
 // Reuse the same compact, source-preserving transaction row in Recent and History.
-function financeRow(tx){
+function financeRow(tx,showReview=false){
  const displayDate=new Date(tx.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
  const raw=tx.bankDescription&&tx.bankDescription.trim()!==tx.description.trim()?
   '<span class="finance-raw-description">'+esc(tx.bankDescription)+'</span>':'';
@@ -276,8 +276,9 @@ function financeRow(tx){
   '<span class="finance-row-category">'+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+'</span>':'';
  const details=raw||category?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+'</small>':'';
  const itemized=tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
+ const review=showReview?financeReviewFlags(tx).map(flag=>'<small class="finance-review-flag">'+(flag==='uncategorized'?'Category needed':'Check possible transfer')+'</small>').join(''):'';
  return '<div class="finance-row"><div class="finance-row-main"><small class="finance-row-date">'+esc(displayDate)+(tx.time?' · '+esc(tx.time):'')+'</small>'+
-  '<strong>'+esc(tx.description)+'</strong>'+details+itemized+'</div>'+
+  '<strong>'+esc(tx.description)+'</strong>'+details+itemized+review+'</div>'+
   '<div class="finance-row-side"><b class="'+esc(tx.kind)+'">'+(tx.kind==='income'?'+':tx.kind==='expense'?'−':'')+
   formatFinanceAmount(tx.amountCents)+'</b>'+
   button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div></div>';
@@ -287,10 +288,12 @@ function financeNewestFirst(transactions){
 }
 function financeRecent(){
  const all=financeNewestFirst(data.transactions||[]);
+ const needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
  return '<section class="panel finance-recent"><div class="section-head"><div><p class="eyebrow">RECENT TRANSACTIONS</p><h2>Latest entries</h2></div><span class="finance-count">'+all.length+' total</span></div>'+
   (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(financeRow).join('')+'</div>':empty('No transactions yet. Your first entry will appear here.'))+
   (all.length>10?'<p class="hint">Showing the 10 newest entries.</p>':'')+
-  button('View all transactions','finance-history-open','outline finance-history-open')+'</section>';
+  button('View all transactions','finance-history-open','outline finance-history-open')+
+  (needReview?button('Review classifications · '+needReview,'finance-review-open','outline finance-review-open'):'')+'</section>';
 }
 function financeHistoryOptions(values,selected,allLabel){
  return '<option value="all"'+(selected==='all'?' selected':'')+'>'+esc(allLabel)+'</option>'+
@@ -302,6 +305,10 @@ function financeHistoryMatches(){
   if(financeHistoryKind!=='all'&&tx.kind!==financeHistoryKind)return false;
   if(financeHistoryMonth!=='all'&&!tx.date.startsWith(financeHistoryMonth))return false;
   if(financeHistoryCategory!=='all'&&(tx.category||'Uncategorized')!==financeHistoryCategory)return false;
+  if(financeHistoryReview!=='all'){
+   const flags=financeReviewFlags(tx);
+   if(financeHistoryReview==='needs-review'?!flags.length:!flags.includes(financeHistoryReview))return false;
+  }
   if(!query)return true;
   const text=[tx.description,tx.bankDescription,tx.category,tx.subcategory,tx.merchant,tx.note,
    tx.itemization,tx.purchaseDate,tx.date,tx.amountCents?formatFinanceAmount(tx.amountCents):'']
@@ -314,7 +321,7 @@ function financeHistoryMatches(){
 function financeHistoryListMarkup(matches){
  if(!matches.length)return '<p class="empty">No transactions match these filters. Try a different search, month, type, or category.</p>';
  const shown=matches.slice(0,financeHistoryVisible);
- return shown.map(financeRow).join('')+
+ return shown.map(tx=>financeRow(tx,financeHistoryReview!=='all')).join('')+
   (matches.length>shown.length?button('Show '+Math.min(50,matches.length-shown.length)+' more','finance-history-more','outline finance-history-more'):'');
 }
 function financeHistory(){
@@ -324,6 +331,7 @@ function financeHistory(){
  const monthOptions=financeHistoryOptions(months,financeHistoryMonth,'All months');
  const categoryOptions=financeHistoryOptions(categories,financeHistoryCategory,'All categories');
  const matches=financeHistoryMatches();
+ const needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Transaction history<span class="accent">.</span></h1>'+
   '<p>Search and review every saved purchase, payment, and transfer.</p>'+button('← Back to Finances','finance-history-back','outline finance-history-back')+'</div>'+
   '<section class="panel finance-history"><label class="field finance-history-search"><span>Search transactions</span>'+
@@ -332,10 +340,13 @@ function financeHistory(){
   financeHistoryOptions(['expense','income','transfer'],financeHistoryKind,'All types')+'</select></label>'+
   '<label class="field"><span>Month</span><select data-finance-history-filter="month">'+monthOptions+'</select></label>'+
   '<label class="field"><span>Category</span><select data-finance-history-filter="category">'+categoryOptions+'</select></label>'+
+  '<label class="field"><span>Review</span><select data-finance-history-filter="review">'+
+  financeHistoryOptions(['needs-review','uncategorized','transfer-check'],financeHistoryReview,'All records').replace('>needs-review<','>Needs review<').replace('>uncategorized<','>Uncategorized<').replace('>transfer-check<','>Possible transfers<')+'</select></label>'+
   '<label class="field"><span>Order</span><select data-finance-history-filter="sort"><option value="newest"'+(financeHistorySort==='newest'?' selected':'')+'>Newest first</option><option value="oldest"'+(financeHistorySort==='oldest'?' selected':'')+'>Oldest first</option></select></label></div>'+
+  '<p class="finance-review-help">'+needReview+' transaction'+(needReview===1?'':'s')+' to review. Suggested transfers require confirmation.</p>'+
   '<div class="finance-history-summary" data-finance-history-summary role="status">'+matches.length+' of '+all.length+' transactions</div>'+
   '<div class="finance-recent-list finance-history-list" data-finance-history-list>'+financeHistoryListMarkup(matches)+'</div>'+
-  '<p class="hint">Dates are bank-posted dates when imported. Filters do not change transaction classifications or stored records.</p></section>';
+  '<p class="hint">Dates are bank-posted dates when imported. Review hints and filters never change saved records. Edit individual entries to correct a classification.</p></section>';
 }
 function refreshFinanceHistoryList(){
  const list=document.querySelector('[data-finance-history-list]');
@@ -1378,6 +1389,7 @@ app.addEventListener('change',event=>{
   if(field==='kind')financeHistoryKind=value;
   else if(field==='month')financeHistoryMonth=value;
   else if(field==='category')financeHistoryCategory=value;
+  else if(field==='review')financeHistoryReview=value;
   else if(field==='sort')financeHistorySort=value;
   financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
@@ -1449,7 +1461,8 @@ document.addEventListener('click',async event=>{
     return;
   }
   if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
-  if(action==='finance-history-open'){page='financeHistory';financeHistoryVisible=50;render();return;}
+  if(action==='finance-history-open'){page='financeHistory';financeHistoryReview='all';financeHistoryVisible=50;render();return;}
+  if(action==='finance-review-open'){page='financeHistory';financeHistoryReview='needs-review';financeHistoryKind='all';financeHistoryMonth='all';financeHistoryCategory='all';financeHistoryQuery='';financeHistoryVisible=50;render();return;}
   if(action==='finance-history-back'){page='finances';render();return;}
   if(action==='finance-history-more'){financeHistoryVisible+=50;refreshFinanceHistoryList();return;}
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
@@ -1836,7 +1849,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=90',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=91',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
