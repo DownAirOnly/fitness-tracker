@@ -1583,3 +1583,19 @@ html.buddy-active #overlay .modal{z-index:1101}
 [data-theme="dark"] .finance-row-main .finance-row-date{color:#94a99a}
 [data-theme="dark"] .finance-row-main .finance-row-details{color:#9aafa0}
 [data-theme="dark"] .finance-row-main .finance-row-category{color:#b4d2b9}
+
+
+/* v90 — complete, mobile-first transaction history. */
+.finance-history-open{margin-top:12px;width:100%;min-height:42px}
+.finance-history-back{margin-top:10px;min-height:42px}
+.finance-history .finance-history-search{display:block;margin-bottom:14px}
+.finance-history-search input{width:100%;min-height:44px}
+.finance-history-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.finance-history-filters .field{min-width:0}
+.finance-history-filters select{width:100%;min-width:0;min-height:43px}
+.finance-history-summary{color:#607868;font-size:12px;font-weight:650;padding:10px 0;border-bottom:1px solid #dfe8dc}
+.finance-history-list{margin-top:4px}
+.finance-history-more{width:100%;margin:16px 0 4px;min-height:44px}
+.finance-history-list .empty{margin:20px 0}
+[data-theme="dark"] .finance-history-summary{color:#a8bea9;border-color:#34483a}
+@media(max-width:390px){.finance-history-filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}}

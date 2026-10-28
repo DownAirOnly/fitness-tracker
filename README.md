@@ -1,5 +1,7 @@
 # Everyday fitness tracker
 
+**For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
+
 A small mobile-first web app for food, lifting, and body weight. The home screen has two primary actions. On the first visit after 6 a.m. local time each day, it offers a weigh-in with an **Enter later** option. A weigh-in already recorded for today suppresses the prompt.
 
 ## Run
@@ -279,3 +281,10 @@ Ordinary Food, Finance, workout, and measurement form submissions no longer sile
 Finance **Recent transactions** presents the muted posted date above the main personal transaction name, an original bank description in quiet text only when it differs from the personal name, and a category/subcategory only when classified. No "Uncategorized", repeated bank text, account label, or statement/batch range is shown in the compact list. Bank facts and account/source metadata remain available in the transaction editor and stored backup.
 
 This release does not retroactively rewrite previously imported transaction categories. Reconciliation of older classifications remains a separate, reviewed enrichment step.
+
+ 
+## v90 — Full Finance Transaction History and living development handoff
+
+Finances → **View all transactions** now opens a full history view of the saved financial ledger instead of only ten recent entries. Search considers the personal description, original bank description, merchant, category/subcategory, notes, itemization, dates and amount. Filter by **expense/income/transfer**, posted month and category; sort newest or oldest first. Results load in groups of 50 to keep the mobile page responsive. The entry card retains the v89 visual hierarchy: small muted posted date, personal name, optional distinct bank source, optional meaningful category, amount and Edit. Editing from the history updates the same stored transaction; navigation returns to the Finances tab without duplicating data. Filtering and scrolling do not mutate transaction records, classifications or source facts.
+
+**Conversation continuity:** `PROJECT_CONTEXT.md` is the canonical summary of active version, technical architecture, delivered releases, unresolved bugs, cautious financial classification rules, roadmap candidates and deployment workflow. New ChatGPT conversations should start by reading it and checking live GitHub state; rotate after each five-number release cycle (next **v91–v95**). Update the context file when completing each new version. Privacy: do not put original personal statements, receipt images, transaction-level private CSVs, API keys or account information in this public repository.
