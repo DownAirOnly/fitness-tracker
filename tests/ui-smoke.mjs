@@ -19,6 +19,8 @@ for(const key of ['window','document','localStorage','navigator'])Object.defineP
 let storagePersisted=false,persistRequests=0;
 Object.defineProperty(dom.window.navigator,'storage',{configurable:true,value:{persisted:async()=>storagePersisted,persist:async()=>{persistRequests++;storagePersisted=true;return true;},estimate:async()=>({usage:4096,quota:1024*1024})}});
 globalThis.alert=()=>{};globalThis.confirm=()=>true;
+// jsdom lacks a native animation frame API; use a minimal visual-frame stub.
+globalThis.requestAnimationFrame=callback=>setTimeout(callback,0);
 const fixture=join(temp,'cloud.mjs');
 await writeFile(fixture,`
  import {CloudSession,nextRecord} from '${new URL('cloud-model.js',root)}';
@@ -337,7 +339,7 @@ try{
  assert.equal(pausedExercise.setupDraft,'Seat 7 - draft','unsaved Setup text has a recovery copy');
  const setupExerciseId=pausedExercise.exerciseId;
  assert.equal(normalizeData(paused).activeWorkout.exercises.find(e=>e.exerciseId===setupExerciseId).setupDraft,'Seat 7 - draft','normalization preserves a recoverable active Setup draft');
- assert.equal(paused.exerciseDefinitions.find(e=>e.id===setupExerciseId).setup,'Seat 6','exercise definition remains unchanged until Save');
+ assert.equal(normalizeData(paused).exerciseDefinitions.find(e=>e.id===setupExerciseId).setup,'Seat 6','exercise definition remains unchanged until Save');
  await click('buddy-exit');
  await click('buddy-launch');
  assert.equal(document.querySelector('#buddy-root [name=buddySetup]').value,'Seat 7 - draft','draft is restored after reopening Workout Buddy');
