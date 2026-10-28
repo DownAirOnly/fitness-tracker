@@ -58,6 +58,8 @@ const currentCloudRevision=()=>session?.ready&&Number.isSafeInteger(session.revi
 function saveCloudRecoveryLocally(markMessage=true){
   if(!account?.uid)return null;
   cloudRecovery=writeCloudRecovery(account.uid,currentCloudRevision(),data);
+  // If a conflict was already detected, keep its recoverable copy current.
+  if(cloudRecoveryConflict)cloudRecoveryConflict=cloudRecovery;
   if(markMessage){cloudPending=true;cloudMessage=session?.ready?'Saved on this device · waiting for cloud':'Saved on this device · cloud unavailable';}
   return cloudRecovery;
 }
@@ -174,6 +176,9 @@ const persist=async()=>{
   if(!account){try{save(data);deviceData=structuredClone(data);render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
   let localSafe=true;
   try{saveCloudRecoveryLocally(false);cloudPending=true;}catch{localSafe=false;cloudPending=true;}
+  if(cloudRecoveryConflict){
+    cloudMessage='Saved on this device · resolve cloud recovery before syncing';render();return localSafe;
+  }
   if(!session?.ready){cloudMessage=localSafe?'Saved on this device · cloud unavailable':'Cloud unavailable and the device recovery copy could not be saved. Export a backup now.';render();return localSafe;}
   if(cloudBusy){cloudMessage=localSafe?'Saved on this device · waiting for cloud':'Cloud save in progress; the device recovery copy could not be updated.';render();return localSafe;}
   const active=session,snapshot=structuredClone(data);cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';render();let queueAgain=false;
@@ -265,13 +270,15 @@ function financeRecent(){
  const all=[...(data.transactions||[])].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00')));
  return '<section class="panel finance-recent"><div class="section-head"><div><p class="eyebrow">RECENT TRANSACTIONS</p><h2>Latest entries</h2></div><span class="finance-count">'+all.length+' total</span></div>'+
   (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(tx=>{
-    const raw=tx.bankDescription?'<small class="finance-raw-description">Bank: '+esc(tx.bankDescription)+'</small>':'';
-    const account=tx.accountLabel?' · '+esc(tx.accountLabel):'';
-    const statement=tx.statementLabel?' · '+esc(tx.statementLabel):'';
+    const displayDate=new Date(tx.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    const raw=tx.bankDescription&&tx.bankDescription.trim()!==tx.description.trim()?
+     '<span class="finance-raw-description">'+esc(tx.bankDescription)+'</span>':'';
+    const category=tx.category&&tx.category.toLowerCase()!=='uncategorized'?
+     '<span class="finance-row-category">'+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+'</span>':'';
+    const details=raw||category?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+'</small>':'';
     const itemized=tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
-    return '<div class="finance-row"><div class="finance-row-main"><strong>'+esc(tx.description)+'</strong>'+raw+
-     '<small>'+esc(tx.date)+(tx.purchaseDate?' · Bought '+esc(tx.purchaseDate):'')+
-     (tx.time?' '+esc(tx.time):'')+' · '+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+account+statement+'</small>'+itemized+'</div>'+
+    return '<div class="finance-row"><div class="finance-row-main"><small class="finance-row-date">'+esc(displayDate)+(tx.time?' · '+esc(tx.time):'')+'</small>'+
+     '<strong>'+esc(tx.description)+'</strong>'+details+itemized+'</div>'+
      '<div class="finance-row-side"><b class="'+esc(tx.kind)+'">'+(tx.kind==='income'?'+':tx.kind==='expense'?'−':'')+
      formatFinanceAmount(tx.amountCents)+'</b>'+
      button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div></div>';
@@ -1580,7 +1587,20 @@ document.addEventListener('click',async event=>{
   if(action==='commit-import'){await commitImport();return;}
 });
 app.addEventListener('submit',async event=>{
-  const form=event.target;if(!form.dataset.form)return;event.preventDefault();if(importSaving||(!offlineWorkspace&&account&&(cloudBusy||cloudPending||!session?.ready)))return;const v=Object.fromEntries(new FormData(form));
+  const form=event.target;if(!form.dataset.form)return;event.preventDefault();
+  // Ordinary food, workout and finance logs remain usable when iOS suspends an
+  // in-flight cloud request. persist() journals them to device recovery first.
+  // Full-file imports still require a stable cloud revision for safe previewing.
+  const stableCloudForms=new Set(['finance-bank-import','import']);
+  if(importSaving||(!offlineWorkspace&&account&&stableCloudForms.has(form.dataset.form)&&
+      (cloudBusy||cloudPending||!session?.ready||cloudRecoveryConflict))){
+    let status=form.querySelector('[data-save-blocked]');
+    if(!status){status=document.createElement('p');status.className='finance-error';status.setAttribute('role','alert');status.dataset.saveBlocked='';form.prepend(status);}
+    status.textContent=importSaving?'Finish the current import first.':
+      'Bank and backup imports need a fully synchronized account. Resolve the cloud save warning or retry syncing before importing. Ordinary logging remains available and is saved on this device.';
+    return;
+  }
+  const v=Object.fromEntries(new FormData(form));
   if(form.dataset.form==='finance-bank-import'){
     const file=form.querySelector('[name=file]')?.files?.[0],preview=form.parentElement.querySelector('#preview');
     if(!file)return;
@@ -1740,7 +1760,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=87',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=89',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -1809,7 +1829,12 @@ async function startCloud(){
 }
 window.addEventListener('beforeunload',event=>{captureCriticalLocalState();if(!offlineWorkspace&&(cloudPending||cloudBusy)){event.preventDefault();event.returnValue='';}});
 window.addEventListener('pagehide',()=>captureCriticalLocalState());
-window.addEventListener('online',()=>{void checkLatestRelease();if(demoMode||offlineWorkspace||!account)return;if(session?.ready&&cloudPending&&!cloudRecoveryConflict)void persist();else if(!session?.ready)void loadAccount();});
+function resumePendingCloudSave(){
+  if(demoMode||offlineWorkspace||!account||cloudBusy||!cloudPending||cloudRecoveryConflict)return;
+  if(session?.ready)void persist();
+  else if(hasLocalCloudFallback())void loadAccount();
+}
+window.addEventListener('online',()=>{void checkLatestRelease();resumePendingCloudSave();});
 
 function appearancePanel(){
   const selected=window.everydayTheme?.preference || 'system';
@@ -1926,9 +1951,22 @@ async function syncHealth(force=false){
     const result=await cloudApi.health.pull(active.uid,active.revision);
     if(session!==active)return;
     healthState=result;
-    if(result.data){data=result.data;active.revision=result.revision;cloudMessage='Saved to your account';}
+    if(result.data){
+      active.revision=result.revision;
+      if(cloudPending){
+        // A log was recorded locally while iOS was resuming this Health pull.
+        // Never replace that newer notebook with the Health response.
+        cloudRecoveryConflict=cloudRecovery||readCloudRecovery(active.uid);
+        cloudMessage='Device edits saved · review cloud changes before syncing';
+      }else{data=result.data;cloudMessage='Saved to your account';}
+    }
   }catch(error){if(session===active)healthState={...healthState,status:error.code==='permission-denied'?'Setup needs the updated Firebase rules. Existing tracking still works.':describeCloudError(error)};}
-  finally{if(session===active){cloudBusy=false;if(!document.querySelector('.modal'))render();promptWeight();}}
+  finally{if(session===active){
+    cloudBusy=false;
+    if(!document.querySelector('.modal'))render();
+    if(cloudPending&&!cloudRecoveryConflict&&session?.ready)void persist();
+    else promptWeight();
+  }}
 }
 async function healthAction(action){
   if(offlineWorkspace||!account||!session?.ready||!cloudApi?.health)return;
@@ -1957,7 +1995,7 @@ function showHealthSetup(){
   modal('Set up Health sync',`<p class="body-copy">Keep your existing Everyday Home Screen icon. Use a separate Sync Everyday Health Shortcut to send your latest scale readings.</p><p class="hint">This private address permits weight and body-fat submissions. Do not share it or publish a Shortcut containing it. Disconnect revokes it.</p>${button('Copy private sync address','health-copy','primary')}<p id="health-copy-status" role="status"></p><label class="field"><span>Private sync address</span><textarea id="health-url" readonly rows="3">${esc(cloudApi.health.url(healthState.token))}</textarea></label><p class="body-copy">Follow the <a href="health-shortcut.html" target="_blank" rel="noopener">Shortcut setup instructions</a>. You can send Weight and Body Fat Percentage independently, each with its own Value and Start Date, using this address. No Google password or Firebase administrator key goes into the Shortcut.</p><p class="hint">Only the latest submitted scale reading waits here. Open Everyday after syncing to import it. Repeated or older readings are ignored; historical backfill and Health deletions are not synced.</p>`);
 }
 document.addEventListener('input',event=>{if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}}});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
-window.addEventListener('pageshow',()=>{void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
-window.addEventListener('focus',()=>{void checkLatestRelease();void syncHealth();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
+window.addEventListener('pageshow',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
+window.addEventListener('focus',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();});
 void checkLatestRelease();
