@@ -73,6 +73,18 @@ function classifyBankRow(description,signedCents){
  if(transferDescription.test(description))return {kind:'transfer',subcategory:'Other transfers'};
  return {kind:signedCents<0?'expense':'income',subcategory:''};
 }
+// Read-only review hints based on the existing Bank of America classifier.
+// Do not infer P2P payments or change any saved transaction automatically.
+export function financeReviewFlags(transaction){
+ const flags=[],category=String(transaction?.category||'').trim().toLowerCase();
+ if(!category||category==='uncategorized')flags.push('uncategorized');
+ const bankDescription=String(transaction?.bankDescription||'').trim();
+ if(bankDescription&&transaction?.kind!=='transfer'&&
+  classifyBankRow(bankDescription,transaction?.bankDirection==='credit'?1:-1).kind==='transfer'){
+  flags.push('transfer-check');
+ }
+ return flags;
+}
 function csvCell(value){const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
 const enrichColumns=[
  'recordType','id','postedDate','kind','amountCents','bankDescription','accountLabel','statementLabel','bankDirection',
