@@ -832,7 +832,7 @@ function buddyRender(){
  const notes=e.notesOpen?`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>${journalButton}</div><div class="buddy-notes-editor"><textarea name="buddyNotes" maxlength="500" rows="2" placeholder="Form, pain, setup, anything worth remembering">${esc(e.notes||'')}</textarea><button type="button" class="buddy-notes-done" data-action="buddy-notes-toggle">Done</button></div></div>`:`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle ${e.notes?'has-note':''}" data-action="buddy-notes-toggle"><span><b>${e.notes?'Notes saved':'Add notes'}</b><small>${e.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering'}</small></span><strong aria-hidden="true">${e.notes?'✓':'＋'}</strong></button>${journalButton}</div></div>`;
  const recent=buddyHistory(e),lastSession=recent[0]||prior;
  const history=lastSession?'<div class="buddy-history-preview"><button type="button" class="buddy-last-toggle" data-action="buddy-toggle-history" aria-expanded="'+Boolean(e.showRecent)+'"><span><b>LAST · '+esc(niceDate(lastSession.date))+'</b><small>'+esc(buddyLastTwo(lastSession))+'</small></span><span class="buddy-last-chevron" aria-hidden="true">'+(e.showRecent?'⌃':'⌄')+'</span></button>'+(e.showRecent?'<div class="buddy-compact-history">'+recent.slice(1,3).map(l=>'<div><small>'+esc(niceDate(l.date))+'</small><span>'+esc(buddyLastTwo(l))+'</span></div>').join('')+(recent.length===1?'<small>No earlier workouts</small>':'')+'</div>':'')+'</div>':'';
- const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setup||'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
+ const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setup||'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
 
  const undo='';
  return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${history}${showRest?`<div class="buddy-rest-timer"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></div>`:''}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
@@ -846,9 +846,50 @@ function buddyFitViewport(){
  view.classList.remove('buddy-needs-scroll');
  if(view.scrollHeight>view.clientHeight+2)view.classList.add('buddy-needs-scroll');
 }
-window.addEventListener('resize',buddyFitViewport);
-window.visualViewport?.addEventListener('resize',buddyFitViewport);
-function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();buddyFitViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));const state=document.querySelector('[data-buddy-state]');if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));if(state&&!Number.isInteger(e.reviewSetIndex))state.textContent=left?`Rest · ${buddyClock(left)} remaining`:'Rest complete';const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
+// iOS WebKit shrinks the *visual* viewport when its keyboard opens, while a
+// fixed 100dvh PWA can remain taller. Fit only during direct field editing.
+function buddyActiveField(){
+ const field=document.activeElement;
+ return field?.closest?.('#buddy-root .buddy-exercise-view')&&field.matches('input:not([type="hidden"]),textarea')?field:null;
+}
+function buddyEnsureFieldVisible(field){
+ if(!field?.isConnected||document.activeElement!==field)return;
+ const view=field.closest('.buddy-exercise-view');
+ if(!view)return;
+ const limits=view.getBoundingClientRect(),rect=field.getBoundingClientRect();
+ const bottom=limits.bottom-14,top=limits.top+10;
+ if(rect.bottom>bottom)view.scrollTop+=rect.bottom-bottom;
+ else if(rect.top<top)view.scrollTop-=top-rect.top;
+}
+function buddySyncInputViewport(){
+ const screen=document.querySelector('#buddy-root .buddy-screen');
+ if(!screen)return;
+ const field=buddyActiveField(),viewport=window.visualViewport;
+ screen.classList.toggle('buddy-keyboard-editing',Boolean(field));
+ if(field&&viewport){
+  screen.style.height=Math.max(220,Math.round(viewport.height))+'px';
+  screen.style.top=Math.max(0,Math.round(viewport.offsetTop))+'px';
+  screen.style.bottom='auto';
+ }else{
+  screen.style.height='';screen.style.top='';screen.style.bottom='';
+ }
+ buddyFitViewport();
+ if(field)requestAnimationFrame(()=>buddyEnsureFieldVisible(field));
+ else{
+  const view=screen.querySelector('.buddy-exercise-view');
+  if(view&&!view.classList.contains('buddy-needs-scroll'))view.scrollTop=0;
+ }
+}
+document.querySelector('#buddy-root')?.addEventListener('focusin',event=>{
+ if(event.target.matches?.('input:not([type="hidden"]),textarea'))buddySyncInputViewport();
+});
+document.querySelector('#buddy-root')?.addEventListener('focusout',()=>{
+ requestAnimationFrame(buddySyncInputViewport);
+});
+window.addEventListener('resize',buddySyncInputViewport);
+window.visualViewport?.addEventListener('resize',buddySyncInputViewport);
+window.visualViewport?.addEventListener('scroll',buddySyncInputViewport);
+function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));const state=document.querySelector('[data-buddy-state]');if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));if(state&&!Number.isInteger(e.reviewSetIndex))state.textContent=left?`Rest · ${buddyClock(left)} remaining`:'Rest complete';const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
 function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){await persist();if(data.activeWorkout)buddyOpen();}
 function buddyUpsertLift(s,e){if(!e.sets?.length)return;const record={exercise:e.name,equipment:e.equipment,date:s.date,sets:e.sets.map(x=>({weight:x.weight,reps:x.reps,...(x.difficulty?{difficulty:x.difficulty}:{})})),notes:e.notes||'',buddySessionId:s.id};const existing=data.lifts.find(l=>l.buddySessionId===s.id&&l.exercise===e.name&&(l.equipment||'other')===e.equipment);if(existing)Object.assign(existing,record);else data.lifts.push({id:id(),...record});}
@@ -1570,11 +1611,47 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
   if(action==='buddy-bike-done'){const s=data.activeWorkout;if(!s||s.phase!=='bike')return;buddyCaptureUndo(s,'bike finished');s.phase='picker';s.bikeCompletedAt=isoNow();await buddyPersist();return;}
   if(action==='buddy-choose'){const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);if(!e)return;buddyCaptureUndo(s,'start exercise');e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
-  if(action==='buddy-setup-toggle'||action==='buddy-setup-save'||action==='buddy-journal-toggle'||action==='buddy-toggle-history'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||e.activeSetStartedAt)return;if(action==='buddy-setup-toggle')e.setupEditing=!e.setupEditing;else if(action==='buddy-setup-save'){const setup=(document.querySelector('[name=buddySetup]')?.value||'').trim().slice(0,200),def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);if(setup){e.setup=setup;if(def)def.setup=setup;}else{delete e.setup;if(def)delete def.setup;}e.setupEditing=false;}else if(action==='buddy-journal-toggle')e.journalOpen=!e.journalOpen;else e.showRecent=!e.showRecent;await buddyPersist();return;}
+  if(action==='buddy-setup-toggle'||action==='buddy-setup-save'||action==='buddy-journal-toggle'||action==='buddy-toggle-history'){
+   buddyReadEditor();buddyReadNotes();
+   const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;
+   if(!e||e.activeSetStartedAt)return;
+   if(action==='buddy-setup-toggle'){
+     e.setupEditing=!e.setupEditing;
+     // Draw and focus within this same user tap: awaiting cloud/device save
+     // first prevents iOS from opening the software keyboard reliably.
+     buddyOpen();
+     if(e.setupEditing){
+       const field=document.querySelector('#buddy-root [name=buddySetup]');
+       field?.focus({preventScroll:true});
+       field?.select();
+     }
+     await persist();return;
+   }
+   if(action==='buddy-setup-save'){
+     const setup=(document.querySelector('[name=buddySetup]')?.value||'').trim().slice(0,200);
+     const def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);
+     if(setup){e.setup=setup;if(def)def.setup=setup;}else{delete e.setup;if(def)delete def.setup;}
+     e.setupEditing=false;
+   }else if(action==='buddy-journal-toggle')e.journalOpen=!e.journalOpen;
+   else e.showRecent=!e.showRecent;
+   await buddyPersist();return;
+ }
   if(action==='buddy-review-next'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||!Number.isInteger(e.reviewSetIndex))return;const finished=e.sets.length>=buddyTargetSets(e);buddyCaptureUndo(s,finished?'finish exercise':'start next set');delete e.reviewSetIndex;if(finished)buddyCompleteExercise(s,e);else{e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';}await buddyPersist();return;}
   if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;if(el.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
   if(action==='buddy-effort'){const root=el.closest('.buddy-exercise-view,.routine-history-editor'),input=root?.querySelector('[name=buddyDifficulty]');if(!input)return;input.value=el.dataset.value;root.querySelectorAll('.buddy-effort').forEach(btn=>{const selected=btn===el;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',selected?'true':'false');});if(root.matches('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
-  if(action==='buddy-notes-toggle'){buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e)return;const opening=!e.notesOpen;e.notesOpen=opening;await buddyPersist();if(opening)requestAnimationFrame(()=>document.querySelector('[name=buddyNotes]')?.focus({preventScroll:true}));return;}
+  if(action==='buddy-notes-toggle'){
+   buddyReadNotes();
+   const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;
+   if(!e)return;
+   const opening=!e.notesOpen;e.notesOpen=opening;
+   if(opening){
+     // Keep a keyboard-opening focus in the direct click stack on iPhone.
+     buddyOpen();
+     document.querySelector('#buddy-root [name=buddyNotes]')?.focus({preventScroll:true});
+     await persist();
+   }else await buddyPersist();
+   return;
+ }
   if(action==='buddy-undo'){buddyReadNotes();const s=data.activeWorkout;if(!canUndoBuddyTransition(s))return;buddyUndo(s);await buddyPersist();return;}
   if(action==='buddy-picker'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(s){s.phase='picker';s.selected=null;delete s.undo;}await buddyPersist();return;}
   if(action==='buddy-back-picker'){const s=data.activeWorkout;if(s){s.phase='picker';delete s.completedAt;delete s.undo;}await buddyPersist();return;}
@@ -1860,7 +1937,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=93',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=94',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';

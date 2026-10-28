@@ -8,7 +8,7 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v93**, viewport-fitted Workout Buddy set screens. Verify CI and GitHub Pages against the merged v93 SHA before claiming it is live.
+- **Latest implemented release covered here:** **v94**, iPhone Workout Buddy keyboard focus and text input viewport fixes. Verify the merged `main` SHA, CI and Pages before calling v94 live.
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. The previous cycle was **v86–v90**; current is **v91–v95** (suggested chat title: **Fitness Workless 6**); after that **v96–v100**.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -54,7 +54,8 @@
 | v90 | Full transaction history: searchable ledger, type/month/category filters, sorting, 50-row pagination and editing; browsing read-only |
 | v91 | Finance classification review queue: shortcut and review filters for uncategorized records and possible bank transfer mismatches; no automatic changes |
 | v92 | Workout Buddy set progression: later sets inherit the latest completed set from the active workout; undo buttons appear only during corresponding transitions |
-| **v93** | **Workout Buddy no-scroll set layout:** compact first/second set views, anchored anatomy and primary action, overlay previous history and overflow fallback on truly constrained screens |
+| v93 | Workout Buddy no-scroll set layout: compact first/second set views, anchored anatomy and primary action, overlay history and fallback on constrained screens |
+| **v94** | **iPhone Workout Buddy input fixes:** same-tap Setup/Notes focus, 16px text-input minimum, visual viewport keyboard fitting and normal layout restoration after dismissal |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -97,6 +98,14 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Accessibility fallback:** A measured content-height check enables scrolling only when essential controls would otherwise be clipped. Exercise picker, full journal and guide screens keep intended independent scrollability. This fallback does not disable user zoom.
 - **Coverage:** UI smoke tests verify viewport overflow fallback and expanded-history access in synthetic demo. DOM smoke tests cannot establish real iPhone/WebKit geometry; **user on-device confirmation remains required**.
 - **Still to do:** v94 automatically focus Setup and prevent unnecessary iOS form zoom; v95 stability checks and handoff to v96–v100. The nine-row finance correction, iOS background save and v90/v91 review verification are not silently treated as complete. No financial data or past workout logs are mutated by the UI change.
+
+## v94 release scope and verification
+
+- **Input and keyboard:** Setup opens and focuses/selects the text input before any asynchronous persistence. Notes also focuses before persistence. Pressing Return on Setup continues to save.
+- **iPhone layout:** Focused Buddy input uses `visualViewport.height` and `offsetTop` on its fixed screen while the keyboard is active. Existing v93 contained overflow fallback exposes editing controls, then normal full-height fit is restored after blur/save. Setup, Notes and archived workout text entry use a 16px font minimum to avoid auto zoom; do **not** disable user pinch zoom.
+- **Testing:** Expanded UI smoke covers immediate Setup/Notes focus, edited value retention, simulated shrunken visual viewport and restoration. This is not proof of real iOS keyboard behavior; device confirmation remains open.
+- **No migrations:** Data model, cloud recovery, bank stable IDs and prior workout/financial records remain unchanged.
+- **Next scope:** v95 stabilization and v96–v100 handoff, including any iPhone-reported regression from v92–v94. Previous v89 background saving, v90/v91 Finance history verification and nine-row BofA correction application remain unconfirmed, not silently resolved.
 
 ## Outstanding work: next cycle v91–v95
 

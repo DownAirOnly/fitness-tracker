@@ -8,6 +8,8 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'everyday-ui-'));
 const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
+const stylesheet=await readFile(new URL('styles.css',root),'utf8');
+assert.ok(stylesheet.includes('#buddy-root .buddy-setup-editor input,')&&stylesheet.includes('.routine-history-editor textarea{font-size:16px'),'iOS text inputs use >=16px without disabling pinch zoom');
 const initialHome=['.home-actions','.today-card','.weight-strip'].map(selector=>{
  const element=dom.window.document.querySelector(selector);assert.ok(element,'present before JavaScript: '+selector);return element.outerHTML;
 });
@@ -289,7 +291,7 @@ try{
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
  await click('gym');await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
  await click('buddy-choose');
- const firstSet=document.querySelector('[name=buddyWeight]');
+ let firstSet=document.querySelector('[name=buddyWeight]');
  assert.ok(firstSet,'first Buddy set is editable');
  // v93: the normal set view is fitted; constrained viewports switch to an explicit safe fallback.
  const buddyView=document.querySelector('#buddy-root .buddy-exercise-view');
@@ -308,6 +310,29 @@ try{
   await click('buddy-toggle-history');
   assert.equal(document.querySelector('.buddy-last-toggle').getAttribute('aria-expanded'),'false');
  }
+
+ // v94: tap-to-type Setup focus and visual-viewport keyboard fitting.
+ Object.defineProperty(dom.window,'visualViewport',{configurable:true,value:{height:505,offsetTop:9}});
+ await click('buddy-setup-toggle');
+ const setupField=document.querySelector('#buddy-root [name=buddySetup]');
+ assert.ok(setupField,'Setup opens the editable machine setting');
+ assert.equal(document.activeElement,setupField,'tap immediately focuses Setup');
+ assert.equal(document.querySelector('#buddy-root .buddy-screen').style.height,'505px','Buddy fits the keyboard viewport');
+ assert.equal(document.querySelector('#buddy-root .buddy-screen').style.top,'9px','Buddy offsets when the visual viewport shifts');
+ setupField.value='Seat 6';
+ await click('buddy-setup-save');
+ assert.ok(document.querySelector('#buddy-root .buddy-setup').textContent.includes('Seat 6'),'Setup saves the edited setting');
+ assert.equal(document.querySelector('#buddy-root .buddy-screen').style.height,'','layout restores after Setup');
+ await click('buddy-notes-toggle');
+ const noteField=document.querySelector('#buddy-root [name=buddyNotes]');
+ assert.ok(noteField,'Notes editor opens');
+ assert.equal(document.activeElement,noteField,'Notes focuses in the same tap');
+ noteField.value='Controlled reps';
+ noteField.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ await click('buddy-notes-toggle');
+ assert.ok(document.querySelector('#buddy-root .buddy-notes-toggle').textContent.includes('Notes saved'),'Notes persist after dismissal');
+ assert.equal(document.querySelector('#buddy-root .buddy-screen').style.height,'','layout restores after Notes');
+ firstSet=document.querySelector('[name=buddyWeight]');
 
  firstSet.value='110';
  document.querySelector('[name=buddyReps]').value='9';
