@@ -283,6 +283,14 @@ Finance **Recent transactions** presents the muted posted date above the main pe
 This release does not retroactively rewrite previously imported transaction categories. Reconciliation of older classifications remains a separate, reviewed enrichment step.
 
  
+## v94 — iPhone keyboard and Setup editing
+
+Workout Buddy's **Setup** chip now opens an editable text field and **focuses/selects it synchronously in the same tap** rather than waiting for persistence first, so iOS can present its keyboard without requiring a second tap. The Notes editor likewise focuses in the originating tap. Both retain their normal save/dismiss actions; pressing Return on Setup still saves.
+
+While a Workout Buddy input is focused, the fixed set screen follows the smaller iOS `visualViewport` height and vertical offset. The existing v93 contained-scroll fallback keeps a focused field accessible above the software keyboard; after leaving the editor, the screen returns to its normal full-height/no-scroll presentation. Setup, Notes and archived workout text inputs use 16px text (numeric set inputs remain larger), avoiding iOS Safari's usual focus-zoom trigger without disabling manual pinch zoom or changing the global viewport meta tag.
+
+No existing workout, food, finance, bank identifiers, or cloud/local recovery formats were altered. Automated DOM tests verify synchronous focus, edited values and simulated viewport behavior; **the iPhone Home Screen PWA must still confirm actual keyboard/zoom behavior on-device**.
+
 ## v93 — Viewport-fitted Workout Buddy set screens
 
 Regular first- and later-set screens now use a compact fixed-height layout with **no vertical page scrolling** when the controls fit the available viewport. Spacing around the stationary anatomy diagram, previous history, resting clock, completed-set summary, numeric steppers, effort controls, notes and primary action was reduced without removing functionality. The Start/Finish/Next button remains at the bottom but no longer uses the old sticky-scrolling layout during ordinary use.
