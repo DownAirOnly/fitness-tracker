@@ -187,6 +187,19 @@ try{
   assert.ok(document.querySelector('.finance-history-list .finance-row .finance-row-date').textContent.includes('Oct 24'),'sort oldest first');
   assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'history filtering never mutates the ledger');
   await click('finance-history-back');assert.ok(document.querySelector('.finances-page-head'),'back restores finance overview');
+  // v91: review access and filters never mutate the ledger.
+  assert.ok(document.querySelector('[data-action="finance-review-open"]'),'review button appears for unclassified records');
+  await click('finance-review-open');
+  assert.equal(document.querySelector('[data-finance-history-filter="review"]').value,'needs-review');
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
+  assert.ok(document.querySelector('.finance-review-flag').textContent.includes('Category needed'));
+  const reviewFilter=document.querySelector('[data-finance-history-filter="review"]');
+  reviewFilter.value='transfer-check';reviewFilter.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'no transfer hint for ordinary purchases');
+  reviewFilter.value='uncategorized';reviewFilter.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'review queue is read-only');
+  await click('finance-history-back');
 
   const sourceTx=ledger.find(tx=>tx.bankDescription==='365 MARKET 10994');
   assert.ok(sourceTx);
