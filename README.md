@@ -283,6 +283,14 @@ Finance **Recent transactions** presents the muted posted date above the main pe
 This release does not retroactively rewrite previously imported transaction categories. Reconciliation of older classifications remains a separate, reviewed enrichment step.
 
  
+## v93 — Viewport-fitted Workout Buddy set screens
+
+Regular first- and later-set screens now use a compact fixed-height layout with **no vertical page scrolling** when the controls fit the available viewport. Spacing around the stationary anatomy diagram, previous history, resting clock, completed-set summary, numeric steppers, effort controls, notes and primary action was reduced without removing functionality. The Start/Finish/Next button remains at the bottom but no longer uses the old sticky-scrolling layout during ordinary use.
+
+Expanded previous-workout history opens as a small, independently scrollable dropdown rather than pushing the set editor offscreen; the user can close it using the same history toggle. In an unusually short browser viewport, larger accessibility font setting, or when expanded editing needs more height, a measured **contained-scroll fallback** activates instead of clipping controls. The exercise picker and Journal intentionally retain their separate scrolling behavior.
+
+The exact no-scroll appearance still needs confirmation in the user's iPhone Home Screen PWA. v94 remains the separate iOS keyboard/focus/zoom release.
+
 ## v92 — Workout Buddy current-set inheritance and contextual undo
 
 Set 2 and later initialize weight, reps, and effort from the **most recently completed set of the same exercise in the active workout**, including corrections made during set review. Only the first set (or an exercise with no current completed set) uses previous-workout values as a fallback. Explicit edits to a draft remain authoritative and are preserved by the existing local/cloud recovery path.
