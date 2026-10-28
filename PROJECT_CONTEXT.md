@@ -8,8 +8,8 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest planned release covered here:** **v90**, full Finance Transaction History. This document was added on the v90 implementation branch; if release or deployment is not confirmed, do not claim v90 is live.
-- **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. The current cycle is **v86–v90**; next is **v91–v95** (suggested chat title: **Fitness Workless 6**); after that **v96–v100**.
+- **Latest implemented release covered here:** **v91**, non-destructive Finance Classification Review. Verify merged main version and Pages deployment before calling v91 live.
+- **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. The previous cycle was **v86–v90**; current is **v91–v95** (suggested chat title: **Fitness Workless 6**); after that **v96–v100**.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
 ## What to do at the beginning of the next conversation
@@ -51,7 +51,8 @@
 | v87 | Infer editable statement/batch labels from actual CSV dates |
 | v88 | Detect explicit debt payments/overdraft credits as transfers, warn on ambiguous P2P and similar duplicates |
 | v89 | Stop silent rejection of ordinary log submissions when cloud save is pending after iOS app switching; concise Finance rows |
-| **v90** | **Full transaction history:** searchable saved ledger, type/month/category filters, oldest/newest sorting, 50-row pagination, editable records; no data mutation from browsing |
+| v90 | Full transaction history: searchable ledger, type/month/category filters, sorting, 50-row pagination and editing; browsing read-only |
+| **v91** | **Finance classification review queue:** shortcut and review filters for uncategorized records and possible bank transfer mismatches; no automatic changes |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -72,11 +73,18 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **v90 full history:** verify deployed version, filters, data count, responsive scroll, and edit-from-history behavior on iPhone. Browser-only automated tests do not verify WebKit.
 - **Existing classification correction:** the nine-row enrichment file was supplied and simulation-validated, but **not confirmed saved by the user**.
 
+## v91 release scope and verification
+
+- **Delivered in code:** Finances shows Review classifications when saved records need attention. History adds Needs review, Uncategorized, and Possible transfers filters plus small review reason labels. Existing filters and individual editing remain available.
+- **Inference limits:** Transfer hints reuse existing bank import rules for explicit debt payments, overdraft credits and transfers; no P2P or manual transaction is presumed a transfer. Review flags do not automatically change any saved data.
+- **Coverage:** Added tests/finance-review.test.js and UI smoke checks for queue navigation, filtering and unchanged ledger data. Verify CI, merge and deployment independently. Browser tests are not proof of real iPhone behavior.
+- **Still open:** v89 iPhone background/foreground saving, v90/v91 History on-device checks and confirmation of the nine-row enrichment correction. Previously imported 478 transactions were not reimported or modified by v91.
+
 ## Outstanding work: next cycle v91–v95
 
 **These are candidates, NOT an agreed fixed release plan or automatic orders. Re-prioritize with the user's next request.**
 
-1. **Finance classification/clarification quality:** use `Finances → Export for ChatGPT` to obtain the notebook's current stable IDs, build a reviewed enrichment CSV from known receipts and bank wording, and update personal descriptions, merchant, category/subcategory. Distinguish actual consumption, debt-account transfers, refunds, household necessities, reimbursements, and fees. Never guess ambiguous person-to-person payments or infer itemized purchase totals without evidence.
+1. **Finance classification/clarification quality:** v91 provides a read-only review queue; reviewed enrichment and actual notebook application are still outstanding. Use `Finances → Export for ChatGPT` to obtain the notebook's current stable IDs, build a reviewed enrichment CSV from known receipts and bank wording, and update personal descriptions, merchant, category/subcategory. Distinguish actual consumption, debt-account transfers, refunds, household necessities, reimbursements, and fees. Never guess ambiguous person-to-person payments or infer itemized purchase totals without evidence.
 2. **Finance insights:** category and merchant spending totals over selectable time windows, meaningful expense vs transfer separation, convenience spending insights, cost-per-calorie/protein where purchase itemization can be matched reliably. Do not equate checking-account withdrawals with consumption.
 3. **Transaction History refinements:** if v90 real-device feedback reveals performance/layout or navigation issues, fix those first; consider range filters, bulk review and selected transactions only when requested.
 4. **Workout anatomy SVG design alternatives:** user wants to explore visually better diagrams in a **separate redesign comparison pass**; current miniature positions and subtle Push/Pull labels were fixed in earlier versions. Do not replace anatomy art without explicit approval.
