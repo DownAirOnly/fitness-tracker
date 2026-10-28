@@ -157,6 +157,36 @@ try{
   assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('BofA Checking'),'account label omitted from compact history rows');
   assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('Oct 1–25, 2026'),'statement range omitted from compact history rows');
   assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('Uncategorized'),'empty classifications omitted from history');
+  // v90: full finance history uses all saved records without changing the ledger.
+  await click('finance-history-open');
+  assert.ok(document.querySelector('.finance-history'),'transaction-history page opens');
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
+  assert.equal(document.querySelector('[data-finance-history-summary]').textContent,'2 of 2 transactions');
+  assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finance nav remains selected in its subview');
+  const historySearch=document.querySelector('[data-finance-history-search]');
+  historySearch.value='365 MARKET';historySearch.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+  await tick();assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,1,'search includes original bank description');
+  assert.equal(document.querySelector('[data-finance-history-summary]').textContent,'1 of 2 transactions');
+  historySearch.value='';historySearch.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+  const historyType=document.querySelector('[data-finance-history-filter="kind"]');
+  historyType.value='income';historyType.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'type filter excludes other kinds');
+  assert.ok(document.querySelector('.finance-history-list .empty'));
+  historyType.value='all';historyType.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  const historyMonth=document.querySelector('[data-finance-history-filter="month"]');
+  historyMonth.value='2026-09';historyMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'month filter works');
+  historyMonth.value='all';historyMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  const historyCategory=document.querySelector('[data-finance-history-filter="category"]');
+  historyCategory.value='Uncategorized';historyCategory.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'uncategorized filter works without displaying the label in rows');
+  historyCategory.value='all';historyCategory.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  const historySort=document.querySelector('[data-finance-history-filter="sort"]');
+  historySort.value='oldest';historySort.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.ok(document.querySelector('.finance-history-list .finance-row .finance-row-date').textContent.includes('Oct 24'),'sort oldest first');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'history filtering never mutates the ledger');
+  await click('finance-history-back');assert.ok(document.querySelector('.finances-page-head'),'back restores finance overview');
+
   const sourceTx=ledger.find(tx=>tx.bankDescription==='365 MARKET 10994');
   assert.ok(sourceTx);
   const marketRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('365 MARKET 10994'));
