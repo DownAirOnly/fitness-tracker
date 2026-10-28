@@ -315,7 +315,7 @@ try{
  // returning from another app. A new finance entry is journaled on-device.
  await click('finances');
  await submit('finance',{amount:'4.25',description:'Logged while cloud unavailable',date:'2026-10-27',category:'Convenience Food'});
- const pendingNotebook=normalizeData(JSON.parse(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data?JSON.stringify(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data):'{}'));
+ const pendingNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data);
  assert.ok(pendingNotebook.transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'new finance log is retained in recovery while cloud pending');
  state.fail=false;await click('cloud-retry');assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
  assert.ok(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'local finance log syncs after retry');
