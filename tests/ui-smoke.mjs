@@ -174,8 +174,9 @@ try{
   assert.ok(document.querySelector('.finance-history-list .empty'));
   historyType.value='all';historyType.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
   const historyMonth=document.querySelector('[data-finance-history-filter="month"]');
-  historyMonth.value='2026-09';historyMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'month filter works');
+  assert.ok([...historyMonth.options].some(option=>option.value==='2026-10'),'saved transaction month appears in filter');
+  historyMonth.value='2026-10';historyMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'month filter keeps matching records');
   historyMonth.value='all';historyMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
   const historyCategory=document.querySelector('[data-finance-history-filter="category"]');
   historyCategory.value='Uncategorized';historyCategory.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
