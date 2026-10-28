@@ -5,7 +5,7 @@ import {prepareImport,prepareBankImport,importSections} from './import-model.js?
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=91';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=72';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=85';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=85';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
@@ -75,7 +75,7 @@ function saveCriticalLocalCopy(){
 }
 function captureCriticalLocalState(){
   if(!data.activeWorkout)return;
-  buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();
+  buddyReadEditor();buddyReadNotes();buddyReadSetupDraft();saveCriticalLocalCopy();
 }
 async function refreshStorageProtection(request=true){
   storageProtection=await requestStorageProtection(request);
@@ -805,6 +805,14 @@ function buddySetControlsMarkup(d){
  return `<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>PERCEIVED EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>`;
 }
 function buddyReadNotes(){const s=data.activeWorkout,field=document.querySelector('[name=buddyNotes]');if(!s||!field||!s.selected)return;const e=buddyFind(s,s.selected);if(e)e.notes=field.value.slice(0,500);}
+// Uncommitted Setup text stays in the active workout's recoverable draft.
+// The exercise definition only changes after explicitly pressing Save.
+function buddyReadSetupDraft(){
+ const s=data.activeWorkout,field=document.querySelector('#buddy-root [name=buddySetup]');
+ if(!s||!s.selected||!field)return;
+ const e=buddyFind(s,s.selected);
+ if(e?.setupEditing)e.setupDraft=field.value.slice(0,200);
+}
 function buddyCaptureUndo(s,label){const snapshot={label,phase:s.phase,selected:s.selected,exercises:structuredClone(s.exercises),performedOrder:structuredClone(s.performedOrder||[])};if(s.completedAt)snapshot.completedAt=s.completedAt;if(s.bikeCompletedAt)snapshot.bikeCompletedAt=s.bikeCompletedAt;s.undo=snapshot;}
 function buddyUndo(s){if(!canUndoBuddyTransition(s))return;const u=s.undo;s.phase=u.phase;s.selected=u.selected;s.exercises=structuredClone(u.exercises);s.performedOrder=structuredClone(u.performedOrder||[]);if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;if(u.bikeCompletedAt)s.bikeCompletedAt=u.bikeCompletedAt;else delete s.bikeCompletedAt;delete s.undo;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);for(const e of s.exercises)if(e.status==='done')buddyUpsertLift(s,e);}
 function buddyUndoControl(s){return canUndoBuddyTransition(s)?`<button type="button" class="buddy-undo" data-action="buddy-undo">↶ Undo ${esc(s.undo.label||'last action')}</button>`:'';}
@@ -832,7 +840,7 @@ function buddyRender(){
  const notes=e.notesOpen?`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>${journalButton}</div><div class="buddy-notes-editor"><textarea name="buddyNotes" maxlength="500" rows="2" placeholder="Form, pain, setup, anything worth remembering">${esc(e.notes||'')}</textarea><button type="button" class="buddy-notes-done" data-action="buddy-notes-toggle">Done</button></div></div>`:`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle ${e.notes?'has-note':''}" data-action="buddy-notes-toggle"><span><b>${e.notes?'Notes saved':'Add notes'}</b><small>${e.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering'}</small></span><strong aria-hidden="true">${e.notes?'✓':'＋'}</strong></button>${journalButton}</div></div>`;
  const recent=buddyHistory(e),lastSession=recent[0]||prior;
  const history=lastSession?'<div class="buddy-history-preview"><button type="button" class="buddy-last-toggle" data-action="buddy-toggle-history" aria-expanded="'+Boolean(e.showRecent)+'"><span><b>LAST · '+esc(niceDate(lastSession.date))+'</b><small>'+esc(buddyLastTwo(lastSession))+'</small></span><span class="buddy-last-chevron" aria-hidden="true">'+(e.showRecent?'⌃':'⌄')+'</span></button>'+(e.showRecent?'<div class="buddy-compact-history">'+recent.slice(1,3).map(l=>'<div><small>'+esc(niceDate(l.date))+'</small><span>'+esc(buddyLastTwo(l))+'</span></div>').join('')+(recent.length===1?'<small>No earlier workouts</small>':'')+'</div>':'')+'</div>':'';
- const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setup||'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
+ const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setupDraft??e.setup??'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
 
  const undo='';
  return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${history}${showRest?`<div class="buddy-rest-timer"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></div>`:''}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
@@ -1566,7 +1574,7 @@ document.addEventListener('click',async event=>{
   if(action==='data-health-details'){dataHealthDetails();return;}
   if(action==='workout'){workout=el.dataset.workout;render();return;}
 
-  if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();await persist();buddyClose();render();return;}
+  if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();buddyReadSetupDraft();await persist();buddyClose();render();return;}
   if(action==='buddy-end'){if(!data.activeWorkout)return;buddyEndOptions();return;}
   if(action==='buddy-save-end'){const s=data.activeWorkout;if(!s)return;s.exercises.forEach(e=>buddyUpsertLift(s,e));s.endedAt=isoNow();s.savedEarly=true;data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;close(true);buddyClose();await persist();render();return;}
   if(action==='buddy-delete-prompt'){if(!data.activeWorkout)return;buddyDeletePrompt();return;}
@@ -1616,7 +1624,12 @@ document.addEventListener('click',async event=>{
    const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;
    if(!e||e.activeSetStartedAt)return;
    if(action==='buddy-setup-toggle'){
-     e.setupEditing=!e.setupEditing;
+     if(e.setupEditing){
+       // Closing the editor without Save means cancel the incomplete change.
+       delete e.setupDraft;e.setupEditing=false;
+     }else{
+       e.setupDraft=e.setup||'';e.setupEditing=true;
+     }
      // Draw and focus within this same user tap: awaiting cloud/device save
      // first prevents iOS from opening the software keyboard reliably.
      buddyOpen();
@@ -1628,10 +1641,11 @@ document.addEventListener('click',async event=>{
      await persist();return;
    }
    if(action==='buddy-setup-save'){
-     const setup=(document.querySelector('[name=buddySetup]')?.value||'').trim().slice(0,200);
+     buddyReadSetupDraft();
+     const setup=String(e.setupDraft??e.setup??'').trim().slice(0,200);
      const def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);
      if(setup){e.setup=setup;if(def)def.setup=setup;}else{delete e.setup;if(def)delete def.setup;}
-     e.setupEditing=false;
+     e.setupEditing=false;delete e.setupDraft;
    }else if(action==='buddy-journal-toggle')e.journalOpen=!e.journalOpen;
    else e.showRecent=!e.showRecent;
    await buddyPersist();return;
@@ -1937,7 +1951,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=94',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=95',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -2171,7 +2185,15 @@ function showHealthSetup(){
   if(!healthState.token)return;
   modal('Set up Health sync',`<p class="body-copy">Keep your existing Everyday Home Screen icon. Use a separate Sync Everyday Health Shortcut to send your latest scale readings.</p><p class="hint">This private address permits weight and body-fat submissions. Do not share it or publish a Shortcut containing it. Disconnect revokes it.</p>${button('Copy private sync address','health-copy','primary')}<p id="health-copy-status" role="status"></p><label class="field"><span>Private sync address</span><textarea id="health-url" readonly rows="3">${esc(cloudApi.health.url(healthState.token))}</textarea></label><p class="body-copy">Follow the <a href="health-shortcut.html" target="_blank" rel="noopener">Shortcut setup instructions</a>. You can send Weight and Body Fat Percentage independently, each with its own Value and Start Date, using this address. No Google password or Firebase administrator key goes into the Shortcut.</p><p class="hint">Only the latest submitted scale reading waits here. Open Everyday after syncing to import it. Repeated or older readings are ignored; historical backfill and Health deletions are not synced.</p>`);
 }
-document.addEventListener('input',event=>{if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}}});
+document.addEventListener('input',event=>{
+ if(event.target.matches?.('[name=buddySetup]')&&event.target.closest('#buddy-root')){
+   buddyReadSetupDraft();saveCriticalLocalCopy();return;
+ }
+ if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){
+   if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();
+   else{buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}
+ }
+});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
 window.addEventListener('pageshow',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
 window.addEventListener('focus',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();});

@@ -19,6 +19,8 @@ for(const key of ['window','document','localStorage','navigator'])Object.defineP
 let storagePersisted=false,persistRequests=0;
 Object.defineProperty(dom.window.navigator,'storage',{configurable:true,value:{persisted:async()=>storagePersisted,persist:async()=>{persistRequests++;storagePersisted=true;return true;},estimate:async()=>({usage:4096,quota:1024*1024})}});
 globalThis.alert=()=>{};globalThis.confirm=()=>true;
+// jsdom lacks a native animation frame API; use a minimal visual-frame stub.
+globalThis.requestAnimationFrame=callback=>setTimeout(callback,0);
 const fixture=join(temp,'cloud.mjs');
 await writeFile(fixture,`
  import {CloudSession,nextRecord} from '${new URL('cloud-model.js',root)}';
@@ -323,6 +325,30 @@ try{
  await click('buddy-setup-save');
  assert.ok(document.querySelector('#buddy-root .buddy-setup').textContent.includes('Seat 6'),'Setup saves the edited setting');
  assert.equal(document.querySelector('#buddy-root .buddy-screen').style.height,'','layout restores after Setup');
+ // v95: an unfinished Setup edit survives backgrounding without changing the saved setting.
+ await click('buddy-setup-toggle');
+ const interrupted=document.querySelector('#buddy-root [name=buddySetup]');
+ assert.equal(document.activeElement,interrupted);
+ interrupted.value='Seat 7 - draft';
+ interrupted.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ window.dispatchEvent(new dom.window.Event('pagehide'));
+ let paused=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
+ let pausedExercise=paused.activeWorkout.exercises.find(e=>e.setupEditing);
+ assert.ok(pausedExercise,'an unfinished Setup editor is retained');
+ assert.equal(pausedExercise.setup,'Seat 6','unfinished Setup does not overwrite the committed setting');
+ assert.equal(pausedExercise.setupDraft,'Seat 7 - draft','unsaved Setup text has a recovery copy');
+ const setupExerciseId=pausedExercise.exerciseId;
+ assert.equal(normalizeData(paused).activeWorkout.exercises.find(e=>e.exerciseId===setupExerciseId).setupDraft,'Seat 7 - draft','normalization preserves a recoverable active Setup draft');
+ assert.equal(normalizeData(paused).exerciseDefinitions.find(e=>e.id===setupExerciseId).setup,'Seat 6','exercise definition remains unchanged until Save');
+ await click('buddy-exit');
+ await click('buddy-launch');
+ assert.equal(document.querySelector('#buddy-root [name=buddySetup]').value,'Seat 7 - draft','draft is restored after reopening Workout Buddy');
+ await click('buddy-setup-toggle');
+ assert.equal(document.querySelector('#buddy-root [name=buddySetup]'),null,'closing Setup cancels unsaved draft');
+ assert.ok(document.querySelector('#buddy-root .buddy-setup').textContent.includes('Seat 6'),'cancel keeps last committed setting');
+ paused=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
+ pausedExercise=paused.activeWorkout.exercises.find(e=>e.exerciseId===setupExerciseId);
+ assert.equal(pausedExercise?.setupDraft,undefined,'discarded edit is not retained as a committed change');
  await click('buddy-notes-toggle');
  const noteField=document.querySelector('#buddy-root [name=buddyNotes]');
  assert.ok(noteField,'Notes editor opens');
