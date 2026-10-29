@@ -31,7 +31,7 @@ test('spending totals only count expense; income and transfers are separate',()=
  assert.equal(result.categories.reduce((n,c)=>n+c.amountCents,0),result.expenseCents);
  assert.equal(result.merchants.reduce((n,c)=>n+c.amountCents,0),result.expenseCents);
  assert.equal(result.merchants[0].name,'365 Market');
- assert.equal(result.merchants[0].amountCents,3300);
+ assert.equal(result.merchants[0].amountCents,4500,'case-insensitive equivalent merchant strings combine');
  assert.ok(result.reviewCount>=1);
 });
 test('30 and 90 calendar day windows are inclusive of today, not future dates',()=>{
