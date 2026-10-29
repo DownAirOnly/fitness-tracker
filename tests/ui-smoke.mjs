@@ -382,7 +382,7 @@ try{
  assert.ok(document.querySelector('.food-relog-section'),'previous food logs are surfaced for repeat');
  const relog=document.querySelector('.food-relog-row [data-action="food-relog"]');
  assert.ok(relog,'the latest prior log has a repeat entry point');
- const source=sample.data.foodEntries.find(e=>e.id===relog.dataset.id);
+ const source=normalizeData(sample.data).foodEntries.find(e=>e.id===relog.dataset.id);
  assert.ok(source);
  relog.click();await tick();
  const repeatForm=document.querySelector('form[data-form="food"]');
