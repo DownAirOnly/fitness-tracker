@@ -442,7 +442,7 @@ try{
  assert.ok(document.querySelector('.modal'),'what-if scenario remains available');
  await click('close');
  assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions),originalTx,'plans and markers never edit transactions');
- await click('budget-back');await click('home');
+ await click('finances');await click('home');
 
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
  await click('gym');await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
