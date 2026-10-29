@@ -1,15 +1,15 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=96';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=98';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=96';
+import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=98';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=96';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=96';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=98';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=98';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -2272,7 +2272,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=97',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=98',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
