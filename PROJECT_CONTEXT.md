@@ -8,7 +8,7 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v96**, reviewed classification workflow and merchant rules, plus Finance/Progress nav swap. Confirm merged `main`, CI and Pages before claiming v96 is live. Confirm the merged `main` SHA, tests and Pages before claiming v95 is live.
+- **Latest implemented release covered here:** **v97**, read-only Finance Spending Insights. Confirm merged main, CI and GitHub Pages before claiming v97 is live.
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. Completed scope: **v91–v95** (Fitness Workless 6). **Next cycle: v96–v100**, suggested title **Fitness Workless 7**. These are release boundaries, not an already approved roadmap.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -57,7 +57,8 @@
 | v93 | Workout Buddy no-scroll set layout: compact first/second set views, anchored anatomy and primary action, overlay history and fallback on constrained screens |
 | v94 | iPhone Workout Buddy input fixes: same-tap Setup/Notes focus, 16px text-input minimum, visual viewport keyboard fitting and layout restoration |
 | v95 | Stabilization: interrupted Setup edits preserved as cancelable drafts, version/cache consistency test, and complete v96–v100 handoff |
-| **v96** | **Finance classification:** persisted, review-only merchant rules, targeted ChatGPT CSV corrections with expected-value conflict protection, selectable field-diff preview, Finances/Progress navigation swap |
+| v96 | Finance classification: persisted, review-only merchant rules, targeted ChatGPT CSV corrections with expected-value conflict protection, selectable field-diff preview, Finances/Progress navigation swap |
+| **v97** | **Read-only spending insights:** date-range expense category and merchant totals, convenience spending, separated transfers and income, and classification completeness notices |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -126,12 +127,20 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - Scope excludes auto-applying rules, automatic kind/transfer reclassification, private transaction migrations, summary dashboards and receipt inference.
 - Remaining user confirmation: actual iPhone performance/keyboard/background behavior; full Finance History; whether the prior nine-row enrichment was applied to the live notebook. To reconcile, request **Finances → Export for ChatGPT**, rather than claiming the public code contains private bank data.
 
+## v97 release scope and remaining confirmation
+
+- **Implemented:** finance-insights-model.js derives read-only totals from current saved transaction classifications. Finances → View spending insights provides All recorded dates, last 30 days, last 90 days, and selected posted-date months.
+- **Accounting boundaries:** Only expense-classified transactions contribute to category/merchant/convenience spending. Income is presented separately and can include refunds. Bank-direction-marked incoming and outgoing transfers have separate totals; manual or unknown-direction transfers are explicitly counted as unknown direction. No transfer is double-counted as spending or income. No assumed item-level attribution or checking-account-to-consumption equivalence.
+- **Data limitations:** The current bank date is its posted date, not necessarily receipt purchase date. All amounts are only as accurate as existing manually reviewed classifications. The page displays uncategorized expense totals and existing financeReviewFlags counts as an incomplete review queue, not complete verification. Merchant aggregation uses stored merchant, else raw bank description, else description: similar merchants with different bank strings may still appear separately.
+- **Preservation:** This release is UI/read-only model only. No migrations, transaction rewrites, new network fetches, or edits to private notebook records, stable IDs, backups or recovery semantics.
+- **Verification still outstanding:** Confirm on real iPhone that v89 app switching and form saves, v90/v91 Finance History, v92–v95 Workout Buddy views, v96 classification review, and v97 insight responsiveness work. Nine-row correction CSV remains unconfirmed applied; request an actual Finances → Export for ChatGPT to reconcile before reporting it complete. Consider additional time range and merchant grouping refinements based on feedback.
+
 ## Open work and candidate priorities — next cycle v96–v100
 
 **These are candidates, NOT an agreed fixed release plan or automatic orders. Re-prioritize with the user's next request.**
 
 1. **Finance classification/clarification quality:** v91 provides a read-only review queue; reviewed enrichment and actual notebook application are still outstanding. Use `Finances → Export for ChatGPT` to obtain the notebook's current stable IDs, build a reviewed enrichment CSV from known receipts and bank wording, and update personal descriptions, merchant, category/subcategory. Distinguish actual consumption, debt-account transfers, refunds, household necessities, reimbursements, and fees. Never guess ambiguous person-to-person payments or infer itemized purchase totals without evidence.
-2. **Finance insights:** category and merchant spending totals over selectable time windows, meaningful expense vs transfer separation, convenience spending insights, cost-per-calorie/protein where purchase itemization can be matched reliably. Do not equate checking-account withdrawals with consumption.
+2. **Finance insights:** v97 delivers read-only category/merchant totals, 30/90-day and monthly windows, separate income/transfers, and convenience totals. Future extensions, only if requested: cost-per-calorie/protein when actual receipt itemization is matched, smarter merchant grouping, custom periods and trends. Never equate checking-account withdrawals with consumption.
 3. **Transaction History refinements:** if v90 real-device feedback reveals performance/layout or navigation issues, fix those first; consider range filters, bulk review and selected transactions only when requested.
 4. **Workout anatomy SVG design alternatives:** user wants to explore visually better diagrams in a **separate redesign comparison pass**; current miniature positions and subtle Push/Pull labels were fixed in earlier versions. Do not replace anatomy art without explicit approval.
 5. **General reliability and usability:** data recovery, iPhone resume/foreground flows, offline behavior, quick-entry performance and UI consistency; make changes in small, reviewed steps.

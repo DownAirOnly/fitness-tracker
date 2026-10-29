@@ -32,7 +32,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+/.test(source),'all static app imports resolved');
@@ -75,6 +75,11 @@ try{
   await click('classification-back');
   assert.ok(document.querySelector('.finances-page-head'),'Finances route works');
   assert.ok(document.querySelector('form[data-form="finance"]'),'Finances quick transaction form is ready');
+  await click('finance-insights-open');
+  assert.ok(document.querySelector('.finance-insight-intro'),'insights open with empty ledger');
+  assert.ok(document.querySelector('.finance-insight-intro').textContent.includes('$0.00'),'empty insights display zero');
+  await click('finance-insights-back');
+  assert.ok(document.querySelector('form[data-form="finance"]'),'back returns to Finance quick logging');
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
   await click('settings');
   assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
@@ -99,6 +104,15 @@ try{
   assert.equal(financial[0].date,'2026-10-26');
   assert.equal(financial[0].merchant,'Wawa');
   assert.ok(document.querySelector('.finance-row'),'saved transaction appears immediately');
+  const beforeInsights=localStorage.getItem('everyday-fitness-v1');
+  await click('finance-insights-open');
+  assert.ok(document.querySelector('.finance-insight-metric').textContent.includes('$7.19'),'income and transfer totals do not inflate expenses');
+  assert.ok(document.querySelector('.finance-insight-breakdown').textContent.includes('Household Supplies'),'saved categories appear in breakdown');
+  const insightsSelect=document.querySelector('[data-finance-insight-period]');
+  insightsSelect.value='month:2026-10';insightsSelect.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
+  assert.ok(document.querySelector('.finance-insight-metric').textContent.includes('$7.19'),'specific month filtering works');
+  assert.equal(localStorage.getItem('everyday-fitness-v1'),beforeInsights,'read-only insights cannot modify notebook');
+  await click('finance-insights-back');
   await click('finance-edit');
   assert.ok(document.querySelector('form[data-form="finance-edit"]'));
   await submit('finance-edit',{amount:'8.25',description:'Corrected Wawa water',category:'Household Supplies'});
