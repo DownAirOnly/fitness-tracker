@@ -17,7 +17,8 @@ test('native release webDir can be prepared without altering the PWA',async()=>{
  assert.equal(JSON.parse(config).webDir,'www');
  assert.ok(worker.includes('budget-model.js?v=98'),'offline PWA includes the budget model');
  assert.ok(bundle.includes("!globalThis.Capacitor?.isNativePlatform?.()"),'native skips PWA worker registration');
- assert.ok(html.includes('app.js?v=98'));
+ assert.ok(html.includes('app.js?v='+JSON.parse(version).version.slice(1)),'native bundle matches current release assets');
  assert.ok((await stat(join(root,'native','www','budget-model.js'))).isFile());
+ assert.ok((await stat(join(root,'native','www','finance-overview-model.js'))).isFile(),'native bundle includes Finance overview model');
  assert.ok((await stat(join(root,'native','www','firebase-config.js'))).isFile());
 });
