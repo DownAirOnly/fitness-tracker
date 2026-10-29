@@ -12,6 +12,14 @@ A small mobile-first web app for food, lifting, and body weight. The home screen
 - Bottom navigation now reads Home · Food · Lifting · Finances · Progress (Progress is far right).
 - Device verification and the previously prepared nine-row debt/overdraft enrichment remain outstanding until a current private notebook export is reviewed. No live bank CSV or transaction details are committed to this public repository.
 
+## v97 — Finance Spending Insights
+
+- Finance now has a **View spending insights** page with All recorded dates, trailing 30/90 calendar days, and individual recorded months.
+- All summaries are **read-only** and based on saved transaction classifications. Expenses, income/credits, bank-marked outgoing and incoming transfers are distinct; transfers without original bank direction are listed separately and never guessed.
+- Category and merchant spending groups use exact stored descriptions/labels, with no speculative merchant normalization or receipt itemization. Convenience Food is shown as a separate category-based figure rather than inferred from restaurants or protein purchases.
+- Shows uncategorized expense dollars and the current automatic review-flag count. These are incomplete validation signals, **not** evidence all remaining classifications are correct. Bank records use **posted dates** rather than assumed purchase dates.
+- The page works for local, cloud, demo and offline JSON workspaces without saving/migrating records. It does not include budgeting, net-worth claims, personalized savings forecasts, or modifications to private financial information.
+
 ## Run
 
 Requires Node.js 20 or newer. No packages or accounts are needed.
