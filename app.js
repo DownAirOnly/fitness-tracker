@@ -5,6 +5,7 @@ import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from '
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=98.1';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
@@ -35,6 +36,23 @@ function offlineOutputName(){
   const base=(offlineWorkspace?.filename||'everyday-backup.json').replace(/\.json$/i,'').replace(/-updated-\d{4}-\d{2}-\d{2}$/i,'');
   return base+'-updated-'+localDate()+'.json';
 }
+function downloadSectionBackup(section){
+ const file=exportSection(data,section);
+ const bytes=JSON.stringify(file,null,2),blob=new Blob([bytes],{type:'application/json'});
+ const link=document.createElement('a');link.href=URL.createObjectURL(blob);
+ link.download='everyday-'+section+'-'+localDate()+'.json';link.click();
+ setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+}
+function sectionImportModal(){
+ pendingImport=null;importReadToken++;
+ modal('Import separate JSON files','<form class="form" data-form="section-import">'+
+  '<p class="body-copy">Choose one, two or all three Everyday section files. Selected sections replace only their own saved records; the others stay unchanged.</p>'+
+  '<label class="field"><span>Nutrition / Lifting / Finances JSON</span>'+
+  '<input type="file" name="files" accept=".json,application/json" multiple required></label>'+
+  '<p class="hint">Use only versioned everyday-section-v1 files. Check the section names and replacement counts before confirming. Export a complete backup first.</p>'+
+  '<button type="submit" class="primary">Preview selected sections</button></form><div id="preview" role="status"></div>');
+}
+
 function downloadJsonBackup(filename,markWorkspace=false,sourceData=data){
   const blob=new Blob([JSON.stringify(encodeData(sourceData),null,2)],{type:'application/json'}),link=document.createElement('a');
   link.href=URL.createObjectURL(blob);link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);
@@ -1525,7 +1543,7 @@ function storageProtectionPanel(){
 }
 function settings() {
   const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
-  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div><p>${esc(intro)} Export backups regularly.</p></div>${accountPanel()}${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts support up to about 800 KB of logs.</p></section>`;
+  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div><p>${esc(intro)} Export backups regularly.</p></div>${accountPanel()}${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
 function close(all=false) {pendingDeviceMigration=null;if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
@@ -1640,7 +1658,7 @@ function setRow(i,s={weight:'',reps:'',difficulty:''}) {return `<div class="set-
 function weightForm(w=null,prompt=false) {modal(w?'Edit weigh-in':'Log your weight',`<form class="form" data-form="weight"><input type="hidden" name="weightId" value="${esc(w?.id||'')}">${input(`Weight (${data.settings.unit})`,'value',w?.value??'','number','min="1" step="0.1" required')}${input('Date','date',w?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save weigh-in</button>${w?button('Delete','delete-weight','danger',`data-id="${esc(w.id)}"`):button('Enter later','later','outline')}</div></form><p class="hint">${prompt?'This is today’s only automatic weight prompt. Close it or choose Enter later and Everyday will not ask again until the next tracking day. ':''}Weight is stored independently from body-fat measurements. Same-day weigh-ins replace the earlier weight value.</p>`);}
 function bodyFatForm(b=null){modal(b?'Edit body fat':'Log body fat',`<form class="form" data-form="body-fat"><input type="hidden" name="bodyFatId" value="${esc(b?.id||'')}">${input('Body fat %','value',b?.value??'','number','min="0.1" max="100" step="0.1" required')}${input('Date','date',b?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save body fat</button>${b?button('Delete','delete-body-fat','danger',`data-id="${esc(b.id)}"`):''}</div></form><p class="hint">Body fat is its own measurement stream. It does not require or modify a weight record.</p>`);}
 function importHub(){
- modal('Import data','<div class="import-source-grid"><button type="button" class="outline" data-action="import-csv"><strong>CSV file</strong><small>Mixed Everyday records or legacy food CSV</small></button><button type="button" class="outline" data-action="paste-csv"><strong>Paste CSV</strong><small>Paste CSV text directly</small></button><button type="button" class="outline" data-action="restore"><strong>JSON backup</strong><small>Preview a full backup replacement</small></button><button type="button" class="outline" data-action="paste-json"><strong>Paste JSON</strong><small>Paste a complete Everyday backup</small></button></div><p class="hint">Universal CSV supports saved foods, food logs, exercises, workout templates, lift sets, weights, body fat, and prepared financial transactions. Every import still goes through the same review screen.</p>');
+ modal('Import data','<div class="import-source-grid"><button type="button" class="outline" data-action="import-csv"><strong>CSV file</strong><small>Mixed Everyday records or legacy food CSV</small></button><button type="button" class="outline" data-action="paste-csv"><strong>Paste CSV</strong><small>Paste CSV text directly</small></button><button type="button" class="outline" data-action="restore"><strong>JSON backup</strong><small>Preview a full backup replacement</small></button><button type="button" class="outline" data-action="paste-json"><strong>Paste JSON</strong><small>Paste a complete Everyday backup</small></button></div><p class="hint">Universal CSV supports saved foods, food logs, exercises, workout templates, lift sets, weights, body fat, and prepared financial transactions. Every import still goes through the same review screen. Separate section JSON imports are available in Settings.</p>');
 }
 function importModal(kind,source='file') {
  pendingImport=null;importReadToken++;const paste=source==='paste',title=(paste?'Paste ':'Import ')+(kind==='csv'?'CSV':'JSON');
@@ -2048,6 +2066,8 @@ document.addEventListener('click',async event=>{
   if(action==='paste-csv'){importModal('csv','paste');return;}
   if(action==='restore'){importModal('json','file');return;}
   if(action==='paste-json'){importModal('json','paste');return;}
+  if(action==='section-export'){if(ACCOUNT_SECTIONS.includes(el.dataset.section))downloadSectionBackup(el.dataset.section);return;}
+  if(action==='section-import-open'){sectionImportModal();return;}
   if(action==='export'){downloadJsonBackup(offlineWorkspace?offlineOutputName():`everyday-backup-${localDate()}.json`,Boolean(offlineWorkspace));return;}
   if(action==='import-more'){expandImportGroup(el);return;}
   if(action==='choose-import'){importModal(el.dataset.kind,el.dataset.source||'file');return;}
@@ -2058,7 +2078,7 @@ app.addEventListener('submit',async event=>{
   // Ordinary food, workout and finance logs remain usable when iOS suspends an
   // in-flight cloud request. persist() journals them to device recovery first.
   // Full-file imports still require a stable cloud revision for safe previewing.
-  const stableCloudForms=new Set(['finance-bank-import','import']);
+  const stableCloudForms=new Set(['finance-bank-import','import','section-import']);
   if(importSaving||(!offlineWorkspace&&account&&stableCloudForms.has(form.dataset.form)&&
       (cloudBusy||cloudPending||!session?.ready||cloudRecoveryConflict))){
     let status=form.querySelector('[data-save-blocked]');
@@ -2068,6 +2088,45 @@ app.addEventListener('submit',async event=>{
     return;
   }
   const v=Object.fromEntries(new FormData(form));
+  if(form.dataset.form==='section-import'){
+   const files=[...(form.querySelector('[name=files]')?.files||[])],preview=form.parentElement.querySelector('#preview');
+   if(!files.length)return;
+   pendingImport=null;const token=++importReadToken;
+   if(preview)preview.textContent='Validating the selected section files…';
+   try{
+    if(files.length>3)throw Error('Select at most three section files.');
+    const parsed=[],seen=new Set();
+    for(const file of files){
+     if(file.size>5_000_000)throw Error('A section JSON file exceeds 5 MB.');
+     const raw=await file.text();
+     if(new TextEncoder().encode(raw).length>5_000_000)throw Error('A section JSON file exceeds 5 MB.');
+     const value=JSON.parse(raw);
+     if(!ACCOUNT_SECTIONS.includes(value?.section)||seen.has(value.section))
+      throw Error('Use one unique Nutrition, Lifting or Finances section per file.');
+     seen.add(value.section);parsed.push(value);
+    }
+    if(token!==importReadToken||!form.isConnected)return;
+    let candidate=structuredClone(data);
+    const changed=[];
+    for(const file of parsed){
+     candidate=applySection(candidate,file);
+     const section=file.section;
+     const summary=SECTION_KEYS[section].map(key=>{
+      const value=file.data[key];
+      return key+': '+(Array.isArray(value)?value.length+' records':key==='activeWorkout'?(value?'active':'none'):'included');
+     }).join(' · ');
+     changed.push({key:section,label:section[0].toUpperCase()+section.slice(1)+' JSON',from:0,to:1,
+      detail:'Replaces only this section. '+summary});
+    }
+    if(!offlineWorkspace&&account)encodeState(candidate);
+    const plan={kind:'sections',base:JSON.stringify(data),candidate,groups:[],errors:[],warnings:[
+     'Selected sections REPLACE their existing contents. Unselected sections are preserved. Save a full JSON backup before confirming.'
+    ],duplicates:0,replaced:0,removed:0,added:0,unchanged:0,changeCount:changed.length,settingChanges:[],
+     otherChanges:changed,promptChanged:false,filename:files.map(x=>x.name).join(', '),source:'sections'};
+    pendingImport=plan;showImportReview(plan);
+   }catch(error){if(token===importReadToken&&form.isConnected&&preview){preview.textContent=error.message;preview.setAttribute('role','alert');}}
+   return;
+  }
   if(form.dataset.form==='finance-bank-import'){
     const file=form.querySelector('[name=file]')?.files?.[0],preview=form.parentElement.querySelector('#preview');
     if(!file)return;
