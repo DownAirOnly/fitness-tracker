@@ -280,8 +280,8 @@ try{
   const clarification=financeEnrichmentCSV(toClarify).replace('Energy drink and protein snack','Monster and snack bundle');
   await submit('import',{text:clarification});
   assert.ok(document.querySelector('.import-dialog'),'clarification import is reviewed');
-  assert.equal(document.querySelectorAll('#import-transactions > .import-record').length,1,'one transaction receives an update; the nested previous-record preview is not an additional change');
-  assert.ok(document.querySelector('.import-group-transactions').textContent.includes('Bank:'));
+  assert.equal(document.querySelectorAll('.finance-batch-row').length,1,'one existing transaction is selected for clarification');
+  assert.ok(document.querySelector('.finance-review-diff').textContent.includes('description'),'review shows exact previous and proposed fields');
   await click('commit-import');
   ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
   assert.equal(ledger.find(tx=>tx.id===sourceTx.id).description,'Monster and snack bundle');
