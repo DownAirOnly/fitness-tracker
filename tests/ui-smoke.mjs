@@ -119,6 +119,17 @@ try{
   assert.equal(document.querySelector('header.top .home-settings').getAttribute('aria-current'),'page','Settings gear active');
   await click('home');
   assert.ok(document.querySelector('.home-actions'),'Home navigation still works');
+  assert.equal(document.querySelectorAll('.home-quick-button').length,3,'Home has three direct log actions');
+  await click('home-log-food');
+  assert.ok(document.querySelector('form[data-form="food"]'),'Home Log food opens the actual Food form');
+  assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home shortcut opens today rather than an older selected date');
+  await click('close');
+  await click('buddy-launch');
+  assert.ok(document.querySelector('.buddy-start-list'),'Home Start workout opens the existing Workout Buddy picker');
+  await click('close');
+  await click('finance-transactions-open');
+  assert.ok(document.querySelector('form[data-form="finance"]'),'Home spending shortcut opens real Finance logging');
+  await click('home');
 
   // v83: Quick Log uses exact cents; calendar date changes cannot navigate to Food.
   await click('finances');await click('finance-transactions-open');
@@ -366,6 +377,28 @@ try{
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
+ // v99 pass 4: repeating a saved log opens a NEW editable record; never edits its source.
+ await click('food');
+ assert.ok(document.querySelector('.food-relog-section'),'previous food logs are surfaced for repeat');
+ const relog=document.querySelector('.food-relog-row [data-action="food-relog"]');
+ assert.ok(relog,'the latest prior log has a repeat entry point');
+ const source=sample.data.foodEntries.find(e=>e.id===relog.dataset.id);
+ assert.ok(source);
+ relog.click();await tick();
+ const repeatForm=document.querySelector('form[data-form="food"]');
+ assert.ok(repeatForm,'re-log opens a form');
+ assert.equal(repeatForm.elements.entryId.value,'','the copied log has a new ID when saved');
+ assert.equal(repeatForm.elements.name.value,source.name);
+ assert.equal(Number(repeatForm.elements.calories.value),source.calories,'per-serving calories copied without alteration');
+ assert.equal(Number(repeatForm.elements.protein.value),source.protein,'per-serving protein copied');
+ assert.equal(Number(repeatForm.elements.quantity.value),source.quantity,'previous quantity copied');
+ assert.equal(repeatForm.elements.saveAsFood.checked,false,'repeat never silently creates a duplicate Food Library definition');
+ await click('close');
+ assert.deepEqual(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data.foodEntries,
+  sample.data.foodEntries,'closing a repeat draft leaves original logs untouched');
+ await click('food-log');
+ assert.ok(document.querySelector('.full-food-log [data-action="food-relog"]'),'full Food log offers the same re-log action');
+ await click('close');
 
  // v98–v99: Planning is action-first and never mutates the bank ledger.
  await click('finances');await click('budget-open');
@@ -445,7 +478,12 @@ try{
  await click('finances');await click('home');
 
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
- await click('gym');await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
+ await click('gym');
+ assert.ok(document.querySelector('.buddy-entry [data-action="custom-lift"]'),'manual lifting is accessible beside Workout Buddy');
+ await click('custom-lift');
+ assert.ok(document.querySelector('form[data-form="lift"]'),'manual lifting opens the existing lift editor');
+ await click('close');
+ await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
  await click('buddy-choose');
  let firstSet=document.querySelector('[name=buddyWeight]');
  assert.ok(firstSet,'first Buddy set is editable');
