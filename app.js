@@ -4,6 +4,7 @@ import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDeta
 import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=96';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=96';
@@ -49,7 +50,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
-let classificationReviewVisible=50;
+let classificationReviewVisible=50,financeInsightPeriod='all';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
@@ -206,7 +207,7 @@ function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudCo
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -215,7 +216,7 @@ function render() {
     const offlineOption=!offlineWorkspace?`<section class="panel loading-offline-option"><h2>Need to work offline?</h2><p class="body-copy">Open an Everyday JSON backup in a separate local workspace while cloud access is unavailable.</p>${button('Open offline JSON workspace','offline-start','outline')}</section>`:'';
     shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+offlineOption+error);return;
   }
-  const views={home,food,gym,progress,finances,financeHistory,classificationReview,classificationRules,history,settings};
+  const views={home,food,gym,progress,finances,financeHistory,classificationReview,classificationRules,financeInsights,history,settings};
   shell(views[page]?.()||home());
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
@@ -419,6 +420,54 @@ function classificationReview(){
   '</section>';
 }
 
+
+function financeInsightBreakdown(title,groups,total){
+ const visible=groups.slice(0,12),rest=groups.slice(12);
+ if(rest.length)visible.push({name:'Remaining '+(title==='Categories'?'categories':'merchants'),
+  amountCents:rest.reduce((n,g)=>n+g.amountCents,0),count:rest.reduce((n,g)=>n+g.count,0)});
+ return '<section class="panel finance-insight-section"><h2>'+esc(title)+'</h2>'+
+  (visible.length?'<div class="finance-insight-breakdown">'+visible.map(g=>{
+    const percent=total>0?Math.min(100,100*g.amountCents/total):0;
+    return '<div class="finance-insight-breakdown-item"><div class="finance-insight-breakdown-text"><strong>'+esc(g.name)+
+     '</strong><b>'+formatFinanceAmount(g.amountCents)+'</b></div>'+
+     '<div class="finance-insight-meter" role="img" aria-label="'+esc(g.name)+': '+percent.toFixed(1)+' percent of recorded expenses">'+
+     '<span style="width:'+percent.toFixed(1)+'%"></span></div>'+
+     '<small>'+g.count+' transaction'+(g.count===1?'':'s')+' · '+percent.toFixed(1)+'% of expenses</small></div>';
+  }).join('')+'</div>':empty('No expenses in this range.'))+'</section>';
+}
+function financeInsights(){
+ const periods=financeInsightPeriods(data.transactions||[]);
+ if(!periods.some(p=>p.value===financeInsightPeriod))financeInsightPeriod='all';
+ const r=summarizeFinanceInsights(data.transactions||[],financeInsightPeriod,localDate());
+ const card=(label,value,detail)=>'<div class="finance-insight-metric"><small>'+esc(label)+'</small>'+
+   '<strong>'+formatFinanceAmount(value)+'</strong><span>'+esc(detail)+'</span></div>';
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Spending insights<span class="accent">.</span></h1>'+
+  '<p>Read-only summaries of saved classifications, not estimates of individual purchases.</p>'+
+  button('← Back to Finances','finance-insights-back','outline finance-history-back')+'</div>'+
+  '<section class="panel finance-insight-intro"><label class="field"><span>Date range</span>'+
+  '<select data-finance-insight-period aria-label="Spending insights date range">'+periods.map(p=>
+   '<option value="'+esc(p.value)+'"'+(p.value===financeInsightPeriod?' selected':'')+'>'+esc(p.label)+'</option>').join('')+
+  '</select></label><p class="hint">Imported bank records use posted dates; receipt purchase dates may differ.</p>'+
+  '<div class="finance-insight-cards">'+
+  card('Expenses',r.expenseCents,'Saved as expense')+
+  card('Income / credits',r.incomeCents,'Includes refunds if categorized as income')+
+  card('Transfers out',r.transferOutCents,'Original bank debits only')+
+  card('Transfers in',r.transferInCents,'Original bank credits only')+'</div>'+
+  '<p class="finance-insight-footnote">'+r.recordCount+' transactions in range. Transfers are not spending or earned income.'+
+  (r.unknownTransferCount?' '+r.unknownTransferCount+' transfer'+(r.unknownTransferCount===1?'':'s')+
+    ' totaling '+formatFinanceAmount(r.unknownTransferCents)+' lack a direction and are excluded from transfer in/out.':'')+
+  '</p></section>'+
+  '<section class="panel finance-insight-quality"><p class="eyebrow">DATA QUALITY</p><h2>Classification coverage</h2>'+
+  '<p>'+r.uncategorizedCount+' uncategorized expense'+(r.uncategorizedCount===1?'':'s')+' ('+
+   formatFinanceAmount(r.uncategorizedCents)+') · '+r.reviewCount+' flagged transaction'+(r.reviewCount===1?'':'s')+'</p>'+
+  (r.reviewCount?button('Review flagged transactions','finance-review-open','outline'):'')+
+  '<p class="hint">Review flags are incomplete: some incorrect categories may not be detected. Results can change as you clarify transactions.</p></section>'+
+  '<section class="panel finance-insight-convenience"><p class="eyebrow">CONVENIENCE FOOD</p><h2>'+formatFinanceAmount(r.convenienceCents)+'</h2>'+
+  '<p>Only saved Convenience Food expenses. Restaurants, groceries, and mixed purchases remain separate.</p></section>'+
+  financeInsightBreakdown('Categories',r.categories,r.expenseCents)+
+  financeInsightBreakdown('Merchants',r.merchants,r.expenseCents);
+}
+
 function finances(){
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Bank records and personal labels, together without losing the originals.</p></div>'+
  '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>New transaction</h2></div><span class="finance-count">USD</span></div>'+
@@ -426,6 +475,9 @@ function finances(){
  '<form class="finance-form" data-form="finance">'+financeFields()+'<button class="primary finance-save" type="submit">Save transaction</button></form>'+
  '<p class="hint">Enter an amount and your own description. Expand for category, subcategory, receipt date/time, and itemization.</p></section>'+
  financeRecent()+
+ '<section class="panel finance-insights-shortcut"><p class="eyebrow">SPENDING</p><h2>Where your money goes</h2>'+
+ '<p>See spending by category and merchant with transfers separated.</p>'+
+ button('View spending insights','finance-insights-open','primary')+'</section>'+
  '<section class="panel finance-import-card"><p class="eyebrow">BANK STATEMENTS</p><h2>Bank of America</h2>'+
  '<p class="body-copy">Import an original Bank of America transaction CSV, then give the same statement and your receipt photos to ChatGPT. The bank wording stays untouched; your label appears above it.</p>'+
  '<div class="finance-import-actions">'+button('Import bank CSV','finance-bofa-import','primary')+
@@ -1514,6 +1566,7 @@ app.addEventListener('change',event=>{
  if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
 app.addEventListener('change',event=>{
+ if(event.target.dataset.financeInsightPeriod){financeInsightPeriod=event.target.value;render();return;}
  if(event.target.dataset.financeHistoryFilter){
   const field=event.target.dataset.financeHistoryFilter,value=event.target.value;
   if(field==='kind')financeHistoryKind=value;
@@ -1590,7 +1643,7 @@ document.addEventListener('click',async event=>{
     if(await persist()){try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}render();}
     return;
   }
-  if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
+  if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','finance-insights-open','finance-insights-back','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
   if(action==='classification-select-all'||action==='classification-select-none'){
    if(pendingImport?.kind!=='enrichment')return;
    const ids=pendingImport.groups.flatMap(g=>g.rows.map(row=>row.record.id));
@@ -1616,6 +1669,8 @@ document.addEventListener('click',async event=>{
    const plan=prepareRuleReview(data,proposals);if(!plan.candidate)return alert('Cannot preview suggestions.');
    pendingImport=plan;plan.filename='Saved merchant rules';showImportReview(plan);return;
   }
+  if(action==='finance-insights-open'){page='financeInsights';render();return;}
+  if(action==='finance-insights-back'){page='finances';render();return;}
   if(action==='finance-history-open'){page='financeHistory';financeHistoryReview='all';financeHistoryVisible=50;render();return;}
   if(action==='finance-review-open'){page='financeHistory';financeHistoryReview='needs-review';financeHistoryKind='all';financeHistoryMonth='all';financeHistoryCategory='all';financeHistoryQuery='';financeHistoryVisible=50;render();return;}
   if(action==='finance-history-back'){page='finances';render();return;}
