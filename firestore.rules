@@ -13,7 +13,7 @@ service cloud.firestore {
           && request.resource.data.schemaVersion == 1
           && request.resource.data.revision is int
           && request.resource.data.payload is string
-          && request.resource.data.payload.size() <= 800000
+          && request.resource.data.payload.toUtf8().size() <= 800000
           && request.resource.data.updatedAt == request.time;
       }
 
@@ -42,7 +42,7 @@ service cloud.firestore {
           && request.resource.data.revision is int
           && request.resource.data.revision >= 1
           && request.resource.data.payload is string
-          && request.resource.data.payload.size() <= 800000
+          && request.resource.data.payload.toUtf8().size() <= 800000
           && request.resource.data.updatedAt == request.time;
       }
       function validManifest() {
