@@ -546,60 +546,93 @@ function budgetScheduleForm(rule=null){
   '<p class="hint">Monthly repeats use the same date, or the last day of shorter months. Editing a rule keeps existing markers; review them when dates change.</p>'+
   '<button type="submit" class="primary">Save schedule</button></form>');
 }
+// Dates/statuses remain sourced from budget-model.js: manual, never bank-confirmed.
+const budgetDate=date=>new Date(date+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
+const budgetDateLong=date=>new Date(date+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+const budgetDateShift=(date,offset)=>new Date(Date.parse(date+'T00:00:00Z')+offset*86400000).toISOString().slice(0,10);
+const budgetRepeatLabel=frequency=>({once:'Once',weekly:'Weekly',biweekly:'Every two weeks',monthly:'Monthly'})[frequency]||frequency;
+function budgetEventRow(e,today){
+ const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
+ return '<div class="budget-event budget-action-event'+(e.date<today?' budget-past-event':'')+'">'+
+ '<div class="budget-event-copy"><small>'+esc(budgetDate(e.date))+(e.date<today?' · Unmarked past date':e.date===today?' · Today':'')+'</small>'+
+ '<strong>'+esc(e.name)+'</strong><span class="budget-event-money '+esc(e.kind)+'">'+(e.kind==='income'?'+':'−')+
+ formatFinanceAmount(e.amountCents)+'</span></div>'+
+ '<div class="budget-row-actions">'+button(e.kind==='income'?'Received':'Paid','budget-mark-paid','primary budget-event-primary',attrs)+
+ button('More','budget-event-options','outline budget-event-secondary',attrs)+'</div></div>';
+}
 function financeBudget(){
- const plan=data.budgetPlan,day=localDate(),report=budgetForecast(plan,day,35),month=budgetMonth;
- const limits=budgetMonthSpending(plan,data.transactions||[],month);
- const events=budgetOccurrences(plan,day,new Date(Date.parse(day+'T00:00:00Z')+35*86400000).toISOString().slice(0,10));
- const pending=events.filter(e=>e.status==='pending'),upcoming=pending.slice(0,18);
+ const plan=data.budgetPlan,day=localDate(),month=budgetMonth,report=budgetForecast(plan,day,35);
+ const events=budgetOccurrences(plan,budgetDateShift(day,-14),budgetDateShift(day,35));
+ const next14=budgetDateShift(day,14);
+ const due=events.filter(e=>e.status==='pending'&&e.date<=next14);
+ const later=events.filter(e=>e.status==='pending'&&e.date>next14);
+ const completed=events.filter(e=>e.status!=='pending');
+ const soon=due.filter(e=>e.date>=day);
+ const billTotal=soon.filter(e=>e.kind==='expense').reduce((sum,e)=>sum+e.amountCents,0);
+ const schedules=plan.schedules,limits=budgetMonthSpending(plan,data.transactions||[],month);
+ const forecastReady=report.configured&&!report.stale&&schedules.length>0;
+ const noBalance=plan.balanceCents===null;
  const monthText=new Date(month+'-01T12:00:00Z').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Budget & cash flow<span class="accent">.</span></h1>'+
-  '<p>Plan bills, paydays and spending before they happen. Nothing here is a live bank balance.</p>'+
-  button('← Back to Overview','budget-back','outline finance-history-back')+'</div>'+financeNav('planning')+
-  '<section class="panel budget-overview"><div class="section-head"><div><p class="eyebrow">MANUAL AVAILABLE CASH</p>'+
-  '<h2>'+(plan.balanceCents===null?'Not set':budgetMoney(plan.balanceCents))+'</h2></div>'+
-   button(plan.balanceCents===null?'Set balance':'Update balance','budget-balance','outline')+'</div>'+
-  '<p class="hint">'+(plan.balanceCents===null?'Enter a known available amount to enable forecasting.':
-    'Your own estimate as of end of '+esc(plan.balanceAsOf)+'. Refresh after real bank activity.')+'</p>'+
-  (report.configured?
-   '<div class="budget-metrics"><div><small>Projected in 35 days</small><strong>'+budgetMoney(report.endCents)+'</strong></div>'+
-    '<div><small>Lowest projected balance</small><strong class="'+(report.minimumCents<0?'budget-negative':'')+'">'+budgetMoney(report.minimumCents)+'</strong></div></div>'+
-   (report.shortfall?'<p class="budget-warning" role="status">Projected cash shortfall. Review upcoming payments and your starting balance.</p>':'')+
-   (report.stale?'<p class="budget-warning">Your manual balance is not dated today. The forecast begins from that earlier amount.</p>':''):'')+
-  '<form class="budget-what-if" data-form="budget-scenario"><label class="field"><span>What if I spent…?</span>'+
-   '<input type="text" name="scenarioAmount" inputmode="decimal" placeholder="25.00" required></label>'+
-   '<button class="outline" type="submit"'+(report.configured?'':' disabled')+'>Test purchase</button></form>'+
-  '<p class="hint">Projections use scheduled obligations, not imported transaction totals. Marking a payment paid only removes its planned occurrence; it never creates a bank entry.</p></section>'+
-  '<section class="panel budget-schedules"><div class="section-head"><h2>Upcoming cash flow</h2>'+button('Add bill or payday','budget-schedule-new','primary')+'</div>'+
-   (plan.schedules.length?'<div class="finance-recent-list">'+plan.schedules.map(x=>
-    '<div class="budget-rule-row"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.frequency)+' · '+esc(x.startDate)+
-     ' · '+budgetMoney(x.amountCents)+' '+(x.kind==='income'?'incoming':'outgoing')+'</small></div>'+
-    '<div class="budget-row-actions">'+button('Edit','budget-schedule-edit','text-btn small','data-id="'+esc(x.id)+'"')+
-     button('Remove','budget-schedule-delete','text-btn small','data-id="'+esc(x.id)+'"')+'</div></div>').join('')+'</div>':
-    empty('Add recurring bills and paydays to build your financial calendar.'))+
-   (upcoming.length?'<h3>Next scheduled dates</h3><div class="budget-occurrences">'+upcoming.map(e=>
-    '<div class="budget-event"><div><strong>'+esc(e.name)+'</strong><small>'+esc(e.date)+' · '+(e.kind==='income'?'+':'−')+
-    formatFinanceAmount(e.amountCents)+'</small></div>'+
-    '<div class="budget-row-actions">'+button('Paid','budget-mark-paid','outline small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+
-    button('Skip','budget-mark-skipped','text-btn small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+'</div></div>').join('')+
-    '</div>':'')+
-   (events.some(e=>e.status!=='pending')?'<details class="budget-completed"><summary>Paid or skipped planned dates</summary>'+
-    events.filter(e=>e.status!=='pending').map(e=>'<div class="budget-event"><span>'+esc(e.date)+' · '+esc(e.name)+' · '+esc(e.status)+'</span>'+
-    button('Undo','budget-mark-pending','text-btn small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+'</div>').join('')+'</details>':'')+
-   '<p class="hint">Paid and skipped are manual planning markers—not confirmations from the bank or edits to the transaction ledger.</p></section>'+
-  '<section class="panel budget-limits"><div class="section-head"><div><p class="eyebrow">MONTHLY CATEGORY LIMITS</p><h2>'+esc(monthText)+'</h2></div>'+
-   button('Add category limit','budget-limit-new','primary')+'</div>'+
-   '<label class="field"><span>Month to review</span><input type="month" data-budget-month value="'+esc(month)+'"></label>'+
-   (limits.length?'<div class="finance-insight-breakdown">'+limits.map(row=>{
-    const percent=Math.max(0,Math.min(100,row.percent));
-    return '<div class="finance-insight-breakdown-item"><div class="finance-insight-breakdown-text"><strong>'+esc(row.category)+
-     '</strong><b>'+formatFinanceAmount(row.actualCents)+' / '+formatFinanceAmount(row.limitCents)+'</b></div>'+
-     '<div class="finance-insight-meter"><span style="width:'+percent.toFixed(1)+'%"></span></div>'+
-     '<small>'+(row.remainingCents<0?'Over by '+budgetMoney(-row.remainingCents):budgetMoney(row.remainingCents)+' remaining')+
-     ' · '+row.percent.toFixed(0)+'% used</small>'+
-     '<div class="budget-row-actions">'+button('Edit','budget-limit-edit','text-btn small','data-category="'+esc(row.category)+'"')+
-      button('Remove','budget-limit-delete','text-btn small','data-category="'+esc(row.category)+'"')+'</div></div>';
-   }).join('')+'</div>':empty('Set a monthly category limit to compare with logged expenses.'))+
-   '<p class="hint">Limits use classified expenses from the transaction ledger, not cash-flow projections. Uncategorized expenses can make these totals incomplete.</p></section>';
+ return '<div class="page-head finances-page-head budget-page-head"><p class="eyebrow">YOUR MONEY</p>'+
+ '<h1>Planning<span class="accent">.</span></h1><p>Upcoming obligations, income, and spending limits.</p></div>'+financeNav('planning')+
+ '<section class="panel budget-overview budget-focus"><div class="section-head"><div><p class="eyebrow">MANUAL AVAILABLE CASH</p>'+
+ '<h2>'+(noBalance?'Not set':budgetMoney(plan.balanceCents))+'</h2></div>'+
+ button(noBalance?'Enter balance':'Update','budget-balance','outline')+'</div>'+
+ '<p class="finance-source">'+(noBalance?'Not connected to a bank; enter a known balance to forecast.':
+ 'Your entry at end of '+esc(budgetDateLong(plan.balanceAsOf))+'. This is not a live bank balance.')+'</p>'+
+ (report.stale?'<p class="budget-warning" role="status">Update your available cash to today before trusting a forecast.</p>':'')+
+ (forecastReady&&report.shortfall?'<p class="budget-warning" role="status">Your entered cash and planned events project a shortfall within 35 days.</p>':'')+
+ '<div class="budget-cash-glance"><div><small>Planned bills · next 14 days</small><strong>'+budgetMoney(billTotal)+
+ '</strong></div><div><small>Unmarked dates · next 14 days</small><strong>'+soon.length+'</strong></div></div>'+
+ '<p class="budget-provenance">Only schedules you entered are counted. Unlisted bills are excluded and expected income is not cash on hand.</p></section>'+
+ '<section class="panel budget-schedules budget-attention"><div class="section-head"><div><p class="eyebrow">YOUR NEXT ACTIONS</p>'+
+ '<h2>Payments & income</h2></div>'+button('+ Add','budget-schedule-new','primary')+'</div>'+
+ (due.length?'<div class="budget-occurrences">'+due.map(e=>budgetEventRow(e,day)).join('')+'</div>':
+ empty(schedules.length?'No unmarked dates in the past 14 days or next 14 days.':'Add a bill or payday to start your calendar.'))+
+ (later.length?'<details class="budget-drawer budget-future"><summary>Later dates · '+later.length+' in the next 35 days</summary>'+
+ '<div class="budget-occurrences">'+later.map(e=>budgetEventRow(e,day)).join('')+'</div></details>':'')+
+ (completed.length?'<details class="budget-drawer budget-completed"><summary>Marked dates · '+completed.length+'</summary>'+
+ completed.map(e=>'<div class="budget-event budget-done-event"><div><small>'+esc(budgetDate(e.date))+'</small><strong>'+
+ esc(e.name)+'</strong><span class="budget-event-done-state">'+(e.status==='skipped'?'Skipped':e.kind==='income'?'Received':'Paid')+'</span></div>'+
+ button('Undo','budget-mark-pending','outline small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+'</div>').join('')+'</details>':'')+
+ (budgetFeedback?'<p class="budget-feedback" role="status">'+esc(budgetFeedback)+'</p>':'')+
+ '<p class="budget-provenance">Paid and Received are manual planning markers, not confirmations from your bank. They never create transactions.</p></section>'+
+ '<details class="panel budget-drawer budget-manage-rules"><summary><span><strong>Manage recurring plans</strong><small>'+
+ schedules.length+' schedule'+(schedules.length===1?'':'s')+' · edit bills and paydays</small></span></summary>'+
+ '<div class="budget-drawer-inner">'+(schedules.length?schedules.map(r=>
+ '<div class="budget-rule-row"><div><strong>'+esc(r.name)+'</strong><small>'+esc(budgetRepeatLabel(r.frequency))+
+ ' · Starts '+esc(budgetDateLong(r.startDate))+(r.endDate?' · Ends '+esc(budgetDateLong(r.endDate)):'')+
+ ' · '+(r.kind==='income'?'Income ':'Bill ')+formatFinanceAmount(r.amountCents)+'</small></div>'+
+ '<div class="budget-row-actions">'+button('Edit','budget-schedule-edit','outline small','data-id="'+esc(r.id)+'"')+
+ button('Remove','budget-schedule-delete','text-btn small','data-id="'+esc(r.id)+'"')+'</div></div>').join(''):
+ empty('No scheduled rules yet.'))+button('+ Add bill or payday','budget-schedule-new','outline budget-add-rule')+
+ '</div></details>'+
+ '<section class="panel budget-limits budget-category-caps"><div class="section-head"><div><p class="eyebrow">SPENDING CAPS</p>'+
+ '<h2>'+esc(monthText)+'</h2></div>'+button('+ Add limit','budget-limit-new','outline')+'</div>'+
+ '<label class="field budget-month-select"><span>Review another month</span><input type="month" data-budget-month value="'+esc(month)+'"></label>'+
+ (limits.length?'<div class="finance-insight-breakdown">'+limits.map(row=>{
+  const percent=Math.max(0,Math.min(100,row.percent));
+  return '<div class="finance-insight-breakdown-item budget-category-item"><div class="finance-insight-breakdown-text">'+
+  '<strong>'+esc(row.category)+'</strong><b>'+formatFinanceAmount(row.actualCents)+' / '+formatFinanceAmount(row.limitCents)+'</b></div>'+
+  '<div class="finance-insight-meter"><span style="width:'+percent.toFixed(1)+'%"></span></div>'+
+  '<small>'+(row.remainingCents<0?'Over by '+budgetMoney(-row.remainingCents):budgetMoney(row.remainingCents)+' remaining')+'</small>'+
+  '<details class="budget-inline-tools"><summary>Manage limit</summary><div class="budget-row-actions">'+
+  button('Edit','budget-limit-edit','outline small','data-category="'+esc(row.category)+'"')+
+  button('Remove','budget-limit-delete','text-btn small','data-category="'+esc(row.category)+'"')+
+  '</div></details></div>';
+ }).join('')+'</div>':empty('No spending caps yet. Set one to compare purchases against a monthly limit.'))+
+ '<p class="budget-provenance">Caps use classified expense transactions. Missing or unclassified purchases may understate totals.</p></section>'+
+ '<details class="panel budget-drawer budget-forecast-drawer"><summary><span><strong>35-day forecast & what-if</strong>'+
+ '<small>Optional, based on your entered schedule</small></span></summary><div class="budget-drawer-inner">'+
+ (forecastReady?'<div class="budget-metrics"><div><small>Projected after 35 days (if income arrives)</small><strong>'+
+ budgetMoney(report.endCents)+'</strong></div><div><small>Lowest projected balance</small><strong class="'+
+ (report.minimumCents<0?'budget-negative':'')+'">'+budgetMoney(report.minimumCents)+'</strong></div></div>'+
+ '<form class="budget-what-if" data-form="budget-scenario"><label class="field"><span>What if I spent…?</span>'+
+ '<input type="text" name="scenarioAmount" inputmode="decimal" placeholder="25.00" required></label>'+
+ '<button class="outline" type="submit">Test purchase</button></form>':
+ '<p class="budget-empty-forecast">'+(noBalance?'Enter a manual balance to enable this forecast.':
+ report.stale?'Update your balance to today before forecasting.':'Add a bill or payday for a useful forecast.')+'</p>')+
+ '<p class="budget-provenance">Not safe-to-spend guidance. Assumes all expected income arrives and your schedule is complete. No bank verification.</p></div></details>';
 }
 function budgetLimitForm(item=null){
  modal(item?'Edit category limit':'Add category limit','<form class="form" data-form="budget-limit">'+
