@@ -2295,6 +2295,7 @@ app.addEventListener('submit',async event=>{
     }catch(error){alert(error.message);}return;
    }
   if(form.dataset.form==='finance'||form.dataset.form==='finance-edit'){
+     if(form.dataset.financeSubmitting==='true')return;
      const editing=form.dataset.form==='finance-edit',existing=editing?data.transactions.find(tx=>tx.id===v.transactionId):null;
      if(editing&&!existing)return alert('This transaction no longer exists.');
      if(!editing&&data.transactions.length>=50000)return alert('Financial transaction limit reached. Export a backup.');
@@ -2310,10 +2311,20 @@ app.addEventListener('submit',async event=>{
      else candidate.transactions.push(record);
      try{normalizeData(candidate);if(account&&!offlineWorkspace)encodeState(candidate);}
      catch(error){showError(error.message);return;}
+     // Prevent two submissions of the same form while persisting to device/cloud.
+     form.dataset.financeSubmitting='true';
+     const saveButton=form.querySelector('button[type="submit"]');
+     if(saveButton)saveButton.disabled=true;
      data=candidate;financeNotice=editing?'Transaction updated.':'Transaction added.';
      if(editing)close(true);
-     const saved=await persist();
-     if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';render();}
+     try{
+      const saved=await persist();
+      if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';render();}
+     }catch(error){
+      financeNotice='Entry remains in this session, but saving needs attention. Export a backup before leaving.';render();
+     }finally{
+      if(form.isConnected){delete form.dataset.financeSubmitting;if(saveButton)saveButton.disabled=false;}
+     }
      return;
    }
    if(form.dataset.form==='offline-workspace'){
