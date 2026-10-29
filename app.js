@@ -2109,9 +2109,17 @@ app.addEventListener('submit',async event=>{
      seen.add(value.section);parsed.push(value);
     }
     if(token!==importReadToken||!form.isConnected)return;
+    const ordered=[...parsed].sort((a,b)=>ACCOUNT_SECTIONS.indexOf(a.section)-ACCOUNT_SECTIONS.indexOf(b.section));
     let candidate=structuredClone(data);
+    const incomingNutrition=ordered.find(file=>file.section==='nutrition');
+    const hasLifting=ordered.some(file=>file.section==='lifting');
+    if(incomingNutrition&&hasLifting&&incomingNutrition.data?.settings?.unit!==candidate.settings.unit){
+     // The matching Lifting file replaces the old lifting records; do not interpret
+     // existing saved sets under the incoming Nutrition weight unit during staging.
+     candidate.lifts=[];candidate.workoutHistory=[];candidate.activeWorkout=null;
+    }
     const changed=[];
-    for(const file of parsed){
+    for(const file of ordered){
      candidate=applySection(candidate,file);
      const section=file.section;
      const summary=SECTION_KEYS[section].map(key=>{
