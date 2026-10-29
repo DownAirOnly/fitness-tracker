@@ -20,8 +20,8 @@ test('reported Firestore usage equals the exact UTF-8 bytes of each uploaded sec
 });
 test('large combined accounts are allowed, but one oversized Unicode section is rejected',()=>{
  const data=emptyData();
- for(let i=0;i<4000;i++)data.foodEntries.push({id:'meal-'+i,date:'2026-10-29',name:'Yogurt '+i,calories:100,protein:10,quantity:1});
- for(let i=0;i<2700;i++)data.transactions.push({id:'bank-'+i,date:'2026-10-29',kind:'expense',amountCents:719,description:'Groceries '+i,category:'Groceries'});
+ for(let i=0;i<5200;i++)data.foodEntries.push({id:'meal-'+i,date:'2026-10-29',name:'Yogurt serving '+i+' '+('s'.repeat(18)),calories:100,protein:10,quantity:1});
+ for(let i=0;i<3800;i++)data.transactions.push({id:'bank-'+i,date:'2026-10-29',kind:'expense',amountCents:719,description:'Groceries purchase '+i+' '+('z'.repeat(25)),category:'Groceries'});
  const usage=accountSectionUsage(data);
  assert.ok(usage.sections.nutrition.bytes<MAX_CLOUD_BYTES);
  assert.ok(usage.sections.finances.bytes<MAX_CLOUD_BYTES);
