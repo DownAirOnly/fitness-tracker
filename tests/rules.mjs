@@ -27,6 +27,24 @@ try {
  await assertSucceeds(setDoc(doc(alice,path),{...state,revision:2}));
  await assertFails(getDocs(collection(alice,'users/alice/state')));
  await assertFails(deleteDoc(doc(alice,path)));
+
+ const root='users/alice/state/';
+ const sharedTime=serverTimestamp();
+ const part={schemaVersion:2,revision:1,payload:'{"format":"everyday-section-v1","section":"nutrition","data":{}}',updatedAt:sharedTime};
+ const manifest={schemaVersion:2,revision:1,updatedAt:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(alice,root+'manifest'),manifest));
+ await assertSucceeds(setDoc(doc(alice,root+'nutrition'),part));
+ await assertSucceeds(setDoc(doc(alice,root+'lifting'),{...part,payload:part.payload.replace('nutrition','lifting')}));
+ await assertSucceeds(setDoc(doc(alice,root+'finances'),{...part,payload:part.payload.replace('nutrition','finances')}));
+ await assertFails(getDoc(doc(bob,root+'manifest')));
+ await assertFails(getDoc(doc(anon,root+'finances')));
+ await assertFails(getDocs(collection(alice,'users/alice/state')));
+ await assertFails(deleteDoc(doc(alice,root+'finances')));
+ await assertFails(setDoc(doc(alice,root+'finances'),{...part,revision:4}));
+ await assertFails(setDoc(doc(alice,root+'lifting'),{...part,revision:2,payload:'x'.repeat(800001)}));
+ await assertFails(setDoc(doc(alice,root+'manifest'),{...manifest,revision:2,extra:true}));
+ await assertSucceeds(setDoc(doc(alice,root+'finances'),{...part,revision:2}));
+
  const token='a'.repeat(64), inbox='weightBridges/'+token;
  const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00',bodyFatPercent:22.4,bodyFatDate:'2026-09-25',bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
  await assertSucceeds(setDoc(doc(alice,inbox),{uid:'alice',sample:null}));
