@@ -4,6 +4,14 @@
 
 A small mobile-first web app for food, lifting, and body weight. The home screen has two primary actions. On the first visit after 6 a.m. local time each day, it offers a weigh-in with an **Enter later** option. A weigh-in already recorded for today suppresses the prompt.
 
+## v96 — Reviewed finance classifications & merchant rules
+
+- Finance can save reusable, disabled/enabled, editable and removable merchant rules for all bank-imported and manual transactions. Rules use case-insensitive text matching with optional exact amount; suggestions do not automatically change transactions, bank facts or expense/income/transfer kind.
+- A full-ledger classification screen separates rule suggestions and ambiguous matches; rule proposals are reviewed field by field, with per-record selection before the existing protected import/save flow. ChatGPT correction CSVs additionally export expected field values, so stale full-row returns cannot overwrite newer personal edits. Legacy CSVs cannot replace existing personal descriptions, notes or itemizations without those baselines.
+- Classification rules are included in cloud, device/offline and JSON backup records, with backward-compatible empty defaults and collision-safe device migration. Existing financial IDs and real transaction data are unchanged by installing v96.
+- Bottom navigation now reads Home · Food · Lifting · Finances · Progress (Progress is far right).
+- Device verification and the previously prepared nine-row debt/overdraft enrichment remain outstanding until a current private notebook export is reviewed. No live bank CSV or transaction details are committed to this public repository.
+
 ## Run
 
 Requires Node.js 20 or newer. No packages or accounts are needed.

@@ -8,7 +8,7 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v95**, Workout Buddy interrupted Setup draft recovery, release-integrity tests, and v96–v100 handoff. Confirm the merged `main` SHA, tests and Pages before claiming v95 is live.
+- **Latest implemented release covered here:** **v96**, reviewed classification workflow and merchant rules, plus Finance/Progress nav swap. Confirm merged `main`, CI and Pages before claiming v96 is live. Confirm the merged `main` SHA, tests and Pages before claiming v95 is live.
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. Completed scope: **v91–v95** (Fitness Workless 6). **Next cycle: v96–v100**, suggested title **Fitness Workless 7**. These are release boundaries, not an already approved roadmap.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -56,7 +56,8 @@
 | v92 | Workout Buddy set progression: later sets inherit the latest completed set from the active workout; undo buttons appear only during corresponding transitions |
 | v93 | Workout Buddy no-scroll set layout: compact first/second set views, anchored anatomy and primary action, overlay history and fallback on constrained screens |
 | v94 | iPhone Workout Buddy input fixes: same-tap Setup/Notes focus, 16px text-input minimum, visual viewport keyboard fitting and layout restoration |
-| **v95** | **Stabilization:** interrupted Setup edits preserved as cancelable drafts, version/cache consistency test, and complete v96–v100 handoff |
+| v95 | Stabilization: interrupted Setup edits preserved as cancelable drafts, version/cache consistency test, and complete v96–v100 handoff |
+| **v96** | **Finance classification:** persisted, review-only merchant rules, targeted ChatGPT CSV corrections with expected-value conflict protection, selectable field-diff preview, Finances/Progress navigation swap |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -114,6 +115,16 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Tests:** `tests/ui-smoke.mjs` now asserts draft capture after a simulated app interruption, stored definition remains untouched, re-entry restores text, and cancel discards it. `tests/release-integrity.test.js` requires the HTML, service worker, offline precache, import URLs and `version.json` to agree; pinch zoom must remain enabled. The release-integrity check caught a preexisting `demo-mode.js` import/cache mismatch (v72 vs v85), now aligned at v85.
 - **Verification boundaries:** CI and GitHub Pages are independently verified after merging, not proof of real iOS WebKit. **No reported real iPhone confirmation** of v89 resume, v90/v91 Finance History, v92 set progression, v93 no-scroll, or v94 input zoom/keyboard. The nine-record BofA correction import remains unconfirmed; the previously imported 478 bank transactions were not changed by v95.
 - **Cycle closure:** v91 (Finance review), v92 (set/Undo), v93 (no-scroll), v94 (iPhone keyboard), v95 (stabilize) implemented. Future feature suggestions are not preapproved requirements.
+
+## v96 release scope and outstanding device review
+
+- Merchant rules operate across **all transactions**, not solely Bank of America. Rules match merchant/manual description, immutable bank description, or either; optional exact amount reduces false positives. Rules suggest category, subcategory and merchant only and must be approved; conflicting rules are withheld.
+- The rule collection is persisted by v96 notebook normalization, compact JSON encoding/decoding, cloud/device recovery and offline JSON workspace. Device-to-cloud migration copies distinct rule IDs and uses a collision-safe alias when needed. Old notebooks default to an empty collection.
+- The Finance area has Manage merchant rules and Classification review. Previewed suggestions and ChatGPT enrichment changes show old/new fields and per-row selection, all via the existing cloud-revision-gated import save path.
+- Fresh ChatGPT finance exports include expected-value columns for the editable fields. Unchanged exported values are ignored; changed values require that the live record still agrees with the original export or the proposed new value. Legacy CSVs can update type/category while changes to an existing personal description, note or itemization require a fresh export.
+- The bottom tab bar is Home, Food, Lifting, Finances, Progress; the embedded loading HTML matches the runtime.
+- Scope excludes auto-applying rules, automatic kind/transfer reclassification, private transaction migrations, summary dashboards and receipt inference.
+- Remaining user confirmation: actual iPhone performance/keyboard/background behavior; full Finance History; whether the prior nine-row enrichment was applied to the live notebook. To reconcile, request **Finances → Export for ChatGPT**, rather than claiming the public code contains private bank data.
 
 ## Open work and candidate priorities — next cycle v96–v100
 

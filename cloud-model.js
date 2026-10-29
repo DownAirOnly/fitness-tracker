@@ -1,4 +1,4 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=85';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=96';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -23,7 +23,7 @@ export function nextRecord(current,expected,payload) {
 export function hasRecords(data) { return ['foods','foodEntries','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
 export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
- return hasRecords(data)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
+ return hasRecords(data)||(data.classificationRules||[]).length>0||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
   JSON.stringify(data.exerciseDefinitions||[])!==JSON.stringify(defaults.exerciseDefinitions)||
   JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates);
 }
@@ -197,6 +197,15 @@ export function planDeviceMigration(cloud,device) {
  }
 
 
+ // Preserve rules saved on both devices; conflicts keep distinct copies for review.
+ const ruleIds=new Set((candidate.classificationRules||[]).map(r=>r.id));
+ for(const rule of incoming.classificationRules||[]){
+  const copy=structuredClone(rule),prior=candidate.classificationRules.find(r=>r.id===copy.id);
+  if(prior&&signature(prior)===signature(copy))continue;
+  if(ruleIds.has(copy.id))copy.id=nextMigrationId(copy.id,ruleIds);
+  else ruleIds.add(copy.id);
+  candidate.classificationRules.push(copy);
+ }
  // Validate all routine references and the encoded cloud payload BEFORE saving.
  // This rejects invalid merges atomically, including oversize backups.
  const verified=normalizeData(candidate);

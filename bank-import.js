@@ -88,7 +88,9 @@ export function financeReviewFlags(transaction){
 function csvCell(value){const text=String(value??'');return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
 const enrichColumns=[
  'recordType','id','postedDate','kind','amountCents','bankDescription','accountLabel','statementLabel','bankDirection',
- 'description','category','subcategory','merchant','note','purchaseDate','time','itemization'
+ 'description','category','subcategory','merchant','note','purchaseDate','time','itemization',
+ 'expectedKind','expectedDescription','expectedCategory','expectedSubcategory','expectedMerchant',
+ 'expectedNote','expectedPurchaseDate','expectedTime','expectedItemization'
 ];
 export function financeEnrichmentCSV(transactions){
  const rows=[enrichColumns.join(',')];
@@ -96,6 +98,8 @@ export function financeEnrichmentCSV(transactions){
   const values=[
    'enrichment',tx.id,tx.date,tx.kind,tx.amountCents,tx.bankDescription||'',tx.accountLabel||'',
    tx.statementLabel||'',tx.bankDirection||'',tx.description,tx.category,tx.subcategory||'',tx.merchant||'',
+   tx.note||'',tx.purchaseDate||'',tx.time||'',tx.itemization||'',
+   tx.kind,tx.description,tx.category,tx.subcategory||'',tx.merchant||'',
    tx.note||'',tx.purchaseDate||'',tx.time||'',tx.itemization||''
   ];
   rows.push(values.map(csvCell).join(','));
@@ -268,7 +272,18 @@ export function readEnrichmentCSV(text,current){
    for(const field of patchFields){
     if(ix(field)<0)continue;
     const value=get(field);
-    if(value)changed[field]=value;
+    if(!value)continue; // Blank proposals never erase personal information.
+    const before=String(existing[field]||'');
+    const expectedCol='expected'+field[0].toUpperCase()+field.slice(1);
+    if(ix(expectedCol)>=0){
+     const expected=get(expectedCol);
+     if(value===expected)continue; // A stale full export must not undo later edits.
+     if(before!==expected&&before!==value)
+      throw Error(field+' changed since export. Download a fresh CSV before replacing it.');
+    }else if(['description','note','itemization','purchaseDate','time'].includes(field)&&before&&before!==value){
+     throw Error(field+' requires a fresh export with expected-value columns to protect personal edits.');
+    }
+    changed[field]=value;
    }
    normalizeData({...emptyData(),transactions:[changed]});
    if(JSON.stringify(changed)===JSON.stringify(existing)){unchanged++;continue;}

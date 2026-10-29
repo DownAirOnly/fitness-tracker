@@ -1,12 +1,13 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=85';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=96';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,prepareBankImport,importSections} from './import-model.js?v=91';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=91';
+import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=96';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=85';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=85';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=96';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=96';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -48,6 +49,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
+let classificationReviewVisible=50;
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
@@ -203,8 +205,8 @@ const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Mat
 function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudConfirmed));}
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
-  const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['progress','↗','Progress'],['finances','$','Finances']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&page==='financeHistory'))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&page==='financeHistory'))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -213,7 +215,7 @@ function render() {
     const offlineOption=!offlineWorkspace?`<section class="panel loading-offline-option"><h2>Need to work offline?</h2><p class="body-copy">Open an Everyday JSON backup in a separate local workspace while cloud access is unavailable.</p>${button('Open offline JSON workspace','offline-start','outline')}</section>`:'';
     shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+offlineOption+error);return;
   }
-  const views={home,food,gym,progress,finances,financeHistory,history,settings};
+  const views={home,food,gym,progress,finances,financeHistory,classificationReview,classificationRules,history,settings};
   shell(views[page]?.()||home());
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
@@ -357,6 +359,66 @@ function refreshFinanceHistoryList(){
  const summary=document.querySelector('[data-finance-history-summary]');
  if(summary)summary.textContent=matches.length+' of '+(data.transactions||[]).length+' transactions';
 }
+
+function classificationRules(){
+ const rules=data.classificationRules||[];
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Merchant rules<span class="accent">.</span></h1>'+
+  '<p>Rules suggest categories for every matching transaction. Nothing changes until you review and apply.</p>'+
+  button('← Back to Finances','classification-back','outline')+'</div>'+
+  '<section class="panel finance-recent"><div class="section-head"><h2>Saved rules</h2>'+button('Add a rule','classification-new','primary')+'</div>'+
+  (rules.length?'<div class="finance-recent-list">'+rules.map(rule=>
+   '<div class="finance-row"><div class="finance-row-main"><div><strong>'+esc(rule.name)+'</strong>'+
+   '<small>'+esc(rule.matchField)+' contains "'+esc(rule.matchText)+'"'+
+    (rule.amountCents?' · '+formatFinanceAmount(rule.amountCents):'')+
+   '</small><small>'+esc(rule.category)+(rule.subcategory?' / '+esc(rule.subcategory):'')+(rule.enabled?'':' · Disabled')+'</small></div>'+
+   '<div class="finance-row-side">'+button('Edit','classification-edit','text-btn small','data-id="'+esc(rule.id)+'"')+
+    button(rule.enabled?'Disable':'Enable','classification-toggle','text-btn small','data-id="'+esc(rule.id)+'"')+
+    button('Delete','classification-delete','text-btn small','data-id="'+esc(rule.id)+'"')+'</div></div></div>'
+  ).join('')+'</div>':empty('No rules yet. Add one to propose classifications for similar transactions.'))+
+  '<div class="form-actions">'+button('Review suggestions','classification-review-open','outline')+'</div></section>';
+}
+function classificationRuleForm(rule=null){
+ const f=rule||{name:'',matchField:'any',matchText:'',category:'',subcategory:'',merchant:'',amountCents:null,enabled:true};
+ modal(rule?'Edit merchant rule':'Add merchant rule','<form class="form" data-form="classification-rule">'+
+  '<input type="hidden" name="ruleId" value="'+esc(rule?.id||'')+'">'+
+  input('Rule name','name',f.name,'text','required maxlength="100" placeholder="Wawa bottled water"')+
+  '<label class="field"><span>Where to match</span><select name="matchField">'+
+   [['any','Merchant or description'],['merchant','Merchant / manual description'],['bankDescription','Original bank description']].map(([value,label])=>
+    '<option value="'+value+'"'+(f.matchField===value?' selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
+  input('Contains text','matchText',f.matchText,'text','required minlength="2" maxlength="120" placeholder="WAWA"')+
+  input('Exact amount in dollars (optional)','ruleAmount',f.amountCents!=null?formatFinanceAmount(f.amountCents).slice(1):'','text','inputmode="decimal" placeholder="Any amount"')+
+  input('Category','category',f.category,'text','required maxlength="80" placeholder="Household Supplies"')+
+  input('Subcategory (optional)','subcategory',f.subcategory,'text','maxlength="80" placeholder="Bottled water"')+
+  input('Merchant label (optional)','merchant',f.merchant,'text','maxlength="160" placeholder="Wawa"')+
+  '<p class="hint">Matching suggestions never apply automatically. Bank amounts, source descriptions, and transaction types are protected.</p>'+
+  '<button type="submit" class="primary">Save rule</button></form>');
+}
+function classificationReview(){
+ const all=classificationRuleProposals(data.transactions||[],data.classificationRules||[]);
+ const ambiguous=all.filter(p=>p.conflicts.length);
+ const changes=all.filter(p=>!p.conflicts.length&&Object.keys(p.changes).length);
+ const needsManual=(data.transactions||[]).filter(tx=>financeReviewFlags(tx).length).length;
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Classification review<span class="accent">.</span></h1>'+
+  '<p>Review suggestions across all imported and manually entered transactions before changing anything.</p>'+
+  button('← Back to Finances','classification-back','outline')+'</div>'+
+  '<section class="panel finance-recent"><h2>Review queue</h2><p class="body-copy">'+changes.length+
+  ' rule suggestion'+(changes.length===1?'':'s')+' · '+ambiguous.length+' conflicting rule match'+
+  (ambiguous.length===1?'':'es')+' · '+needsManual+' categorization/transfer flag'+(needsManual===1?'':'s')+'.</p>'+
+  '<div class="form-actions">'+button('Manage merchant rules','classification-rules-open','outline')+
+  button('Review history flags','finance-review-open','outline')+'</div>'+
+  (changes.length?'<div class="finance-recent-list">'+changes.slice(0,classificationReviewVisible).map(p=>{
+   const tx=p.transaction,details=Object.entries(p.changes).map(([field,change])=>
+    esc(field)+': '+esc(change.before||'(blank)')+' → '+esc(change.after)).join(' · ');
+   return '<div class="finance-row"><div class="finance-row-main"><div><strong>'+esc(tx.description)+'</strong>'+
+    '<small>'+esc(tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(p.ruleNames.join(', '))+'</small>'+
+    '<small>'+details+'</small></div></div></div>';
+  }).join('')+'</div>':empty('No actionable merchant-rule suggestions. The full ledger remains unchanged.'))+
+  (changes.length>classificationReviewVisible?button('Show more','classification-review-more','outline'):'')+
+  (changes.length?'<div class="form-actions">'+button('Preview '+changes.length+' rule suggestions','classification-preview','primary')+'</div>':'')+
+  (ambiguous.length?'<p class="hint">Conflicting rules were excluded. Edit those rules before trying again.</p>':'')+
+  '</section>';
+}
+
 function finances(){
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Bank records and personal labels, together without losing the originals.</p></div>'+
  '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>New transaction</h2></div><span class="finance-count">USD</span></div>'+
@@ -368,6 +430,8 @@ function finances(){
  '<p class="body-copy">Import an original Bank of America transaction CSV, then give the same statement and your receipt photos to ChatGPT. The bank wording stays untouched; your label appears above it.</p>'+
  '<div class="finance-import-actions">'+button('Import bank CSV','finance-bofa-import','primary')+
  button('Export for ChatGPT','finance-export-enrichment','outline')+
+ button('Classification review','classification-review-open','outline')+
+ button('Manage merchant rules','classification-rules-open','outline')+
  button('Paste clarifications','finance-enrichment-paste','outline')+'</div>'+
  '<p class="hint">Assign an account and statement label before importing. Every import and every clarification shows a review before saving. Repeated overlapping bank exports won’t replace your personal descriptions.</p>'+
  '<details class="finance-more finance-legacy-csv"><summary>Other prepared CSV</summary><p class="body-copy">You can still import ordinary Everyday transaction CSV prepared from screenshots.</p><div class="finance-import-actions">'+
@@ -1441,7 +1505,13 @@ app.addEventListener('input',event=>{
  if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.matches('[data-food-csv]')){const form=event.target.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');try{pasteFoodFormCSV(form,event.target.value);if(status)status.textContent='Food values loaded. Review and save.';}catch(e){if(status)status.textContent=e.message;}return;}if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
-app.addEventListener('change',event=>{if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
+app.addEventListener('change',event=>{
+ if(event.target.matches('[data-enrichment-choice]')&&pendingImport?.kind==='enrichment'){
+  const txId=event.target.dataset.id;
+  if(event.target.checked)pendingImport.selectedIds.add(txId);else pendingImport.selectedIds.delete(txId);
+  showImportReview(pendingImport);return;
+ }
+ if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
 app.addEventListener('change',event=>{
  if(event.target.dataset.financeHistoryFilter){
@@ -1521,6 +1591,31 @@ document.addEventListener('click',async event=>{
     return;
   }
   if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
+  if(action==='classification-select-all'||action==='classification-select-none'){
+   if(pendingImport?.kind!=='enrichment')return;
+   const ids=pendingImport.groups.flatMap(g=>g.rows.map(row=>row.record.id));
+   pendingImport.selectedIds=new Set(action==='classification-select-all'?ids:[]);
+   showImportReview(pendingImport);return;
+  }
+  if(action==='classification-back'){page='finances';render();return;}
+  if(action==='classification-rules-open'){page='classificationRules';render();return;}
+  if(action==='classification-review-open'){page='classificationReview';classificationReviewVisible=50;render();return;}
+  if(action==='classification-review-more'){classificationReviewVisible+=50;render();return;}
+  if(action==='classification-new'){classificationRuleForm();return;}
+  if(action==='classification-edit'){classificationRuleForm((data.classificationRules||[]).find(r=>r.id===el.dataset.id));return;}
+  if(action==='classification-toggle'||action==='classification-delete'){
+   const old=(data.classificationRules||[]).find(r=>r.id===el.dataset.id);if(!old)return;
+   if(action==='classification-delete'&&!confirm('Delete this merchant classification rule?'))return;
+   const next=structuredClone(data);
+   if(action==='classification-delete')next.classificationRules=next.classificationRules.filter(r=>r.id!==old.id);
+   else next.classificationRules=next.classificationRules.map(r=>r.id===old.id?{...r,enabled:!r.enabled}:r);
+   try{data=normalizeData(next);await persist();}catch(error){alert(error.message);}render();return;
+  }
+  if(action==='classification-preview'){
+   const proposals=classificationRuleProposals(data.transactions||[],data.classificationRules||[]);
+   const plan=prepareRuleReview(data,proposals);if(!plan.candidate)return alert('Cannot preview suggestions.');
+   pendingImport=plan;plan.filename='Saved merchant rules';showImportReview(plan);return;
+  }
   if(action==='finance-history-open'){page='financeHistory';financeHistoryReview='all';financeHistoryVisible=50;render();return;}
   if(action==='finance-review-open'){page='financeHistory';financeHistoryReview='needs-review';financeHistoryKind='all';financeHistoryMonth='all';financeHistoryCategory='all';financeHistoryQuery='';financeHistoryVisible=50;render();return;}
   if(action==='finance-history-back'){page='finances';render();return;}
@@ -1812,6 +1907,20 @@ app.addEventListener('submit',async event=>{
     }catch(error){if(token===importReadToken&&form.isConnected&&preview){preview.textContent=error.message;preview.setAttribute('role','alert');}}
     return;
   }
+  if(form.dataset.form==='classification-rule'){
+    try{
+     const existing=(data.classificationRules||[]).find(rule=>rule.id===v.ruleId);
+     const rule={id:existing?.id||id(),name:String(v.name||'').trim(),matchText:String(v.matchText||'').trim(),
+      matchField:String(v.matchField||'any'),category:String(v.category||'').trim(),
+      subcategory:String(v.subcategory||'').trim(),merchant:String(v.merchant||'').trim(),
+      enabled:existing?.enabled!==false};
+     if(String(v.ruleAmount||'').trim())rule.amountCents=parseFinanceAmount(v.ruleAmount);
+     const next=structuredClone(data);next.classificationRules=normalizeClassificationRules(
+       existing?next.classificationRules.map(r=>r.id===existing.id?rule:r):[...next.classificationRules,rule]);
+     const checked=normalizeData(next);if(account&&!offlineWorkspace)encodeState(checked);
+     data=checked;close(true);await persist();page='classificationRules';render();
+    }catch(error){alert(error.message);}return;
+   }
   if(form.dataset.form==='finance'||form.dataset.form==='finance-edit'){
      const editing=form.dataset.form==='finance-edit',existing=editing?data.transactions.find(tx=>tx.id===v.transactionId):null;
      if(editing&&!existing)return alert('This transaction no longer exists.');
@@ -1951,7 +2060,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=95',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=96',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -2095,7 +2204,24 @@ function showImportReview(plan,saveError=''){
   const settingsChanges=plan.settingChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(labels[change.key]||change.key)+'</strong><small>'+esc(settingValue(change.key,change.from))+' → '+esc(settingValue(change.key,change.to))+'</small><span class="import-badge attention">Replaces setting</span></div></div>').join('');
   const promptChange=plan.promptChanged?'<div class="list-row import-record"><div><strong>Daily weight-prompt date</strong><small>'+esc(plan.currentPromptDate||'Not set')+' → '+esc(plan.promptDate||'Not set')+'</small><span class="import-badge attention">Changes</span></div></div>':'';
   const otherChanges=plan.otherChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(change.label)+'</strong><small>'+esc(change.detail||change.from+' → '+change.to)+'</small><span class="import-badge attention">Changes</span></div></div>').join('');
-  const changedGroups=plan.groups.map(g=>importGroup(g)).join('');
+  if(plan.kind==='enrichment'&&!plan.selectedIds)
+    plan.selectedIds=new Set(plan.groups.flatMap(g=>g.rows.map(row=>row.record.id)));
+  const changedGroups=plan.kind==='enrichment'?
+    '<section class="finance-batch-select"><p>'+plan.selectedIds.size+' of '+
+    plan.groups.reduce((n,g)=>n+g.rows.length,0)+' proposed changes selected</p>'+
+    button('Select all','classification-select-all','outline small')+
+    button('Select none','classification-select-none','outline small')+'</section>'+
+    plan.groups.flatMap(g=>g.rows).map(row=>{
+     const tx=row.record,original=row.previous||{},fields=['kind','description','category','subcategory','merchant','note','purchaseDate','time','itemization'];
+     const changes=fields.filter(field=>String(tx[field]||'')!==String(original[field]||'')).map(field=>
+      '<div class="finance-review-diff"><small>'+esc(field)+': '+esc(String(original[field]||'(empty)'))+
+      ' → '+esc(String(tx[field]||'(empty)'))+'</small></div>').join('');
+     return '<label class="list-row import-record finance-batch-row"><input type="checkbox" data-enrichment-choice data-id="'+
+       esc(tx.id)+'"'+(plan.selectedIds.has(tx.id)?' checked':'')+'>'+
+       '<span><strong>'+esc(tx.description)+'</strong><small>'+esc(tx.date)+' · '+formatFinanceAmount(tx.amountCents)+'</small>'+
+       changes+'</span></label>';
+    }).join(''):
+    plan.groups.map(g=>importGroup(g)).join('');
   const removedGroups=json?plan.groups.map(g=>importGroup(g,true)).join(''):'';
   const changesBody=plan.changeCount?settingsChanges+promptChange+otherChanges+changedGroups+removedGroups:'<p class="empty">No data changes detected in this file.</p>';
   const errors=plan.errors.length?'<div class="import-alert" role="alert"><strong>Cannot import · '+plan.errors.length+' issue'+(plan.errors.length===1?'':'s')+'</strong><p>Fix the file and preview it again. No records will be committed.</p><ul>'+plan.errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul></div>':'';
@@ -2114,6 +2240,11 @@ async function commitImport(){
   const plan=pendingImport;if(!plan?.candidate||importSaving)return;
   if(plan.base!==JSON.stringify(data)){plan.errors.push('Current data changed. Cancel and preview this file again.');plan.candidate=null;showImportReview(plan);return;}
   const active=session,owner=account?.uid,candidate=structuredClone(plan.candidate),workspaceMode=Boolean(offlineWorkspace);
+  if(plan.kind==='enrichment'&&plan.selectedIds){
+   if(!plan.selectedIds.size)return alert('Select at least one change to apply.');
+   const originals=new Map(data.transactions.map(tx=>[tx.id,tx]));
+   candidate.transactions=candidate.transactions.map(tx=>plan.selectedIds.has(tx.id)?tx:structuredClone(originals.get(tx.id)||tx));
+  }
   close(true);importSaving=true;cloudBusy=!workspaceMode&&Boolean(account);render();
   try{
     if(workspaceMode){
