@@ -84,6 +84,13 @@ try{
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
   await click('settings');
   assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
+  const usageMeters=[...document.querySelectorAll('.google-sync-usage [role="progressbar"]')];
+  assert.equal(usageMeters.length,3,'cloud storage shows independent Nutrition/Lifting/Finances meters');
+  assert.deepEqual(usageMeters.map(node=>node.getAttribute('aria-label')),
+   ['Nutrition cloud payload usage','Lifting cloud payload usage','Finances cloud payload usage']);
+  assert.ok(document.querySelector('.google-sync-usage').textContent.includes('Each file has its own 800,000-byte safety limit'));
+  assert.ok(!document.querySelector('.google-sync-usage').textContent.includes('Cloud data limit'),'no outdated combined-size meter');
+
   assert.ok(document.querySelector('[data-action="section-export"][data-section="nutrition"]'));
   assert.ok(document.querySelector('[data-action="section-export"][data-section="lifting"]'));
   assert.ok(document.querySelector('[data-action="section-export"][data-section="finances"]'));

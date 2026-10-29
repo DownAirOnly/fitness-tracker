@@ -42,6 +42,8 @@ try {
  await assertFails(deleteDoc(doc(alice,root+'finances')));
  await assertFails(setDoc(doc(alice,root+'finances'),{...part,revision:4}));
  await assertFails(setDoc(doc(alice,root+'lifting'),{...part,revision:2,payload:'x'.repeat(800001)}));
+ // Non-ASCII strings can be under 800,000 characters but OVER 800,000 UTF-8 bytes.
+ await assertFails(setDoc(doc(alice,root+'nutrition'),{...part,revision:2,payload:'é'.repeat(400001)}));
  await assertFails(setDoc(doc(alice,root+'manifest'),{...manifest,revision:2,extra:true}));
  await assertSucceeds(setDoc(doc(alice,root+'finances'),{...part,revision:2}));
 

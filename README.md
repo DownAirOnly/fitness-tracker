@@ -27,7 +27,7 @@ A small mobile-first web app for food, lifting, and body weight. The home screen
 - Configure monthly category limits based on actual classified expense transactions, excluding transfers and income.
 - Preserves the budget in compact JSON/device/cloud backups; old notebook formats default to an empty budget. Cloud migration retains existing cloud budgets rather than silently merging personal monetary assumptions.
 - Includes a separate Capacitor 8 scaffold (`native/`), deterministic web bundle script (`scripts/prepare-native.mjs`), and `NATIVE_IOS.md`. **No native signing, iPhone build or native authentication is verified yet.**
-## v98.1 — Three account JSON files (rules deployment required)
+## v98.1 — Three account JSON files (deployed after rules published)
 
 - **Per-account cloud format:** Nutrition, Lifting, and Finances are stored as three separate private Firestore JSON documents alongside an atomic revision manifest. Saving one notebook revision updates all three together. The old `users/{uid}/state/main` combined document is retained as a read-only migration fallback. This is not a storage purge.
 - **Separate JSON files:** Settings → Import & backup provides Export Nutrition JSON, Export Lifting JSON, Export Finances JSON, and Import separate JSON files (one, two or three). A section file has `format: "everyday-section-v1"`, `section`, and a complete `data` object. Importing replaces only selected sections with explicit review; unselected sections are preserved.
@@ -35,6 +35,13 @@ A small mobile-first web app for food, lifting, and body weight. The home screen
 - **Migration:** Existing signed-in notebooks are first read from legacy `state/main` until the first successful signed-in save after new rules are published. Migration is atomic; the legacy document remains unchanged. Each section is limited to 800,000 UTF-8 bytes. Accounts need the updated `firestore.rules` **published before this client update is deployed**, or cloud reads/writes will be denied.
 - **Apple Health:** The Shortcut bridge now shares the atomic section revision, and maintains existing duplicate prevention and account conflict detection.
 - **v100:** This structure also establishes the JSON contract for native PWA-to-iOS migration; it does not prove a native app can yet be signed or installed.
+## v98.2 — Full-application sanity pass (pending review)
+
+- **Correct three-file storage reporting:** Settings shows Nutrition, Lifting, and Finances as three independently measured UTF-8 JSON payloads (up to 800,000 bytes each), and diagnostics list the three sizes plus their uncapped combined total. The old single 800 KB whole-account meter and permanently zero “Notes” metric are removed.
+- **Rule hardening:** Firestore's string `.size()` counted characters, while the JavaScript guard counts UTF-8 bytes. The new security rule uses `.toUtf8().size()`, matching the client. **Publish this updated `firestore.rules` in Firebase Console before merging/deploying v98.2**; the repository does not publish rules.
+- **Regression coverage:** new byte-count and non-ASCII tests, three section size-meter UI checks, transitive cloud/Health offline asset checks, and the existing full model/UI/Firestore emulator suite. Actual Firebase sessions, WebKit background behavior, and account contents still require real-device validation.
+- **Storage caveat:** the 800 KB value is an application safety margin below Firestore's 1 MiB per-document maximum, not a Google storage quota or total account cap. Separate device-local recovery/confirmed copies may encounter browser quota or eviction limits independently; retain complete downloadable JSON backups.
+
 ## Run
 
 Requires Node.js 20 or newer. No packages or accounts are needed.
