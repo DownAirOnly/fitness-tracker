@@ -5,6 +5,7 @@ const dateOK=x=>typeof x==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x)&&
 const day=x=>Date.parse(x+'T00:00:00Z')/DAY;
 const iso=x=>new Date(x*DAY).toISOString().slice(0,10);
 const money=x=>Number.isSafeInteger(x)&&x>=0&&x<=10_000_000_000;
+const signedBalance=x=>Number.isSafeInteger(x)&&Math.abs(x)<=10_000_000_000;
 const sameMonth=(x,m)=>x.slice(0,7)===m;
 export const emptyBudgetPlan=()=>({balanceCents:null,balanceAsOf:'',categoryLimits:[],schedules:[]});
 export function normalizeBudgetPlan(input){
@@ -12,7 +13,7 @@ export function normalizeBudgetPlan(input){
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Invalid budget plan.');
  const balanceCents=input.balanceCents==null?null:input.balanceCents;
  const balanceAsOf=input.balanceAsOf||'';
- if((balanceCents!==null&&!money(balanceCents))||
+ if((balanceCents!==null&&!signedBalance(balanceCents))||
     (balanceCents===null&&balanceAsOf)||(balanceCents!==null&&!dateOK(balanceAsOf)))throw Error('Invalid manual balance date or amount.');
  if(!Array.isArray(input.categoryLimits)||input.categoryLimits.length>60||
     !Array.isArray(input.schedules)||input.schedules.length>250)throw Error('Budget plan is too large.');
