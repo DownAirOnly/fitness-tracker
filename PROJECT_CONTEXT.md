@@ -8,7 +8,8 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest proposed release covered here:** **v98.1**, three separate account JSON files. This is **not deployed until the Firestore rules are published and verified**. Check merge and Pages.
+- **Deployed release:** **v98.1** on main (merged PR #13, commit `ae92bf69bc30290395f171a1bb982e3645a40c11`, CI and Pages succeeded). User reports nothing apparently broken, but live migration count/revision checks remain unverified.
+- **Current proposed release:** **v98.2** on `v98-2-stability-audit`. Corrects the obsolete single-account-size diagnostics and Firestore UTF-8 rule semantics, with broad regression/smoke coverage. **Do not merge until the v98.2 `firestore.rules` are manually published in Firebase Console and the PR checks pass.**
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. Completed scope: **v91–v95** (Fitness Workless 6). **Next cycle: v96–v100**, suggested title **Fitness Workless 7**. These are release boundaries, not an already approved roadmap.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -60,7 +61,8 @@
 | v96 | Finance classification: persisted, review-only merchant rules, targeted ChatGPT CSV corrections with expected-value conflict protection, selectable field-diff preview, Finances/Progress navigation swap |
 | v97 | Read-only Finance Spending Insights |
 | **v98** | Budget forecast, recurring paydays/bills, category limits, manual balance and what-if; Capacitor scaffolding (not signed) |
-| **v98.1 (pending)** | Three private Firestore sections and one revision manifest; per-section exports and reviewed restores; legacy migration retained |
+| **v98.1 (deployed)** | Three private Firestore sections and one revision manifest; per-section exports and reviewed restores; legacy migration retained |
+| **v98.2 (PR pending)** | Sanity audit: accurate three-section UTF-8 storage diagnostics, byte-count rule verification, smoke/asset regression tests; requires updated rules before merge |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -136,6 +138,14 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Data limitations:** The current bank date is its posted date, not necessarily receipt purchase date. All amounts are only as accurate as existing manually reviewed classifications. The page displays uncategorized expense totals and existing financeReviewFlags counts as an incomplete review queue, not complete verification. Merchant aggregation uses stored merchant, else raw bank description, else description: similar merchants with different bank strings may still appear separately.
 - **Preservation:** This release is UI/read-only model only. No migrations, transaction rewrites, new network fetches, or edits to private notebook records, stable IDs, backups or recovery semantics.
 - **Verification still outstanding:** Confirm on real iPhone that v89 app switching and form saves, v90/v91 Finance History, v92–v95 Workout Buddy views, v96 classification review, and v97 insight responsiveness work. Nine-row correction CSV remains unconfirmed applied; request an actual Finances → Export for ChatGPT to reconcile before reporting it complete. Consider additional time range and merchant grouping refinements based on feedback.
+
+## v98.2 stabilization scope and safety gate
+
+- v98.1 code is merged and GitHub Pages deployed; real sign-in and save behavior has only informal user confirmation (“nothing broken”), not an audit of actual record IDs/counts or the untouched legacy main document.
+- Settings’ v98.1 Cloud data limit and Data diagnostics still measured the combined compact JSON against 800,000 bytes, even though Firestore now saves three separate canonical section JSON documents. v98.2 replaces this with exact UTF-8 bytes for Nutrition, Lifting and Finances independently. Notes was previously a misleading constant-zero metric in this data model, so remove it.
+- Firestore v98.1 rules used `payload.size()`, a character count; the app uses `TextEncoder` bytes. v98.2 changes rule checks to `payload.toUtf8().size()`, with a multibyte regression check. **Manual Firebase Console rule publishing is required before merging this PR.**
+- Existing model tests, UI smoke tests, Firestore emulator/Shortcut tests, and new release-integrity checks cover broad code-level behavior; they are not real iPhone checks. Preserve stable finance IDs, all saved data, full backups, and recovery. No private data is committed.
+- LocalStorage confirmed/recovery backups have a separate browser quota and eviction risk even when individual Firestore sections fit; v99 should evaluate a more scalable native/browser recovery store. Full JSON export remains necessary.
 
 ## v98.1 status — manual rules deployment gate
 
