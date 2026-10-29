@@ -1,6 +1,7 @@
 import {healthBridge} from './health-cloud.js?v=85';
 import {firebaseConfig} from './firebase-config.js';
-import {nextRecord, CloudSession} from './cloud-model.js?v=98';
+import {CloudSession,encodeState} from './cloud-model.js?v=98.1';
+import {sectionRefs,readAccountServer,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=98.1';
 
 export async function connectCloud(onUser) {
   const [appSDK,authSDK,dbSDK]=await Promise.all([
@@ -13,19 +14,16 @@ export async function connectCloud(onUser) {
   // Firebase's own document cache stays memory-only; app.js maintains the explicit account-scoped recovery/confirmed device copies.
   await authSDK.setPersistence(auth,authSDK.browserLocalPersistence);
   const db=dbSDK.initializeFirestore(app,{localCache:dbSDK.memoryLocalCache()});
-  const ref=uid=>dbSDK.doc(db,'users',uid,'state','main');
   const store={
     async read(uid) {
-      const snapshot=await dbSDK.getDocFromServer(ref(uid));
-      return snapshot.exists()?snapshot.data():null;
+      const result=await readAccountServer(dbSDK,db,uid);
+      return result.revision?{schemaVersion:1,revision:result.revision,payload:encodeState(result.data)}:null;
     },
     async write(uid,expected,payload) {
-      return dbSDK.runTransaction(db,async transaction=>{
-        if(auth.currentUser?.uid!==uid) throw new Error('Account changed.');
-        const snapshot=await transaction.get(ref(uid));
-        const record=nextRecord(snapshot.exists()?snapshot.data():null,expected,payload);
-        transaction.set(ref(uid),{...record,updatedAt:dbSDK.serverTimestamp()});
-        return record;
+      return dbSDK.runTransaction(db,async tx=>{
+        if(auth.currentUser?.uid!==uid)throw Error('Account changed.');
+        const refs=sectionRefs(dbSDK,db,uid),current=await readAccountTransaction(tx,refs);
+        return commitAccountTransaction(tx,refs,current,expected,payload,dbSDK);
       });
     }
   };
