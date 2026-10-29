@@ -264,11 +264,12 @@ function financeFields(tx=null,scope='quick'){
    '<small>'+esc(tx.accountLabel||'Bank of America')+' · Posted '+esc(tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(tx.statementLabel||'')+'</small></section>'+
    '<input type="hidden" name="amount" value="'+esc(amount)+'"><input type="hidden" name="date" value="'+esc(tx.date)+'">':'';
  const amountInput=isBank?'':'<label class="field"><span>Amount (USD)</span><span class="finance-money-input"><strong aria-hidden="true">$</strong><input type="text" name="amount" inputmode="decimal" autocomplete="off" maxlength="20" required value="'+esc(amount)+'" placeholder="0.00" aria-label="Amount in US dollars"></span></label>';
- const kindInput='<label class="field"><span>Type (editable classification)</span><select name="kind">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+({expense:'Expense',income:'Income',transfer:'Transfer'}[k])+'</option>').join('')+'</select></label>';
+ const kindInput='<label class="field finance-kind-field"><span>Type</span><select name="kind" aria-label="Transaction type">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+({expense:'Expense',income:'Income',transfer:'Transfer'}[k])+'</option>').join('')+'</select></label>';
  const postedInput=isBank?'':input('Calendar date','date',tx?.date||localDate(),'date','required');
  return bankFacts+'<div class="finance-quick-fields '+(isBank?'bank-edit':'')+'">'+amountInput+
   input(isBank?'Your description':'What was it?','description',tx?.description||'','text','placeholder="e.g. Water and protein snacks" maxlength="200" required autocomplete="off"')+
-  '</div><details class="finance-more" '+(tx?'open':'')+'><summary>Category, date & more</summary><div class="finance-extra-fields">'+kindInput+postedInput+
+  '</div>'+(tx?'':'<div class="finance-quick-kind">'+kindInput+'</div>')+
+  '<details class="finance-more" '+(tx?'open':'')+'><summary>Category, date & more</summary><div class="finance-extra-fields">'+(tx?kindInput:'')+postedInput+
   input('Purchase date (if different)','purchaseDate',tx?.purchaseDate||'','date','')+
   input('Time (receipt or purchase)','time',tx?tx.time||'':financeNowTime(),'time','step="60"')+
   '<label class="field"><span>Category</span><input name="category" list="'+catId+'" maxlength="80" value="'+esc(tx?.category||'Uncategorized')+'" autocomplete="off"></label>'+categoryOptions+
@@ -314,13 +315,16 @@ function financeNewestFirst(transactions){
  return [...transactions].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00'))||a.id.localeCompare(b.id));
 }
 function financeRecent(){
- const all=financeNewestFirst(data.transactions||[]);
- const needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
- return '<section class="panel finance-recent"><div class="section-head"><div><p class="eyebrow">RECENT TRANSACTIONS</p><h2>Latest entries</h2></div><span class="finance-count">'+all.length+' total</span></div>'+
-  (all.length?'<div class="finance-recent-list">'+all.slice(0,10).map(financeRow).join('')+'</div>':empty('No transactions yet. Your first entry will appear here.'))+
-  (all.length>10?'<p class="hint">Showing the 10 newest entries.</p>':'')+
-  button('View all transactions','finance-history-open','outline finance-history-open')+
-  (needReview?button('Review classifications · '+needReview,'finance-review-open','outline finance-review-open'):'')+'</section>';
+ const all=financeNewestFirst(data.transactions||[]),needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
+ return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><p class="eyebrow">ACTIVITY</p><h2>Recent transactions</h2></div>'+
+  button('Search all','finance-history-open','outline small finance-history-open')+'</div>'+
+  (needReview?'<div class="finance-review-callout"><span><strong>'+needReview+' to review</strong><small>Missing categories or possible transfers</small></span>'+
+   button('Review','finance-review-open','outline small')+'</div>':'')+
+  (all.length?'<div class="finance-recent-list">'+all.slice(0,5).map(financeRow).join('')+'</div>':
+   empty('No transactions yet. Log one above or import a bank statement.'))+
+  (all.length>5?'<p class="finance-recent-count">Showing 5 of '+all.length+' saved transactions</p>':'')+
+  '<div class="finance-activity-links">'+button('All transactions','finance-history-open','text-btn')+
+  button('Spending insights','finance-insights-open','text-btn')+'</div></section>';
 }
 function financeHistoryOptions(values,selected,allLabel){
  return '<option value="all"'+(selected==='all'?' selected':'')+'>'+esc(allLabel)+'</option>'+
@@ -634,29 +638,23 @@ function finances(){
    button('All transactions','finance-history-open','outline')+'</div>';
 }
 function financeTransactions(){
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Transactions<span class="accent">.</span></h1><p>Log, review, and classify spending while keeping the originals.</p></div>'+financeNav('transactions')+
- '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>New transaction</h2></div><span class="finance-count">USD</span></div>'+
- (financeNotice?'<p class="finance-notice" role="status">'+esc(financeNotice)+'</p>':'')+
- '<form class="finance-form" data-form="finance">'+financeFields()+'<button class="primary finance-save" type="submit">Save transaction</button></form>'+
- '<p class="hint">Enter an amount and your own description. Expand for category, subcategory, receipt date/time, and itemization.</p></section>'+
- financeRecent()+
- '<section class="panel budget-shortcut"><p class="eyebrow">PLAN AHEAD</p><h2>Budget & cash flow</h2>'+
- '<p>See upcoming bills, paydays, category limits and projected available cash.</p>'+
- button('Open budget planner','budget-open','primary')+'</section>'+
- '<section class="panel finance-insights-shortcut"><p class="eyebrow">SPENDING</p><h2>Where your money goes</h2>'+
- '<p>See spending by category and merchant with transfers separated.</p>'+
- button('View spending insights','finance-insights-open','primary')+'</section>'+
- '<section class="panel finance-import-card"><p class="eyebrow">BANK STATEMENTS</p><h2>Bank of America</h2>'+
- '<p class="body-copy">Import an original Bank of America transaction CSV, then give the same statement and your receipt photos to ChatGPT. The bank wording stays untouched; your label appears above it.</p>'+
- '<div class="finance-import-actions">'+button('Import bank CSV','finance-bofa-import','primary')+
- button('Export for ChatGPT','finance-export-enrichment','outline')+
- button('Classification review','classification-review-open','outline')+
- button('Manage merchant rules','classification-rules-open','outline')+
- button('Paste clarifications','finance-enrichment-paste','outline')+'</div>'+
- '<p class="hint">Assign an account and statement label before importing. Every import and every clarification shows a review before saving. Repeated overlapping bank exports won’t replace your personal descriptions.</p>'+
- '<details class="finance-more finance-legacy-csv"><summary>Other prepared CSV</summary><p class="body-copy">You can still import ordinary Everyday transaction CSV prepared from screenshots.</p><div class="finance-import-actions">'+
- button('Paste prepared CSV','finance-paste-csv','outline')+button('View CSV example','finance-csv-example','text-btn')+
- '</div></details></section>';
+ return '<div class="page-head finances-page-head finance-transactions-head"><p class="eyebrow">YOUR MONEY</p><h1>Transactions<span class="accent">.</span></h1>'+
+  '<p>Record a purchase, then get on with your day.</p></div>'+financeNav('transactions')+
+  '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>Add a transaction</h2></div></div>'+
+  (financeNotice?'<p class="finance-notice" role="status">'+esc(financeNotice)+'</p>':'')+
+  '<form class="finance-form" data-form="finance">'+financeFields()+
+  '<button class="primary finance-save" type="submit">Add transaction</button></form></section>'+
+  financeRecent()+
+  '<details class="panel finance-workflows"><summary><span><strong>Import & organize</strong><small>Bank files, classification rules, CSV tools</small></span></summary>'+
+  '<div class="finance-workflow-content"><p>Review all imports before saving. Original bank details and transaction IDs remain protected.</p>'+
+  '<div class="finance-import-actions">'+button('Import Bank of America CSV','finance-bofa-import','outline')+
+  button('Paste prepared CSV','finance-paste-csv','outline')+
+  button('Export for ChatGPT','finance-export-enrichment','outline')+
+  button('Paste clarifications','finance-enrichment-paste','outline')+
+  button('Classification review','classification-review-open','outline')+
+  button('Manage merchant rules','classification-rules-open','outline')+'</div>'+
+  '<details class="finance-more finance-legacy-csv"><summary>CSV help</summary><div class="finance-import-actions">'+
+  button('View CSV example','finance-csv-example','text-btn')+'</div></details></div></details>';
 }
 function financeEditForm(tx){
  if(!tx)return;
