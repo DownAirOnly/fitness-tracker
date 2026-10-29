@@ -12,7 +12,7 @@ Each file is an ordinary JSON object with exactly three top-level keys: `format`
 
 ## Lifting — `everyday-lifting.json`
 
-`data` contains `exerciseDefinitions`, `workoutTemplates`, `lifts`, `activeWorkout`, and `workoutHistory`. Preserve exercise, routine and Workout Buddy IDs and links. Preserve an active session exactly as it was exported; no rescheduling or inferred completed sets.
+`data` contains `weightUnit`, `exerciseDefinitions`, `workoutTemplates`, `lifts`, `activeWorkout`, and `workoutHistory`. `weightUnit` must exactly match Nutrition `settings.unit` (`lb` or `kg`); it is a consistency marker, not another editable setting. Preserve exercise, routine and Workout Buddy IDs and links. Preserve an active session exactly as it was exported; no rescheduling or inferred completed sets.
 
 ## Finances — `everyday-finances.json`
 
@@ -25,6 +25,8 @@ Each file is an ordinary JSON object with exactly three top-level keys: `format`
 - For a legacy backup without `bodyFat` or `workoutHistory`, use empty arrays. Without an `activeWorkout`, use `null`.
 - The complete existing backup is still useful as an independent emergency backup; do not delete it.
 - If the original file is compact `version:2` with abbreviated workout/food content, decode it through the current app model before converting instead of manually guessing values. The app's `Export Nutrition/Lifting/Finances JSON` buttons also create the correct files directly from a loaded notebook.
+
+A single Lifting import is rejected if its weightUnit disagrees with the receiving notebook's Nutrition settings. A single Nutrition import changing units is rejected when existing lift history is present. Import matching Nutrition and Lifting files together for a unit change.
 
 ## Import behavior
 
