@@ -70,7 +70,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
-let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7);
+let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
@@ -542,7 +542,8 @@ function budgetScheduleForm(rule=null){
   '<label class="field"><span>Repeat</span><select name="budgetFrequency">'+
    [['once','One time'],['weekly','Weekly'],['biweekly','Every two weeks'],['monthly','Monthly']].map(([value,label])=>
    '<option value="'+value+'"'+(r.frequency===value?' selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
-  '<p class="hint">Monthly payments repeat on the same day number, or the last day of shorter months. Updating an item preserves already marked payment dates.</p>'+
+  '<details class="finance-more"><summary>Optional ending date</summary>'+input('Stop repeating after','budgetEndDate',r.endDate||'','date','')+'</details>'+ 
+  '<p class="hint">Monthly repeats use the same date, or the last day of shorter months. Editing a rule keeps existing markers; review them when dates change.</p>'+
   '<button type="submit" class="primary">Save schedule</button></form>');
 }
 function financeBudget(){
