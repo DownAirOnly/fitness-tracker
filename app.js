@@ -1907,7 +1907,7 @@ document.addEventListener('click',async event=>{
    const plan=prepareRuleReview(data,proposals);if(!plan.candidate)return alert('Cannot preview suggestions.');
    pendingImport=plan;plan.filename='Saved merchant rules';showImportReview(plan);return;
   }
-  if(action==='budget-open'){page='financeBudget';render();return;}
+  if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
@@ -2303,14 +2303,14 @@ app.addEventListener('submit',async event=>{
   }
   if(form.dataset.form==='budget-balance'){
     try{const plan=structuredClone(data.budgetPlan);plan.balanceCents=budgetDollar(v.balance);
-     plan.balanceAsOf=v.balanceAsOf;await budgetCommit(plan);close(true);render();}
+     plan.balanceAsOf=v.balanceAsOf;await budgetCommit(plan);budgetFeedback='';close(true);render();}
     catch(error){alert(error.message);}return;
    }
    if(form.dataset.form==='budget-limit'){
     try{const plan=structuredClone(data.budgetPlan);
      plan.categoryLimits=plan.categoryLimits.filter(x=>x.category!==v.previousCategory&&x.category!==v.category);
      plan.categoryLimits.push({category:v.category,amountCents:parseFinanceAmount(v.budgetAmount)});
-     await budgetCommit(plan);close(true);render();}
+     await budgetCommit(plan);budgetFeedback='';close(true);render();}
     catch(error){alert(error.message);}return;
    }
    if(form.dataset.form==='budget-schedule'){
@@ -2321,7 +2321,7 @@ app.addEventListener('submit',async event=>{
       ...(v.budgetEndDate?{endDate:v.budgetEndDate}:{}),
       occurrences:existing?.occurrences||{}};
      plan.schedules=existing?plan.schedules.map(x=>x.id===existing.id?row:x):[...plan.schedules,row];
-     await budgetCommit(plan);close(true);render();}
+     await budgetCommit(plan);budgetFeedback='';close(true);render();}
     catch(error){alert(error.message);}return;
    }
    if(form.dataset.form==='budget-scenario'){
