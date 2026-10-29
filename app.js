@@ -355,39 +355,59 @@ function financeHistoryListMarkup(matches){
  return shown.map(tx=>financeRow(tx,financeHistoryReview!=='all')).join('')+
   (matches.length>shown.length?button('Show '+Math.min(50,matches.length-shown.length)+' more','finance-history-more','outline finance-history-more'):'');
 }
+function financeHistoryPreset(){
+ if(financeHistoryReview==='needs-review'&&financeHistoryKind==='all')return 'review';
+ if(financeHistoryReview!=='all')return 'custom';
+ return financeHistoryKind;
+}
+function financeHistoryChips(){
+ const selected=financeHistoryPreset();
+ return '<div class="finance-history-chips" role="group" aria-label="Quick transaction filters">'+
+  [['all','All'],['expense','Expenses'],['income','Income'],['transfer','Transfers'],['review','Needs review']]
+   .map(([key,label])=>button(label,'finance-history-preset','finance-filter-chip'+(selected===key?' selected':''),
+    'data-preset="'+key+'" aria-pressed="'+(selected===key?'true':'false')+'"')).join('')+'</div>';
+}
 function financeHistory(){
  const all=data.transactions||[];
  const months=[...new Set(all.map(tx=>tx.date.slice(0,7)))].sort().reverse();
  const categories=[...new Set(all.map(tx=>tx.category||'Uncategorized'))].sort((a,b)=>a.localeCompare(b));
- const monthOptions=financeHistoryOptions(months,financeHistoryMonth,'All months');
- const categoryOptions=financeHistoryOptions(categories,financeHistoryCategory,'All categories');
  const matches=financeHistoryMatches();
- const needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
+ const extra=financeHistoryMonth!=='all'||financeHistoryCategory!=='all'||financeHistorySort!=='newest'||financeHistoryPreset()==='custom';
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Transaction history<span class="accent">.</span></h1>'+
-  '<p>Search and review every saved purchase, payment, and transfer.</p>'+button('← Back to Transactions','finance-history-back','outline finance-history-back')+'</div>'+
+  '<p>Find a record or check something that needs attention.</p>'+button('← Back to Transactions','finance-history-back','outline finance-history-back')+'</div>'+
   '<section class="panel finance-history"><label class="field finance-history-search"><span>Search transactions</span>'+
-  '<input type="search" data-finance-history-search placeholder="Merchant, bank description, amount…" value="'+esc(financeHistoryQuery)+'" autocomplete="off"></label>'+
+  '<input type="search" data-finance-history-search placeholder="Name, bank wording, amount…" value="'+esc(financeHistoryQuery)+'" autocomplete="off"></label>'+
+  financeHistoryChips()+
+  '<details class="finance-history-more"'+(extra?' open':'')+'><summary>More filters'+(extra?' · active':'')+'</summary>'+
   '<div class="finance-history-filters"><label class="field"><span>Type</span><select data-finance-history-filter="kind">'+
   financeHistoryOptions(['expense','income','transfer'],financeHistoryKind,'All types')+'</select></label>'+
-  '<label class="field"><span>Month</span><select data-finance-history-filter="month">'+monthOptions+'</select></label>'+
-  '<label class="field"><span>Category</span><select data-finance-history-filter="category">'+categoryOptions+'</select></label>'+
+  '<label class="field"><span>Month</span><select data-finance-history-filter="month">'+
+  financeHistoryOptions(months,financeHistoryMonth,'All months')+'</select></label>'+
+  '<label class="field"><span>Category</span><select data-finance-history-filter="category">'+
+  financeHistoryOptions(categories,financeHistoryCategory,'All categories')+'</select></label>'+
   '<label class="field"><span>Review</span><select data-finance-history-filter="review">'+
   financeHistoryOptions(['needs-review','uncategorized','transfer-check'],financeHistoryReview,'All records').replace('>needs-review<','>Needs review<').replace('>uncategorized<','>Uncategorized<').replace('>transfer-check<','>Possible transfers<')+'</select></label>'+
-  '<label class="field"><span>Order</span><select data-finance-history-filter="sort"><option value="newest"'+(financeHistorySort==='newest'?' selected':'')+'>Newest first</option><option value="oldest"'+(financeHistorySort==='oldest'?' selected':'')+'>Oldest first</option></select></label></div>'+
-  '<p class="finance-review-help">'+needReview+' transaction'+(needReview===1?'':'s')+' to review. Suggested transfers require confirmation.</p>'+
+  '<label class="field"><span>Order</span><select data-finance-history-filter="sort"><option value="newest"'+(financeHistorySort==='newest'?' selected':'')+'>Newest first</option><option value="oldest"'+(financeHistorySort==='oldest'?' selected':'')+'>Oldest first</option></select></label></div></details>'+
   '<div class="finance-history-summary" data-finance-history-summary role="status">'+matches.length+' of '+all.length+' transactions</div>'+
   '<div class="finance-recent-list finance-history-list" data-finance-history-list>'+financeHistoryListMarkup(matches)+'</div>'+
-  '<p class="hint">Dates are bank-posted dates when imported. Review hints and filters never change saved records. Edit individual entries to correct a classification.</p></section>';
+  '<p class="hint">Bank dates are posted dates. Filters never modify records; edits preserve bank-source facts.</p></section>';
 }
 function refreshFinanceHistoryList(){
- const list=document.querySelector('[data-finance-history-list]');
- if(!list)return;
- const matches=financeHistoryMatches();
- list.innerHTML=financeHistoryListMarkup(matches);
+ const list=document.querySelector('[data-finance-history-list]');if(!list)return;
+ const matches=financeHistoryMatches();list.innerHTML=financeHistoryListMarkup(matches);
  const summary=document.querySelector('[data-finance-history-summary]');
  if(summary)summary.textContent=matches.length+' of '+(data.transactions||[]).length+' transactions';
+ const selected=financeHistoryPreset();
+ document.querySelectorAll('[data-action="finance-history-preset"]').forEach(chip=>{
+  const active=chip.dataset.preset===selected;
+  chip.classList.toggle('selected',active);chip.setAttribute('aria-pressed',String(active));
+ });
+ for(const [name,value] of Object.entries({kind:financeHistoryKind,month:financeHistoryMonth,category:financeHistoryCategory,review:financeHistoryReview,sort:financeHistorySort})){
+  const node=document.querySelector('[data-finance-history-filter="'+name+'"]');if(node)node.value=value;
+ }
+ const label=document.querySelector('.finance-history-more>summary');
+ if(label)label.textContent='More filters'+(financeHistoryMonth!=='all'||financeHistoryCategory!=='all'||financeHistorySort!=='newest'||selected==='custom'?' · active':'');
 }
-
 function classificationRules(){
  const rules=data.classificationRules||[];
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Merchant rules<span class="accent">.</span></h1>'+
@@ -1886,6 +1906,13 @@ document.addEventListener('click',async event=>{
   if(action==='finance-review-open'){page='financeHistory';financeHistoryReview='needs-review';financeHistoryKind='all';financeHistoryMonth='all';financeHistoryCategory='all';financeHistoryQuery='';financeHistoryVisible=50;render();return;}
   if(action==='finance-history-back'){page='financeTransactions';render();return;}
   if(action==='finance-history-more'){financeHistoryVisible+=50;refreshFinanceHistoryList();return;}
+   if(action==='finance-history-preset'){
+    const preset=el.dataset.preset;
+    if(!['all','expense','income','transfer','review'].includes(preset))return;
+    financeHistoryKind=preset==='review'?'all':preset;
+    financeHistoryReview=preset==='review'?'needs-review':'all';
+    financeHistoryVisible=50;refreshFinanceHistoryList();return;
+   }
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
   if(action.startsWith('health-')){await healthAction(action);return;}
