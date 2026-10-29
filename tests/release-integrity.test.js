@@ -23,5 +23,14 @@ test('published version, entry assets, registration and offline bundle stay alig
  for(const [,file,revision]of app.matchAll(/from ['"]\.\/([^'"/]+\.js)\?v=(\d+(?:\.\d+)?)['"]/g)){
   assert.ok(service.includes('"./'+file+'?v='+revision+'"'),'service worker must precache '+file+'?v='+revision);
  }
+ // Check transitive cloud/Health imports, not only app.js's top-level imports.
+ // A stale query token could otherwise load a different module while offline.
+ for(const module of ['cloud.js','cloud-model.js','account-cloud-store.js','health-cloud.js','account-sections.js']){
+  const source=await read(module);
+  for(const [,file,rev]of source.matchAll(/from ['"]\.\/([^'"/]+\.js)\?v=(\d+(?:\.\d+)?)['"]/g)){
+   assert.ok(service.includes('"./'+file+'?v='+rev+'"'),module+' imports '+file+'@'+rev+' but it is not precached');
+  }
+ }
+ assert.ok(service.includes('"./cloud.js?v='+revision+'"'),'dynamic cloud initialization is precached for release');
  assert.ok(!/maximum-scale\s*=|user-scalable\s*=\s*no/i.test(index),'manual zoom remains enabled');
 });
