@@ -1911,6 +1911,9 @@ document.addEventListener('click',async event=>{
     if(!['all','expense','income','transfer','review'].includes(preset))return;
     financeHistoryKind=preset==='review'?'all':preset;
     financeHistoryReview=preset==='review'?'needs-review':'all';
+    // Quick filters are a fresh path through the ledger; don't invisibly
+    // intersect them with older month/category selections.
+    financeHistoryMonth='all';financeHistoryCategory='all';
     financeHistoryVisible=50;refreshFinanceHistoryList();return;
    }
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
