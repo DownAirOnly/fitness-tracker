@@ -474,6 +474,7 @@ const budgetMoney=cents=>(cents<0?'−':'')+formatFinanceAmount(Math.abs(cents))
 const budgetValue=cents=>cents===null?'':(Math.abs(cents)/100).toFixed(2).replace(/\.00$/,'');
 const budgetDollar=value=>{
  const trimmed=String(value||'').trim(),negative=trimmed.startsWith('-');
+ if(/^[-+]?0(?:\.0{1,2})?$/.test(trimmed))return 0;
  return(negative?-1:1)*parseFinanceAmount(negative?trimmed.slice(1):trimmed);
 };
 async function budgetCommit(plan){
@@ -1773,7 +1774,7 @@ document.addEventListener('click',async event=>{
    const p=data.budgetPlan;
    modal('Update available cash','<form class="form" data-form="budget-balance">'+
     input('Available balance (USD; negative permitted)','balance',p.balanceCents===null?'':(p.balanceCents/100).toFixed(2),'text','required inputmode="decimal"')+
-    input('Balance is accurate at end of','balanceAsOf',localDate(),'date','required')+
+    input('Balance is accurate at end of','balanceAsOf',localDate(),'date','required max="'+localDate()+'"')+
     '<p class="hint">Manually entered value only. Nothing is read from Bank of America or inferred from expenses.</p><button type="submit" class="primary">Use this balance</button></form>');return;
   }
   if(action==='budget-schedule-new'){budgetScheduleForm();return;}
