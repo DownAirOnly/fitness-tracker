@@ -1,6 +1,7 @@
 import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=85';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
-import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=91';
+import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=96';
+import {applyClassificationRuleProposals} from './classification-model.js?v=96';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
 const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:key==='transactions'?[r.date,r.time??null,r.kind,r.amountCents,r.description.toLowerCase(),r.category.toLowerCase(),r.merchant??'',r.note??'',r.source??'',r.externalId??'']:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
@@ -301,6 +302,16 @@ export function prepareBankImport(text,current,options){
  plan.bankDetails=parsed.details;
  return plan;
 }
+export function prepareRuleReview(current,proposals){
+ const safe=proposals.filter(p=>!p.conflicts.length&&Object.keys(p.changes).length);
+ const candidate=applyClassificationRuleProposals(current,safe,safe.map(p=>p.id));
+ const byId=new Map(current.transactions.map(tx=>[tx.id,tx]));
+ const rows=safe.map(p=>({record:candidate.transactions.find(tx=>tx.id===p.id),
+  previous:byId.get(p.id),badges:['Rule suggestion']}));
+ const plan=financeOnlyPlan('enrichment',current,rows,[],[],{replaced:rows.length});
+ plan.ruleBased=true;
+ return plan;
+}
 export function prepareEnrichmentImport(text,current){
  const parsed=readEnrichmentCSV(text,current);
  return financeOnlyPlan('enrichment',current,parsed.updates,parsed.errors,parsed.warnings,
@@ -393,6 +404,7 @@ export function reviewImport(kind,raw,current,initialErrors=[]){
   if(kind==='json'&&!promptChanged)unchanged++;
   const otherChanges=[];
   if(kind==='json'){
+    if(!same(current.classificationRules||[],raw.classificationRules||[]))otherChanges.push({key:'classificationRules',label:'Merchant classification rules',from:(current.classificationRules||[]).length,to:(raw.classificationRules||[]).length,detail:'Replaces saved classification rules with the reviewed backup rules'});
     for(const [key,label] of [['exerciseDefinitions','Exercise Library'],['workoutTemplates','Workout templates']]){
       if(!same(current[key],raw[key])){
         const before=new Map((current[key]||[]).map(x=>[x.id,x])),after=new Map((raw[key]||[]).map(x=>[x.id,x])),parts=[];
