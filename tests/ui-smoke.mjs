@@ -33,7 +33,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+)?\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+)?\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+)?\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+)?/.test(source),'all static app imports resolved');
@@ -64,6 +64,12 @@ try{
   assert.equal(document.querySelectorAll('nav.nav [data-action="settings"]').length,0,'no Settings bottom tab');
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('finances');
+  assert.equal(document.querySelectorAll('.finance-section-link').length,3,'Finances offers Overview, Transactions, Planning');
+  assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('Not entered'),'no imaginary balance on Overview');
+  assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('Not enough information'),'no invented spending allowance');
+  assert.ok(document.querySelector('.finance-glance-card').textContent.includes('Not scheduled'),'future income is not assumed');
+  await click('finance-transactions-open');
+  assert.ok(document.querySelector('form[data-form="finance"]'),'Transactions keeps quick logging');
   await click('classification-rules-open');
   await click('classification-new');
   await submit('classification-rule',{name:'Test water',matchField:'bankDescription',matchText:'WAWA',
@@ -349,6 +355,11 @@ try{
  const nextDay=new Date(Date.parse(todayCalendarDate()+'T00:00:00Z')+86400000).toISOString().slice(0,10);
  await submit('budget-schedule',{budgetName:'Car payment',budgetKind:'expense',budgetAmount:'366.00',budgetStartDate:nextDay,budgetFrequency:'monthly'});
  assert.ok(document.querySelector('.budget-occurrences'),'scheduled items appear in cash-flow queue');
+ await click('finances');
+ assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('$148.14'),'only entered cash appears as available');
+ assert.ok(document.querySelector('.finance-glance-cards').textContent.includes('$366.00'),'planned bills visible on overview');
+ assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('−$217.86'),'future shortfall is shown without counting income');
+ await click('budget-open');
  await click('budget-mark-paid');
  savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
  assert.equal(Object.values(savedBudget.schedules[0].occurrences)[0],'paid','planned occurrence status persists');
