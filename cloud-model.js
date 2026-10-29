@@ -1,4 +1,5 @@
 import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=98';
+import {sectionPayloads} from './account-sections.js?v=98.1';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -6,7 +7,9 @@ export class CloudConflict extends Error {
 }
 export function encodeState(data) {
   const payload=JSON.stringify(encodeData(data));
-  if(new TextEncoder().encode(payload).length>MAX_CLOUD_BYTES) throw new Error('This account has reached the current cloud storage limit. Export a backup before reducing its history.');
+  const parts=sectionPayloads(data);
+  const oversize=Object.entries(parts).find(([,value])=>new TextEncoder().encode(value).length>MAX_CLOUD_BYTES);
+  if(oversize)throw new Error('The '+oversize[0]+' account file has reached its 800 KB cloud storage limit. Export that section before reducing its history.');
   return payload;
 }
 export function decodeState(record) {
