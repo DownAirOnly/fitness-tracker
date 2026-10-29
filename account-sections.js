@@ -6,7 +6,7 @@ import {normalizeData,encodeData,emptyData} from './data.js?v=98';
 export const ACCOUNT_SECTIONS=['nutrition','lifting','finances'];
 export const SECTION_KEYS={
  nutrition:['settings','foods','foodEntries','weights','bodyFat','promptDate'],
- lifting:['exerciseDefinitions','workoutTemplates','lifts','activeWorkout','workoutHistory'],
+ lifting:['weightUnit','exerciseDefinitions','workoutTemplates','lifts','activeWorkout','workoutHistory'],
  finances:['transactions','classificationRules','budgetPlan']
 };
 export const SECTION_FORMAT='everyday-section-v1';
@@ -16,7 +16,7 @@ export function sectionData(data,section){
  const source=encodeData(normalizeData(data)); // versioned compact backup is the source of truth.
  // Decode to canonical structure; preserves workout references and verified metadata.
  const canonical=normalizeData(source);
- return Object.fromEntries(SECTION_KEYS[section].map(k=>[k,structuredClone(canonical[k])]));
+ return Object.fromEntries(SECTION_KEYS[section].map(k=>[k,k==='weightUnit'?canonical.settings.unit:structuredClone(canonical[k])]));
 }
 export function exportSection(data,section){
  return{format:SECTION_FORMAT,section,data:sectionData(data,section)};
@@ -30,7 +30,12 @@ export function applySection(data,file){
  for(const key of keys)if(!hasOwn(incoming,key))throw Error('Missing required '+file.section+' field: '+key+'.');
  for(const key of Object.keys(incoming))if(!keys.includes(key))throw Error('Unexpected '+file.section+' field: '+key+'.');
  const candidate=structuredClone(normalizeData(data));
- for(const key of keys)candidate[key]=structuredClone(incoming[key]);
+ if(file.section==='lifting'&&incoming.weightUnit!==candidate.settings.unit)
+  throw Error('Lifting weight unit differs from Nutrition settings. Convert the unit or import matching Nutrition and Lifting files together.');
+ if(file.section==='nutrition'&&incoming.settings?.unit!==candidate.settings.unit&&
+    (candidate.lifts.length||candidate.workoutHistory.length||candidate.activeWorkout))
+  throw Error('Nutrition weight unit differs from existing Lifting logs. Import matching Lifting JSON at the same time, or convert units before import.');
+ for(const key of keys)if(key!=='weightUnit')candidate[key]=structuredClone(incoming[key]);
  return normalizeData(candidate);
 }
 export function mergeSections(files){
