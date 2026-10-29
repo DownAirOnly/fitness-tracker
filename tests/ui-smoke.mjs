@@ -1,6 +1,7 @@
 import {JSDOM} from 'jsdom';
 import {normalizeData,localDate as todayCalendarDate} from '../data.js';
 import {financeEnrichmentCSV} from '../bank-import.js';
+import {exportSection} from '../account-sections.js';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -83,6 +84,20 @@ try{
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
   await click('settings');
   assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
+  assert.ok(document.querySelector('[data-action="section-export"][data-section="nutrition"]'));
+  assert.ok(document.querySelector('[data-action="section-export"][data-section="lifting"]'));
+  assert.ok(document.querySelector('[data-action="section-export"][data-section="finances"]'));
+  await click('section-import-open');
+  const sectionForm=document.querySelector('form[data-form="section-import"]');
+  const sectionJson=JSON.stringify(exportSection(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))),'nutrition'));
+  const sectionInput=sectionForm.querySelector('[name=files]');
+  Object.defineProperty(sectionInput,'files',{configurable:true,value:[{name:'everyday-nutrition.json',size:sectionJson.length,text:async()=>sectionJson}]});
+  sectionForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
+  assert.ok(document.querySelector('.import-dialog'),'section import has an explicit preview');
+  assert.ok(document.querySelector('.import-dialog').textContent.includes('Nutrition JSON'));
+  await click('close');
+  assert.ok(document.querySelector('.settings-page-head'),'canceling section preview returns to Settings');
+
   assert.equal(document.querySelector('header.top .home-settings').getAttribute('aria-current'),'page','Settings gear active');
   await click('home');
   assert.ok(document.querySelector('.home-actions'),'Home navigation still works');
