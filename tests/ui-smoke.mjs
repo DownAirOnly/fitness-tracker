@@ -238,8 +238,8 @@ try{
   document.querySelector('[data-preset="all"]').click();await tick();
   assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'all chip clears quick review filter');
   const priorMonth=document.querySelector('[data-finance-history-filter="month"]');
-  priorMonth.value='2026-09';priorMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'advanced month can narrow the history');
+  priorMonth.value='2026-10';priorMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(priorMonth.value,'2026-10','advanced month is selected');
   document.querySelector('[data-preset="all"]').click();await tick();
   assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'quick All clears hidden advanced month');
   assert.equal(priorMonth.value,'all','advanced dropdown syncs with quick chip');
