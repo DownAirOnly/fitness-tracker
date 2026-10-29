@@ -7,6 +7,7 @@ import {classificationRuleProposals,normalizeClassificationRules} from './classi
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
 import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=98.2';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=99';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=98';
@@ -229,7 +230,7 @@ function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudCo
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -238,7 +239,7 @@ function render() {
     const offlineOption=!offlineWorkspace?`<section class="panel loading-offline-option"><h2>Need to work offline?</h2><p class="body-copy">Open an Everyday JSON backup in a separate local workspace while cloud access is unavailable.</p>${button('Open offline JSON workspace','offline-start','outline')}</section>`:'';
     shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+offlineOption+error);return;
   }
-  const views={home,food,gym,progress,finances,financeHistory,classificationReview,classificationRules,financeInsights,financeBudget,history,settings};
+  const views={home,food,gym,progress,finances,financeTransactions,financeHistory,classificationReview,classificationRules,financeInsights,financeBudget,history,settings};
   shell(views[page]?.()||home());
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
@@ -359,7 +360,7 @@ function financeHistory(){
  const matches=financeHistoryMatches();
  const needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Transaction history<span class="accent">.</span></h1>'+
-  '<p>Search and review every saved purchase, payment, and transfer.</p>'+button('← Back to Finances','finance-history-back','outline finance-history-back')+'</div>'+
+  '<p>Search and review every saved purchase, payment, and transfer.</p>'+button('← Back to Transactions','finance-history-back','outline finance-history-back')+'</div>'+
   '<section class="panel finance-history"><label class="field finance-history-search"><span>Search transactions</span>'+
   '<input type="search" data-finance-history-search placeholder="Merchant, bank description, amount…" value="'+esc(financeHistoryQuery)+'" autocomplete="off"></label>'+
   '<div class="finance-history-filters"><label class="field"><span>Type</span><select data-finance-history-filter="kind">'+
@@ -387,7 +388,7 @@ function classificationRules(){
  const rules=data.classificationRules||[];
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Merchant rules<span class="accent">.</span></h1>'+
   '<p>Rules suggest categories for every matching transaction. Nothing changes until you review and apply.</p>'+
-  button('← Back to Finances','classification-back','outline')+'</div>'+
+  button('← Back to Transactions','classification-back','outline')+'</div>'+
   '<section class="panel finance-recent"><div class="section-head"><h2>Saved rules</h2>'+button('Add a rule','classification-new','primary')+'</div>'+
   (rules.length?'<div class="finance-recent-list">'+rules.map(rule=>
    '<div class="finance-row"><div class="finance-row-main"><div><strong>'+esc(rule.name)+'</strong>'+
@@ -465,7 +466,7 @@ function financeInsights(){
    '<strong>'+formatFinanceAmount(value)+'</strong><span>'+esc(detail)+'</span></div>';
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Spending insights<span class="accent">.</span></h1>'+
   '<p>Read-only summaries of saved classifications, not estimates of individual purchases.</p>'+
-  button('← Back to Finances','finance-insights-back','outline finance-history-back')+'</div>'+
+  button('← Back to Transactions','finance-insights-back','outline finance-history-back')+'</div>'+
   '<section class="panel finance-insight-intro"><label class="field"><span>Date range</span>'+
   '<select data-finance-insight-period aria-label="Spending insights date range">'+periods.map(p=>
    '<option value="'+esc(p.value)+'"'+(p.value===financeInsightPeriod?' selected':'')+'>'+esc(p.label)+'</option>').join('')+
@@ -528,7 +529,7 @@ function financeBudget(){
  const monthText=new Date(month+'-01T12:00:00Z').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Budget & cash flow<span class="accent">.</span></h1>'+
   '<p>Plan bills, paydays and spending before they happen. Nothing here is a live bank balance.</p>'+
-  button('← Back to Finances','budget-back','outline finance-history-back')+'</div>'+
+  button('← Back to Overview','budget-back','outline finance-history-back')+'</div>'+financeNav('planning')+
   '<section class="panel budget-overview"><div class="section-head"><div><p class="eyebrow">MANUAL AVAILABLE CASH</p>'+
   '<h2>'+(plan.balanceCents===null?'Not set':budgetMoney(plan.balanceCents))+'</h2></div>'+
    button(plan.balanceCents===null?'Set balance':'Update balance','budget-balance','outline')+'</div>'+
@@ -584,8 +585,56 @@ function budgetLimitForm(item=null){
   '<button class="primary" type="submit">Save monthly limit</button></form>');
 }
 
+// v99 — an overview built only from entered cash and planned events.
+function financeNav(selected){
+ const sections=[['overview','Overview','finances'],['transactions','Transactions','finance-transactions-open'],['planning','Planning','budget-open']];
+ return '<nav class="finance-section-nav" aria-label="Finance sections">'+sections.map(([key,label,action])=>
+  button(label,action,'finance-section-link'+(selected===key?' selected':''),selected===key?'aria-current="page"':'')).join('')+'</nav>';
+}
 function finances(){
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Bank records and personal labels, together without losing the originals.</p></div>'+
+ const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate()),paycheck=snapshot.nextPaycheck;
+ const upcoming=snapshot.upcoming;
+ const cash=snapshot.balanceCents===null?'Not entered':budgetMoney(snapshot.balanceCents);
+ const source=snapshot.balanceCents===null?'No balance entered. Transactions alone do not determine cash available.':
+  'Manually entered, as of end of '+esc(snapshot.balanceAsOf)+'. Not verified by your bank.';
+ const outlook=snapshot.balanceCents===null?'Enter an available balance to start a cautious spending estimate.':
+  !snapshot.balanceCurrent?'Your entered balance is not from today. Update it before using an estimate.':
+  !snapshot.hasBills?'No bills are scheduled. Add your known bills before relying on an estimate.':
+  'Subtracts '+budgetMoney(snapshot.billsBeforeIncomeCents)+' of planned bills through '+esc(snapshot.estimateThrough)+'. Future paychecks are not counted.';
+ return '<div class="page-head finances-page-head finance-overview-head"><p class="eyebrow">YOUR MONEY</p>'+
+  '<h1>Finances<span class="accent">.</span></h1><p>What matters now, without the paperwork.</p></div>'+
+  financeNav('overview')+
+  '<section class="panel finance-cash-hero" aria-label="Available cash">'+
+   '<div class="finance-cash-top"><div><p class="eyebrow">AVAILABLE CASH · MANUAL</p><strong class="finance-cash-value">'+cash+'</strong></div>'+
+   button(snapshot.balanceCents===null?'Set balance':'Update','budget-balance','outline small')+'</div>'+
+   '<p class="finance-source">'+source+'</p></section>'+
+  '<div class="finance-glance-cards" aria-label="Upcoming money">'+
+   '<section class="panel finance-glance-card"><small>Next expected paycheck</small><strong>'+
+    (paycheck?budgetMoney(paycheck.amountCents):'Not scheduled')+'</strong><span>'+
+    (paycheck?esc(paycheck.date)+' · expected, not received':'No income scheduled within 60 days')+'</span></section>'+
+   '<section class="panel finance-glance-card"><small>Planned bills · next 14 days</small><strong>'+
+    budgetMoney(snapshot.billsSoonCents)+'</strong><span>'+snapshot.billsSoon.length+
+    ' payment'+(snapshot.billsSoon.length===1?'':'s')+' · not bank verified</span></section></div>'+
+  '<section class="panel finance-spend-outlook" aria-label="Spending outlook">'+
+   '<p class="eyebrow">SPENDING OUTLOOK · ESTIMATE</p><h2>'+
+    (snapshot.spendingEstimateCents===null?'Not enough information':budgetMoney(snapshot.spendingEstimateCents))+'</h2>'+
+   '<p>'+outlook+'</p>'+
+   (snapshot.spendingEstimateCents!==null&&snapshot.spendingEstimateCents<0?
+    '<p class="budget-warning" role="status">Planned bills exceed entered cash before the next expected paycheck. Review your obligations.</p>':'')+
+   '<p class="hint">Not a guaranteed spending allowance. Missing expenses and unverified dates can change this.</p>'+
+   button('Review the plan','budget-open','outline')+'</section>'+
+  '<section class="panel finance-next-activity"><div class="section-head"><div><p class="eyebrow">NEXT UP</p><h2>Upcoming money</h2></div>'+
+   button('Edit schedules','budget-open','text-btn')+'</div>'+
+   (upcoming.length?'<div class="finance-activity-list">'+upcoming.map(event=>
+    '<div class="finance-activity-row"><div><strong>'+esc(event.name)+'</strong><small>'+esc(event.date)+' · '+
+    (event.kind==='income'?'Expected income':'Planned bill')+'</small></div>'+
+    '<b class="'+esc(event.kind)+'">'+(event.kind==='income'?'+':'−')+formatFinanceAmount(event.amountCents)+'</b></div>').join('')+'</div>':
+    empty('Nothing scheduled yet. Add bills and paydays in Planning.'))+'</section>'+
+  '<div class="finance-overview-actions">'+button('Log spending','finance-transactions-open','primary')+
+   button('All transactions','finance-history-open','outline')+'</div>';
+}
+function financeTransactions(){
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Transactions<span class="accent">.</span></h1><p>Log, review, and classify spending while keeping the originals.</p></div>'+financeNav('transactions')+
  '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>New transaction</h2></div><span class="finance-count">USD</span></div>'+
  (financeNotice?'<p class="finance-notice" role="status">'+esc(financeNotice)+'</p>':'')+
  '<form class="finance-form" data-form="finance">'+financeFields()+'<button class="primary finance-save" type="submit">Save transaction</button></form>'+
@@ -1779,14 +1828,14 @@ document.addEventListener('click',async event=>{
     if(await persist()){try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}render();}
     return;
   }
-  if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','finance-insights-open','finance-insights-back','budget-open','budget-back','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
+  if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','finance-insights-open','finance-insights-back','finance-transactions-open','budget-open','budget-back','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
   if(action==='classification-select-all'||action==='classification-select-none'){
    if(pendingImport?.kind!=='enrichment')return;
    const ids=pendingImport.groups.flatMap(g=>g.rows.map(row=>row.record.id));
    pendingImport.selectedIds=new Set(action==='classification-select-all'?ids:[]);
    showImportReview(pendingImport);return;
   }
-  if(action==='classification-back'){page='finances';render();return;}
+  if(action==='classification-back'){page='financeTransactions';render();return;}
   if(action==='classification-rules-open'){page='classificationRules';render();return;}
   if(action==='classification-review-open'){page='classificationReview';classificationReviewVisible=50;render();return;}
   if(action==='classification-review-more'){classificationReviewVisible+=50;render();return;}
@@ -1806,6 +1855,7 @@ document.addEventListener('click',async event=>{
    pendingImport=plan;plan.filename='Saved merchant rules';showImportReview(plan);return;
   }
   if(action==='budget-open'){page='financeBudget';render();return;}
+   if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
@@ -1833,10 +1883,10 @@ document.addEventListener('click',async event=>{
    try{const plan=structuredClone(data.budgetPlan);plan.categoryLimits=plan.categoryLimits.filter(x=>x.category!==el.dataset.category);await budgetCommit(plan);render();}catch(e){alert(e.message);}return;
   }
   if(action==='finance-insights-open'){page='financeInsights';render();return;}
-  if(action==='finance-insights-back'){page='finances';render();return;}
+  if(action==='finance-insights-back'){page='financeTransactions';render();return;}
   if(action==='finance-history-open'){page='financeHistory';financeHistoryReview='all';financeHistoryVisible=50;render();return;}
   if(action==='finance-review-open'){page='financeHistory';financeHistoryReview='needs-review';financeHistoryKind='all';financeHistoryMonth='all';financeHistoryCategory='all';financeHistoryQuery='';financeHistoryVisible=50;render();return;}
-  if(action==='finance-history-back'){page='finances';render();return;}
+  if(action==='finance-history-back'){page='financeTransactions';render();return;}
   if(action==='finance-history-more'){financeHistoryVisible+=50;refreshFinanceHistoryList();return;}
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
@@ -2358,7 +2408,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=98.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
