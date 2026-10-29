@@ -32,7 +32,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+/.test(source),'all static app imports resolved');
@@ -59,10 +59,20 @@ try{
 
   // v81 navigation regression: five bottom tabs and a header Settings gear.
   const tabs=[...document.querySelectorAll('nav.nav [data-action]')].map(el=>el.dataset.action);
-  assert.deepEqual(tabs,['home','food','gym','progress','finances'],'Finances replaces More');
+  assert.deepEqual(tabs,['home','food','gym','finances','progress'],'Progress moves to far right; Finances is fourth');
   assert.equal(document.querySelectorAll('nav.nav [data-action="settings"]').length,0,'no Settings bottom tab');
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('finances');
+  await click('classification-rules-open');
+  await click('classification-new');
+  await submit('classification-rule',{name:'Test water',matchField:'bankDescription',matchText:'WAWA',
+    ruleAmount:'7.19',category:'Household Supplies',subcategory:'Bottled water',merchant:'Wawa'});
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).classificationRules.length,1,'rules persist in notebook');
+  await click('classification-toggle');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).classificationRules[0].enabled,false);
+  await click('classification-delete');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).classificationRules.length,0);
+  await click('classification-back');
   assert.ok(document.querySelector('.finances-page-head'),'Finances route works');
   assert.ok(document.querySelector('form[data-form="finance"]'),'Finances quick transaction form is ready');
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
