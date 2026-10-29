@@ -1,6 +1,6 @@
 // v98.1 Firestore adapter. A manifest and three independent JSON section docs
 // commit in one Firestore transaction, retaining one account-wide revision.
-import {decodeState,CloudConflict} from './cloud-model.js?v=98';
+import {decodeState,CloudConflict} from './cloud-model.js?v=98.1';
 import {sectionPayloads,readSectionPayloads,ACCOUNT_SECTIONS} from './account-sections.js?v=98.1';
 
 export const sectionRefs=(sdk,db,uid)=>{
