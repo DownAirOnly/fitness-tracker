@@ -5,10 +5,20 @@ export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
   constructor() { super('Another device saved a newer version. Export your unsaved changes, then load the latest cloud data before editing again.'); this.code='conflict'; }
 }
+// Firestore's 1 MiB document limit applies to EACH section. Keep an 800,000
+// UTF-8 byte guard per section; never compare the combined notebook to this cap.
+export function accountSectionUsage(data) {
+  const parts=sectionPayloads(data);
+  const sections=Object.fromEntries(Object.entries(parts).map(([name,payload])=>{
+    const bytes=new TextEncoder().encode(payload).length;
+    return [name,{bytes,limit:MAX_CLOUD_BYTES,percent:bytes/MAX_CLOUD_BYTES*100}];
+  }));
+  return {sections,totalBytes:Object.values(sections).reduce((sum,s)=>sum+s.bytes,0)};
+}
 export function encodeState(data) {
   const payload=JSON.stringify(encodeData(data));
-  const parts=sectionPayloads(data);
-  const oversize=Object.entries(parts).find(([,value])=>new TextEncoder().encode(value).length>MAX_CLOUD_BYTES);
+  const usage=accountSectionUsage(data);
+  const oversize=Object.entries(usage.sections).find(([,entry])=>entry.bytes>MAX_CLOUD_BYTES);
   if(oversize)throw new Error('The '+oversize[0]+' account file has reached its 800 KB cloud storage limit. Export that section before reducing its history.');
   return payload;
 }
