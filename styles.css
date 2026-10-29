@@ -1839,3 +1839,54 @@ html.buddy-active #overlay .modal{z-index:1101}
 [data-theme="dark"] .finance-activity-row b.income{color:#9ed5b0}
 [data-theme="dark"] .finance-activity-row b.expense{color:#eca791}
 @media(max-width:350px){.finance-glance-cards{gap:7px}.finance-glance-card{padding:12px 9px}.finance-section-link{font-size:12px}}
+
+/* v99 pass 2 — fast transaction entry, quiet secondary tools, focused history filters. */
+.finance-transactions-head{padding-bottom:13px}
+.finance-transactions-head p:last-child{margin-bottom:0}
+.finance-log{padding:17px;margin-bottom:13px}
+.finance-log .section-head{margin-bottom:11px}
+.finance-quick-kind{margin:-2px 0 1px}
+.finance-quick-kind .field{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:12px}
+.finance-quick-kind .field>span{font-size:12px;font-weight:750;color:#5a725f}
+.finance-quick-kind select{width:100%;min-height:46px;font-size:16px}
+.finance-log .finance-more>summary{min-height:44px;align-items:center}
+.finance-log .finance-save{min-height:49px}
+.finance-activity-title{align-items:center}
+.finance-activity-title h2{font-size:17px}
+.finance-activity-title button{min-height:44px}
+.finance-review-callout{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;margin:7px 0 5px;background:#f1f6ee;border:1px solid #dae8d8;border-radius:11px}
+.finance-review-callout span{min-width:0}
+.finance-review-callout strong,.finance-review-callout small{display:block}
+.finance-review-callout strong{font-size:13px}
+.finance-review-callout small{font-size:11px;line-height:1.4;color:#657c6a;margin-top:2px}
+.finance-review-callout button{min-height:44px;flex-shrink:0}
+.finance-recent-count{color:#6c806e;font-size:11px;margin:12px 0 2px}
+.finance-activity-links{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding-top:11px}
+.finance-activity-links button{min-height:44px;font-size:12px}
+.finance-workflows{margin-bottom:16px;padding:0}
+.finance-workflows>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:64px;padding:14px 18px;cursor:pointer}
+.finance-workflows>summary::-webkit-details-marker{display:none}
+.finance-workflows>summary::after{content:'+';font-size:24px;font-weight:400;color:#627769}
+.finance-workflows[open]>summary::after{content:'−'}
+.finance-workflows>summary strong,.finance-workflows>summary small{display:block}
+.finance-workflows>summary strong{font-size:14px}
+.finance-workflows>summary small{font-size:11px;margin-top:4px;color:#718677}
+.finance-workflow-content{padding:0 18px 18px}
+.finance-workflow-content>p{font-size:12px;line-height:1.5;color:#657c69;margin:0 0 10px}
+.finance-workflow-content .finance-import-actions button{min-height:44px}
+.finance-history-chips{display:flex;gap:7px;overflow-x:auto;padding:3px 1px 11px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.finance-filter-chip{border:1px solid #d2e0d1;border-radius:24px;background:transparent;color:inherit;font:inherit;font-size:12px;font-weight:650;min-height:44px;padding:9px 13px;white-space:nowrap;flex:0 0 auto;cursor:pointer}
+.finance-filter-chip.selected{background:#e5f0e5;border-color:#83ae8c;color:#26563b}
+.finance-filter-chip:focus-visible,.finance-workflows>summary:focus-visible,.finance-history-more>summary:focus-visible{outline:3px solid #87b391;outline-offset:2px}
+.finance-history-more{border-bottom:1px solid #e0e9df}
+.finance-history-more>summary{cursor:pointer;font-size:12px;font-weight:750;color:#56735d;padding:10px 3px;min-height:42px}
+.finance-history-more .finance-history-filters{margin:8px 0 12px}
+.finance-history .finance-history-summary{border-bottom:0;padding-top:12px}
+.finance-history-search input{font-size:16px}
+[data-theme="dark"] .finance-quick-kind .field>span,[data-theme="dark"] .finance-review-callout small,[data-theme="dark"] .finance-recent-count,[data-theme="dark"] .finance-workflows>summary small,[data-theme="dark"] .finance-workflow-content>p,[data-theme="dark"] .finance-history-more>summary{color:#b7cebd}
+[data-theme="dark"] .finance-review-callout{background:#253f2c;border-color:#3c5b46}
+[data-theme="dark"] .finance-workflows>summary::after{color:#bad1bf}
+[data-theme="dark"] .finance-filter-chip{border-color:#43614b}
+[data-theme="dark"] .finance-filter-chip.selected{background:#31533a;color:#e1f4e2;border-color:#82ae8e}
+[data-theme="dark"] .finance-history-more{border-color:#395441}
+@media(max-width:390px){.finance-activity-title{gap:8px}.finance-activity-title button{padding:7px 10px}.finance-activity-links{gap:6px}.finance-filter-chip{padding:9px 11px}}
