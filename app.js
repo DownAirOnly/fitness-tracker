@@ -1916,6 +1916,16 @@ document.addEventListener('click',async event=>{
     input('Balance is accurate at end of','balanceAsOf',localDate(),'date','required max="'+localDate()+'"')+
     '<p class="hint">Manually entered value only. Nothing is read from Bank of America or inferred from expenses.</p><button type="submit" class="primary">Use this balance</button></form>');return;
   }
+  if(action==='budget-event-options'){
+   const plan=data.budgetPlan,rule=plan.schedules.find(x=>x.id===el.dataset.id),date=el.dataset.date;
+   if(!rule||!budgetOccurrences(plan,date,date).some(x=>x.id===rule.id))return;
+   modal('Plan for '+budgetDateLong(date),'<p class="body-copy"><strong>'+esc(rule.name)+'</strong> · '+
+    (rule.kind==='income'?'Expected income ':'Planned payment ')+formatFinanceAmount(rule.amountCents)+'</p>'+
+    '<p class="hint">Skip only this date or edit the recurring rule. Neither changes your bank transactions.</p>'+
+    '<div class="form-actions">'+button('Skip this date','budget-mark-skipped','outline','data-id="'+esc(rule.id)+'" data-date="'+esc(date)+'"')+
+    button('Edit schedule','budget-schedule-edit','outline','data-id="'+esc(rule.id)+'"')+
+    button('Cancel','close','text-btn')+'</div>');return;
+  }
   if(action==='budget-schedule-new'){budgetScheduleForm();return;}
   if(action==='budget-schedule-edit'){budgetScheduleForm(data.budgetPlan.schedules.find(x=>x.id===el.dataset.id));return;}
   if(action==='budget-schedule-delete'){
@@ -1926,7 +1936,11 @@ document.addEventListener('click',async event=>{
    try{const plan=structuredClone(data.budgetPlan),rule=plan.schedules.find(x=>x.id===el.dataset.id);
     if(!rule)return;const status=action.slice('budget-mark-'.length);
     if(status==='pending')delete rule.occurrences[el.dataset.date];else rule.occurrences[el.dataset.date]=status;
-    await budgetCommit(plan);render();}catch(e){alert(e.message);}return;
+    await budgetCommit(plan);
+    budgetFeedback=status==='pending'?'Returned to unmarked.':status==='skipped'?'Skipped this date only.':
+      (rule.kind==='income'?'Marked received.':'Marked paid.')+' This does not change the bank ledger.';
+    if(document.querySelector('.modal'))close(true);
+    render();}catch(e){alert(e.message);}return;
   }
   if(action==='budget-limit-new'){budgetLimitForm();return;}
   if(action==='budget-limit-edit'){budgetLimitForm(data.budgetPlan.categoryLimits.find(x=>x.category===el.dataset.category));return;}
@@ -2303,17 +2317,21 @@ app.addEventListener('submit',async event=>{
      const existing=plan.schedules.find(x=>x.id===v.budgetId);
      const row={id:existing?.id||id(),name:String(v.budgetName||'').trim(),kind:v.budgetKind,
       amountCents:parseFinanceAmount(v.budgetAmount),frequency:v.budgetFrequency,startDate:v.budgetStartDate,
+      ...(v.budgetEndDate?{endDate:v.budgetEndDate}:{}),
       occurrences:existing?.occurrences||{}};
      plan.schedules=existing?plan.schedules.map(x=>x.id===existing.id?row:x):[...plan.schedules,row];
      await budgetCommit(plan);close(true);render();}
     catch(error){alert(error.message);}return;
    }
    if(form.dataset.form==='budget-scenario'){
-    try{const planned=parseFinanceAmount(v.scenarioAmount),next=forecastPurchase(data.budgetPlan,localDate(),35,planned);
+    try{
+     const current=budgetForecast(data.budgetPlan,localDate(),35);
+     if(!current.configured||current.stale||!data.budgetPlan.schedules.length)throw Error('Update today’s balance and enter scheduled bills before forecasting.');
+     const planned=parseFinanceAmount(v.scenarioAmount),next=forecastPurchase(data.budgetPlan,localDate(),35,planned);
      modal('Planned purchase','<p class="body-copy">If you spent '+formatFinanceAmount(planned)+' now, your lowest projected cash balance would be <strong>'+
       budgetMoney(next.minimumCents)+'</strong>, and the 35-day end balance would be <strong>'+budgetMoney(next.endCents)+'</strong>.</p>'+
       (next.shortfall?'<p class="budget-warning">This scenario forecasts a shortfall.</p>':'')+
-      '<p class="hint">An estimate using manual available cash and scheduled future transactions only. This purchase is not saved.</p>'+
+      '<p class="hint">Only a manual projection. Expected paychecks are assumed to arrive and missing bills are excluded. This purchase is not saved.</p>'+
       button('Close','close','outline'));}
     catch(error){alert(error.message);}return;
    }
