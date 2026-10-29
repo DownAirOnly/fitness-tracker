@@ -50,10 +50,11 @@ test('never silently accept unversioned, wrong-section, partial or duplicate fil
 test('per-section limit permits whole accounts above 800 KB, but rejects an oversized section',()=>{
  const d=sample();
  // Many unique but valid transactions produce a large finance file; keep nutrition and lifting tiny.
- for(let i=0;i<6000;i++)d.transactions.push({
+ for(let i=0;i<3800;i++)d.transactions.push({
   id:'trans-'+i,date:'2026-10-29',kind:'expense',amountCents:100,
   description:'Food purchase unique '+i+' '+('x'.repeat(52)),category:'Groceries'
  });
+ for(let i=0;i<3000;i++)d.foods.push({id:'food-'+i,name:'Food item sample '+i+' '+('z'.repeat(65)),calories:220,protein:20,kind:'food'});
  const parts=sectionPayloads(d);
  const sizes=Object.values(parts).map(x=>new TextEncoder().encode(x).length);
  assert.ok(sizes[2]<MAX_CLOUD_BYTES);
