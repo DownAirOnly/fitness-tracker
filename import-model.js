@@ -1,4 +1,4 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=96';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=98';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
 import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=96';
 import {applyClassificationRuleProposals} from './classification-model.js?v=96';
@@ -404,6 +404,7 @@ export function reviewImport(kind,raw,current,initialErrors=[]){
   if(kind==='json'&&!promptChanged)unchanged++;
   const otherChanges=[];
   if(kind==='json'){
+    if(!same(current.budgetPlan||emptyData().budgetPlan,raw.budgetPlan||emptyData().budgetPlan))otherChanges.push({key:'budgetPlan',label:'Budget and cash-flow plan',from:0,to:1,detail:'Replaces manual balance, monthly limits and scheduled payments'});
     if(!same(current.classificationRules||[],raw.classificationRules||[]))otherChanges.push({key:'classificationRules',label:'Merchant classification rules',from:(current.classificationRules||[]).length,to:(raw.classificationRules||[]).length,detail:'Replaces saved classification rules with the reviewed backup rules'});
     for(const [key,label] of [['exerciseDefinitions','Exercise Library'],['workoutTemplates','Workout templates']]){
       if(!same(current[key],raw[key])){

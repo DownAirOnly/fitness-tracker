@@ -1,14 +1,15 @@
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=96';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=98';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
-import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=96';
+import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=98';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=96';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=96';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=98';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=98';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -50,7 +51,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
-let classificationReviewVisible=50,financeInsightPeriod='all';
+let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7);
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
 const app=document.querySelector('#app');
@@ -207,7 +208,7 @@ function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudCo
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -216,7 +217,7 @@ function render() {
     const offlineOption=!offlineWorkspace?`<section class="panel loading-offline-option"><h2>Need to work offline?</h2><p class="body-copy">Open an Everyday JSON backup in a separate local workspace while cloud access is unavailable.</p>${button('Open offline JSON workspace','offline-start','outline')}</section>`:'';
     shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+offlineOption+error);return;
   }
-  const views={home,food,gym,progress,finances,financeHistory,classificationReview,classificationRules,financeInsights,history,settings};
+  const views={home,food,gym,progress,finances,financeHistory,classificationReview,classificationRules,financeInsights,financeBudget,history,settings};
   shell(views[page]?.()||home());
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
@@ -468,6 +469,100 @@ function financeInsights(){
   financeInsightBreakdown('Merchants',r.merchants,r.expenseCents);
 }
 
+
+const budgetMoney=cents=>(cents<0?'−':'')+formatFinanceAmount(Math.abs(cents));
+const budgetValue=cents=>cents===null?'':(Math.abs(cents)/100).toFixed(2).replace(/\.00$/,'');
+const budgetDollar=value=>{
+ const trimmed=String(value||'').trim(),negative=trimmed.startsWith('-');
+ if(/^[-+]?0(?:\.0{1,2})?$/.test(trimmed))return 0;
+ return(negative?-1:1)*parseFinanceAmount(negative?trimmed.slice(1):trimmed);
+};
+async function budgetCommit(plan){
+ const next=structuredClone(data);next.budgetPlan=normalizeBudgetPlan(plan);
+ const normalized=normalizeData(next);
+ if(account&&!offlineWorkspace)encodeState(normalized);
+ data=normalized;
+ await persist();
+}
+function budgetScheduleForm(rule=null){
+ const r=rule||{id:'',name:'',kind:'expense',amountCents:0,frequency:'monthly',startDate:localDate(),occurrences:{}};
+ modal(rule?'Edit scheduled item':'Schedule a bill or payday','<form class="form" data-form="budget-schedule">'+
+  '<input type="hidden" name="budgetId" value="'+esc(r.id)+'">'+
+  input('Name','budgetName',r.name,'text','maxlength="120" required placeholder="Car payment"')+
+  '<label class="field"><span>Type</span><select name="budgetKind"><option value="expense"'+(r.kind==='expense'?' selected':'')+'>Payment / expense</option>'+
+   '<option value="income"'+(r.kind==='income'?' selected':'')+'>Paycheck / incoming money</option></select></label>'+
+  input('Amount (USD)','budgetAmount',budgetValue(r.amountCents),'text','required inputmode="decimal" placeholder="366.00"')+
+  input('First due date','budgetStartDate',r.startDate,'date','required')+
+  '<label class="field"><span>Repeat</span><select name="budgetFrequency">'+
+   [['once','One time'],['weekly','Weekly'],['biweekly','Every two weeks'],['monthly','Monthly']].map(([value,label])=>
+   '<option value="'+value+'"'+(r.frequency===value?' selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
+  '<p class="hint">Monthly payments repeat on the same day number, or the last day of shorter months. Updating an item preserves already marked payment dates.</p>'+
+  '<button type="submit" class="primary">Save schedule</button></form>');
+}
+function financeBudget(){
+ const plan=data.budgetPlan,day=localDate(),report=budgetForecast(plan,day,35),month=budgetMonth;
+ const limits=budgetMonthSpending(plan,data.transactions||[],month);
+ const events=budgetOccurrences(plan,day,new Date(Date.parse(day+'T00:00:00Z')+35*86400000).toISOString().slice(0,10));
+ const pending=events.filter(e=>e.status==='pending'),upcoming=pending.slice(0,18);
+ const monthText=new Date(month+'-01T12:00:00Z').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+ return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Budget & cash flow<span class="accent">.</span></h1>'+
+  '<p>Plan bills, paydays and spending before they happen. Nothing here is a live bank balance.</p>'+
+  button('← Back to Finances','budget-back','outline finance-history-back')+'</div>'+
+  '<section class="panel budget-overview"><div class="section-head"><div><p class="eyebrow">MANUAL AVAILABLE CASH</p>'+
+  '<h2>'+(plan.balanceCents===null?'Not set':budgetMoney(plan.balanceCents))+'</h2></div>'+
+   button(plan.balanceCents===null?'Set balance':'Update balance','budget-balance','outline')+'</div>'+
+  '<p class="hint">'+(plan.balanceCents===null?'Enter a known available amount to enable forecasting.':
+    'Your own estimate as of end of '+esc(plan.balanceAsOf)+'. Refresh after real bank activity.')+'</p>'+
+  (report.configured?
+   '<div class="budget-metrics"><div><small>Projected in 35 days</small><strong>'+budgetMoney(report.endCents)+'</strong></div>'+
+    '<div><small>Lowest projected balance</small><strong class="'+(report.minimumCents<0?'budget-negative':'')+'">'+budgetMoney(report.minimumCents)+'</strong></div></div>'+
+   (report.shortfall?'<p class="budget-warning" role="status">Projected cash shortfall. Review upcoming payments and your starting balance.</p>':'')+
+   (report.stale?'<p class="budget-warning">Your manual balance is not dated today. The forecast begins from that earlier amount.</p>':''):'')+
+  '<form class="budget-what-if" data-form="budget-scenario"><label class="field"><span>What if I spent…?</span>'+
+   '<input type="text" name="scenarioAmount" inputmode="decimal" placeholder="25.00" required></label>'+
+   '<button class="outline" type="submit"'+(report.configured?'':' disabled')+'>Test purchase</button></form>'+
+  '<p class="hint">Projections use scheduled obligations, not imported transaction totals. Marking a payment paid only removes its planned occurrence; it never creates a bank entry.</p></section>'+
+  '<section class="panel budget-schedules"><div class="section-head"><h2>Upcoming cash flow</h2>'+button('Add bill or payday','budget-schedule-new','primary')+'</div>'+
+   (plan.schedules.length?'<div class="finance-recent-list">'+plan.schedules.map(x=>
+    '<div class="budget-rule-row"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.frequency)+' · '+esc(x.startDate)+
+     ' · '+budgetMoney(x.amountCents)+' '+(x.kind==='income'?'incoming':'outgoing')+'</small></div>'+
+    '<div class="budget-row-actions">'+button('Edit','budget-schedule-edit','text-btn small','data-id="'+esc(x.id)+'"')+
+     button('Remove','budget-schedule-delete','text-btn small','data-id="'+esc(x.id)+'"')+'</div></div>').join('')+'</div>':
+    empty('Add recurring bills and paydays to build your financial calendar.'))+
+   (upcoming.length?'<h3>Next scheduled dates</h3><div class="budget-occurrences">'+upcoming.map(e=>
+    '<div class="budget-event"><div><strong>'+esc(e.name)+'</strong><small>'+esc(e.date)+' · '+(e.kind==='income'?'+':'−')+
+    formatFinanceAmount(e.amountCents)+'</small></div>'+
+    '<div class="budget-row-actions">'+button('Paid','budget-mark-paid','outline small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+
+    button('Skip','budget-mark-skipped','text-btn small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+'</div></div>').join('')+
+    '</div>':'')+
+   (events.some(e=>e.status!=='pending')?'<details class="budget-completed"><summary>Paid or skipped planned dates</summary>'+
+    events.filter(e=>e.status!=='pending').map(e=>'<div class="budget-event"><span>'+esc(e.date)+' · '+esc(e.name)+' · '+esc(e.status)+'</span>'+
+    button('Undo','budget-mark-pending','text-btn small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+'</div>').join('')+'</details>':'')+
+   '<p class="hint">Paid and skipped are manual planning markers—not confirmations from the bank or edits to the transaction ledger.</p></section>'+
+  '<section class="panel budget-limits"><div class="section-head"><div><p class="eyebrow">MONTHLY CATEGORY LIMITS</p><h2>'+esc(monthText)+'</h2></div>'+
+   button('Add category limit','budget-limit-new','primary')+'</div>'+
+   '<label class="field"><span>Month to review</span><input type="month" data-budget-month value="'+esc(month)+'"></label>'+
+   (limits.length?'<div class="finance-insight-breakdown">'+limits.map(row=>{
+    const percent=Math.max(0,Math.min(100,row.percent));
+    return '<div class="finance-insight-breakdown-item"><div class="finance-insight-breakdown-text"><strong>'+esc(row.category)+
+     '</strong><b>'+formatFinanceAmount(row.actualCents)+' / '+formatFinanceAmount(row.limitCents)+'</b></div>'+
+     '<div class="finance-insight-meter"><span style="width:'+percent.toFixed(1)+'%"></span></div>'+
+     '<small>'+(row.remainingCents<0?'Over by '+budgetMoney(-row.remainingCents):budgetMoney(row.remainingCents)+' remaining')+
+     ' · '+row.percent.toFixed(0)+'% used</small>'+
+     '<div class="budget-row-actions">'+button('Edit','budget-limit-edit','text-btn small','data-category="'+esc(row.category)+'"')+
+      button('Remove','budget-limit-delete','text-btn small','data-category="'+esc(row.category)+'"')+'</div></div>';
+   }).join('')+'</div>':empty('Set a monthly category limit to compare with logged expenses.'))+
+   '<p class="hint">Limits use classified expenses from the transaction ledger, not cash-flow projections. Uncategorized expenses can make these totals incomplete.</p></section>';
+}
+function budgetLimitForm(item=null){
+ modal(item?'Edit category limit':'Add category limit','<form class="form" data-form="budget-limit">'+
+  '<input type="hidden" name="previousCategory" value="'+esc(item?.category||'')+'">'+
+  '<label class="field"><span>Category</span><select name="category">'+FINANCE_CATEGORIES.filter(x=>!['Uncategorized','Income','Transfers'].includes(x)).map(x=>
+   '<option value="'+esc(x)+'"'+(item?.category===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></label>'+
+  input('Monthly limit (USD)','budgetAmount',budgetValue(item?.amountCents||0),'text','required inputmode="decimal" placeholder="200.00"')+
+  '<button class="primary" type="submit">Save monthly limit</button></form>');
+}
+
 function finances(){
  return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Finances<span class="accent">.</span></h1><p>Bank records and personal labels, together without losing the originals.</p></div>'+
  '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>New transaction</h2></div><span class="finance-count">USD</span></div>'+
@@ -475,6 +570,9 @@ function finances(){
  '<form class="finance-form" data-form="finance">'+financeFields()+'<button class="primary finance-save" type="submit">Save transaction</button></form>'+
  '<p class="hint">Enter an amount and your own description. Expand for category, subcategory, receipt date/time, and itemization.</p></section>'+
  financeRecent()+
+ '<section class="panel budget-shortcut"><p class="eyebrow">PLAN AHEAD</p><h2>Budget & cash flow</h2>'+
+ '<p>See upcoming bills, paydays, category limits and projected available cash.</p>'+
+ button('Open budget planner','budget-open','primary')+'</section>'+
  '<section class="panel finance-insights-shortcut"><p class="eyebrow">SPENDING</p><h2>Where your money goes</h2>'+
  '<p>See spending by category and merchant with transfers separated.</p>'+
  button('View spending insights','finance-insights-open','primary')+'</section>'+
@@ -1566,6 +1664,7 @@ app.addEventListener('change',event=>{
  if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
 app.addEventListener('change',event=>{
+ if(event.target.matches('[data-budget-month]')){budgetMonth=event.target.value;render();return;}
  if(event.target.dataset.financeInsightPeriod){financeInsightPeriod=event.target.value;render();return;}
  if(event.target.dataset.financeHistoryFilter){
   const field=event.target.dataset.financeHistoryFilter,value=event.target.value;
@@ -1643,7 +1742,7 @@ document.addEventListener('click',async event=>{
     if(await persist()){try{localStorage.setItem('everyday-migrated:'+account.uid,'yes');}catch{}render();}
     return;
   }
-  if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','finance-insights-open','finance-insights-back','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
+  if(!offlineWorkspace&&account&&(cloudRecoveryConflict||(!session?.ready&&!hasLocalCloudFallback()))&&!['home','food','gym','progress','finances','history','settings','account','export','close','finance-insights-open','finance-insights-back','budget-open','budget-back','edit-workout','workout-move','workout-remove','workout-add-picker','workout-add-exercise','food-library','exercise-library','exercise-progress','exercise-progress-all','data-health-details','food-suggest','food-suggest-anchor','food-suggest-more','food-suggest-skip','food-suggest-avoid','food-suggest-exclude','food-suggest-restore','food-suggest-unprefer'].includes(action))return;
   if(action==='classification-select-all'||action==='classification-select-none'){
    if(pendingImport?.kind!=='enrichment')return;
    const ids=pendingImport.groups.flatMap(g=>g.rows.map(row=>row.record.id));
@@ -1668,6 +1767,33 @@ document.addEventListener('click',async event=>{
    const proposals=classificationRuleProposals(data.transactions||[],data.classificationRules||[]);
    const plan=prepareRuleReview(data,proposals);if(!plan.candidate)return alert('Cannot preview suggestions.');
    pendingImport=plan;plan.filename='Saved merchant rules';showImportReview(plan);return;
+  }
+  if(action==='budget-open'){page='financeBudget';render();return;}
+  if(action==='budget-back'){page='finances';render();return;}
+  if(action==='budget-balance'){
+   const p=data.budgetPlan;
+   modal('Update available cash','<form class="form" data-form="budget-balance">'+
+    input('Available balance (USD; negative permitted)','balance',p.balanceCents===null?'':(p.balanceCents/100).toFixed(2),'text','required inputmode="decimal"')+
+    input('Balance is accurate at end of','balanceAsOf',localDate(),'date','required max="'+localDate()+'"')+
+    '<p class="hint">Manually entered value only. Nothing is read from Bank of America or inferred from expenses.</p><button type="submit" class="primary">Use this balance</button></form>');return;
+  }
+  if(action==='budget-schedule-new'){budgetScheduleForm();return;}
+  if(action==='budget-schedule-edit'){budgetScheduleForm(data.budgetPlan.schedules.find(x=>x.id===el.dataset.id));return;}
+  if(action==='budget-schedule-delete'){
+   if(!confirm('Remove this scheduled item and its payment markers? Bank transactions remain untouched.'))return;
+   try{const plan=structuredClone(data.budgetPlan);plan.schedules=plan.schedules.filter(x=>x.id!==el.dataset.id);await budgetCommit(plan);render();}catch(e){alert(e.message);}return;
+  }
+  if(['budget-mark-paid','budget-mark-skipped','budget-mark-pending'].includes(action)){
+   try{const plan=structuredClone(data.budgetPlan),rule=plan.schedules.find(x=>x.id===el.dataset.id);
+    if(!rule)return;const status=action.slice('budget-mark-'.length);
+    if(status==='pending')delete rule.occurrences[el.dataset.date];else rule.occurrences[el.dataset.date]=status;
+    await budgetCommit(plan);render();}catch(e){alert(e.message);}return;
+  }
+  if(action==='budget-limit-new'){budgetLimitForm();return;}
+  if(action==='budget-limit-edit'){budgetLimitForm(data.budgetPlan.categoryLimits.find(x=>x.category===el.dataset.category));return;}
+  if(action==='budget-limit-delete'){
+   if(!confirm('Remove this monthly category limit? Transactions stay unchanged.'))return;
+   try{const plan=structuredClone(data.budgetPlan);plan.categoryLimits=plan.categoryLimits.filter(x=>x.category!==el.dataset.category);await budgetCommit(plan);render();}catch(e){alert(e.message);}return;
   }
   if(action==='finance-insights-open'){page='financeInsights';render();return;}
   if(action==='finance-insights-back'){page='finances';render();return;}
@@ -1962,7 +2088,38 @@ app.addEventListener('submit',async event=>{
     }catch(error){if(token===importReadToken&&form.isConnected&&preview){preview.textContent=error.message;preview.setAttribute('role','alert');}}
     return;
   }
-  if(form.dataset.form==='classification-rule'){
+  if(form.dataset.form==='budget-balance'){
+    try{const plan=structuredClone(data.budgetPlan);plan.balanceCents=budgetDollar(v.balance);
+     plan.balanceAsOf=v.balanceAsOf;await budgetCommit(plan);close(true);render();}
+    catch(error){alert(error.message);}return;
+   }
+   if(form.dataset.form==='budget-limit'){
+    try{const plan=structuredClone(data.budgetPlan);
+     plan.categoryLimits=plan.categoryLimits.filter(x=>x.category!==v.previousCategory&&x.category!==v.category);
+     plan.categoryLimits.push({category:v.category,amountCents:parseFinanceAmount(v.budgetAmount)});
+     await budgetCommit(plan);close(true);render();}
+    catch(error){alert(error.message);}return;
+   }
+   if(form.dataset.form==='budget-schedule'){
+    try{const plan=structuredClone(data.budgetPlan);
+     const existing=plan.schedules.find(x=>x.id===v.budgetId);
+     const row={id:existing?.id||id(),name:String(v.budgetName||'').trim(),kind:v.budgetKind,
+      amountCents:parseFinanceAmount(v.budgetAmount),frequency:v.budgetFrequency,startDate:v.budgetStartDate,
+      occurrences:existing?.occurrences||{}};
+     plan.schedules=existing?plan.schedules.map(x=>x.id===existing.id?row:x):[...plan.schedules,row];
+     await budgetCommit(plan);close(true);render();}
+    catch(error){alert(error.message);}return;
+   }
+   if(form.dataset.form==='budget-scenario'){
+    try{const planned=parseFinanceAmount(v.scenarioAmount),next=forecastPurchase(data.budgetPlan,localDate(),35,planned);
+     modal('Planned purchase','<p class="body-copy">If you spent '+formatFinanceAmount(planned)+' now, your lowest projected cash balance would be <strong>'+
+      budgetMoney(next.minimumCents)+'</strong>, and the 35-day end balance would be <strong>'+budgetMoney(next.endCents)+'</strong>.</p>'+
+      (next.shortfall?'<p class="budget-warning">This scenario forecasts a shortfall.</p>':'')+
+      '<p class="hint">An estimate using manual available cash and scheduled future transactions only. This purchase is not saved.</p>'+
+      button('Close','close','outline'));}
+    catch(error){alert(error.message);}return;
+   }
+   if(form.dataset.form==='classification-rule'){
     try{
      const existing=(data.classificationRules||[]).find(rule=>rule.id===v.ruleId);
      const rule={id:existing?.id||id(),name:String(v.name||'').trim(),matchText:String(v.matchText||'').trim(),
@@ -2115,7 +2272,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if('serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=97',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=98',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';

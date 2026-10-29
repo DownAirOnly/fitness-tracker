@@ -1,0 +1,8 @@
+{
+  "appId": "com.downaironly.everyday",
+  "appName": "Everyday",
+  "webDir": "www",
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}

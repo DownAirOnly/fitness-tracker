@@ -1756,3 +1756,45 @@ html.buddy-active #overlay .modal{z-index:1101}
 [data-theme="dark"] .finance-insight-meter{background:#36513d}
 [data-theme="dark"] .finance-insight-meter span{background:#8dc7a0}
 @media(max-width:355px){.finance-insight-cards{gap:7px}.finance-insight-metric{padding:10px 8px}}
+
+
+/* v98 — daily-use budget and cash-flow planner */
+.budget-shortcut,.budget-overview,.budget-schedules,.budget-limits{margin-bottom:17px}
+.budget-shortcut h2{margin:4px 0 6px}
+.budget-shortcut p:not(.eyebrow){font-size:13px;line-height:1.55;color:#627768;margin:0 0 13px}
+.budget-shortcut button{min-height:43px}
+.budget-overview .section-head,.budget-schedules .section-head,.budget-limits .section-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.budget-overview .section-head button,.budget-schedules .section-head button,.budget-limits .section-head button{min-height:40px;flex-shrink:0}
+.budget-overview h2{font-variant-numeric:tabular-nums;font-size:clamp(23px,6vw,30px);margin:4px 0}
+.budget-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.budget-metrics>div{background:#f3f7f1;border:1px solid #dce9dc;padding:13px 10px;border-radius:11px;min-width:0}
+.budget-metrics small{display:block;font-size:10px;color:#657968;line-height:1.4}
+.budget-metrics strong{display:block;margin-top:6px;font-weight:850;font-size:clamp(16px,5vw,23px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.budget-negative{color:#ad453c}
+.budget-warning{color:#a24735;background:#fceee7;border:1px solid #e9c3b6;border-radius:9px;padding:10px;font-size:12px;line-height:1.5}
+.budget-what-if{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin:14px 0}
+.budget-what-if .field{margin:0;min-width:0}
+.budget-what-if input{min-height:42px;width:100%;font-size:16px}
+.budget-what-if button{min-height:42px}
+.budget-rule-row,.budget-event{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #e4ebe0;padding:12px 0}
+.budget-rule-row>div:first-child,.budget-event>div:first-child{min-width:0;flex:1}
+.budget-rule-row strong,.budget-event strong{font-size:13px;display:block;overflow-wrap:anywhere}
+.budget-rule-row small,.budget-event small{font-size:11px;display:block;margin-top:4px;color:#718674;line-height:1.5}
+.budget-row-actions{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;align-items:center;justify-content:flex-end}
+.budget-row-actions button{font-size:11px;padding:5px 7px;min-height:32px}
+.budget-schedules h3{font-size:13px;margin-top:19px}
+.budget-completed{margin:14px 0;font-size:12px}
+.budget-completed summary{cursor:pointer;font-weight:700}
+.budget-limits>.field{max-width:350px}
+.budget-limits .finance-insight-breakdown{margin:16px 0}
+.budget-limits .budget-row-actions{margin-top:2px}
+[data-theme="dark"] .budget-shortcut p:not(.eyebrow),[data-theme="dark"] .budget-rule-row small,
+[data-theme="dark"] .budget-event small{color:#b5cbbb}
+[data-theme="dark"] .budget-metrics>div{background:#263a2b;border-color:#426149}
+[data-theme="dark"] .budget-metrics small{color:#b4cdb8}
+[data-theme="dark"] .budget-rule-row,[data-theme="dark"] .budget-event{border-color:#3b5542}
+[data-theme="dark"] .budget-warning{background:#4e342f;border-color:#7b554c;color:#ffccb8}
+[data-theme="dark"] .budget-negative{color:#ffaaa0}
+@media(max-width:390px){.budget-schedules .section-head,.budget-limits .section-head{flex-wrap:wrap}
+.budget-schedules .section-head button,.budget-limits .section-head button{width:100%}
+.budget-what-if{grid-template-columns:1fr}.budget-what-if button{width:100%}}

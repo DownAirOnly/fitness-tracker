@@ -32,7 +32,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|demo-mode|cloud-model|durability)\.js\?v=\d+\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+/.test(source),'all static app imports resolved');
@@ -314,6 +314,33 @@ try{
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
+
+ // v98: manual budgeting stays separate from finance transactions, and survives demo persistence.
+ await click('finances');await click('budget-open');
+ assert.ok(document.querySelector('.budget-overview'),'budget planner is reachable');
+ assert.ok(document.querySelector('.budget-overview').textContent.includes('Not set'),'no bank balance is invented');
+ await click('budget-balance');
+ await submit('budget-balance',{balance:'148.14',balanceAsOf:todayCalendarDate()});
+ let savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.balanceCents,14814,'manual available cash is persisted');
+ await click('budget-schedule-new');
+ const nextDay=new Date(Date.parse(todayCalendarDate()+'T00:00:00Z')+86400000).toISOString().slice(0,10);
+ await submit('budget-schedule',{budgetName:'Car payment',budgetKind:'expense',budgetAmount:'366.00',budgetStartDate:nextDay,budgetFrequency:'monthly'});
+ assert.ok(document.querySelector('.budget-occurrences'),'scheduled items appear in cash-flow queue');
+ await click('budget-mark-paid');
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(Object.values(savedBudget.schedules[0].occurrences)[0],'paid','planned occurrence status persists');
+ await click('budget-limit-new');
+ await submit('budget-limit',{category:'Convenience Food',budgetAmount:'100.00'});
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.categoryLimits[0].amountCents,10000);
+ const originalTx=JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions);
+ await submit('budget-scenario',{scenarioAmount:'15.00'});
+ assert.ok(document.querySelector('.modal'),'what-if scenario displays results');
+ await click('close');
+ assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions),originalTx,'plans and simulations never rewrite bank data');
+ await click('budget-back');await click('home');
+
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
  await click('gym');await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
  await click('buddy-choose');

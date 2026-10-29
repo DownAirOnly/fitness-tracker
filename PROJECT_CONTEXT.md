@@ -8,7 +8,7 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v97**, read-only Finance Spending Insights. Confirm merged main, CI and GitHub Pages before claiming v97 is live.
+- **Latest implemented release covered here:** **v98**, Budget and native iOS packaging groundwork. Verify CI and Pages after merge; the native app is not yet compiled or signed.
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. Completed scope: **v91–v95** (Fitness Workless 6). **Next cycle: v96–v100**, suggested title **Fitness Workless 7**. These are release boundaries, not an already approved roadmap.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -58,7 +58,8 @@
 | v94 | iPhone Workout Buddy input fixes: same-tap Setup/Notes focus, 16px text-input minimum, visual viewport keyboard fitting and layout restoration |
 | v95 | Stabilization: interrupted Setup edits preserved as cancelable drafts, version/cache consistency test, and complete v96–v100 handoff |
 | v96 | Finance classification: persisted, review-only merchant rules, targeted ChatGPT CSV corrections with expected-value conflict protection, selectable field-diff preview, Finances/Progress navigation swap |
-| **v97** | **Read-only spending insights:** date-range expense category and merchant totals, convenience spending, separated transfers and income, and classification completeness notices |
+| v97 | Read-only Finance Spending Insights |
+| **v98** | Budget forecast, recurring paydays/bills, category limits, manual balance and what-if; Capacitor scaffolding (not signed) |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -135,6 +136,13 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Preservation:** This release is UI/read-only model only. No migrations, transaction rewrites, new network fetches, or edits to private notebook records, stable IDs, backups or recovery semantics.
 - **Verification still outstanding:** Confirm on real iPhone that v89 app switching and form saves, v90/v91 Finance History, v92–v95 Workout Buddy views, v96 classification review, and v97 insight responsiveness work. Nine-row correction CSV remains unconfirmed applied; request an actual Finances → Export for ChatGPT to reconcile before reporting it complete. Consider additional time range and merchant grouping refinements based on feedback.
 
+## v98 scope and v99 gates
+
+- **Budget:** `budget-model.js` stores an explicit manual balance (including negative values), recurring bills/paydays, per-occurrence Paid/Skipped markers and category monthly limits. The planner never equates bank withdrawals with itemized consumption; planned events are independent of actual ledger entries. Cash projection is an estimate, not a verified bank balance.
+- **Persistence:** `budgetPlan` survives cloud/local/compact backups and legacy notebooks. JSON import reviews budget replacement; during device-to-cloud migration existing cloud budgets take precedence rather than merging separate cash assumptions.
+- **Native packaging:** `native/` has Capacitor 8 configuration and package metadata; `scripts/prepare-native.mjs` creates offline web assets from the PWA release manifest; `NATIVE_IOS.md` details how to compile on macOS. Web sign-in is not verified in WKWebView. No Xcode build, native Firebase login, local data migration, HealthKit or TestFlight provisioning has been completed.
+- **v99 requirements:** unified Home dashboard, native-compatible Firebase authentication, restore/migration of PWA data across isolated storage origins, real macOS Xcode build, iPhone app switching and backup tests. Windows alone cannot build/sign for iOS. Do not claim v100 achieved before signed private iPhone build and on-device tests.
+- **Outstanding:** user has not confirmed applying the nine Bank of America clarifications; real iPhone v89 resume, v92–v95 Buddy and v96–v98 Finance verification remain open.
 ## Open work and candidate priorities — next cycle v96–v100
 
 **These are candidates, NOT an agreed fixed release plan or automatic orders. Re-prioritize with the user's next request.**

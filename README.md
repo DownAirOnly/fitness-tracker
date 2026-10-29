@@ -20,6 +20,13 @@ A small mobile-first web app for food, lifting, and body weight. The home screen
 - Shows uncategorized expense dollars and the current automatic review-flag count. These are incomplete validation signals, **not** evidence all remaining classifications are correct. Bank records use **posted dates** rather than assumed purchase dates.
 - The page works for local, cloud, demo and offline JSON workspaces without saving/migrating records. It does not include budgeting, net-worth claims, personalized savings forecasts, or modifications to private financial information.
 
+## v98 — Everyday Budget and Native iOS groundwork
+
+- **Budget & cash flow:** manual available-cash anchor, 35-day projections, minimum future cash and shortfall warnings, and read-only purchase scenarios.
+- Schedule one-time, weekly, biweekly and monthly expenses/paydays with per-date Paid, Skipped and Undo markers. These are planning records, never bank transactions.
+- Configure monthly category limits based on actual classified expense transactions, excluding transfers and income.
+- Preserves the budget in compact JSON/device/cloud backups; old notebook formats default to an empty budget. Cloud migration retains existing cloud budgets rather than silently merging personal monetary assumptions.
+- Includes a separate Capacitor 8 scaffold (`native/`), deterministic web bundle script (`scripts/prepare-native.mjs`), and `NATIVE_IOS.md`. **No native signing, iPhone build or native authentication is verified yet.**
 ## Run
 
 Requires Node.js 20 or newer. No packages or accounts are needed.
