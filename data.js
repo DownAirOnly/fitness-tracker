@@ -1,5 +1,6 @@
 import {decodeStoredData,encodeStoredData} from './storage-model.js?v=96';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
+import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=98';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -49,7 +50,7 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
@@ -191,6 +192,7 @@ export function normalizeData(input) {
   // Older notebooks had no financial data; absence is not corruption.
   data.transactions=input.transactions===undefined?[]:input.transactions;
   data.classificationRules=normalizeClassificationRules(input.classificationRules);
+  data.budgetPlan=normalizeBudgetPlan(input.budgetPlan);
   if(!Array.isArray(data.transactions)||data.transactions.length>50000)throw new Error('Backup has an invalid transactions section.');
   // Retired travel/day notes are intentionally ignored on backup import.
   // v49 compatibility: body fat was briefly stored on weight records. Migrate it
