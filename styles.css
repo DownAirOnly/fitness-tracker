@@ -1716,3 +1716,12 @@ html.buddy-active #overlay .modal{z-index:1101}
 #buddy-root .buddy-setup-editor input:focus-visible,
 #buddy-root .buddy-notes-wrap textarea:focus-visible,
 #buddy-root .buddy-number-field input:focus-visible{outline:2px solid #739d81;outline-offset:1px}
+
+/* v96 — reviewed classification differences and merchant rule management. */
+.finance-batch-select{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0}
+.finance-batch-select p{flex:1 1 100%;margin:0;font-size:12px}
+.finance-batch-row{display:flex;align-items:flex-start;gap:11px;cursor:pointer}
+.finance-batch-row input[type=checkbox]{margin:2px 0;flex:0 0 18px;width:18px;height:18px}
+.finance-batch-row>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.finance-review-diff small{display:block;line-height:1.5;color:#557663;margin-top:3px}
+[data-theme="dark"] .finance-review-diff small{color:#b8d2bc}
