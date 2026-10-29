@@ -47,7 +47,7 @@ test('atomic shared revision rejects stale writers and missing or mismatched sec
  await write(f,0,d);
  const stale=structuredClone(d);stale.transactions.push({id:'x',date:'2026-10-29',kind:'expense',amountCents:100,description:'Lunch',category:'Restaurants'});
  await write(f,1,stale);
- await assert.rejects(write(f,1,d),CloudConflict);
+ await assert.rejects(write(f,1,d),error=>error?.code==='conflict');
  assert.equal((await readAccountServer(f.sdk,null,uid)).data.transactions.length,1);
  f.docs.delete(refs.sections.lifting);
  await assert.rejects(readAccountServer(f.sdk,null,uid),/missing|differs/i);
