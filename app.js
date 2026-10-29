@@ -230,7 +230,7 @@ function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudCo
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(!account||demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -830,6 +830,17 @@ function financeTransactions(){
   button('Manage merchant rules','classification-rules-open','outline')+'</div>'+
   '<details class="finance-more finance-legacy-csv"><summary>CSV help</summary><div class="finance-import-actions">'+
   button('View CSV example','finance-csv-example','text-btn')+'</div></details></div></details>';
+}
+function financeQuickModal(){
+ modal('Log spending','<p class="home-quick-modal-hint">Record a transaction without leaving this screen. Use Finances for your complete history.</p>'+
+ '<form class="form finance-form home-finance-modal" data-form="finance" data-quick-finance="true">'+financeFields(null,'home-modal')+
+ '<div class="form-actions"><button class="primary finance-save" type="submit">Save transaction</button>'+
+ button('Cancel','close','outline')+'</div></form>');
+}
+function homeSavedToast(label){
+ const overlay=document.querySelector('#overlay');if(!overlay)return;
+ overlay.innerHTML='<div class="home-save-toast" role="status">'+esc(label)+'</div>';
+ setTimeout(()=>{const toast=overlay.querySelector('.home-save-toast');if(toast)toast.remove();},4000);
 }
 function financeEditForm(tx){
  if(!tx)return;
@@ -2050,6 +2061,7 @@ document.addEventListener('click',async event=>{
   }
   if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
+  if(action==='home-log-finance'){financeQuickModal();return;}
   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
@@ -2106,6 +2118,14 @@ document.addEventListener('click',async event=>{
     financeHistoryMonth='all';financeHistoryCategory='all';
     financeHistoryVisible=50;refreshFinanceHistoryList();return;
    }
+  if(action==='home-dashboard-select'){selectHomeDashboard(el.dataset.view);return;}
+  if(action==='home-favorite-log'){
+   const item=el.dataset.origin==='add-saved'?data.foods.find(f=>f.id===el.dataset.id):data.foodEntries.find(e=>e.id===el.dataset.id);
+   if(!item)return;chosenDate=currentTrackingDate();
+   if(el.dataset.origin==='add-saved')foodForm(null,item);
+   else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot()});
+   return;
+  }
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
   if(action.startsWith('health-')){await healthAction(action);return;}
@@ -2524,6 +2544,7 @@ app.addEventListener('submit',async event=>{
      try{
       const saved=await persist();
       if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';render();}
+      else if(form.dataset.quickFinance==='true'){close(true);render();homeSavedToast('Transaction saved');}
      }catch(error){
       financeNotice='Entry remains in this session, but saving needs attention. Export a backup before leaving.';render();
      }finally{
