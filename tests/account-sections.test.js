@@ -65,6 +65,16 @@ test('per-section limit permits whole accounts above 800 KB, but rejects an over
   amountCents:100,description:'Groceries',itemization:'x'.repeat(2700),category:'Groceries'}));
  assert.throws(()=>encodeState(bigger),/finances.*limit/);
 });
+test('weight units are checked across separate Nutrition and Lifting files',()=>{
+ const d=sample();
+ const lifting=exportSection(d,'lifting');
+ assert.equal(lifting.data.weightUnit,'lb');
+ assert.throws(()=>applySection(d,{...lifting,data:{...lifting.data,weightUnit:'kg'}}),/weight unit/i);
+ const nutrition=exportSection(d,'nutrition');nutrition.data.settings.unit='kg';
+ assert.throws(()=>applySection(d,nutrition),/weight unit/i);
+ const adjustedLifting={...lifting,data:{...lifting.data,weightUnit:'kg'}};
+ assert.equal(mergeSections([nutrition,adjustedLifting,exportSection(d,'finances')]).settings.unit,'kg');
+});
 test('legacy combined cloud payload remains readable',()=>{
  const d=sample();
  const old={schemaVersion:1,revision:7,payload:JSON.stringify(d)};
