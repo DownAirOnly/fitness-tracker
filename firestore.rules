@@ -27,6 +27,41 @@ service cloud.firestore {
       // No collection listing, other users' data, or direct deletion.
     }
 
+    // v98.1: three private JSON section files plus one revision manifest.
+    // All four are written atomically by the app; legacy state/main is retained.
+    match /users/{uid}/state/{section} {
+      function owner() {
+        return request.auth != null && request.auth.uid == uid
+          && request.auth.token.email_verified == true;
+      }
+      function validSection() {
+        return section in ['nutrition','lifting','finances']
+          && request.resource.data.keys().hasAll(['schemaVersion','revision','payload','updatedAt'])
+          && request.resource.data.keys().hasOnly(['schemaVersion','revision','payload','updatedAt'])
+          && request.resource.data.schemaVersion == 2
+          && request.resource.data.revision is int
+          && request.resource.data.revision >= 1
+          && request.resource.data.payload is string
+          && request.resource.data.payload.size() <= 800000
+          && request.resource.data.updatedAt == request.time;
+      }
+      function validManifest() {
+        return section == 'manifest'
+          && request.resource.data.keys().hasAll(['schemaVersion','revision','updatedAt'])
+          && request.resource.data.keys().hasOnly(['schemaVersion','revision','updatedAt'])
+          && request.resource.data.schemaVersion == 2
+          && request.resource.data.revision is int
+          && request.resource.data.revision >= 1
+          && request.resource.data.updatedAt == request.time;
+      }
+      allow get: if owner() && section in ['nutrition','lifting','finances','manifest'];
+      allow create: if owner() && (validSection() || validManifest());
+      allow update: if owner() && (validSection() || validManifest())
+        && request.resource.data.revision == resource.data.revision + 1;
+      // Listing and deletion are prohibited. Existing state/main keeps its
+      // original legacy rule, not the split-document validation.
+    }
+
     // The 256-bit random document ID is a revocable submission capability.
     // It is never public, included in backups, or used for account authentication.
     function verifiedOwner(uid) {
