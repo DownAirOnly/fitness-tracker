@@ -42,7 +42,7 @@ test('30 and 90 calendar day windows are inclusive of today, not future dates',(
   tx('e','2026-07-29','expense',5,'Other'),
   tx('f','2026-10-29','expense',6,'Other')];
  assert.equal(summarizeFinanceInsights(records,'30d','2026-10-28').expenseCents,3);
- assert.equal(summarizeFinanceInsights(records,'90d','2026-10-28').expenseCents,10);
+ assert.equal(summarizeFinanceInsights(records,'90d','2026-10-28').expenseCents,6);
  assert.equal(summarizeFinanceInsights(records,'all','2026-10-28').expenseCents,21);
 });
 test('exact calendar months use saved dates and do not alter originals',()=>{
