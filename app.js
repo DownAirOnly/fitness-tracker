@@ -10,7 +10,7 @@ import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=98';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=98.1';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=98.2';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -1474,25 +1474,38 @@ function history() {
 
 function dataDiagnostics(){
  const issues=[],warnings=[];
- let payloadBytes=0;try{payloadBytes=new TextEncoder().encode(JSON.stringify(encodeData(data))).length;}catch(error){issues.push('Current data cannot be encoded: '+error.message);}
+ let usage={sections:{},totalBytes:0};
+ try{
+  usage=accountSectionUsage(data);
+  for(const [section,record]of Object.entries(usage.sections)){
+   if(record.bytes>MAX_CLOUD_BYTES)issues.push(section+' account section exceeds its cloud limit. Export a full backup and reduce this section before saving.');
+   else if(record.percent>=90)warnings.push(section+' account section is '+record.percent.toFixed(1)+'% full. Export a backup and review growth.');
+  }
+ }catch(error){issues.push('Current data cannot be encoded: '+error.message);}
  const defs=data.exerciseDefinitions||[],defIds=new Set(defs.map(e=>e.id));
  for(const w of data.workoutTemplates||[])for(const item of w.exercises||[])if(!defIds.has(item.exerciseId))issues.push(w.name+' references a missing exercise: '+item.exerciseId);
  const foodGroups=new Map();for(const f of data.foods){const key=f.name.trim().toLowerCase();if(!foodGroups.has(key))foodGroups.set(key,[]);foodGroups.get(key).push(f);}
- for(const [name,items] of foodGroups)if(items.length>1)warnings.push('Possible duplicate saved food: '+items[0].name+' ('+items.length+')');
+ for(const items of foodGroups.values())if(items.length>1)warnings.push('Possible duplicate saved food: '+items[0].name+' ('+items.length+')');
  const exerciseGroups=new Map();for(const e of defs){const key=exerciseHistoryKey(e.name,e.equipment);if(!exerciseGroups.has(key))exerciseGroups.set(key,[]);exerciseGroups.get(key).push(e);}
  for(const items of exerciseGroups.values())if(items.length>1)warnings.push('Duplicate exercise definition: '+items[0].name+' / '+equipmentLabel(items[0].equipment));
  const invalidFoodTimes=data.foodEntries.filter(e=>e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47)).length;if(invalidFoodTimes)issues.push(invalidFoodTimes+' food entr'+(invalidFoodTimes===1?'y has':'ies have')+' an invalid time slot.');
  const workoutRefs=(data.workoutTemplates||[]).reduce((n,w)=>n+(w.exercises?.length||0),0);
- const counts={foods:data.foods.length,foodEntries:data.foodEntries.length,lifts:data.lifts.length,weights:data.weights.length,bodyFat:(data.bodyFat||[]).length,exerciseDefinitions:defs.length,workoutTemplates:(data.workoutTemplates||[]).length,workoutRefs,workoutHistory:(data.workoutHistory||[]).length,transactions:(data.transactions||[]).length,notes:(data.notes||[]).length};
- return{issues,warnings,payloadBytes,percent:Math.min(100,payloadBytes/800000*100),counts};
+ const counts={foods:data.foods.length,foodEntries:data.foodEntries.length,lifts:data.lifts.length,weights:data.weights.length,bodyFat:(data.bodyFat||[]).length,exerciseDefinitions:defs.length,workoutTemplates:(data.workoutTemplates||[]).length,workoutRefs,workoutHistory:(data.workoutHistory||[]).length,transactions:(data.transactions||[]).length};
+ return{issues,warnings,usage,counts};
 }
 
 function googleSyncUsagePanel(){
- const d=dataDiagnostics(),pct=d.payloadBytes/800000*100,usedKiB=d.payloadBytes/1024;
- const status=demoMode?'Demo records: not synced':offlineWorkspace?'Offline workspace: not synced':account?(cloudPending||cloudBusy?'Connected; some changes may still be pending':'Connected; estimated payload of current notebook'):'Device-only: estimated payload if synced';
- return '<section class="panel spaced google-sync-usage"><div class="section-head"><div><p class="eyebrow">GOOGLE SYNC</p><h2>Cloud data limit</h2></div><span class="version-badge">'+pct.toFixed(1)+'%</span></div>'+
- '<div class="storage-meter"><div role="progressbar" aria-label="Everyday Google sync payload usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.min(100,pct).toFixed(1)+'"><span style="width:'+Math.min(100,pct).toFixed(1)+'%"></span></div><p><strong>'+usedKiB.toFixed(1)+' KiB</strong> / 781.3 KiB (800,000 bytes)</p></div>'+
- '<p class="hint">'+esc(status)+'. Estimated size of the Everyday data stored in Google Firestore, not your Google-account storage or device browser quota.</p></section>';
+ const d=dataDiagnostics(),sections=d.usage.sections;
+ const status=demoMode?'Demo records: not synced':offlineWorkspace?'Offline workspace: not synced':account?(cloudPending||cloudBusy?'Connected; some changes may still be pending':'Connected; estimated section payloads'):'Device-only: estimated payloads if synced';
+ const labels={nutrition:'Nutrition',lifting:'Lifting',finances:'Finances'};
+ const rows=ACCOUNT_SECTIONS.map(section=>{
+  const entry=sections[section]||{bytes:0,percent:0};
+  const pct=entry.percent,usedKiB=entry.bytes/1024;
+  return '<div class="storage-meter"><p><strong>'+labels[section]+' · '+usedKiB.toFixed(1)+' KiB</strong> / '+(MAX_CLOUD_BYTES/1024).toFixed(1)+' KiB</p>'+
+   '<div role="progressbar" aria-label="'+labels[section]+' cloud payload usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.min(100,pct).toFixed(1)+'"><span style="width:'+Math.min(100,pct).toFixed(1)+'%"></span></div></div>';
+ }).join('');
+ return '<section class="panel spaced google-sync-usage"><div class="section-head"><div><p class="eyebrow">GOOGLE SYNC</p><h2>Cloud section sizes</h2></div><span class="version-badge">3 files</span></div>'+
+ rows+'<p class="hint">'+esc(status)+'. Each file has its own 800,000-byte safety limit; these are actual UTF-8 JSON sizes, not a shared account cap or device storage quota.</p></section>';
 }
 
 function dataHealthPanel(){
@@ -1500,9 +1513,12 @@ function dataHealthPanel(){
  return '<section class="panel spaced data-health-panel"><div class="section-head"><div><p class="eyebrow">DATA HEALTH</p><h2>Diagnostics</h2></div><span class="health-status '+tone+'">'+status+'</span></div><div class="diagnostic-counts"><span><strong>'+d.counts.foodEntries+'</strong><small>food logs</small></span><span><strong>'+d.counts.lifts+'</strong><small>lift logs</small></span><span><strong>'+d.counts.weights+'</strong><small>weights</small></span><span><strong>'+d.counts.bodyFat+'</strong><small>body fat</small></span></div>'+button('View diagnostic details','data-health-details','outline small')+'<p class="hint">Diagnostics are read-only. Nothing is repaired, deleted, or merged automatically.</p></section>';
 }
 function dataHealthDetails(){
- const d=dataDiagnostics(),rows=[['Cloud payload',Math.round(d.payloadBytes/1024)+' KB / ~781 KB'],['Saved foods',d.counts.foods],['Food entries',d.counts.foodEntries],['Exercise definitions',d.counts.exerciseDefinitions],['Workout templates',d.counts.workoutTemplates],['Workout exercise references',d.counts.workoutRefs],['Lift entries',d.counts.lifts],['Weight entries',d.counts.weights],['Body-fat entries',d.counts.bodyFat],['Financial transactions',d.counts.transactions],['Notes',d.counts.notes],['Workout Buddy history',d.counts.workoutHistory]];
- modal('Data diagnostics','<div class="diagnostic-details"><div class="diagnostic-table">'+rows.map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div><section><h3>Errors</h3>'+(d.issues.length?'<ul>'+d.issues.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No structural errors found.</p>')+'</section><section><h3>Things to review</h3>'+(d.warnings.length?'<ul>'+d.warnings.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p class="empty">No duplicate definitions detected.</p>')+'</section></div>');
+ const d=dataDiagnostics();
+ const sizes=ACCOUNT_SECTIONS.map(section=>[section[0].toUpperCase()+section.slice(1)+' cloud JSON',((d.usage.sections[section]?.bytes||0)/1024).toFixed(1)+' KiB / '+(MAX_CLOUD_BYTES/1024).toFixed(1)+' KiB']);
+ const rows=[...sizes,['Total cloud section JSON',(d.usage.totalBytes/1024).toFixed(1)+' KiB (no combined cap)'],['Saved foods',d.counts.foods],['Food entries',d.counts.foodEntries],['Exercise definitions',d.counts.exerciseDefinitions],['Workout templates',d.counts.workoutTemplates],['Workout exercise references',d.counts.workoutRefs],['Lift entries',d.counts.lifts],['Weight entries',d.counts.weights],['Body-fat entries',d.counts.bodyFat],['Financial transactions',d.counts.transactions],['Workout Buddy history',d.counts.workoutHistory]];
+ modal('Data diagnostics','<div class="diagnostic-details"><div class="diagnostic-table">'+rows.map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div><section><h3>Errors</h3>'+(d.issues.length?'<ul>'+d.issues.map(x=>'<li>'+esc(x)+'</li>').join(''):'<p class="empty">No structural errors found.</p>')+'</section><section><h3>Things to review</h3>'+(d.warnings.length?'<ul>'+d.warnings.map(x=>'<li>'+esc(x)+'</li>').join(''):'<p class="empty">No duplicate definitions detected.</p>')+'</section></div>');
 }
+
 function offlineWorkspacePanel(){
   if(demoMode)return '';
   if(offlineWorkspace){
