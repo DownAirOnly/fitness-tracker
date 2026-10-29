@@ -4,7 +4,7 @@
 
 A small mobile-first web app for food, lifting, and body weight. The home screen has two primary actions. On the first visit after 6 a.m. local time each day, it offers a weigh-in with an **Enter later** option. A weigh-in already recorded for today suppresses the prompt.
 
-## v99 — Cash-first Finance UX (development branch; not deployed)
+## v99 — Verification build (passes 1–4, user-requested deployment)
 
 - Finances now opens to an Overview that distinguishes **manually entered available cash** from expected paychecks and planned bills. A 14-day upcoming-bill total and a conditional spending outlook make the important decisions easier to find.
 - The outlook subtracts planned expenses from the entered starting cash and **does not count future income as available cash**. It withholds an estimate when the balance is absent/stale or expenses are not scheduled; it is not a guarantee that every bill was captured.
@@ -12,7 +12,7 @@ A small mobile-first web app for food, lifting, and body weight. The home screen
 - Planning now begins with **manual cash and the next scheduled due dates**; mark expenses Paid or incoming money Received, or use More to skip one date or edit its recurrence. Future and completed dates, recurring schedule definitions, and the 35-day what-if forecast are separated behind expandable sections. Recent unmarked past dates are explicitly *not* bank-verified overdue balances; optional projections hide when your cash date is stale or missing. The monthly category caps remain visible, and the optional ending date survives schedule edits. No existing occurrence statuses or bank transactions are migrated.
 - New model regression tests and updated UI smoke cover these changes, including quick-entry type, compact tools, History filter navigation and Planning mark/undo actions. Finance form submissions are guarded against same-form double submits while persistence runs. No transaction, bill schedule, category, identity, backup format or Firestore document is migrated by the new overview. The native iPhone milestone remains v100.
 - **Home / Food / Lifting UX (v99 pass 4):** Home keeps Food and Lifting as the main actions while providing compact one-tap Log food, Start/Resume Workout Buddy, and Log spending shortcuts. Home food logging always selects today rather than a previously browsed date. Food shows recently recorded portions with **Log again**; the full Food log includes the same action. Repeated entries open a new editable form with the old quantities/macros copied, while the previous log stays intact and Save as new food starts unchecked to avoid library duplicates. The Gym screen exposes a manual-lift entry beside Workout Buddy without changing the workout state machine. The responsive layout and UI smoke tests cover these routes.
-- **Status:** v99 metadata is on the feature branch for testable asset revisions. Do not assume this is live on GitHub Pages or approved for a release.
+- **Verification status:** By user request, PR #15 is being deployed before Pass 5 to test the changes on a real iPhone. This is **not a completed v99 release**. v98.2 is preserved on `rollback-v98-2-before-v99-verification` (SHA `536401acd2ebc3f9e4125cdb8b951c541afc60a9`). Confirm the actual published app, account, sync and records before trusting the test build. Subsequent v99 fixes require fresh asset revisions and a new service-worker cache name.
 
 ## v96 — Reviewed finance classifications & merchant rules
 
