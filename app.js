@@ -1902,7 +1902,7 @@ document.addEventListener('click',async event=>{
   }
   if(action==='finance-insights-open'){page='financeInsights';render();return;}
   if(action==='finance-insights-back'){page='financeTransactions';render();return;}
-  if(action==='finance-history-open'){page='financeHistory';financeHistoryReview='all';financeHistoryVisible=50;render();return;}
+  if(action==='finance-history-open'){page='financeHistory';financeHistoryQuery='';financeHistoryKind='all';financeHistoryMonth='all';financeHistoryCategory='all';financeHistoryReview='all';financeHistorySort='newest';financeHistoryVisible=50;render();return;}
   if(action==='finance-review-open'){page='financeHistory';financeHistoryReview='needs-review';financeHistoryKind='all';financeHistoryMonth='all';financeHistoryCategory='all';financeHistoryQuery='';financeHistoryVisible=50;render();return;}
   if(action==='finance-history-back'){page='financeTransactions';render();return;}
   if(action==='finance-history-more'){financeHistoryVisible+=50;refreshFinanceHistoryList();return;}
