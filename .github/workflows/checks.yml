@@ -25,3 +25,10 @@ jobs:
         run: npm test
       - name: UI smoke tests
         run: npm run test:ui
+      - name: Java 21 for Firestore rule emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Firestore rules and Health sync tests
+        run: npm run test:rules
