@@ -561,7 +561,8 @@ function budgetEventRow(e,today){
  button('More','budget-event-options','outline budget-event-secondary',attrs)+'</div></div>';
 }
 function financeBudget(){
- const plan=data.budgetPlan,day=localDate(),month=budgetMonth,report=budgetForecast(plan,day,35);
+ const plan=data.budgetPlan,day=localDate(),month=budgetMonth;
+ let report;try{report=budgetForecast(plan,day,35);}catch{report={configured:false,stale:true,shortfall:false};}
  const events=budgetOccurrences(plan,budgetDateShift(day,-14),budgetDateShift(day,35));
  const next14=budgetDateShift(day,14);
  const due=events.filter(e=>e.status==='pending'&&e.date<=next14);
