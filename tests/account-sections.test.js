@@ -44,8 +44,8 @@ test('never silently accept unversioned, wrong-section, partial or duplicate fil
  assert.throws(()=>applySection(d,{...valid,data:{transactions:[]}}),/Missing/);
  assert.throws(()=>applySection(d,{...valid,data:{...valid.data,foods:[]}}),/Unexpected/);
  assert.throws(()=>mergeSections([valid,valid]),/exactly once/);
- const bad=exportSection(d,'lifting');bad.data.workoutTemplates[0].exercises[0].exerciseId='unavailable';
- assert.throws(()=>applySection(d,bad),/missing|unknown|invalid/i);
+ const bad=exportSection(d,'finances');bad.data.transactions[0].amountCents=-100;
+ assert.throws(()=>applySection(d,bad),/invalid/i);
 });
 test('per-section limit permits whole accounts above 800 KB, but rejects an oversized section',()=>{
  const d=sample();
@@ -61,8 +61,8 @@ test('per-section limit permits whole accounts above 800 KB, but rejects an over
  assert.ok(sizes.reduce((a,b)=>a+b,0)>MAX_CLOUD_BYTES);
  assert.ok(typeof encodeState(d)==='string');
  const bigger=sample();
- bigger.transactions=[{id:'oversize',date:'2026-10-29',kind:'expense',amountCents:100,
-  description:'x'.repeat(800010),category:'Groceries'}];
+ bigger.transactions=Array.from({length:350},(_,i)=>({id:'large-'+i,date:'2026-10-29',kind:'expense',
+  amountCents:100,description:'Groceries',itemization:'x'.repeat(2700),category:'Groceries'}));
  assert.throws(()=>encodeState(bigger),/finances.*limit/);
 });
 test('legacy combined cloud payload remains readable',()=>{
