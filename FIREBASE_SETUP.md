@@ -12,13 +12,15 @@ The web configuration is public. It cannot publish security rules or enable auth
 
 ## Storage and behavior
 
-`users/{Firebase UID}/state/main` contains a versioned JSON snapshot. Rules require the authenticated, verified owner and a revision increment of exactly one. Signed-out users cannot read anything; collection listing and direct deletion are denied.
+**v98.1 requires publishing updated rules BEFORE deploying the client.** `users/{Firebase UID}/state/manifest` tracks one account-wide revision; `state/nutrition`, `state/lifting`, and `state/finances` store separate private JSON section documents. A legacy `state/main` combined snapshot is retained unchanged during migration. Each new section document is limited to 800,000 bytes. Before updating the app, go to Firebase Console → Firestore Database → Rules, paste the entire updated `firestore.rules`, and Publish. Verify owner access and reject cross-user access, then deploy the client. The web app cannot publish these rules itself.
+
+`users/{Firebase UID}/state/main` previously contained a versioned JSON snapshot. Rules require the authenticated, verified owner and a revision increment of exactly one. Signed-out users cannot read anything; collection listing and direct deletion are denied.
 
 While signed in, Everyday keeps account-scoped last-confirmed and unsaved recovery copies on the device so an iOS process refresh or temporary network loss does not depend on RAM. These copies are cleared on explicit sign-out. The app also requests persistent origin storage when the browser supports it, but that request is best-effort rather than a guarantee. Save errors expose retry/export/load-latest actions. A transaction refuses to overwrite a newer revision from another device; stale edits produce a visible conflict instead of replacing newer data.
 
 Existing local data is never automatically uploaded. In More, a signed-in user can choose **Copy device logs to this account** and confirm the destination email. Repeated migration deduplicates IDs, preserves cloud weigh-ins for the same date, and converts incoming units. The original device copy is retained. Universal CSV imports are additive and can be supplied by file or pasted text; JSON restore is an explicit full replacement and both flows use the confirmation preview.
 
-Current snapshot limit: 800,000 UTF-8 bytes per account (below Firestore's document limit). Larger imports fail before writing and can be exported. A future per-entry schema can lift this limit without changing the sign-in provider.
+Legacy combined snapshot limit: 800,000 UTF-8 bytes. After migration each Nutrition, Lifting, and Finances section has its own 800,000-byte limit. Larger imports fail before writing and can be exported. A future per-entry schema can lift this limit without changing the sign-in provider.
 
 
 ## Apple Health scale bridge
