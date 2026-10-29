@@ -1896,3 +1896,83 @@ html.buddy-active #overlay .modal{z-index:1101}
 .finance-edit-form input[name="category"],.finance-edit-form select,
 .finance-log .finance-extra-fields input,.finance-log .finance-extra-fields select,
 .finance-log .finance-extra-fields textarea{font-size:16px}
+
+/* v99 pass 3 — Planning starts with due dates; recurrence and projections are optional. */
+.budget-page-head{padding-bottom:13px}
+.budget-focus,.budget-attention,.budget-category-caps{margin-bottom:14px}
+.budget-focus .section-head{align-items:center}
+.budget-focus .section-head button{min-height:44px}
+.budget-focus .finance-source{margin:4px 0 11px}
+.budget-cash-glance{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}
+.budget-cash-glance>div{min-width:0;padding:12px;background:#f3f7f1;border:1px solid #dce9da;border-radius:11px}
+.budget-cash-glance small{display:block;font-size:11px;line-height:1.4;color:#617765}
+.budget-cash-glance strong{display:block;margin-top:6px;font-size:clamp(17px,5vw,23px);font-weight:850;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.budget-provenance{font-size:11px;line-height:1.55;color:#667d6c;margin:12px 0 0}
+.budget-attention>.section-head{align-items:center}
+.budget-attention .section-head h2{margin:4px 0 0;font-size:19px}
+.budget-attention .section-head button{min-height:44px;padding:9px 13px}
+.budget-action-event{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0}
+.budget-action-event .budget-event-copy{min-width:0;flex:1}
+.budget-action-event .budget-event-copy small{margin:0 0 4px;font-size:11px}
+.budget-action-event .budget-event-copy strong{font-size:14px;line-height:1.35}
+.budget-event-money{display:block;margin-top:4px;font-variant-numeric:tabular-nums;font-size:13px;font-weight:750}
+.budget-event-money.income{color:#226f43}
+.budget-event-money.expense{color:#93513a}
+.budget-past-event{background:linear-gradient(90deg,rgba(202,106,73,.065),transparent 85%);padding-left:9px;border-left:2px solid #cd8366}
+.budget-attention .budget-action-event .budget-row-actions{gap:5px;flex-wrap:nowrap}
+.budget-attention .budget-event-primary,.budget-attention .budget-event-secondary{font-size:12px;min-height:44px;padding:8px 11px;white-space:nowrap}
+.budget-attention .budget-event-secondary{background:transparent}
+.budget-feedback{margin:12px 0;padding:10px 12px;background:#edf5ed;border-radius:9px;font-size:12px;line-height:1.4;color:#32623d}
+.budget-drawer{margin:12px 0}
+.budget-drawer>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;cursor:pointer;min-height:46px;padding:11px 2px;font-size:13px;font-weight:750}
+.budget-drawer>summary::-webkit-details-marker{display:none}
+.budget-drawer>summary::after{content:'+';font-size:23px;font-weight:400;flex:none;color:#69806e}
+.budget-drawer[open]>summary::after{content:'−'}
+.budget-drawer>summary strong,.budget-drawer>summary small{display:block}
+.budget-drawer>summary strong{font-size:14px}
+.budget-drawer>summary small{font-size:11px;line-height:1.5;color:#738575;font-weight:450;margin-top:3px}
+.budget-drawer>summary:focus-visible,.budget-inline-tools>summary:focus-visible{outline:3px solid #83b08f;outline-offset:2px;border-radius:8px}
+.budget-future,.budget-completed{border-top:1px solid #e1e8dd}
+.budget-completed{font-size:inherit}
+.budget-done-event{gap:10px}
+.budget-done-event>div{min-width:0}
+.budget-done-event .budget-event-done-state{font-size:12px;color:#3b754e;display:block;margin-top:4px}
+.budget-done-event button{min-height:44px;padding:9px 12px}
+.budget-manage-rules,.budget-forecast-drawer{padding:0;margin-bottom:14px}
+.budget-manage-rules>summary,.budget-forecast-drawer>summary{padding:15px 17px;min-height:65px}
+.budget-drawer-inner{padding:0 17px 16px}
+.budget-manage-rules .budget-rule-row{gap:10px}
+.budget-manage-rules .budget-rule-row .budget-row-actions{flex-wrap:nowrap}
+.budget-manage-rules .budget-rule-row button{min-height:44px;padding:9px 11px}
+.budget-add-rule{min-height:44px;margin-top:11px;width:100%}
+.budget-category-caps .section-head{align-items:center;gap:9px}
+.budget-category-caps .section-head button{min-height:44px}
+.budget-category-caps .section-head h2{margin:3px 0 0;font-size:19px}
+.budget-month-select{max-width:260px}
+.budget-month-select input{min-height:44px;font-size:16px}
+.budget-category-item{padding:4px 0 8px;border-bottom:1px solid #e2eade}
+.budget-inline-tools{margin:5px 0 0}
+.budget-inline-tools>summary{min-height:40px;cursor:pointer;display:inline-flex;align-items:center;font-size:11px;font-weight:750;color:#4c7458}
+.budget-inline-tools .budget-row-actions{justify-content:flex-start;margin:2px 0 6px}
+.budget-inline-tools .budget-row-actions button{min-height:44px;padding:8px 13px}
+.budget-forecast-drawer .budget-metrics{margin:7px 0 12px}
+.budget-empty-forecast{font-size:12px;line-height:1.55;color:#657b68}
+.budget-forecast-drawer .budget-what-if input{font-size:16px}
+.budget-forecast-drawer .budget-what-if button{min-height:44px}
+[data-theme="dark"] .budget-cash-glance>div{background:#273e2e;border-color:#435b49}
+[data-theme="dark"] .budget-cash-glance small,[data-theme="dark"] .budget-provenance,[data-theme="dark"] .budget-drawer>summary small,[data-theme="dark"] .budget-empty-forecast{color:#b7caba}
+[data-theme="dark"] .budget-drawer>summary::after{color:#b5c9b8}
+[data-theme="dark"] .budget-future,[data-theme="dark"] .budget-completed,[data-theme="dark"] .budget-category-item{border-color:#395342}
+[data-theme="dark"] .budget-event-money.income,[data-theme="dark"] .budget-done-event .budget-event-done-state{color:#96d9ad}
+[data-theme="dark"] .budget-event-money.expense{color:#e8a68a}
+[data-theme="dark"] .budget-past-event{background:linear-gradient(90deg,rgba(201,131,99,.12),transparent 85%);border-left-color:#c78771}
+[data-theme="dark"] .budget-feedback{background:#25432d;color:#b7dabe}
+[data-theme="dark"] .budget-inline-tools>summary{color:#b1d8bd}
+@media(max-width:390px){
+ .budget-attention .section-head button{width:auto;min-width:68px}
+ .budget-action-event{align-items:center}
+ .budget-attention .budget-event-primary,.budget-attention .budget-event-secondary{font-size:11px;padding:8px 9px}
+ .budget-manage-rules .budget-rule-row{align-items:flex-start;flex-wrap:wrap}
+ .budget-manage-rules .budget-rule-row .budget-row-actions{width:100%;justify-content:flex-start}
+ .budget-category-caps .section-head button{width:auto}
+}
