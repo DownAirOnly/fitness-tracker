@@ -1,10 +1,10 @@
-import {decodeState, encodeState, nextRecord, CloudConflict} from './cloud-model.js?v=85';
+import {encodeState,CloudConflict} from './cloud-model.js?v=98.1';
+import {sectionRefs,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=98.1';
 import {planHealthWeight,shortcutURL} from './health-model.js?v=85';
 
 export function healthBridge({db,auth,sdk,projectId}) {
   const config=uid=>sdk.doc(db,'users',uid,'integrations','appleHealth');
   const bridge=token=>sdk.doc(db,'weightBridges',token);
-  const state=uid=>sdk.doc(db,'users',uid,'state','main');
   const owner=uid=>{if(auth.currentUser?.uid!==uid)throw Error('Account changed.');};
   return {
     url:token=>shortcutURL(projectId,token),
@@ -36,13 +36,12 @@ export function healthBridge({db,auth,sdk,projectId}) {
         if(!inbox.exists())throw Error('Weight connection is missing. Reconnect it in Settings.');
         const sample=inbox.data().sample;
         if(!sample)return {enabled:true,token:options.token,status:options.status};
-        const snapshot=await tx.get(state(uid)),record=snapshot.exists()?snapshot.data():null;
-        const decoded=decodeState(record);
+        const refs=sectionRefs(sdk,db,uid),decoded=await readAccountTransaction(tx,refs);
         if(decoded.revision!==expectedRevision)throw new CloudConflict();
         const plan=planHealthWeight(decoded.data,sample,options.lastRecordedAt||'',options.lastBodyFatRecordedAt||'');
         if(plan.lastRecordedAt===(options.lastRecordedAt||'')&&plan.lastBodyFatRecordedAt===(options.lastBodyFatRecordedAt||''))return {enabled:true,token:options.token,status:options.status};
         let next=null;
-        if(plan.changed){next=nextRecord(record,expectedRevision,encodeState(plan.candidate));tx.set(state(uid),{...next,updatedAt:sdk.serverTimestamp()});}
+        if(plan.changed)next=commitAccountTransaction(tx,refs,decoded,expectedRevision,encodeState(plan.candidate),sdk);
         const nextOptions={...options,lastRecordedAt:plan.lastRecordedAt,status:plan.status};if(plan.lastBodyFatRecordedAt)nextOptions.lastBodyFatRecordedAt=plan.lastBodyFatRecordedAt;tx.set(config(uid),nextOptions);
         return {enabled:true,token:options.token,status:plan.status,...(next?{data:plan.candidate,revision:next.revision}:{})};
       });

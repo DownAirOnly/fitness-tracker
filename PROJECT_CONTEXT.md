@@ -8,7 +8,7 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Latest implemented release covered here:** **v98**, Budget and native iOS packaging groundwork. Verify CI and Pages after merge; the native app is not yet compiled or signed.
+- **Latest proposed release covered here:** **v98.1**, three separate account JSON files. This is **not deployed until the Firestore rules are published and verified**. Check merge and Pages.
 - **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. Completed scope: **v91–v95** (Fitness Workless 6). **Next cycle: v96–v100**, suggested title **Fitness Workless 7**. These are release boundaries, not an already approved roadmap.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
@@ -60,6 +60,7 @@
 | v96 | Finance classification: persisted, review-only merchant rules, targeted ChatGPT CSV corrections with expected-value conflict protection, selectable field-diff preview, Finances/Progress navigation swap |
 | v97 | Read-only Finance Spending Insights |
 | **v98** | Budget forecast, recurring paydays/bills, category limits, manual balance and what-if; Capacitor scaffolding (not signed) |
+| **v98.1 (pending)** | Three private Firestore sections and one revision manifest; per-section exports and reviewed restores; legacy migration retained |
 
 The README includes granular older Workout Buddy and fitness feature versions; consult it only as needed.
 
@@ -136,6 +137,12 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Preservation:** This release is UI/read-only model only. No migrations, transaction rewrites, new network fetches, or edits to private notebook records, stable IDs, backups or recovery semantics.
 - **Verification still outstanding:** Confirm on real iPhone that v89 app switching and form saves, v90/v91 Finance History, v92–v95 Workout Buddy views, v96 classification review, and v97 insight responsiveness work. Nine-row correction CSV remains unconfirmed applied; request an actual Finances → Export for ChatGPT to reconcile before reporting it complete. Consider additional time range and merchant grouping refinements based on feedback.
 
+## v98.1 status — manual rules deployment gate
+
+- **Cloud:** `account-sections.js` defines complete `nutrition`, `lifting`, `finances` JSON sections. The Firestore adapter reads legacy state/main when no manifest exists and atomically writes the three versioned docs plus `state/manifest`, all at a single revision; state/main is not deleted. Apple Health Shortcut reads/writes the same revision.
+- **Backups:** Settings provides separate downloads and a checked, replacing import for one to three sections. All selected sections are applied together, after a clear preview; other sections stay untouched. Full legacy JSON backup remains supported.
+- **Critical deployment dependency:** Firestore production rules currently may not authorize `state/manifest`, `state/nutrition`, `state/lifting` or `state/finances`. The repository `firestore.rules` must be published and tested in Firebase Console *before merging/deploying the v98.1 client*. Changing the public repo does not publish Firebase security rules.
+- **Native integration:** The section contract will allow a verified account or local-backup transition to iPhone while retaining stable IDs. No Xcode compilation or native data migration is claimed.
 ## v98 scope and v99 gates
 
 - **Budget:** `budget-model.js` stores an explicit manual balance (including negative values), recurring bills/paydays, per-occurrence Paid/Skipped markers and category monthly limits. The planner never equates bank withdrawals with itemized consumption; planned events are independent of actual ledger entries. Cash projection is an estimate, not a verified bank balance.

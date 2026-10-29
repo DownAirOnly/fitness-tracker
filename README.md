@@ -27,6 +27,14 @@ A small mobile-first web app for food, lifting, and body weight. The home screen
 - Configure monthly category limits based on actual classified expense transactions, excluding transfers and income.
 - Preserves the budget in compact JSON/device/cloud backups; old notebook formats default to an empty budget. Cloud migration retains existing cloud budgets rather than silently merging personal monetary assumptions.
 - Includes a separate Capacitor 8 scaffold (`native/`), deterministic web bundle script (`scripts/prepare-native.mjs`), and `NATIVE_IOS.md`. **No native signing, iPhone build or native authentication is verified yet.**
+## v98.1 — Three account JSON files (rules deployment required)
+
+- **Per-account cloud format:** Nutrition, Lifting, and Finances are stored as three separate private Firestore JSON documents alongside an atomic revision manifest. Saving one notebook revision updates all three together. The old `users/{uid}/state/main` combined document is retained as a read-only migration fallback. This is not a storage purge.
+- **Separate JSON files:** Settings → Import & backup provides Export Nutrition JSON, Export Lifting JSON, Export Finances JSON, and Import separate JSON files (one, two or three). A section file has `format: "everyday-section-v1"`, `section`, and a complete `data` object. Importing replaces only selected sections with explicit review; unselected sections are preserved.
+- **Schema:** Nutrition contains settings, food definitions/entries, weight/body-fat records and prompt date. Lifting contains exercise definitions, workout templates, lift logs, active workout and workout history. Finances contains transactions, merchant classification rules and budget plan.
+- **Migration:** Existing signed-in notebooks are first read from legacy `state/main` until the first successful signed-in save after new rules are published. Migration is atomic; the legacy document remains unchanged. Each section is limited to 800,000 UTF-8 bytes. Accounts need the updated `firestore.rules` **published before this client update is deployed**, or cloud reads/writes will be denied.
+- **Apple Health:** The Shortcut bridge now shares the atomic section revision, and maintains existing duplicate prevention and account conflict detection.
+- **v100:** This structure also establishes the JSON contract for native PWA-to-iOS migration; it does not prove a native app can yet be signed or installed.
 ## Run
 
 Requires Node.js 20 or newer. No packages or accounts are needed.
