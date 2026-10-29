@@ -10,7 +10,7 @@ import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=98';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=98';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState} from './cloud-model.js?v=98.1';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -175,7 +175,10 @@ function checkLatestRelease(){
       const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store',signal:controller.signal});
       if(!response.ok)return;
       const manifest=await response.json(),next=manifest?.version;
-      if(!/^v\d+$/.test(next)||Number(next.slice(1))<=Number(APP_VERSION.slice(1)))return;
+      if(!/^v\d+(?:\.\d+)?$/.test(next))return;
+      const number=v=>v.slice(1).split('.').map(Number);
+      const [nextMajor,nextMinor=0]=number(next),[currentMajor,currentMinor=0]=number(APP_VERSION);
+      if(nextMajor<currentMajor||(nextMajor===currentMajor&&nextMinor<=currentMinor))return;
       latestRelease=next;
       if('serviceWorker' in navigator){
         void navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
@@ -2383,7 +2386,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=85');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=98.1');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
