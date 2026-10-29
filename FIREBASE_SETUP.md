@@ -10,6 +10,10 @@ Project: `everyday-fitness-cbf4a`. The app remains hosted on GitHub Pages.
 
 The web configuration is public. It cannot publish security rules or enable authentication providers. Never paste a service account private key into the app or the public repository.
 
+## v98.2 rules hardening — publish before merging
+
+The v98.1 three-section permissions are already deployed. For v98.2, publish the **new complete** `firestore.rules` from the v98.2 branch before the client PR is merged: `payload.toUtf8().size() <= 800000` ensures Firestore security rules measure actual UTF-8 bytes rather than character count. The client already enforces an 800,000-byte limit for each independent JSON section. No document paths or user data are migrated again by this update. Confirm ordinary sign-in and saves after publishing; the emulator test now rejects oversized multibyte JSON values.
+
 ## Storage and behavior
 
 **v98.1 requires publishing updated rules BEFORE deploying the client.** `users/{Firebase UID}/state/manifest` tracks one account-wide revision; `state/nutrition`, `state/lifting`, and `state/finances` store separate private JSON section documents. A legacy `state/main` combined snapshot is retained unchanged during migration. Each new section document is limited to 800,000 bytes. Before updating the app, go to Firebase Console → Firestore Database → Rules, paste the entire updated `firestore.rules`, and Publish. Verify owner access and reject cross-user access, then deploy the client. The web app cannot publish these rules itself.
