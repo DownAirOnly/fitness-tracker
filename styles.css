@@ -1890,3 +1890,9 @@ html.buddy-active #overlay .modal{z-index:1101}
 [data-theme="dark"] .finance-filter-chip.selected{background:#31533a;color:#e1f4e2;border-color:#82ae8e}
 [data-theme="dark"] .finance-history-more{border-color:#395441}
 @media(max-width:390px){.finance-activity-title{gap:8px}.finance-activity-title button{padding:7px 10px}.finance-activity-links{gap:6px}.finance-filter-chip{padding:9px 11px}}
+
+/* Keep iOS Quick Log and edit inputs at or above Safari's 16px focus threshold. */
+.finance-log input[name="description"],.finance-edit-form input[name="description"],
+.finance-edit-form input[name="category"],.finance-edit-form select,
+.finance-log .finance-extra-fields input,.finance-log .finance-extra-fields select,
+.finance-log .finance-extra-fields textarea{font-size:16px}
