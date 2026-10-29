@@ -1505,7 +1505,7 @@ function googleSyncUsagePanel(){
    '<div role="progressbar" aria-label="'+labels[section]+' cloud payload usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.min(100,pct).toFixed(1)+'"><span style="width:'+Math.min(100,pct).toFixed(1)+'%"></span></div></div>';
  }).join('');
  return '<section class="panel spaced google-sync-usage"><div class="section-head"><div><p class="eyebrow">GOOGLE SYNC</p><h2>Cloud section sizes</h2></div><span class="version-badge">3 files</span></div>'+
- rows+'<p class="hint">'+esc(status)+'. Each file has its own 800,000-byte safety limit; these are actual UTF-8 JSON sizes, not a shared account cap or device storage quota.</p></section>';
+ rows+'<p class="hint">'+esc(status)+'. Each file has its own 800,000-byte safety limit; these are actual UTF-8 JSON sizes, not a shared account cap or browser quota.</p></section>';
 }
 
 function dataHealthPanel(){
