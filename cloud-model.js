@@ -1,4 +1,4 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=96';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=98';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -23,7 +23,7 @@ export function nextRecord(current,expected,payload) {
 export function hasRecords(data) { return ['foods','foodEntries','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
 export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
- return hasRecords(data)||(data.classificationRules||[]).length>0||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
+ return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
   JSON.stringify(data.exerciseDefinitions||[])!==JSON.stringify(defaults.exerciseDefinitions)||
   JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates);
 }
@@ -206,6 +206,8 @@ export function planDeviceMigration(cloud,device) {
   else ruleIds.add(copy.id);
   candidate.classificationRules.push(copy);
  }
+ // Cash-flow plans are unique per notebook. Copy only when cloud plan is blank; never merge monetary assumptions.
+ if(signature(candidate.budgetPlan)===signature(emptyData().budgetPlan))candidate.budgetPlan=structuredClone(incoming.budgetPlan);
  // Validate all routine references and the encoded cloud payload BEFORE saving.
  // This rejects invalid merges atomically, including oversize backups.
  const verified=normalizeData(candidate);
