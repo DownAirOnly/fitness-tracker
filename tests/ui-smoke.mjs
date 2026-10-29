@@ -367,35 +367,81 @@ try{
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
 
- // v98: manual budgeting stays separate from finance transactions, and survives demo persistence.
+ // v98–v99: Planning is action-first and never mutates the bank ledger.
  await click('finances');await click('budget-open');
- assert.ok(document.querySelector('.budget-overview'),'budget planner is reachable');
+ assert.ok(document.querySelector('.budget-overview'),'planner is reachable');
  assert.ok(document.querySelector('.budget-overview').textContent.includes('Not set'),'no bank balance is invented');
+ assert.ok(document.querySelector('.budget-attention'),'unmarked due dates are prioritized');
+ assert.equal(document.querySelector('.budget-manage-rules').open,false,'recurrence definitions are collapsed');
+ assert.equal(document.querySelector('.budget-forecast-drawer').open,false,'optional forecast is collapsed');
+ assert.ok(document.querySelector('.budget-category-caps'),'monthly spending caps remain available');
  await click('budget-balance');
  await submit('budget-balance',{balance:'148.14',balanceAsOf:todayCalendarDate()});
  let savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(savedBudget.balanceCents,14814,'manual available cash is persisted');
+ assert.equal(savedBudget.balanceCents,14814,'manual available cash persists');
  await click('budget-schedule-new');
  const nextDay=new Date(Date.parse(todayCalendarDate()+'T00:00:00Z')+86400000).toISOString().slice(0,10);
- await submit('budget-schedule',{budgetName:'Car payment',budgetKind:'expense',budgetAmount:'366.00',budgetStartDate:nextDay,budgetFrequency:'monthly'});
- assert.ok(document.querySelector('.budget-occurrences'),'scheduled items appear in cash-flow queue');
+ await submit('budget-schedule',{budgetName:'Car payment',budgetKind:'expense',budgetAmount:'366.00',
+  budgetStartDate:nextDay,budgetFrequency:'monthly'});
+ assert.ok(document.querySelector('.budget-occurrences'),'unmarked planned dates appear');
+ assert.ok(document.querySelector('.budget-action-event').textContent.includes('Car payment'));
+ assert.ok(document.querySelector('.budget-event-primary').textContent.includes('Paid'),'expense action says Paid');
+ assert.ok(document.querySelector('.budget-cash-glance').textContent.includes('$366.00'),'near-term planned bills summarized');
+ assert.ok(document.querySelector('.budget-manage-rules').textContent.includes('Car payment'),'recurring schedule shown separately');
  await click('finances');
  assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('$148.14'),'only entered cash appears as available');
- assert.ok(document.querySelector('.finance-glance-cards').textContent.includes('$366.00'),'planned bills visible on overview');
- assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('−$217.86'),'future shortfall is shown without counting income');
+ assert.ok(document.querySelector('.finance-glance-cards').textContent.includes('$366.00'),'planned bills shown on Overview');
+ assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('−$217.86'),'shortfall does not count expected income');
  await click('budget-open');
  await click('budget-mark-paid');
  savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(Object.values(savedBudget.schedules[0].occurrences)[0],'paid','planned occurrence status persists');
+ assert.equal(Object.values(savedBudget.schedules[0].occurrences)[0],'paid','payment marker persists');
+ assert.ok(document.querySelector('.budget-done-event').textContent.includes('Paid'),'completed expense labeled Paid');
+ await click('budget-mark-pending');
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.deepEqual(savedBudget.schedules[0].occurrences,{},'Undo restores the unmarked occurrence, not the rule');
+ await click('budget-mark-paid');
+ await click('budget-schedule-new');
+ await submit('budget-schedule',{budgetName:'Payday',budgetKind:'income',budgetAmount:'1200.00',
+  budgetStartDate:nextDay,budgetFrequency:'once'});
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ const payday=savedBudget.schedules.find(r=>r.name==='Payday');
+ assert.ok(payday&&payday.kind==='income','income plan stored separately');
+ assert.ok(document.querySelector('.budget-action-event').textContent.includes('Payday'));
+ assert.ok(document.querySelector('.budget-event-primary').textContent.includes('Received'),'incoming money action says Received');
+ const options=document.querySelector('[data-action="budget-event-options"][data-id="'+payday.id+'"]');
+ options.click();await tick();
+ assert.ok(document.querySelector('.modal').textContent.includes('Skip this date'),'contextual action menu opens');
+ await click('budget-mark-skipped');
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.schedules.find(r=>r.id===payday.id).occurrences[nextDay],'skipped','Skip marks one date');
+ assert.equal(document.querySelector('.modal'),null,'context menu closes after commit');
+ document.querySelector('[data-action="budget-mark-pending"][data-id="'+payday.id+'"]').click();await tick();
+ const receive=document.querySelector('[data-action="budget-mark-paid"][data-id="'+payday.id+'"]');
+ assert.ok(receive?.textContent.includes('Received'));
+ receive.click();await tick();
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.schedules.find(r=>r.id===payday.id).occurrences[nextDay],'paid','Received uses legacy paid marker');
+ assert.ok([...document.querySelectorAll('.budget-done-event')].some(e=>e.textContent.includes('Received')),'income completion shown as Received');
+ assert.ok(document.querySelector('.budget-forecast-drawer').textContent.includes('Not safe-to-spend'),'forecast is not an available-cash claim');
  await click('budget-limit-new');
  await submit('budget-limit',{category:'Convenience Food',budgetAmount:'100.00'});
  savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
  assert.equal(savedBudget.categoryLimits[0].amountCents,10000);
+ assert.ok(document.querySelector('.budget-inline-tools'),'limit management is contextual');
+ const car=savedBudget.schedules.find(r=>r.name==='Car payment');
+ await click('budget-schedule-edit');
+ const endsOn=new Date(Date.parse(nextDay+'T00:00:00Z')+35*86400000).toISOString().slice(0,10);
+ await submit('budget-schedule',{budgetId:car.id,budgetName:'Car payment',budgetKind:'expense',
+  budgetAmount:'366.00',budgetStartDate:nextDay,budgetFrequency:'monthly',budgetEndDate:endsOn});
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.schedules.find(r=>r.id===car.id).endDate,endsOn,'recurrence ending date persists');
+ assert.equal(savedBudget.schedules.find(r=>r.id===car.id).occurrences[nextDay],'paid','editing schedule preserves marked dates');
  const originalTx=JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions);
  await submit('budget-scenario',{scenarioAmount:'15.00'});
- assert.ok(document.querySelector('.modal'),'what-if scenario displays results');
+ assert.ok(document.querySelector('.modal'),'what-if scenario remains available');
  await click('close');
- assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions),originalTx,'plans and simulations never rewrite bank data');
+ assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions),originalTx,'plans and markers never edit transactions');
  await click('budget-back');await click('home');
 
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
