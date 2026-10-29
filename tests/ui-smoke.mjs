@@ -33,7 +33,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+)?\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+)?\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+)?\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+)?/.test(source),'all static app imports resolved');
@@ -64,6 +64,17 @@ try{
   assert.equal(document.querySelectorAll('nav.nav [data-action="settings"]').length,0,'no Settings bottom tab');
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('finances');
+  assert.equal(document.querySelectorAll('.finance-section-link').length,3,'Finances offers Overview, Transactions, Planning');
+  assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('Not entered'),'no imaginary balance on Overview');
+  assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('Not enough information'),'no invented spending allowance');
+  assert.ok(document.querySelector('.finance-glance-card').textContent.includes('Not scheduled'),'future income is not assumed');
+  await click('finance-transactions-open');
+  assert.ok(document.querySelector('form[data-form="finance"]'),'Transactions keeps quick logging');
+  assert.ok(document.querySelector('.finance-quick-kind [name="kind"]'),'Expense/Income/Transfer is immediately accessible');
+  assert.ok(!document.querySelector('.finance-quick-kind [name="kind"]').closest('.finance-more'),'type is outside advanced details');
+  assert.equal(document.querySelector('.finance-workflows').open,false,'bank import and classification tools are collapsed');
+  assert.ok(document.querySelector('.finance-workflows [data-action="finance-bofa-import"]'),'bank import is preserved');
+  assert.ok(document.querySelector('.finance-workflows [data-action="finance-enrichment-paste"]'),'enrichment is preserved');
   await click('classification-rules-open');
   await click('classification-new');
   await submit('classification-rule',{name:'Test water',matchField:'bankDescription',matchText:'WAWA',
@@ -108,12 +119,26 @@ try{
   assert.equal(document.querySelector('header.top .home-settings').getAttribute('aria-current'),'page','Settings gear active');
   await click('home');
   assert.ok(document.querySelector('.home-actions'),'Home navigation still works');
+  assert.equal(document.querySelectorAll('.home-quick-button').length,3,'Home has three direct log actions');
+  await click('home-log-food');
+  assert.ok(document.querySelector('form[data-form="food"]'),'Home Log food opens the actual Food form');
+  assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home shortcut opens today rather than an older selected date');
+  await click('close');
+  await click('buddy-launch');
+  assert.ok(document.querySelector('.buddy-start-list'),'Home Start workout opens the existing Workout Buddy picker');
+  await click('close');
+  await click('finance-transactions-open');
+  assert.ok(document.querySelector('form[data-form="finance"]'),'Home spending shortcut opens real Finance logging');
+  await click('home');
 
   // v83: Quick Log uses exact cents; calendar date changes cannot navigate to Food.
-  await click('finances');
+  await click('finances');await click('finance-transactions-open');
   assert.ok(document.querySelector('[data-action="finance-paste-csv"]'),'prepared CSV entry point exists');
   const financeForm=document.querySelector('form[data-form="finance"]');
   assert.ok(financeForm.querySelector('[name="amount"]'));
+  financeForm.elements.kind.value='income';
+  assert.equal(financeForm.elements.kind.value,'income','income is selectable in quick entry');
+  financeForm.elements.kind.value='expense';
   financeForm.elements.date.value='2026-10-26';
   financeForm.elements.date.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
   await tick();
@@ -213,6 +238,22 @@ try{
   assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
   assert.equal(document.querySelector('[data-finance-history-summary]').textContent,'2 of 2 transactions');
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finance nav remains selected in its subview');
+  assert.equal(document.querySelector('.finance-history-more').open,false,'advanced filters start collapsed');
+  assert.equal(document.querySelectorAll('.finance-filter-chip').length,5,'history offers quick filter chips');
+  document.querySelector('[data-preset="income"]').click();await tick();
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'income chip filters without advanced settings');
+  assert.equal(document.querySelector('[data-preset="income"]').getAttribute('aria-pressed'),'true','active chip state is accessible');
+  document.querySelector('[data-preset="review"]').click();await tick();
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'review chip lists flagged purchases');
+  assert.equal(document.querySelector('[data-finance-history-filter="review"]').value,'needs-review');
+  document.querySelector('[data-preset="all"]').click();await tick();
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'all chip clears quick review filter');
+  const priorMonth=document.querySelector('[data-finance-history-filter="month"]');
+  priorMonth.value='2026-10';priorMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+  assert.equal(priorMonth.value,'2026-10','advanced month is selected');
+  document.querySelector('[data-preset="all"]').click();await tick();
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'quick All clears hidden advanced month');
+  assert.equal(priorMonth.value,'all','advanced dropdown syncs with quick chip');
   const historySearch=document.querySelector('[data-finance-history-search]');
   historySearch.value='365 MARKET';historySearch.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
   await tick();assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,1,'search includes original bank description');
@@ -336,35 +377,113 @@ try{
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
+ // v99 pass 4: repeating a saved log opens a NEW editable record; never edits its source.
+ await click('food');
+ assert.ok(document.querySelector('.food-relog-section'),'previous food logs are surfaced for repeat');
+ const relog=document.querySelector('.food-relog-row [data-action="food-relog"]');
+ assert.ok(relog,'the latest prior log has a repeat entry point');
+ const source=normalizeData(sample.data).foodEntries.find(e=>e.id===relog.dataset.id);
+ assert.ok(source);
+ relog.click();await tick();
+ const repeatForm=document.querySelector('form[data-form="food"]');
+ assert.ok(repeatForm,'re-log opens a form');
+ assert.equal(repeatForm.elements.entryId.value,'','the copied log has a new ID when saved');
+ assert.equal(repeatForm.elements.name.value,source.name);
+ assert.equal(Number(repeatForm.elements.calories.value),source.calories,'per-serving calories copied without alteration');
+ assert.equal(Number(repeatForm.elements.protein.value),source.protein,'per-serving protein copied');
+ assert.equal(Number(repeatForm.elements.quantity.value),source.quantity,'previous quantity copied');
+ assert.equal(repeatForm.elements.saveAsFood.checked,false,'repeat never silently creates a duplicate Food Library definition');
+ await click('close');
+ assert.deepEqual(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data.foodEntries,
+  sample.data.foodEntries,'closing a repeat draft leaves original logs untouched');
+ await click('food-log');
+ assert.ok(document.querySelector('.full-food-log [data-action="food-relog"]'),'full Food log offers the same re-log action');
+ await click('close');
 
- // v98: manual budgeting stays separate from finance transactions, and survives demo persistence.
+ // v98–v99: Planning is action-first and never mutates the bank ledger.
  await click('finances');await click('budget-open');
- assert.ok(document.querySelector('.budget-overview'),'budget planner is reachable');
+ assert.ok(document.querySelector('.budget-overview'),'planner is reachable');
  assert.ok(document.querySelector('.budget-overview').textContent.includes('Not set'),'no bank balance is invented');
+ assert.ok(document.querySelector('.budget-attention'),'unmarked due dates are prioritized');
+ assert.equal(document.querySelector('.budget-manage-rules').open,false,'recurrence definitions are collapsed');
+ assert.equal(document.querySelector('.budget-forecast-drawer').open,false,'optional forecast is collapsed');
+ assert.ok(document.querySelector('.budget-category-caps'),'monthly spending caps remain available');
  await click('budget-balance');
  await submit('budget-balance',{balance:'148.14',balanceAsOf:todayCalendarDate()});
  let savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(savedBudget.balanceCents,14814,'manual available cash is persisted');
+ assert.equal(savedBudget.balanceCents,14814,'manual available cash persists');
  await click('budget-schedule-new');
  const nextDay=new Date(Date.parse(todayCalendarDate()+'T00:00:00Z')+86400000).toISOString().slice(0,10);
- await submit('budget-schedule',{budgetName:'Car payment',budgetKind:'expense',budgetAmount:'366.00',budgetStartDate:nextDay,budgetFrequency:'monthly'});
- assert.ok(document.querySelector('.budget-occurrences'),'scheduled items appear in cash-flow queue');
+ await submit('budget-schedule',{budgetName:'Car payment',budgetKind:'expense',budgetAmount:'366.00',
+  budgetStartDate:nextDay,budgetFrequency:'monthly'});
+ assert.ok(document.querySelector('.budget-occurrences'),'unmarked planned dates appear');
+ assert.ok(document.querySelector('.budget-action-event').textContent.includes('Car payment'));
+ assert.ok(document.querySelector('.budget-event-primary').textContent.includes('Paid'),'expense action says Paid');
+ assert.ok(document.querySelector('.budget-cash-glance').textContent.includes('$366.00'),'near-term planned bills summarized');
+ assert.ok(document.querySelector('.budget-manage-rules').textContent.includes('Car payment'),'recurring schedule shown separately');
+ await click('finances');
+ assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('$148.14'),'only entered cash appears as available');
+ assert.ok(document.querySelector('.finance-glance-cards').textContent.includes('$366.00'),'planned bills shown on Overview');
+ assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('−$217.86'),'shortfall does not count expected income');
+ await click('budget-open');
  await click('budget-mark-paid');
  savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(Object.values(savedBudget.schedules[0].occurrences)[0],'paid','planned occurrence status persists');
+ assert.equal(Object.values(savedBudget.schedules[0].occurrences)[0],'paid','payment marker persists');
+ assert.ok(document.querySelector('.budget-done-event').textContent.includes('Paid'),'completed expense labeled Paid');
+ await click('budget-mark-pending');
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.deepEqual(savedBudget.schedules[0].occurrences,{},'Undo restores the unmarked occurrence, not the rule');
+ await click('budget-mark-paid');
+ await click('budget-schedule-new');
+ await submit('budget-schedule',{budgetName:'Payday',budgetKind:'income',budgetAmount:'1200.00',
+  budgetStartDate:nextDay,budgetFrequency:'once'});
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ const payday=savedBudget.schedules.find(r=>r.name==='Payday');
+ assert.ok(payday&&payday.kind==='income','income plan stored separately');
+ assert.ok(document.querySelector('.budget-action-event').textContent.includes('Payday'));
+ assert.ok(document.querySelector('.budget-event-primary').textContent.includes('Received'),'incoming money action says Received');
+ const options=document.querySelector('[data-action="budget-event-options"][data-id="'+payday.id+'"]');
+ options.click();await tick();
+ assert.ok(document.querySelector('.modal').textContent.includes('Skip this date'),'contextual action menu opens');
+ await click('budget-mark-skipped');
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.schedules.find(r=>r.id===payday.id).occurrences[nextDay],'skipped','Skip marks one date');
+ assert.equal(document.querySelector('.modal'),null,'context menu closes after commit');
+ document.querySelector('[data-action="budget-mark-pending"][data-id="'+payday.id+'"]').click();await tick();
+ const receive=document.querySelector('[data-action="budget-mark-paid"][data-id="'+payday.id+'"]');
+ assert.ok(receive?.textContent.includes('Received'));
+ receive.click();await tick();
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.schedules.find(r=>r.id===payday.id).occurrences[nextDay],'paid','Received uses legacy paid marker');
+ assert.ok([...document.querySelectorAll('.budget-done-event')].some(e=>e.textContent.includes('Received')),'income completion shown as Received');
+ assert.ok(document.querySelector('.budget-forecast-drawer').textContent.includes('Not safe-to-spend'),'forecast is not an available-cash claim');
  await click('budget-limit-new');
  await submit('budget-limit',{category:'Convenience Food',budgetAmount:'100.00'});
  savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
  assert.equal(savedBudget.categoryLimits[0].amountCents,10000);
+ assert.ok(document.querySelector('.budget-inline-tools'),'limit management is contextual');
+ const car=savedBudget.schedules.find(r=>r.name==='Car payment');
+ await click('budget-schedule-edit');
+ const endsOn=new Date(Date.parse(nextDay+'T00:00:00Z')+35*86400000).toISOString().slice(0,10);
+ await submit('budget-schedule',{budgetId:car.id,budgetName:'Car payment',budgetKind:'expense',
+  budgetAmount:'366.00',budgetStartDate:nextDay,budgetFrequency:'monthly',budgetEndDate:endsOn});
+ savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
+ assert.equal(savedBudget.schedules.find(r=>r.id===car.id).endDate,endsOn,'recurrence ending date persists');
+ assert.equal(savedBudget.schedules.find(r=>r.id===car.id).occurrences[nextDay],'paid','editing schedule preserves marked dates');
  const originalTx=JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions);
  await submit('budget-scenario',{scenarioAmount:'15.00'});
- assert.ok(document.querySelector('.modal'),'what-if scenario displays results');
+ assert.ok(document.querySelector('.modal'),'what-if scenario remains available');
  await click('close');
- assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions),originalTx,'plans and simulations never rewrite bank data');
- await click('budget-back');await click('home');
+ assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions),originalTx,'plans and markers never edit transactions');
+ await click('finances');await click('home');
 
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
- await click('gym');await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
+ await click('gym');
+ assert.ok(document.querySelector('.buddy-entry [data-action="custom-lift"]'),'manual lifting is accessible beside Workout Buddy');
+ await click('custom-lift');
+ assert.ok(document.querySelector('form[data-form="lift"]'),'manual lifting opens the existing lift editor');
+ await click('close');
+ await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
  await click('buddy-choose');
  let firstSet=document.querySelector('[name=buddyWeight]');
  assert.ok(firstSet,'first Buddy set is editable');
@@ -519,13 +638,13 @@ try{
  assert.ok(localStorage.getItem('everyday-cloud-recovery-v1:bob'),'failed cloud save leaves an account-scoped device recovery copy');
  // v89: a pending cloud save must not silently disable unrelated forms after
  // returning from another app. A new finance entry is journaled on-device.
- await click('finances');
+ await click('finances');await click('finance-transactions-open');
  await submit('finance',{amount:'4.25',description:'Logged while cloud unavailable',date:'2026-10-27',category:'Convenience Food'});
  const pendingNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data);
  assert.ok(pendingNotebook.transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'new finance log is retained in recovery while cloud pending');
  state.fail=false;await click('cloud-retry');assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
  assert.ok(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'local finance log syncs after retry');
- await click('finances');await click('finance-edit');await click('finance-delete');
+ await click('finances');await click('finance-transactions-open');await click('finance-edit');await click('finance-delete');
  assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.length,0,'test transaction cleanup leaves existing cloud fixture intact');
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
