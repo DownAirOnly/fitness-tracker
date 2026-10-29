@@ -70,6 +70,11 @@ try{
   assert.ok(document.querySelector('.finance-glance-card').textContent.includes('Not scheduled'),'future income is not assumed');
   await click('finance-transactions-open');
   assert.ok(document.querySelector('form[data-form="finance"]'),'Transactions keeps quick logging');
+  assert.ok(document.querySelector('.finance-quick-kind [name="kind"]'),'Expense/Income/Transfer is immediately accessible');
+  assert.ok(!document.querySelector('.finance-quick-kind [name="kind"]').closest('.finance-more'),'type is outside advanced details');
+  assert.equal(document.querySelector('.finance-workflows').open,false,'bank import and classification tools are collapsed');
+  assert.ok(document.querySelector('.finance-workflows [data-action="finance-bofa-import"]'),'bank import is preserved');
+  assert.ok(document.querySelector('.finance-workflows [data-action="finance-enrichment-paste"]'),'enrichment is preserved');
   await click('classification-rules-open');
   await click('classification-new');
   await submit('classification-rule',{name:'Test water',matchField:'bankDescription',matchText:'WAWA',
@@ -120,6 +125,9 @@ try{
   assert.ok(document.querySelector('[data-action="finance-paste-csv"]'),'prepared CSV entry point exists');
   const financeForm=document.querySelector('form[data-form="finance"]');
   assert.ok(financeForm.querySelector('[name="amount"]'));
+  financeForm.elements.kind.value='income';
+  assert.equal(financeForm.elements.kind.value,'income','income is selectable in quick entry');
+  financeForm.elements.kind.value='expense';
   financeForm.elements.date.value='2026-10-26';
   financeForm.elements.date.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
   await tick();
@@ -219,6 +227,16 @@ try{
   assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
   assert.equal(document.querySelector('[data-finance-history-summary]').textContent,'2 of 2 transactions');
   assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finance nav remains selected in its subview');
+  assert.equal(document.querySelector('.finance-history-more').open,false,'advanced filters start collapsed');
+  assert.equal(document.querySelectorAll('.finance-filter-chip').length,5,'history offers quick filter chips');
+  document.querySelector('[data-preset="income"]').click();await tick();
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'income chip filters without advanced settings');
+  assert.equal(document.querySelector('[data-preset="income"]').getAttribute('aria-pressed'),'true','active chip state is accessible');
+  document.querySelector('[data-preset="review"]').click();await tick();
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'review chip lists flagged purchases');
+  assert.equal(document.querySelector('[data-finance-history-filter="review"]').value,'needs-review');
+  document.querySelector('[data-preset="all"]').click();await tick();
+  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'all chip clears quick review filter');
   const historySearch=document.querySelector('[data-finance-history-search]');
   historySearch.value='365 MARKET';historySearch.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
   await tick();assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,1,'search includes original bank description');
