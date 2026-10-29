@@ -8,9 +8,9 @@
 - **Repository:** `DownAirOnly/fitness-tracker`, default branch `main`.
 - **Published PWA:** https://downaironly.github.io/fitness-tracker/ (iPhone Home Screen usage matters).
 - **Source of truth:** `version.json`, the corresponding `main` commit, and GitHub Pages deployment. Version in this handoff must be reconciled with those.
-- **Deployed release:** **v98.1** on main (merged PR #13, commit `ae92bf69bc30290395f171a1bb982e3645a40c11`, CI and Pages succeeded). User reports nothing apparently broken, but live migration count/revision checks remain unverified.
-- **Current proposed release:** **v98.2** on `v98-2-stability-audit`. Corrects the obsolete single-account-size diagnostics and Firestore UTF-8 rule semantics, with broad regression/smoke coverage. **Do not merge until the v98.2 `firestore.rules` are manually published in Firebase Console and the PR checks pass.**
-- **Conversation cadence:** New ChatGPT conversation after each **five-number release cycle**. Completed scope: **v91–v95** (Fitness Workless 6). **Next cycle: v96–v100**, suggested title **Fitness Workless 7**. These are release boundaries, not an already approved roadmap.
+- **Deployed release:** **v98.2** on main (merged PR #14, commit `536401acd2ebc3f9e4125cdb8b951c541afc60a9`; automated checks and GitHub Pages succeeded). Firestore v98.2 security rules were manually published. Full real-iPhone account and interaction checks remain incomplete.
+- **Current development branch:** **v99 UX polish** on `v99-ux-polish`. Branch version metadata is v99 for asset and integrity checks, but **main and the published PWA remain v98.2 until the complete v99 release is reviewed, tested, merged, and deployed**. The initial Finance Overview pass is not the complete v99 scope.
+- **Conversation cadence:** Open a new development conversation when needed; current conversation is Fitness Workless 9 for v99–v100. Keep this handoff current so new chats do not reconstruct old work.
 - **Important:** The version number is the app release, not the conversation number. Small fixes within a version need not force a new conversation; keep handoff accurate.
 
 ## What to do at the beginning of the next conversation
@@ -160,6 +160,18 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Native packaging:** `native/` has Capacitor 8 configuration and package metadata; `scripts/prepare-native.mjs` creates offline web assets from the PWA release manifest; `NATIVE_IOS.md` details how to compile on macOS. Web sign-in is not verified in WKWebView. No Xcode build, native Firebase login, local data migration, HealthKit or TestFlight provisioning has been completed.
 - **v99 requirements:** unified Home dashboard, native-compatible Firebase authentication, restore/migration of PWA data across isolated storage origins, real macOS Xcode build, iPhone app switching and backup tests. Windows alone cannot build/sign for iOS. Do not claim v100 achieved before signed private iPhone build and on-device tests.
 - **Outstanding:** user has not confirmed applying the nine Bank of America clarifications; real iPhone v89 resume, v92–v95 Buddy and v96–v98 Finance verification remain open.
+## v99 — interaction polish (IN PROGRESS, branch only)
+
+- **Vision:** Finances should answer available cash, upcoming bills/income and spending outlook before exposing configuration. This is the first implementation pass, not a finished v99 release.
+- **Finance Overview implemented on branch:** Top-level Finances now shows a manual available-cash hero with an as-of date and source, next *expected* paycheck, 14-day planned bills, a conservative outlook, upcoming scheduled events and direct routes to transactions and planning. The three-way navigation is Overview / Transactions / Planning.
+- **Cash provenance:** `finance-overview-model.js` derives read-only figures from the saved `budgetPlan`. It does not use transaction history to invent bank cash. Future income never increases current available cash or the spending estimate. Missing manual balance, stale balance, or missing scheduled bills withhold the estimate; displayed estimates disclaim incomplete/unverified schedules. A balance entered for end-of-day today excludes already included same-day events.
+- **Transactions:** Existing quick log, recent ledger, classification and bank imports were moved without data-model changes to the Transactions page. History and Insights return to Transactions. Preview-first imports, stable IDs, original bank fields, and cloud revision protection remain unchanged.
+- **Planning:** Still has the prior v98 scheduler/budget forms and dense recurring/occurrence list. Its navigation was connected to the new Finance sections, but reorganizing definitions, statuses and controls is **unfinished**.
+- **Tests added/updated:** Pure cash-snapshot assertions for future income exclusion, missing/stale starting data, completed events, date boundaries, and nonmutation; UI smoke updated for the new navigation, manual balance and shortfall display. Real iPhone testing and final release CI are separate gates.
+- **Remaining v99 passes, prioritized:** (1) Transactions logging/history and import ergonomics; (2) Planning recurrence-vs-occurrence cleanup, contextual actions, concise warnings, clearer Received/Paid states; (3) Home command center, Food and Lifting interaction polish; (4) Progress, settings/save-state clarity, resume/offline/accessibility reliability. Preserve all existing records.
+- **Release discipline:** Do not merge v99 before its required passes and tests are complete. Do not claim GitHub Pages deployment or user iPhone validation while changes exist only on the branch. Do not modify existing Firebase rules absent a genuine need.
+- **v100 remains native:** Capacitor scaffold is not an installed app. Native Firebase authentication and same-account verification, PWA-to-native migration, lifecycle/HealthKit handling and macOS Xcode signing/testing are outstanding.
+
 ## Open work and candidate priorities — next cycle v96–v100
 
 **These are candidates, NOT an agreed fixed release plan or automatic orders. Re-prioritize with the user's next request.**
