@@ -4,6 +4,14 @@
 
 A small mobile-first web app for food, lifting, and body weight. The home screen has two primary actions. On the first visit after 6 a.m. local time each day, it offers a weigh-in with an **Enter later** option. A weigh-in already recorded for today suppresses the prompt.
 
+## v99 — Cash-first Finance UX (development branch; not deployed)
+
+- Finances now opens to an Overview that distinguishes **manually entered available cash** from expected paychecks and planned bills. A 14-day upcoming-bill total and a conditional spending outlook make the important decisions easier to find.
+- The outlook subtracts planned expenses from the entered starting cash and **does not count future income as available cash**. It withholds an estimate when the balance is absent/stale or expenses are not scheduled; it is not a guarantee that every bill was captured.
+- Three-section Finance navigation separates Overview, Transactions (existing quick entry, history, imports and classifications), and Planning (existing scheduler and limits). Detailed planner ergonomics, other app areas, and device lifecycle are unfinished v99 passes.
+- New model regression tests and updated UI smoke cover these changes. No transaction, bill schedule, category, identity, backup format or Firestore document is migrated by the new overview. The native iPhone milestone remains v100.
+- **Status:** v99 metadata is on the feature branch for testable asset revisions. Do not assume this is live on GitHub Pages or approved for a release.
+
 ## v96 — Reviewed finance classifications & merchant rules
 
 - Finance can save reusable, disabled/enabled, editable and removable merchant rules for all bank-imported and manual transactions. Rules use case-insensitive text matching with optional exact amount; suggestions do not automatically change transactions, bank facts or expense/income/transfer kind.
@@ -35,7 +43,7 @@ A small mobile-first web app for food, lifting, and body weight. The home screen
 - **Migration:** Existing signed-in notebooks are first read from legacy `state/main` until the first successful signed-in save after new rules are published. Migration is atomic; the legacy document remains unchanged. Each section is limited to 800,000 UTF-8 bytes. Accounts need the updated `firestore.rules` **published before this client update is deployed**, or cloud reads/writes will be denied.
 - **Apple Health:** The Shortcut bridge now shares the atomic section revision, and maintains existing duplicate prevention and account conflict detection.
 - **v100:** This structure also establishes the JSON contract for native PWA-to-iOS migration; it does not prove a native app can yet be signed or installed.
-## v98.2 — Full-application sanity pass (pending review)
+## v98.2 — Full-application sanity pass (deployed)
 
 - **Correct three-file storage reporting:** Settings shows Nutrition, Lifting, and Finances as three independently measured UTF-8 JSON payloads (up to 800,000 bytes each), and diagnostics list the three sizes plus their uncapped combined total. The old single 800 KB whole-account meter and permanently zero “Notes” metric are removed.
 - **Rule hardening:** Firestore's string `.size()` counted characters, while the JavaScript guard counts UTF-8 bytes. The new security rule uses `.toUtf8().size()`, matching the client. **Publish this updated `firestore.rules` in Firebase Console before merging/deploying v98.2**; the repository does not publish rules.
