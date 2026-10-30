@@ -363,12 +363,11 @@ function home(loading=false) {
  return '<div class="home-command-center"><section class="home-metrics" aria-label="Today nutrition">'+
    metric('CALORIES',Math.round(totals.calories),calTarget,'',calLeft,'calories')+
    metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g',proteinLeft,'protein')+'</section>'+
-  '<div class="home-compact-add">'+button('<span class="home-add-plus" aria-hidden="true">＋</span> Add','home-add-menu','home-add-trigger',loading?'disabled':'aria-haspopup="dialog"')+'</div>'+
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
-   '<nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
+   '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Money':view==='lifting'?'Lifting':'Nutrition','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
-   '</nav>'+
+   '</nav>'+button('<span class="home-add-plus" aria-hidden="true">＋</span> Add','home-add-menu','home-add-trigger',loading?'disabled':'aria-haspopup="dialog"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
 }
