@@ -2154,7 +2154,7 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
 }
 .shell:has(.home-command-center) .home-dashboard{min-height:0;flex:1 1 auto}
 .shell:has(.home-command-center) .home-dashboard-stage{
- min-height:0;overflow:hidden;overscroll-behavior:none;touch-action:pan-x;
+ min-height:0;overflow:hidden;overscroll-behavior:none;touch-action:pan-y;
 }
 .shell:has(.home-command-center) .home-dashboard-content{
  min-height:0;justify-content:space-between;
