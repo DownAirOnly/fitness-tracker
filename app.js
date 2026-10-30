@@ -355,14 +355,12 @@ function homeDashboardCard(view){
 function home(loading=false) {
  const date=demoMode?DEMO_LAST_DATE:currentTrackingDate(),totals=foodDayTotals(date);
  const calTarget=data.settings.calories,proteinTarget=data.settings.protein;
- const calLeft=Math.round(calTarget-totals.calories),proteinLeft=Math.round(proteinTarget-totals.protein);
- const metric=(name,value,target,unit,left,cls)=>'<div class="home-metric '+cls+'"><div class="home-metric-label">'+name+'</div>'+
-  '<div class="home-metric-value">'+(loading?'—':value)+'<small>'+unit+'</small></div>'+
-  '<div class="home-metric-sub">of '+target+unit+' · '+(loading?'—':left>0?fmt(left)+unit+' left':left===0?'Goal reached':fmt(-left)+unit+' over')+'</div>'+
+ const metric=(name,value,target,unit,cls)=>'<div class="home-metric '+cls+'"><div class="home-metric-label">'+name+'</div>'+
+  '<div class="home-metric-value"><span class="home-metric-current">'+(loading?'—':value)+'<small>'+unit+'</small></span><span class="home-metric-separator"> / </span><span class="home-metric-target">'+(loading?'—':target)+'<small>'+unit+'</small></span></div>'+
   '<div class="home-meter"><span style="width:'+(loading?0:Math.min(100,Math.max(0,value/Math.max(target,1)*100)))+'%"></span></div></div>';
  return '<div class="home-command-center"><section class="home-metrics" aria-label="Today nutrition">'+
-   metric('CALORIES',Math.round(totals.calories),calTarget,'',calLeft,'calories')+
-   metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g',proteinLeft,'protein')+'</section>'+
+   metric('CALORIES',Math.round(totals.calories),calTarget,'','calories')+
+   metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g','protein')+'</section>'+
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
@@ -2698,7 +2696,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.4',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.4.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
