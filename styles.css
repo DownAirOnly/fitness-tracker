@@ -2106,3 +2106,13 @@ html.buddy-active #overlay .modal{z-index:1101}
  .home-dashboard{min-height:245px}
  .home-dashboard-stage{min-height:190px}
 }
+
+/* Keep sign-in access and critical sync/recovery alerts reachable even if they require scrolling. */
+.shell:has(.home-command-center):has(.account-banner),
+.shell:has(.home-command-center):has(.save-warning){
+ height:auto;min-height:100dvh;overflow:visible;
+}
+.shell:has(.home-command-center):has(.account-banner)>main,
+.shell:has(.home-command-center):has(.save-warning)>main{overflow:visible;flex:1 0 auto}
+.shell:has(.home-command-center):has(.account-banner) .home-command-center,
+.shell:has(.home-command-center):has(.save-warning) .home-command-center{min-height:480px}
