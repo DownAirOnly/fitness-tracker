@@ -152,6 +152,15 @@ try{
   await click('close');
   assert.ok(document.querySelector('.home-command-center'),'cancel restores the same Home');
   assert.equal(document.querySelector('nav.nav [data-action="home"]').getAttribute('aria-current'),'page');
+  await click('home-log-finance');
+  await submit('finance',{amount:'3.50',description:'Quick modal test',date:todayCalendarDate(),category:'Convenience Food'});
+  assert.ok(document.querySelector('.home-command-center'),'saving spending returns to Home');
+  assert.ok(!document.querySelector('.home-finance-modal'),'saved spending overlay closes');
+  assert.ok(document.querySelector('.home-save-toast'),'a short confirmation is shown');
+  assert.ok(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.some(x=>x.description==='Quick modal test'),'modal reuses original transaction storage');
+  await click('finances');await click('finance-transactions-open');
+  await click('finance-edit');await click('finance-delete');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'quick modal test cleans up its record');
   await click('home');
 
   // v83: Quick Log uses exact cents; calendar date changes cannot navigate to Food.
