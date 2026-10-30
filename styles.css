@@ -2292,3 +2292,30 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
 /* v99.5: the Home flex gap alone governs spacing, not the global section bottom margin. */
 .home-command-center > .home-metrics,
 .home-command-center > .home-dashboard{margin-bottom:0}
+
+/* v99.6: Home dashboard clears the iPhone fixed bottom navigation. */
+.shell:has(.home-command-center),
+.shell:has(.home-command-center):has(.account-banner),
+.shell:has(.home-command-center):has(.save-warning){padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
+/* Food date picker is visibly self-explanatory; keep its accessible name. */
+.tracking-date .field>span:empty{display:none}
+.food-section-title .sort-control:has([data-sort-scope="food-page"]){align-items:center;gap:0}
+/* Lifting: one scalable routine selector, Manage alongside, compact Buddy entry. */
+.buddy-entry.buddy-entry-compact{display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:12px;padding:16px 18px;margin-bottom:16px}
+.buddy-entry-compact .buddy-entry-copy{flex:1 1 auto;min-width:0}
+.buddy-entry-compact .buddy-entry-copy h2{margin:0}
+.buddy-entry-compact .buddy-entry-actions{width:auto;flex:0 0 auto;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.buddy-entry-compact .buddy-entry-actions button{width:auto;flex:0 0 auto;min-width:94px;min-height:44px}
+.buddy-entry-compact.buddy-entry-active{flex-wrap:wrap}
+.routine-toolbar{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:0 0 12px}
+.routine-picker{display:block;flex:1 1 auto;min-width:0}
+.routine-picker select{width:100%;min-width:0;min-height:44px;border:1px solid #54735c;border-radius:13px;background:#203f30;color:#edf7ec;font:700 15px 'Outfit',sans-serif;padding:9px 34px 9px 14px}
+.routine-toolbar>button{min-height:44px;flex:0 0 auto}
+.routine-exercise-section{margin-top:0}
+.routine-exercise-tools{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:7px;margin:0 0 12px}
+.routine-exercise-tools button{min-height:38px}
+[data-theme="dark"] .routine-picker select{background:#243f31;color:#eef6e9;border-color:#56735d}
+@media(max-width:380px){.buddy-entry.buddy-entry-compact{align-items:center}.buddy-entry-compact .buddy-entry-actions{flex-direction:row;align-items:center}.buddy-entry-compact .buddy-entry-actions button{width:auto;min-width:80px}}
+/* Body fat range now has just its two endpoint dates. */
+.bodyfat-progress-chart .weight-chart-range{display:flex;justify-content:space-between;gap:8px}
+.bodyfat-progress-chart .weight-chart-range span:last-child{margin-left:auto;text-align:right}
