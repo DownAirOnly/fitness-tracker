@@ -2195,3 +2195,54 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
  .home-dash-tab{min-height:30px}
  .home-dashboard-content{gap:2px}
 }
+
+/* v99.3 — one icon family, clear Home action vs navigation roles. */
+.nav .nav-icon{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px}
+.nav .nav-icon svg{width:24px;height:24px;display:block;stroke:currentColor}
+.nav button{min-height:51px}
+.home-settings .settings-icon{display:flex;align-items:center;justify-content:center;line-height:1}
+.home-settings .settings-icon svg{width:22px;height:22px;display:block}
+.home-action-icon svg{stroke-width:1.75;stroke-linejoin:round;stroke-linecap:round}
+.home-command-center{gap:9px}
+.home-metric{padding:11px 14px 10px}
+.home-metric-value{margin:5px 0 3px}
+.home-meter{margin-top:8px}
+.home-command-center .home-quick-commands{gap:8px}
+.home-command-center .home-quick-button{min-height:71px;padding:8px 4px;gap:6px;font-size:11px}
+.home-command-center .home-quick-button .home-action-icon{height:24px}
+.home-command-center .home-quick-button .home-action-icon svg{height:24px;width:24px}
+.home-dashboard{gap:7px}
+.home-dashboard-stage{flex:1;min-height:0}
+.home-dashboard-tabs{flex:0 0 auto}
+.home-dashboard-food-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-content:start}
+.home-dashboard-food-grid .food-card{min-width:0;min-height:120px}
+.home-dashboard-food-grid .food-main{min-height:120px;padding:38px 11px 12px;text-align:left}
+.home-dashboard-food-grid .food-main strong{font-size:12px;line-height:1.24}
+.home-dashboard-food-grid .food-card-nutrition{margin-top:6px!important}
+.home-dashboard-food-grid .food-card-add{margin-top:10px!important}
+.home-dashboard-food-grid .food-card-controls{right:5px;top:5px}
+.home-dashboard-food-grid .food-card-accuracy-corner{display:none}
+.home-dashboard-empty{color:#6e8775;font-size:13px;margin:8px 0}
+.home-dash-finance .home-dash-value{margin-top:2px}
+.home-dash-finance .home-dashboard-stat{margin-top:6px}
+.home-dashboard-content .home-dashboard-footer{flex:0 0 auto}
+.home-dashboard-stage:has(.home-dash-nutrition) .home-dashboard-content{justify-content:flex-start}
+.home-dash-nutrition .home-dashboard-footer{margin-top:8px}
+.page-head .eyebrow:empty,.section-head .eyebrow:empty{display:none}
+.page-head{padding-top:0}
+.shell:has(.home-command-center) .top{height:clamp(43px,5.7dvh,53px)}
+.shell:has(.home-command-center){padding-top:max(env(safe-area-inset-top,0px),22px)}
+@media(display-mode:standalone){
+ .shell:has(.home-command-center),
+ .shell:has(.home-command-center):has(.account-banner){
+  padding-top:max(env(safe-area-inset-top,0px),42px);
+ }
+}
+[data-theme="dark"] .home-dashboard-food-grid .food-card{background:#17291f;border-color:#405746}
+[data-theme="dark"] .home-dashboard-food-grid .food-main{color:#f1f8ed}
+@media(max-height:770px){
+ .home-command-center{gap:6px}
+ .home-command-center .home-quick-button{min-height:59px;padding:5px 3px;gap:3px}
+ .home-dashboard-food-grid .food-main{min-height:105px}
+ .home-dashboard-food-grid .food-card{min-height:105px}
+}
