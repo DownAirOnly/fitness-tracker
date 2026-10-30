@@ -11,6 +11,9 @@ const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'ever
 const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 assert.ok(stylesheet.includes('#buddy-root .buddy-setup-editor input,')&&stylesheet.includes('.routine-history-editor textarea{font-size:16px'),'iOS text inputs use >=16px without disabling pinch zoom');
+assert.ok(stylesheet.includes('.home-metric-separator,.home-metric-target{font:500 12px/1.2'), 'Home slash and target use the Food card 12px goal treatment');
+assert.ok(stylesheet.includes('.home-metric-target small{font:inherit;margin-left:0'), 'Home protein target unit stays the same small size');
+assert.ok(stylesheet.includes('[data-theme="dark"] .home-metric-separator'), 'Home goal maintains subdued dark-mode color');
 const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
