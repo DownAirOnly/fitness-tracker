@@ -231,8 +231,8 @@ function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boo
 function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
-  const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(!account||demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Finances'],['progress','progress','Progress']];
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(!account||demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -267,7 +267,7 @@ function selectHomeDashboard(next){
   item.classList.toggle('selected',selected);
  }
  const title=shell.querySelector('[data-home-dashboard-title]');
- if(title)title.textContent=({finances:'Money at a glance',lifting:'Your training',nutrition:'Your favorites'})[next];
+ if(title)title.textContent=({finances:'Money',lifting:'Lifting',nutrition:'Nutrition'})[next];
 }
 let homeSwipeStart=null;
 document.addEventListener('touchstart',event=>{
@@ -287,12 +287,17 @@ document.addEventListener('touchend',event=>{
 },{passive:true});
 function homeIcon(name){
  const path={
-  food:'<path d="M5 3v8m4-8v8M5 7h4M7 11v10M17 3v18M17 3c-5 3-5 10 0 12"/>',
-  lifting:'<path d="M3 9v6m4-9v12m10-12v12m4-9v6M7 12h10M1 9h4m14 0h4"/>',
-  finance:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2M6 6V5a2 2 0 0 1 2-2h10"/>'
+  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+  food:'<path d="M4 3v8m4-8v8M4 7h4M6 11v10M17 3v18M17 3c-5 3-5 10 0 12"/>',
+  // A proper symmetric diagonal dumbbell, not the former flat weight-stack glyph.
+  lifting:'<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7"/>',
+  finance:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2M6 6V5a2 2 0 0 1 2-2h10"/>',
+  progress:'<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>',
+  settings:'<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l-1.8 1.8a1.8 1.8 0 0 0-2-.4l-1 .5-.5 2.1h-3l-.5-2.1-1-.5a1.8 1.8 0 0 0-2 .4l-1.8-1.8a1.8 1.8 0 0 0 .4-2l-.5-1-2.1-.5v-3l2.1-.5.5-1a1.8 1.8 0 0 0-.4-2L8 5.2a1.8 1.8 0 0 0 2 .4l1-.5.5-2.1h3l.5 2.1 1 .5a1.8 1.8 0 0 0 2-.4L19.8 7a1.8 1.8 0 0 0-.4 2l.5 1 2.1.5v3l-2.1.5z"/>'
  }[name]||'';
- return '<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
+ return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
 }
+
 function homeDashboardCard(view){
  if(view==='finances'){
   const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate());
@@ -358,13 +363,12 @@ function home(loading=false) {
    metric('CALORIES',Math.round(totals.calories),calTarget,'',calLeft,'calories')+
    metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g',proteinLeft,'protein')+'</section>'+
   '<section class="home-quick-commands" aria-label="Quick actions">'+
-    action('Food','food','home-log-food')+
-    action(data.activeWorkout?'Resume':'Workout','lifting','buddy-launch')+
-    action('Spending','finance','home-log-finance')+
+    action('Log food','food','home-log-food')+
+    action(data.activeWorkout?'Resume':'Start workout','lifting','buddy-launch')+
+    action('Log spending','finance','home-log-finance')+
    '</section>'+
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
-   '<div class="home-dashboard-heading"><div><p class="eyebrow">YOUR DASHBOARD</p><h2 data-home-dashboard-title>'+({finances:'Money at a glance',lifting:'Your training',nutrition:'Your favorites'})[homeDashboardView]+'</h2></div></div>'+
    '<nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Money':view==='lifting'?'Lifting':'Nutrition','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
    '</nav>'+
@@ -2375,7 +2379,7 @@ document.addEventListener('click',async event=>{
   if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;await persist();render();return;}
   if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';await persist();return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
-  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f)foodForm(null,f);return;}
+  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=currentTrackingDate();foodForm(null,f);}return;}
   if(action==='custom-lift'){liftForm();return;}
   if(action==='choose-exercise-match'){const form=el.closest('form[data-form="lift"]'),name=el.dataset.name,equipment=el.dataset.equipment;if(!form||!name)return;form.elements.exercise.value=name;form.elements.equipment.value=equipment;form.querySelector('.exercise-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(name)+'</strong><small>'+equipmentLabel(equipment)+' · Using canonical exercise</small></span><button type="button" class="text-btn" data-action="clear-exercise-match">Change</button></div>';return;}
   if(action==='clear-exercise-match'){const form=el.closest('form[data-form="lift"]');renderExerciseMatches(form);form.elements.exercise.focus();return;}
