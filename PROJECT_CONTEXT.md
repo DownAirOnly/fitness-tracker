@@ -161,6 +161,14 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Native packaging:** `native/` has Capacitor 8 configuration and package metadata; `scripts/prepare-native.mjs` creates offline web assets from the PWA release manifest; `NATIVE_IOS.md` details how to compile on macOS. Web sign-in is not verified in WKWebView. No Xcode build, native Firebase login, local data migration, HealthKit or TestFlight provisioning has been completed.
 - **v99 requirements:** unified Home dashboard, native-compatible Firebase authentication, restore/migration of PWA data across isolated storage origins, real macOS Xcode build, iPhone app switching and backup tests. Windows alone cannot build/sign for iOS. Do not claim v100 achieved before signed private iPhone build and on-device tests.
 - **Outstanding:** user has not confirmed applying the nine Bank of America clarifications; real iPhone v89 resume, v92–v95 Buddy and v96–v98 Finance verification remain open.
+## v99.2 — iPhone Home viewport / PWA update recovery (verification patch)
+
+- User screenshot after v99.1 deployment still showed **v99** oversized Food/Lifting navigation cards, weight strip, account banner and vertical scroll. This is a stale installed client, not proof that the v99.1 bundle rendered incorrectly; GitHub Pages deployment had succeeded. Do not infer version solely from a Pages workflow; check the version shown in Settings on the device.
+- Branch `v99-2-iphone-home-viewport` includes Home-only document scroll lock on html/body, zeroed scroll offset when Home renders, standalone status bar/safe-area padding, non-scroll dashboard and reduced short-screen content. The Home must not vertically scroll, even with an account banner. Other tabs remain scrollable. Gestural dashboard switching and overlays remain operable.
+- Full cloud recovery/save warnings remain available through a compact Home Review alert, not a large content banner; no persistence/security rules changed. Settings includes a safe manual app-refresh control; it does not clear storage or delete the installed app.
+- Align v99.2 HTML, CSS, JS, service worker cache and version.json; smoke-test document locks, recovery access and legacy workflows. Confirm CI and Pages separately and request actual iPhone verification.
+- The user has not signed off on v99 or v100. Keep v99/v98.2 rollback points intact.
+
 ## v99 — interaction polish (passes 1–4 deployed, v99.1 Home correction pending)
 
 - **Vision:** Finances should answer available cash, upcoming bills/income and spending outlook before exposing configuration. Four UX passes have been implemented, and the user requested a verification deployment before finishing the remaining v99 work.
