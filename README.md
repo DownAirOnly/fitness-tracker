@@ -4,6 +4,13 @@
 
 A small mobile-first web app for food, lifting, progress, and finances. The Home command center places today's calorie/protein numbers above compact Food, Workout and Spending actions; a swipable dashboard shows finance, lifting or nutrition insights. Weight is available in Progress. On the first visit after 6 a.m. local time each day, the app may offer an optional weigh-in prompt with **Enter later**.
 
+## v99.2 — iPhone Home viewport and stale-app recovery
+- Screenshot after the v99.1 Pages deployment showed the **older v99 layout** (oversized Food/Lifting cards, weight strip and account banner). This means the installed PWA had not loaded the newly published bundle; GitHub Pages publishing alone does not confirm the iPhone refreshed.
+- v99.2 locks the document and Home card from vertical scrolling, resets any previous page scroll on navigation back to Home, and leaves room for standalone iPhone status bar and safe-area dock. For very short screens the card compresses secondary descriptions rather than creating a long page.
+- An unsynced or conflicted account now shows a compact visible warning on Home; tap Review for the **full existing cloud recovery actions**, without compromising data or adding an oversized banner to Home.
+- Settings includes a **Reload latest app** action that verifies network access, respects unsaved changes, asks the service worker to update and reloads without clearing user data. This action exists in v99.2 and later; old cached clients need a normal browser/app relaunch first.
+- No schema, Firebase rules, cloud section, record, or bank identifier changes. Keep real iPhone verification outstanding until screenshot confirms the v99.2 command-center layout and no Home scroll.
+
 ## v99.1 — Home command center (PR #16; verify CI and Pages before claiming deployment)
 
 - Daily calories/protein first, three coordinated SVG quick-action buttons beneath, no duplicate Home navigation tiles and no Home weight strip. Normal signed-in account management remains in Settings; sign-in/demo/offline controls and sync warnings remain accessible.

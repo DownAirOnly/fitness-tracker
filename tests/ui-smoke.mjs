@@ -56,6 +56,11 @@ try{
  assert.ok(document.querySelector('.home-quick-button').disabled);
  assert.ok(!document.querySelector('.home-actions,.today-card,.weight-strip'),'old duplicate cards and weight strip removed');
  assert.ok(stylesheet.includes('height:100dvh;min-height:0;display:flex;flex-direction:column'),'normal Home fits the viewport');
+ assert.ok(stylesheet.includes('html:has(.home-command-center),body:has(.home-command-center)'),'Home prevents document scrolling, not merely card scrolling');
+ assert.ok(stylesheet.includes('overflow:hidden!important;overscroll-behavior:none'),'Home document scrolling explicitly locked');
+ assert.ok(stylesheet.includes('padding-top:max(calc(env(safe-area-inset-top,0px) + 4px),55px)'),'standalone iPhone status-bar clearance preserved');
+ assert.ok(stylesheet.includes('min-height:0;overflow:hidden;overscroll-behavior:none;touch-action:pan-y'),'Home dashboard is not internally scrollable');
+ assert.ok(stylesheet.includes('.home-dashboard-content .home-dashboard-hint{display:none}'),'short-screen card has a compact fallback');
  assert.ok(!document.querySelector('main').textContent.includes('Connecting'));
  state.releaseAuth();await tick();await tick();
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'false');
@@ -660,6 +665,7 @@ try{
  await click('sign-in');await click('home');
  assert.ok(!document.querySelector('.account-banner'),'signed-in account details moved off Home');
  await click('settings');assert.ok(document.querySelector('.settings-page-head'));
+ assert.ok(document.querySelector('.app-update-controls [data-action="app-reload-latest"]'),'Settings offers a non-destructive manual reload');
  await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'no automatic migration');
  await click('settings');await click('migrate-device');
@@ -671,6 +677,13 @@ try{
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
  assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');assert.equal(state.records.has('bob'),false);
  assert.ok(localStorage.getItem('everyday-cloud-recovery-v1:bob'),'failed cloud save leaves an account-scoped device recovery copy');
+ await click('home');
+ assert.ok(document.querySelector('.home-sync-warning'),'unsynced cloud work is still visibly flagged on Home');
+ assert.ok(!document.querySelector('.shell>.save-warning'),'large error banner does not force Home to scroll');
+ await click('home-sync-review');
+ assert.ok(document.querySelector('#overlay .save-warning'),'full recovery actions remain accessible in a modal');
+ await click('close');
+ await click('food');
  // v89: a pending cloud save must not silently disable unrelated forms after
  // returning from another app. A new finance entry is journaled on-device.
  await click('finances');await click('finance-transactions-open');

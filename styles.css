@@ -2116,3 +2116,82 @@ html.buddy-active #overlay .modal{z-index:1101}
 .shell:has(.home-command-center):has(.save-warning)>main{overflow:visible;flex:1 0 auto}
 .shell:has(.home-command-center):has(.account-banner) .home-command-center,
 .shell:has(.home-command-center):has(.save-warning) .home-command-center{min-height:480px}
+
+/* v99.2 iPhone standalone Home: lock the DOCUMENT, not just the card.
+   Safe areas keep the header below the status bar and the buttons above the dock. */
+html:has(.home-command-center),body:has(.home-command-center){
+ height:100%;width:100%;overflow:hidden!important;overscroll-behavior:none;
+}
+body:has(.home-command-center){height:100dvh;max-height:100dvh}
+body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
+.shell:has(.home-command-center),
+.shell:has(.home-command-center):has(.account-banner),
+.shell:has(.home-command-center):has(.save-warning){
+ width:100%;height:100dvh;min-height:0;max-height:100dvh;
+ padding-top:calc(env(safe-area-inset-top,0px) + 5px);
+ padding-bottom:calc(66px + env(safe-area-inset-bottom,0px));
+ overflow:hidden;display:flex;flex-direction:column;overscroll-behavior:none;
+}
+@media(display-mode:standalone){
+ .shell:has(.home-command-center),
+ .shell:has(.home-command-center):has(.account-banner){
+  padding-top:max(calc(env(safe-area-inset-top,0px) + 4px),55px);
+ }
+}
+.shell:has(.home-command-center) .top{
+ height:clamp(46px,6.4dvh,62px);min-height:0;flex:0 0 auto;
+}
+.shell:has(.home-command-center)>main,
+.shell:has(.home-command-center):has(.account-banner)>main,
+.shell:has(.home-command-center):has(.save-warning)>main{
+ flex:1 1 auto;min-height:0;max-height:100%;
+ overflow:hidden;display:flex;
+}
+.shell:has(.home-command-center) .home-command-center,
+.shell:has(.home-command-center):has(.account-banner) .home-command-center,
+.shell:has(.home-command-center):has(.save-warning) .home-command-center{
+ min-height:0;max-height:100%;overflow:hidden;flex:1 1 auto;
+}
+.shell:has(.home-command-center) .home-dashboard{min-height:0;flex:1 1 auto}
+.shell:has(.home-command-center) .home-dashboard-stage{
+ min-height:0;overflow:hidden;overscroll-behavior:none;touch-action:pan-y;
+}
+.shell:has(.home-command-center) .home-dashboard-content{
+ min-height:0;justify-content:space-between;
+}
+.home-sync-warning{
+ flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+ border:1px solid #bb965a;background:#fff1da;color:#775023;
+ border-radius:11px;gap:8px;padding:6px 11px;font-size:11px;
+}
+.home-sync-warning strong{font-size:11px;line-height:1.3}
+.home-sync-review-btn{background:transparent;border:0;text-decoration:underline;font-weight:800;color:inherit;min-height:30px}
+.shell:has(.home-command-center)>.account-banner{flex:0 0 auto;margin:7px 0 0;padding:7px 10px}
+[data-theme="dark"] .home-sync-warning{background:#423625;border-color:#7a6745;color:#f1d49c}
+@media(max-height:770px){
+ .home-command-center{gap:7px}
+ .home-metric{padding:9px 12px}
+ .home-metric-value{margin:4px 0 2px;font-size:26px}
+ .home-meter{margin-top:7px}
+ .home-command-center .home-quick-button{min-height:64px;padding:6px 5px;gap:3px}
+ .home-action-icon,.home-action-icon svg{height:21px;width:21px}
+ .home-dashboard-heading{min-height:28px}
+ .home-dashboard-heading h2{font-size:17px}
+ .home-dashboard-content{padding:10px;gap:4px}
+ .home-dashboard-hint{font-size:10px}
+ .home-dash-value{font-size:26px}
+ .home-dash-routine{font-size:19px}
+ .home-dashboard-stat{padding-top:6px}
+ .home-dashboard-footer{gap:5px;padding-top:3px}
+ .home-dash-link{min-height:34px;padding:6px 9px}
+}
+@media(max-height:600px){
+ .home-dashboard-heading .eyebrow{display:none}
+ .home-dashboard-heading{min-height:22px}
+ .home-dashboard-content .home-dashboard-hint{display:none}
+ .home-command-center .home-metric-sub{font-size:10px}
+ .home-command-center .home-quick-button{min-height:53px}
+ .home-dashboard-tabs{padding:2px}
+ .home-dash-tab{min-height:30px}
+ .home-dashboard-content{gap:2px}
+}
