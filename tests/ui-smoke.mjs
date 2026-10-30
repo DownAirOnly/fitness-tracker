@@ -55,6 +55,9 @@ try{
  assert.equal(document.querySelector('.home-metric-value').textContent,'—');
  assert.ok(document.querySelector('.home-quick-button').disabled);
  assert.ok(!document.querySelector('.home-actions,.today-card,.weight-strip'),'old duplicate cards and weight strip removed');
+ assert.equal(document.querySelectorAll('main > *').length,1,'loading Home has one root, not a flex row with offline panel');
+ assert.equal(document.querySelectorAll('main .loading-offline-option').length,0,'ordinary startup does not render huge offline workspace panel');
+ assert.ok(!document.querySelector('.shell>.account-banner'),'first paint has no meaningless account placeholder');
  assert.ok(stylesheet.includes('height:100dvh;min-height:0;display:flex;flex-direction:column'),'normal Home fits the viewport');
  assert.ok(stylesheet.includes('html:has(.home-command-center),body:has(.home-command-center)'),'Home prevents document scrolling, not merely card scrolling');
  assert.ok(stylesheet.includes('overflow:hidden!important;overscroll-behavior:none'),'Home document scrolling explicitly locked');
