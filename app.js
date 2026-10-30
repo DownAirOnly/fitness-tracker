@@ -232,7 +232,7 @@ function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
   const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Finances'],['progress','progress','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&((authChecked&&!account)||demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -298,7 +298,7 @@ function homeIcon(name){
   lifting:'<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7"/>',
   finance:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2M6 6V5a2 2 0 0 1 2-2h10"/>',
   progress:'<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>',
-  settings:'<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l-1.8 1.8a1.8 1.8 0 0 0-2-.4l-1 .5-.5 2.1h-3l-.5-2.1-1-.5a1.8 1.8 0 0 0-2 .4l-1.8-1.8a1.8 1.8 0 0 0 .4-2l-.5-1-2.1-.5v-3l2.1-.5.5-1a1.8 1.8 0 0 0-.4-2L8 5.2a1.8 1.8 0 0 0 2 .4l1-.5.5-2.1h3l.5 2.1 1 .5a1.8 1.8 0 0 0 2-.4L19.8 7a1.8 1.8 0 0 0-.4 2l.5 1 2.1.5v3l-2.1.5z"/>'
+  settings:'<path d="M9.21 5.26 L9.84 2.65 L14.16 2.65 L14.79 5.26 L14.79 5.26 L17.09 3.86 L20.14 6.91 L18.74 9.21 L18.74 9.21 L21.35 9.84 L21.35 14.16 L18.74 14.79 L18.74 14.79 L20.14 17.09 L17.09 20.14 L14.79 18.74 L14.79 18.74 L14.16 21.35 L9.84 21.35 L9.21 18.74 L9.21 18.74 L6.91 20.14 L3.86 17.09 L5.26 14.79 L5.26 14.79 L2.65 14.16 L2.65 9.84 L5.26 9.21 L5.26 9.21 L3.86 6.91 L6.91 3.86 L9.21 5.26Z"/><circle cx="12" cy="12" r="3.25"/>'
  }[name]||'';
  return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
 }
@@ -2696,12 +2696,14 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.4.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.5',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
   if(offlineWorkspace)return '<div class="account-banner offline-workspace-banner" role="status"><span>Offline JSON workspace<small>'+esc(offlineWorkspace.filename)+' · '+(offlineWorkspace.dirty?'changes since export':'saved locally')+'</small></span>'+button('Workspace','account','text-btn')+'</div>';
-  return `<div class="account-banner" role="status"><span>${esc(!authChecked?'—':account?account.email:'Device mode')}<small>${esc(isLoading()?'—':cloudMessage)}</small></span>${account?button('Account','account','text-btn'):cloudReady?button('Sign in with Google','sign-in','outline small'):button('Account','account','text-btn','disabled')}</div>`;
+  // Account controls live in Settings via the shared header gear.
+  // Demo and offline workspace indicators above remain visible for safety.
+  return '';
 }
 function homeSyncWarning(){
  if(!account||demoMode||offlineWorkspace)return '';
@@ -2754,7 +2756,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.4.2');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.5');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

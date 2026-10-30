@@ -161,6 +161,12 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Native packaging:** `native/` has Capacitor 8 configuration and package metadata; `scripts/prepare-native.mjs` creates offline web assets from the PWA release manifest; `NATIVE_IOS.md` details how to compile on macOS. Web sign-in is not verified in WKWebView. No Xcode build, native Firebase login, local data migration, HealthKit or TestFlight provisioning has been completed.
 - **v99 requirements:** unified Home dashboard, native-compatible Firebase authentication, restore/migration of PWA data across isolated storage origins, real macOS Xcode build, iPhone app switching and backup tests. Windows alone cannot build/sign for iOS. Do not claim v100 achieved before signed private iPhone build and on-device tests.
 - **Outstanding:** user has not confirmed applying the nine Bank of America clarifications; real iPhone v89 resume, v92–v95 Buddy and v96–v98 Finance verification remain open.
+## v99.5 — Home spacing, account banner and centered gear
+- Reset only Home's two main `<section>` bottom margins, which inherited the old global 27px margin and caused a large unwanted gap above dashboard tabs. Explicit Home flex gap and single-viewport dashboard remain.
+- Remove redundant standard account status/Account button from signed-in Food, Lifting, Finances, Progress, History and Settings, and from signed-out Home and other ordinary tabs. The gear opens Settings, which retains sign-in, sign-out, account details, storage and sync management. Preserve visible real recovery/save warnings plus distinct demo and offline-workspace indicators.
+- Replace the old asymmetrical gear outline with an 8-fold symmetrical gear and concentric `cx=12, cy=12` hole. Match the initial HTML skeleton and runtime SVG.
+- Align assets, HTML, cloud module URL, service worker and `version.json` at **v99.5**. No changes to user records, Firebase rules, budgets or data schemas. UI checks cover all three fixes; verify on iPhone after deployment.
+
 ## v99.4.2 — Home target typography hotfix
 - Match the Food daily totals shown in the iPhone screenshot: calories/protein consumed stays large, while the inline slash and target are subdued 12px text. Keep the existing Home logged-value styling, both uppercase labels, progress bars, saved targets and the single-line ratio.
 - The target's protein g suffix inherits the same small text; theme-specific muted colors work in light and dark modes.
