@@ -131,15 +131,25 @@ try{
   assert.ok(document.querySelector('.home-command-center'),'Home navigation still works');
   assert.equal(document.querySelectorAll('.home-quick-button').length,3,'Home has three direct log actions');
   assert.equal(document.querySelectorAll('.home-action-icon svg').length,3,'every action has a matching vector icon');
+  assert.deepEqual([...document.querySelectorAll('.home-quick-button')].map(button=>button.textContent.trim()),['Log food','Start workout','Log spending'],'shortcuts describe actions, not duplicate navigation');
+  assert.equal(document.querySelectorAll('nav.nav .nav-icon svg').length,5,'bottom navigation shares SVG family');
+  assert.equal(document.querySelector('header .home-settings svg')?.tagName.toLowerCase(),'svg','Settings uses a matched vector icon');
+  const topDumbbell=document.querySelector('[data-action="buddy-launch"] .home-action-icon svg');
+  const bottomDumbbell=document.querySelector('nav.nav [data-action="gym"] svg');
+  assert.equal(topDumbbell.innerHTML,bottomDumbbell.innerHTML,'Home and bottom bar use exactly the same dumbbell path');
+  assert.ok(topDumbbell.innerHTML.includes('m6.5 6.5 11 11'),'redrawn diagonal dumbbell replaces poor weight stack');
+  assert.ok(!document.querySelector('main .loading-offline-option'),'normal loading never inserts a flex sibling that crushes Home');
   assert.equal(document.querySelectorAll('.home-dashboard-tabs button').length,3,'dashboard has three selectable views');
   await click('home-dashboard-select');
-  assert.equal(document.querySelector('.home-dashboard-stage').textContent.includes('AVAILABLE CASH'),true,'finance card uses the manual cash snapshot');
+  assert.ok(document.querySelector('.home-dash-finance'),'finance dashboard uses manual cash records without repetitive headings');
+  assert.ok(!document.querySelector('.home-dashboard-heading,.home-dashboard-eyebrow'),'Home dashboard has only its tabs, not extra headings');
   const liftingTab=document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]');
   liftingTab.click();await tick();
   assert.ok(document.querySelector('.home-dash-lifting'),'Lifting dashboard is available');
   assert.equal(localStorage.getItem('everyday-home-dashboard-v1'),'lifting','dashboard choice is saved locally');
   document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
   assert.ok(document.querySelector('.home-dash-nutrition'),'nutrition dashboard is available');
+  assert.equal(document.querySelector('.home-dash-nutrition .home-dash-value'),null,'no filler heading in Nutrition dashboard');
   await click('home');
   assert.ok(document.querySelector('.home-dash-nutrition'),'chosen dashboard survives navigation');
   document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
@@ -414,6 +424,17 @@ try{
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
+ await click('home');
+ const nutritionDashTab=document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]');
+ nutritionDashTab.click();await tick();
+ assert.ok(document.querySelector('.home-dashboard-food-grid .food-card'),'Nutrition reuses actual saved-food cards from the Food tab');
+ assert.ok(document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]'),'quick add uses the same saved-food action');
+ assert.ok(!document.querySelector('.home-dashboard-content').textContent.includes('Meals you know'),'no redundant filler about favorite meals');
+ const foodFromHome=document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]');
+ foodFromHome.click();await tick();
+ assert.ok(document.querySelector('form[data-form="food"]'),'the reused card opens Food entry');
+ await click('close');
+
  // v99 pass 4: repeating a saved log opens a NEW editable record; never edits its source.
  await click('food');
  assert.ok(document.querySelector('.food-relog-section'),'previous food logs are surfaced for repeat');
