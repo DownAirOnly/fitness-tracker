@@ -763,12 +763,14 @@ try{
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');
- await click('gym');assert.ok(document.querySelector('.tracking-date input'));
- const dateInput=document.querySelector('.tracking-date input');dateInput.value='2026-09-20';dateInput.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
- await click('custom-lift');await submit('lift',{exercise:'Test press',weight:'40',reps:'8',difficulty:'7'});
+ await click('gym');assert.ok(!document.querySelector('.tracking-date input'),'redundant Lifting date selector stays removed');
+ await click('custom-lift');assert.ok(document.querySelector('form[data-form="lift"] [name="date"]'),'manual lift editor retains an editable date');
+ await submit('lift',{exercise:'Test press',date:'2026-09-20',weight:'40',reps:'8',difficulty:'7'});
  assert.equal(JSON.parse(state.records.get('bob').payload).lifts[0].date,'2026-09-20');
  await click('custom-lift');const legacyLateralForm=document.querySelector('[data-form="lift"]');legacyLateralForm.elements.exercise.value='Dumbbell Lateral Raises';legacyLateralForm.elements.equipment.value='dumbbell';for(const row of legacyLateralForm.querySelectorAll('.set-row')){row.querySelector('[name="weight"]').value='17.5';row.querySelector('[name="reps"]').value='8';row.querySelector('[name="difficulty"]').value='4';}legacyLateralForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
- const fullBodyTab=[...document.querySelectorAll('[data-action="workout"]')].find(el=>el.dataset.workout==='Full body');assert.ok(fullBodyTab);fullBodyTab.click();await tick();
+ const fullBodySelect=document.querySelector('[data-routine-select]');assert.ok([...fullBodySelect.options].some(o=>o.value==='Full body'),'Full body remains a saved option');
+ fullBodySelect.value='Full body';fullBodySelect.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
+ assert.equal(document.querySelector('[data-routine-select]').value,'Full body','routine selector changes the exercise list');
  const lateralCard=[...document.querySelectorAll('.exercise-list .exercise')].find(el=>el.dataset.name==='Lateral Raise');assert.ok(lateralCard,'Full body contains canonical Lateral Raise');assert.ok(lateralCard.textContent.includes('Last:'),'legacy Dumbbell Lateral Raises history resolves to Lateral Raise');assert.ok(!lateralCard.textContent.includes('First time'),'canonical history prevents false first-time state');
  await click('progress');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
  await click('progress');await click('body-fat');await submit('body-fat',{value:'22.4',date:'2026-09-20'});
