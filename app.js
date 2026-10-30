@@ -252,7 +252,7 @@ function render() {
 }
 
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
-const HOME_DASHBOARD_VIEWS=['finances','lifting','nutrition'];
+const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
 function readHomeDashboard(){
  try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'finances';}
  catch{return 'finances';}
@@ -360,15 +360,10 @@ function home(loading=false) {
   '<div class="home-metric-value">'+(loading?'—':value)+'<small>'+unit+'</small></div>'+
   '<div class="home-metric-sub">of '+target+unit+' · '+(loading?'—':left>0?fmt(left)+unit+' left':left===0?'Goal reached':fmt(-left)+unit+' over')+'</div>'+
   '<div class="home-meter"><span style="width:'+(loading?0:Math.min(100,Math.max(0,value/Math.max(target,1)*100)))+'%"></span></div></div>';
- const action=(label,icon,handler)=>button('<span class="home-action-icon">'+homeIcon(icon)+'</span><span>'+label+'</span>',handler,'home-quick-button',loading?'disabled':'');
  return '<div class="home-command-center"><section class="home-metrics" aria-label="Today nutrition">'+
    metric('CALORIES',Math.round(totals.calories),calTarget,'',calLeft,'calories')+
    metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g',proteinLeft,'protein')+'</section>'+
-  '<section class="home-quick-commands" aria-label="Quick actions">'+
-    action('Log food','food','home-log-food')+
-    action(data.activeWorkout?'Resume':'Start workout','lifting','buddy-launch')+
-    action('Log spending','finance','home-log-finance')+
-   '</section>'+
+  '<div class="home-compact-add">'+button('<span class="home-add-plus" aria-hidden="true">＋</span> Add','home-add-menu','home-add-trigger',loading?'disabled':'aria-haspopup="dialog"')+'</div>'+
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
@@ -838,6 +833,13 @@ function financeTransactions(){
   button('Manage merchant rules','classification-rules-open','outline')+'</div>'+
   '<details class="finance-more finance-legacy-csv"><summary>CSV help</summary><div class="finance-import-actions">'+
   button('View CSV example','finance-csv-example','text-btn')+'</div></details></div></details>';
+}
+function homeAddMenu(){
+ modal('Add','<div class="home-add-options" role="group" aria-label="Choose what to log">'+
+  button(homeIcon('food')+'<span><strong>Food</strong></span>','home-log-food','home-add-option')+
+  button(homeIcon('lifting')+'<span><strong>'+(data.activeWorkout?'Resume workout':'Workout')+'</strong></span>','buddy-launch','home-add-option')+
+  button(homeIcon('finance')+'<span><strong>Spending</strong></span>','home-log-finance','home-add-option')+
+ '</div>');
 }
 function financeQuickModal(){
  modal('Log spending',
@@ -2070,6 +2072,7 @@ document.addEventListener('click',async event=>{
   if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='home-log-finance'){financeQuickModal();return;}
+  if(action==='home-add-menu'){homeAddMenu();return;}
   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
