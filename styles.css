@@ -2246,3 +2246,41 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
  .home-dashboard-food-grid .food-main{min-height:105px}
  .home-dashboard-food-grid .food-card{min-height:105px}
 }
+
+/* v99.4: Home shares exactly the same shell header positioning as every other tab. */
+.shell:has(.home-command-center),
+.shell:has(.home-command-center):has(.account-banner),
+.shell:has(.home-command-center):has(.save-warning){
+ padding-top:0!important;
+}
+.shell:has(.home-command-center) .top{
+ height:84px!important;min-height:84px!important;flex:0 0 84px!important;
+ padding:0!important;
+}
+.home-dashboard-controls{display:flex;align-items:stretch;gap:8px;min-width:0;flex:0 0 auto}
+.home-dashboard-controls .home-dashboard-tabs{flex:1 1 auto;min-width:0}
+.home-dashboard-controls .home-dash-tab{min-width:0;padding:0 3px}
+.home-add-trigger{
+ flex:0 0 auto;min-width:72px;min-height:42px;
+ display:inline-flex;justify-content:center;align-items:center;gap:2px;
+ border:1px solid #aec6ae;border-radius:12px;
+ background:#e3f0df;color:#204a32;
+ font:700 13px 'Outfit',sans-serif;padding:7px 10px;
+}
+.home-add-trigger:disabled{opacity:.45;cursor:wait}
+.home-add-plus{font:700 19px/1 system-ui,sans-serif;vertical-align:middle}
+.home-add-options{display:flex;flex-direction:column;gap:9px}
+.home-add-option{
+ display:flex;align-items:center;gap:15px;min-height:58px;
+ width:100%;border:1px solid #d9e6db;background:#f5faf5;color:#234a34;
+ padding:12px 16px;text-align:left;border-radius:14px;
+}
+.home-add-option svg{width:24px;height:24px;flex:0 0 24px}
+.home-add-option strong{font:700 16px 'Outfit',sans-serif}
+[data-theme="dark"] .home-add-trigger{background:#345e44;color:#e7f5df;border-color:#537f5d}
+[data-theme="dark"] .home-add-option{background:#22392c;border-color:#405b46;color:#e5f4e3}
+@media(max-width:365px){
+ .home-dashboard-controls{gap:5px}
+ .home-add-trigger{min-width:62px;padding:5px 7px}
+ .home-dashboard-controls .home-dash-tab{font-size:10px}
+}
