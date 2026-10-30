@@ -231,15 +231,20 @@ function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boo
 function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
-  const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(!account||demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Finances'],['progress','progress','Progress']];
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&((authChecked&&!account)||demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
   if(isLoading()){
-    const error=account&&!cloudBusy?`<section class="panel" role="alert"><p class="body-copy">${esc(cloudMessage)}</p>${button('Retry loading','cloud-load','primary')}</section>`:'';
-    const offlineOption=!offlineWorkspace?`<section class="panel loading-offline-option"><h2>Need to work offline?</h2><p class="body-copy">Open an Everyday JSON backup in a separate local workspace while cloud access is unavailable.</p>${button('Open offline JSON workspace','offline-start','outline')}</section>`:'';
-    shell((page==='home'?home(true):`<section class="panel"><h2>Loading your account</h2><p class="body-copy">Please wait…</p></section>`)+offlineOption+error);return;
+    // Recovery controls must not become flex siblings of the compact Home.
+    shell(page==='home'?home(true):'<section class="panel" role="status"><h2>Loading</h2></section>');
+    if(account&&!cloudBusy){
+      modal('Account unavailable','<p class="body-copy">'+esc(cloudMessage)+'</p>'+
+       button('Retry','cloud-load','primary')+
+       button('Open JSON workspace','offline-start','outline'));
+    }
+    return;
   }
   const views={home,food,gym,progress,finances,financeTransactions,financeHistory,classificationReview,classificationRules,financeInsights,financeBudget,history,settings};
   shell(views[page]?.()||home());
@@ -267,7 +272,7 @@ function selectHomeDashboard(next){
   item.classList.toggle('selected',selected);
  }
  const title=shell.querySelector('[data-home-dashboard-title]');
- if(title)title.textContent=({finances:'Money at a glance',lifting:'Your training',nutrition:'Your favorites'})[next];
+ if(title)title.textContent=({finances:'Money',lifting:'Lifting',nutrition:'Nutrition'})[next];
 }
 let homeSwipeStart=null;
 document.addEventListener('touchstart',event=>{
@@ -287,66 +292,68 @@ document.addEventListener('touchend',event=>{
 },{passive:true});
 function homeIcon(name){
  const path={
-  food:'<path d="M5 3v8m4-8v8M5 7h4M7 11v10M17 3v18M17 3c-5 3-5 10 0 12"/>',
-  lifting:'<path d="M3 9v6m4-9v12m10-12v12m4-9v6M7 12h10M1 9h4m14 0h4"/>',
-  finance:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2M6 6V5a2 2 0 0 1 2-2h10"/>'
+  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+  food:'<path d="M4 3v8m4-8v8M4 7h4M6 11v10M17 3v18M17 3c-5 3-5 10 0 12"/>',
+  // A proper symmetric diagonal dumbbell, not the former flat weight-stack glyph.
+  lifting:'<path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M3 10l7-7M14 21l7-7"/>',
+  finance:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2M6 6V5a2 2 0 0 1 2-2h10"/>',
+  progress:'<path d="M3 17l6-6 4 4 8-9M15 6h6v6"/>',
+  settings:'<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="M19.4 15a1.8 1.8 0 0 0 .4 2l-1.8 1.8a1.8 1.8 0 0 0-2-.4l-1 .5-.5 2.1h-3l-.5-2.1-1-.5a1.8 1.8 0 0 0-2 .4l-1.8-1.8a1.8 1.8 0 0 0 .4-2l-.5-1-2.1-.5v-3l2.1-.5.5-1a1.8 1.8 0 0 0-.4-2L8 5.2a1.8 1.8 0 0 0 2 .4l1-.5.5-2.1h3l.5 2.1 1 .5a1.8 1.8 0 0 0 2-.4L19.8 7a1.8 1.8 0 0 0-.4 2l.5 1 2.1.5v3l-2.1.5z"/>'
  }[name]||'';
- return '<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
+ return '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
 }
+
 function homeDashboardCard(view){
  if(view==='finances'){
   const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate());
-  const cash=snapshot.balanceCents===null?'Not entered':budgetMoney(snapshot.balanceCents);
-  const stamp=snapshot.balanceCents===null?'Enter your balance in Finances':snapshot.balanceCurrent?'Entered for today · not bank-verified':'Balance from '+esc(snapshot.balanceAsOf)+' · update before spending';
-  const bill=snapshot.billsSoonCents===0?'No scheduled bills':budgetMoney(snapshot.billsSoonCents)+' scheduled';
-  const outlook=snapshot.spendingEstimateCents===null?'Unavailable until current cash and bills are entered':budgetMoney(snapshot.spendingEstimateCents)+' projected before next paycheck';
-  return '<article class="home-dashboard-content home-dash-finance"><div class="home-dashboard-eyebrow">AVAILABLE CASH · MANUAL</div>'+
-   '<div class="home-dash-value">'+cash+'</div><p class="home-dash-caption">'+stamp+'</p>'+
-   '<div class="home-dashboard-stat"><span>Bills · next 14 days</span><strong>'+bill+'</strong></div>'+
-   '<p class="home-dashboard-hint">'+outlook+'</p><div class="home-dashboard-footer">'+
-   button('Open finances','finances','home-dash-link')+
-   (snapshot.balanceCents===null||!snapshot.balanceCurrent?button('Update cash','budget-balance','home-dash-link primary-link'):'')+'</div></article>';
+  const balanceSet=snapshot.balanceCents!==null;
+  const needUpdate=!balanceSet||!snapshot.balanceCurrent;
+  const cash=balanceSet?budgetMoney(snapshot.balanceCents):'Not set';
+  const bill=snapshot.billsSoon.length?budgetMoney(snapshot.billsSoonCents):'No bills scheduled';
+  const message=!balanceSet?'Manually entered balance':!snapshot.balanceCurrent?
+   'Balance from '+esc(snapshot.balanceAsOf)+' · update needed':
+   'Updated '+esc(snapshot.balanceAsOf)+' · manually entered';
+  const outcome=snapshot.spendingEstimateCents===null?'':budgetMoney(snapshot.spendingEstimateCents);
+  return '<article class="home-dashboard-content home-dash-finance">'+
+    '<div class="home-dash-value">'+cash+'</div><p class="home-dash-caption">'+message+'</p>'+
+    '<div class="home-dashboard-stat"><span>Bills · next 14 days</span><strong>'+bill+'</strong></div>'+
+    (outcome?'<div class="home-dashboard-stat"><span>After planned bills</span><strong>'+outcome+'</strong></div>':'')+
+    '<div class="home-dashboard-footer">'+
+    (needUpdate?button(balanceSet?'Update balance':'Set balance','budget-balance','home-dash-link primary-link'):
+    button('Finances','finances','home-dash-link primary-link'))+'</div></article>';
  }
  if(view==='lifting'){
   const recent=recentRoutineSessions(),last=recent[0],routines=savedWorkouts().filter(w=>(w.exercises||[]).length);
-  const lastRoutine=last?.type||'No completed workout yet';
+  const name=last?.type||'No workouts logged';
   const selected=routines.findIndex(w=>w.name===last?.type);
   const next=routines.length?routines[(selected>=0?selected+1:0)%routines.length]:null;
-  // A predicted calendar day needs at least three recent consistent intervals.
-  const dates=recent.slice(0,4).map(s=>Date.parse((s.date||routineFinishedDate(s))+'T12:00:00')).filter(Number.isFinite);
-  const intervals=dates.slice(1).map((d,i)=>Math.round((dates[i]-d)/86400000));
+  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
+  const intervals=dates.slice(1).map((date,i)=>Math.round((dates[i]-date)/86400000));
   let day='';
   if(dates.length===4&&intervals.every(n=>n>=1&&n<=7)&&Math.max(...intervals)-Math.min(...intervals)<=1){
-   const estimate=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),nextTime=dates[0]+estimate*86400000;
-   if(nextTime>=Date.now()-86400000&&nextTime<=Date.now()+14*86400000)day=' · around '+niceDate(localDate(new Date(nextTime)));
+   const offset=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),pred=dates[0]+offset*86400000;
+   if(pred>=Date.now()-86400000&&pred<=Date.now()+14*86400000)day=' · around '+niceDate(localDate(new Date(pred)));
   }
-  return '<article class="home-dashboard-content home-dash-lifting"><div class="home-dashboard-eyebrow">LAST COMPLETED</div>'+
-  '<div class="home-dash-value home-dash-routine">'+esc(lastRoutine)+'</div>'+
-  '<p class="home-dash-caption">'+(last?esc(niceDate(routineFinishedDate(last))):'Your completed routines will appear here')+'</p>'+
-  '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'Create a routine')+'</strong></div>'+
-  '<p class="home-dashboard-hint">'+(next?'Routine rotation suggestion'+day+' · not a scheduled workout':'Set up a routine on the Lifting tab')+'</p>'+
-  '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
-  button('View lifting','gym','home-dash-link')+'</div></article>';
+  return '<article class="home-dashboard-content home-dash-lifting">'+
+   '<div class="home-dash-value home-dash-routine">'+esc(name)+'</div>'+
+   '<p class="home-dash-caption">'+(last?'Last workout · '+esc(niceDate(routineFinishedDate(last))):'')+'</p>'+
+   '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'No routine set')+'</strong></div>'+
+   (day?'<p class="home-dashboard-hint">Estimated'+esc(day)+'</p>':'')+
+   '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
+   '</div></article>';
  }
- const pinned=(data.foods||[]).filter(f=>f.pinned),recent=recentFoodRelogs(3);
- const picks=pinned.slice(0,2).map(f=>({id:f.id,name:f.name,calories:f.calories,protein:f.protein,action:'add-saved'}));
- for(const e of recent){
-  if(picks.length>=2)break;
-  if(picks.some(item=>item.name.toLowerCase()===e.name.toLowerCase()))continue;
-  picks.push({id:e.id,name:e.name,calories:e.calories*e.quantity,protein:e.protein*e.quantity,action:'food-relog'});
- }
- return '<article class="home-dashboard-content home-dash-nutrition"><div class="home-dashboard-eyebrow">QUICK REPEAT</div>'+
-  '<div class="home-dash-value home-dash-routine">Meals you know</div>'+
-  '<p class="home-dash-caption">Favorite or recently logged portions</p>'+
-  '<div class="home-favorite-list">'+(picks.length?picks.map(f=>
-   '<div class="home-favorite-row"><span><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span>'+
-   button('Log','home-favorite-log','home-dash-link','data-origin="'+f.action+'" data-id="'+esc(f.id)+'" aria-label="Log '+esc(f.name)+'"')+'</div>').join(''):
-   '<p class="home-dashboard-hint">Pin foods in Food Library or log meals to see quick repeats.</p>')+'</div>'+
-  '<div class="home-dashboard-footer">'+button('Food Library','food-library','home-dash-link')+
-  button('Track food','home-log-food','home-dash-link primary-link')+'</div></article>';
+ // Same reusable cards as Food: favorite definitions first, then recent saved foods.
+ const all=sortFoods(data.foods||[],'recent');
+ const favorites=sortFoods(all.filter(food=>food.pinned),'recent');
+ const picks=favorites.concat(all.filter(food=>!food.pinned)).slice(0,2);
+ return '<article class="home-dashboard-content home-dash-nutrition">'+
+  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
+   '<p class="home-dashboard-empty">No saved foods</p>')+
+  '<div class="home-dashboard-footer">'+button('All foods','food','home-dash-link')+'</div></article>';
 }
+
 function home(loading=false) {
- const date=currentTrackingDate(),totals=foodDayTotals(date);
+ const date=demoMode?DEMO_LAST_DATE:currentTrackingDate(),totals=foodDayTotals(date);
  const calTarget=data.settings.calories,proteinTarget=data.settings.protein;
  const calLeft=Math.round(calTarget-totals.calories),proteinLeft=Math.round(proteinTarget-totals.protein);
  const metric=(name,value,target,unit,left,cls)=>'<div class="home-metric '+cls+'"><div class="home-metric-label">'+name+'</div>'+
@@ -358,13 +365,12 @@ function home(loading=false) {
    metric('CALORIES',Math.round(totals.calories),calTarget,'',calLeft,'calories')+
    metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g',proteinLeft,'protein')+'</section>'+
   '<section class="home-quick-commands" aria-label="Quick actions">'+
-    action('Food','food','home-log-food')+
-    action(data.activeWorkout?'Resume':'Workout','lifting','buddy-launch')+
-    action('Spending','finance','home-log-finance')+
+    action('Log food','food','home-log-food')+
+    action(data.activeWorkout?'Resume':'Start workout','lifting','buddy-launch')+
+    action('Log spending','finance','home-log-finance')+
    '</section>'+
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
-   '<div class="home-dashboard-heading"><div><p class="eyebrow">YOUR DASHBOARD</p><h2 data-home-dashboard-title>'+({finances:'Money at a glance',lifting:'Your training',nutrition:'Your favorites'})[homeDashboardView]+'</h2></div></div>'+
    '<nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Money':view==='lifting'?'Lifting':'Nutrition','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
    '</nav>'+
@@ -438,7 +444,7 @@ function financeNewestFirst(transactions){
 }
 function financeRecent(){
  const all=financeNewestFirst(data.transactions||[]),needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
- return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><p class="eyebrow">ACTIVITY</p><h2>Recent transactions</h2></div>'+
+ return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><h2>Recent</h2></div>'+
   button('Search all','finance-history-open','outline small finance-history-open')+'</div>'+
   (needReview?'<div class="finance-review-callout"><span><strong>'+needReview+' to review</strong><small>Missing categories or possible transfers</small></span>'+
    button('Review','finance-review-open','outline small')+'</div>':'')+
@@ -495,7 +501,7 @@ function financeHistory(){
  const categories=[...new Set(all.map(tx=>tx.category||'Uncategorized'))].sort((a,b)=>a.localeCompare(b));
  const matches=financeHistoryMatches();
  const extra=financeHistoryMonth!=='all'||financeHistoryCategory!=='all'||financeHistorySort!=='newest'||financeHistoryPreset()==='custom';
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Transaction history<span class="accent">.</span></h1>'+
+ return '<div class="page-head finances-page-head"><h1>Transaction history<span class="accent">.</span></h1>'+
   '<p>Find a record or check something that needs attention.</p>'+button('← Back to Transactions','finance-history-back','outline finance-history-back')+'</div>'+
   '<section class="panel finance-history"><label class="field finance-history-search"><span>Search transactions</span>'+
   '<input type="search" data-finance-history-search placeholder="Name, bank wording, amount…" value="'+esc(financeHistoryQuery)+'" autocomplete="off"></label>'+
@@ -532,7 +538,7 @@ function refreshFinanceHistoryList(){
 }
 function classificationRules(){
  const rules=data.classificationRules||[];
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Merchant rules<span class="accent">.</span></h1>'+
+ return '<div class="page-head finances-page-head"><h1>Merchant rules<span class="accent">.</span></h1>'+
   '<p>Rules suggest categories for every matching transaction. Nothing changes until you review and apply.</p>'+
   button('← Back to Transactions','classification-back','outline')+'</div>'+
   '<section class="panel finance-recent"><div class="section-head"><h2>Saved rules</h2>'+button('Add a rule','classification-new','primary')+'</div>'+
@@ -568,7 +574,7 @@ function classificationReview(){
  const ambiguous=all.filter(p=>p.conflicts.length);
  const changes=all.filter(p=>!p.conflicts.length&&Object.keys(p.changes).length);
  const needsManual=(data.transactions||[]).filter(tx=>financeReviewFlags(tx).length).length;
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Classification review<span class="accent">.</span></h1>'+
+ return '<div class="page-head finances-page-head"><h1>Classification review<span class="accent">.</span></h1>'+
   '<p>Review suggestions across all imported and manually entered transactions before changing anything.</p>'+
   button('← Back to Finances','classification-back','outline')+'</div>'+
   '<section class="panel finance-recent"><h2>Review queue</h2><p class="body-copy">'+changes.length+
@@ -610,7 +616,7 @@ function financeInsights(){
  const r=summarizeFinanceInsights(data.transactions||[],financeInsightPeriod,localDate());
  const card=(label,value,detail)=>'<div class="finance-insight-metric"><small>'+esc(label)+'</small>'+
    '<strong>'+formatFinanceAmount(value)+'</strong><span>'+esc(detail)+'</span></div>';
- return '<div class="page-head finances-page-head"><p class="eyebrow">YOUR MONEY</p><h1>Spending insights<span class="accent">.</span></h1>'+
+ return '<div class="page-head finances-page-head"><h1>Spending insights<span class="accent">.</span></h1>'+
   '<p>Read-only summaries of saved classifications, not estimates of individual purchases.</p>'+
   button('← Back to Transactions','finance-insights-back','outline finance-history-back')+'</div>'+
   '<section class="panel finance-insight-intro"><label class="field"><span>Date range</span>'+
@@ -626,12 +632,12 @@ function financeInsights(){
   (r.unknownTransferCount?' '+r.unknownTransferCount+' transfer'+(r.unknownTransferCount===1?'':'s')+
     ' totaling '+formatFinanceAmount(r.unknownTransferCents)+' lack a direction and are excluded from transfer in/out.':'')+
   '</p></section>'+
-  '<section class="panel finance-insight-quality"><p class="eyebrow">DATA QUALITY</p><h2>Classification coverage</h2>'+
+  '<section class="panel finance-insight-quality"><h2>Classification coverage</h2>'+
   '<p>'+r.uncategorizedCount+' uncategorized expense'+(r.uncategorizedCount===1?'':'s')+' ('+
    formatFinanceAmount(r.uncategorizedCents)+') · '+r.reviewCount+' flagged transaction'+(r.reviewCount===1?'':'s')+'</p>'+
   (r.reviewCount?button('Review flagged transactions','finance-review-open','outline'):'')+
   '<p class="hint">Review flags are incomplete: some incorrect categories may not be detected. Results can change as you clarify transactions.</p></section>'+
-  '<section class="panel finance-insight-convenience"><p class="eyebrow">CONVENIENCE FOOD</p><h2>'+formatFinanceAmount(r.convenienceCents)+'</h2>'+
+  '<section class="panel finance-insight-convenience"><h2>'+formatFinanceAmount(r.convenienceCents)+'</h2>'+
   '<p>Only saved Convenience Food expenses. Restaurants, groceries, and mixed purchases remain separate.</p></section>'+
   financeInsightBreakdown('Categories',r.categories,r.expenseCents)+
   financeInsightBreakdown('Merchants',r.merchants,r.expenseCents);
@@ -696,19 +702,19 @@ function financeBudget(){
  const forecastReady=report.configured&&!report.stale&&schedules.length>0;
  const noBalance=plan.balanceCents===null;
  const monthText=new Date(month+'-01T12:00:00Z').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
- return '<div class="page-head finances-page-head budget-page-head"><p class="eyebrow">YOUR MONEY</p>'+
- '<h1>Planning<span class="accent">.</span></h1><p>Upcoming obligations, income, and spending limits.</p></div>'+financeNav('planning')+
- '<section class="panel budget-overview budget-focus"><div class="section-head"><div><p class="eyebrow">MANUAL AVAILABLE CASH</p>'+
+ return '<div class="page-head finances-page-head budget-page-head">'+
+ '<h1>Planning<span class="accent">.</span></h1></div>'+financeNav('planning')+
+ '<section class="panel budget-overview budget-focus"><div class="section-head"><div>'+
  '<h2>'+(noBalance?'Not set':budgetMoney(plan.balanceCents))+'</h2></div>'+
  button(noBalance?'Enter balance':'Update','budget-balance','outline')+'</div>'+
- '<p class="finance-source">'+(noBalance?'Not connected to a bank; enter a known balance to forecast.':
- 'Your entry at end of '+esc(budgetDateLong(plan.balanceAsOf))+'. This is not a live bank balance.')+'</p>'+
+ '<p class="finance-source">'+(noBalance?'Enter your available balance to forecast.':
+ 'Entered '+esc(budgetDateLong(plan.balanceAsOf))+' · manual balance.')+'</p>'+
  (report.stale?'<p class="budget-warning" role="status">Update your available cash to today before trusting a forecast.</p>':'')+
  (forecastReady&&report.shortfall?'<p class="budget-warning" role="status">Your entered cash and planned events project a shortfall within 35 days.</p>':'')+
  '<div class="budget-cash-glance"><div><small>Planned bills · next 14 days</small><strong>'+budgetMoney(billTotal)+
  '</strong></div><div><small>Unmarked dates · next 14 days</small><strong>'+soon.length+'</strong></div></div>'+
- '<p class="budget-provenance">Only schedules you entered are counted. Unlisted bills are excluded and expected income is not cash on hand.</p></section>'+
- '<section class="panel budget-schedules budget-attention"><div class="section-head"><div><p class="eyebrow">YOUR NEXT ACTIONS</p>'+
+ '<p class="budget-provenance">Based on entered schedules; future paychecks are not current cash.</p></section>'+
+ '<section class="panel budget-schedules budget-attention"><div class="section-head"><div>'+
  '<h2>Payments & income</h2></div>'+button('+ Add','budget-schedule-new','primary')+'</div>'+
  (due.length?'<div class="budget-occurrences">'+due.map(e=>budgetEventRow(e,day)).join('')+'</div>':
  empty(schedules.length?'No unmarked dates in the past 14 days or next 14 days.':'Add a bill or payday to start your calendar.'))+
@@ -719,7 +725,7 @@ function financeBudget(){
  esc(e.name)+'</strong><span class="budget-event-done-state">'+(e.status==='skipped'?'Skipped':e.kind==='income'?'Received':'Paid')+'</span></div>'+
  button('Undo','budget-mark-pending','outline small','data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"')+'</div>').join('')+'</details>':'')+
  (budgetFeedback?'<p class="budget-feedback" role="status">'+esc(budgetFeedback)+'</p>':'')+
- '<p class="budget-provenance">Paid and Received are manual planning markers, not confirmations from your bank. They never create transactions.</p></section>'+
+ '<p class="budget-provenance">Paid and Received do not create bank transactions.</p></section>'+
  '<details class="panel budget-drawer budget-manage-rules"><summary><span><strong>Manage recurring plans</strong><small>'+
  schedules.length+' schedule'+(schedules.length===1?'':'s')+' · edit bills and paydays</small></span></summary>'+
  '<div class="budget-drawer-inner">'+(schedules.length?schedules.map(r=>
@@ -730,7 +736,7 @@ function financeBudget(){
  button('Remove','budget-schedule-delete','text-btn small','data-id="'+esc(r.id)+'"')+'</div></div>').join(''):
  empty('No scheduled rules yet.'))+button('+ Add bill or payday','budget-schedule-new','outline budget-add-rule')+
  '</div></details>'+
- '<section class="panel budget-limits budget-category-caps"><div class="section-head"><div><p class="eyebrow">SPENDING CAPS</p>'+
+ '<section class="panel budget-limits budget-category-caps"><div class="section-head"><div>'+
  '<h2>'+esc(monthText)+'</h2></div>'+button('+ Add limit','budget-limit-new','outline')+'</div>'+
  '<label class="field budget-month-select"><span>Review another month</span><input type="month" data-budget-month value="'+esc(month)+'"></label>'+
  (limits.length?'<div class="finance-insight-breakdown">'+limits.map(row=>{
@@ -744,7 +750,7 @@ function financeBudget(){
   button('Remove','budget-limit-delete','text-btn small','data-category="'+esc(row.category)+'"')+
   '</div></details></div>';
  }).join('')+'</div>':empty('No spending caps yet. Set one to compare purchases against a monthly limit.'))+
- '<p class="budget-provenance">Caps use classified expense transactions. Missing or unclassified purchases may understate totals.</p></section>'+
+ '<p class="budget-provenance">Caps count categorized expenses only.</p></section>'+
  '<details class="panel budget-drawer budget-forecast-drawer"><summary><span><strong>35-day forecast & what-if</strong>'+
  '<small>Optional, based on your entered schedule</small></span></summary><div class="budget-drawer-inner">'+
  (forecastReady?'<div class="budget-metrics"><div><small>Projected after 35 days (if income arrives)</small><strong>'+
@@ -776,17 +782,17 @@ function finances(){
  const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate()),paycheck=snapshot.nextPaycheck;
  const upcoming=snapshot.upcoming;
  const cash=snapshot.balanceCents===null?'Not entered':budgetMoney(snapshot.balanceCents);
- const source=snapshot.balanceCents===null?'No balance entered. Transactions alone do not determine cash available.':
-  'Manually entered, as of end of '+esc(snapshot.balanceAsOf)+'. Not verified by your bank.';
+ const source=snapshot.balanceCents===null?'Set a balance to see available cash.':
+  'Manually entered · '+esc(snapshot.balanceAsOf)+'. Not bank-synced.';
  const outlook=snapshot.balanceCents===null?'Enter an available balance to start a cautious spending estimate.':
   !snapshot.balanceCurrent?'Your entered balance is not from today. Update it before using an estimate.':
   !snapshot.hasBills?'No bills are scheduled. Add your known bills before relying on an estimate.':
   'Subtracts '+budgetMoney(snapshot.billsBeforeIncomeCents)+' of planned bills through '+esc(snapshot.estimateThrough)+'. Future paychecks are not counted.';
- return '<div class="page-head finances-page-head finance-overview-head"><p class="eyebrow">YOUR MONEY</p>'+
-  '<h1>Finances<span class="accent">.</span></h1><p>What matters now, without the paperwork.</p></div>'+
+ return '<div class="page-head finances-page-head finance-overview-head">'+
+  '<h1>Finances<span class="accent">.</span></h1></div>'+
   financeNav('overview')+
   '<section class="panel finance-cash-hero" aria-label="Available cash">'+
-   '<div class="finance-cash-top"><div><p class="eyebrow">AVAILABLE CASH · MANUAL</p><strong class="finance-cash-value">'+cash+'</strong></div>'+
+   '<div class="finance-cash-top"><div><p class="finance-outlook-label">Available balance</p><strong class="finance-cash-value">'+cash+'</strong></div>'+
    button(snapshot.balanceCents===null?'Set balance':'Update','budget-balance','outline small')+'</div>'+
    '<p class="finance-source">'+source+'</p></section>'+
   '<div class="finance-glance-cards" aria-label="Upcoming money">'+
@@ -797,14 +803,14 @@ function finances(){
     budgetMoney(snapshot.billsSoonCents)+'</strong><span>'+snapshot.billsSoon.length+
     ' payment'+(snapshot.billsSoon.length===1?'':'s')+' · not bank verified</span></section></div>'+
   '<section class="panel finance-spend-outlook" aria-label="Spending outlook">'+
-   '<p class="eyebrow">SPENDING OUTLOOK · ESTIMATE</p><h2>'+
+   '<p class="finance-outlook-label">Spending estimate</p><h2>'+
     (snapshot.spendingEstimateCents===null?'Not enough information':budgetMoney(snapshot.spendingEstimateCents))+'</h2>'+
    '<p>'+outlook+'</p>'+
    (snapshot.spendingEstimateCents!==null&&snapshot.spendingEstimateCents<0?
     '<p class="budget-warning" role="status">Planned bills exceed entered cash before the next expected paycheck. Review your obligations.</p>':'')+
-   '<p class="hint">Not a guaranteed spending allowance. Missing expenses and unverified dates can change this.</p>'+
+   '<p class="hint">Estimate uses only your listed bills.</p>'+
    button('Review the plan','budget-open','outline')+'</section>'+
-  '<section class="panel finance-next-activity"><div class="section-head"><div><p class="eyebrow">NEXT UP</p><h2>Upcoming money</h2></div>'+
+  '<section class="panel finance-next-activity"><div class="section-head"><div><h2>Upcoming</h2></div>'+
    button('Edit schedules','budget-open','text-btn')+'</div>'+
    (upcoming.length?'<div class="finance-activity-list">'+upcoming.map(event=>
     '<div class="finance-activity-row"><div><strong>'+esc(event.name)+'</strong><small>'+esc(event.date)+' · '+
@@ -815,9 +821,9 @@ function finances(){
    button('All transactions','finance-history-open','outline')+'</div>';
 }
 function financeTransactions(){
- return '<div class="page-head finances-page-head finance-transactions-head"><p class="eyebrow">YOUR MONEY</p><h1>Transactions<span class="accent">.</span></h1>'+
-  '<p>Record a purchase, then get on with your day.</p></div>'+financeNav('transactions')+
-  '<section class="panel finance-log"><div class="section-head"><div><p class="eyebrow">QUICK LOG</p><h2>Add a transaction</h2></div></div>'+
+ return '<div class="page-head finances-page-head finance-transactions-head"><h1>Transactions<span class="accent">.</span></h1>'+
+  '</div>'+financeNav('transactions')+
+  '<section class="panel finance-log"><div class="section-head"><div><h2>Add a transaction</h2></div></div>'+
   (financeNotice?'<p class="finance-notice" role="status">'+esc(financeNotice)+'</p>':'')+
   '<form class="finance-form" data-form="finance">'+financeFields()+
   '<button class="primary finance-save" type="submit">Add transaction</button></form></section>'+
@@ -834,7 +840,7 @@ function financeTransactions(){
   button('View CSV example','finance-csv-example','text-btn')+'</div></details></div></details>';
 }
 function financeQuickModal(){
- modal('Log spending','<p class="home-quick-modal-hint">Record a transaction without leaving this screen. Use Finances for your complete history.</p>'+
+ modal('Log spending',
  '<form class="form finance-form home-finance-modal" data-form="finance" data-quick-finance="true">'+financeFields(null,'home-modal')+
  '<div class="form-actions"><button class="primary finance-save" type="submit">Save transaction</button>'+
  button('Cancel','close','outline')+'</div></form>');
@@ -945,7 +951,7 @@ function recentFoodRelogs(limit=4){
 function recentFoodRelogSection(){
  const recent=recentFoodRelogs();if(!recent.length)return '';
  return '<section class="food-relog-section" aria-label="Repeat a food log">'+
- '<div class="section-head"><div><p class="eyebrow">EASY REPEAT</p><h2>Recently logged</h2></div></div>'+
+ '<div class="section-head"><div><h2>Recent foods</h2></div></div>'+
  '<div class="food-relog-list">'+recent.map(e=>'<div class="food-relog-row"><span><strong>'+esc(e.name)+'</strong>'+
  '<small>'+fmt(e.calories*e.quantity)+' cal · '+fmt(e.protein*e.quantity)+'g · '+fmt(e.quantity)+' serving'+(e.quantity===1?'':'s')+'</small></span>'+
  button('Log again','food-relog','outline small','data-id="'+esc(e.id)+'" aria-label="Log '+esc(e.name)+' again"')+
@@ -966,8 +972,8 @@ function nutritionAccuracyIcon(food){
  if(accuracy==='estimate')return '<span class="nutrition-accuracy nutrition-accuracy-estimate" aria-label="'+esc(label)+'"><span aria-hidden="true">~</span></span>';
  return '<span class="nutrition-accuracy nutrition-accuracy-unknown" aria-label="'+esc(label)+'"><span aria-hidden="true"></span></span>';
 }
-function foodQuickCard(food,pinned=false){
- return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="food-favorite '+(food.pinned?'selected':'')+'" data-action="toggle-favorite" data-id="'+esc(food.id)+'" aria-label="'+(food.pinned?'Remove '+esc(food.name)+' from favorites':'Add '+esc(food.name)+' to favorites')+'" aria-pressed="'+(food.pinned?'true':'false')+'">'+(food.pinned?'★':'☆')+'</button><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
+function foodQuickCard(food,pinned=false,homeContext=false){
+ return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="food-favorite '+(food.pinned?'selected':'')+'" data-action="toggle-favorite" data-id="'+esc(food.id)+'" aria-label="'+(food.pinned?'Remove '+esc(food.name)+' from favorites':'Add '+esc(food.name)+' to favorites')+'" aria-pressed="'+(food.pinned?'true':'false')+'">'+(food.pinned?'★':'☆')+'</button><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(homeContext?'today':chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
 }
 const hasFoodTag=(food,tag)=>Array.isArray(food.tags)&&food.tags.includes(tag);
 function sortFoods(list,mode){
@@ -1097,7 +1103,7 @@ function food() {
   const totals=foodDayTotals(chosenDate),entries=foodEntriesNewestFirst(data.foodEntries.filter(x=>currentFoodTrackingDate(x)===chosenDate));
   const pinned=sortFoods(data.foods.filter(f=>f.pinned===true),foodSort),foods=sortFoods(data.foods.filter(f=>f.pinned!==true),foodSort);
   const pinnedSection=pinned.length?'<section class="pinned-foods"><div class="section-head food-section-title"><h2>Favorites</h2></div><div class="food-grid pinned-food-grid">'+pinned.map(f=>foodQuickCard(f,true)).join('')+'</div></section>':'';
-  return '<div class="page-head food-page-head"><p class="eyebrow">NUTRITION</p><h1>Food tracking<span class="accent">.</span></h1></div>'+dateHeader('Viewing')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Suggest rest of day','food-suggest','outline small')+'</div></section>'+recentFoodRelogSection()+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
+  return '<div class="page-head food-page-head"><h1>Food<span class="accent">.</span></h1></div>'+dateHeader('Viewing')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Suggest rest of day','food-suggest','outline small')+'</div></section>'+recentFoodRelogSection()+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
 }
 function savedWorkouts(){return Array.isArray(data.workoutTemplates)?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
 function workoutByName(name){const list=savedWorkouts();return list.find(w=>w.name===name)||list[0];}
@@ -1399,7 +1405,7 @@ function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-c
 
 function gym() {
  const templates=savedWorkouts(),selected=workoutByName(workout);workout=selected?.name||'';const exercises=workoutExercises(selected);
- return `<div class="page-head"><p class="eyebrow">TRAINING</p><h1>Lift tracking<span class="accent">.</span></h1><p>Pick an exercise, see last time, and log the sets you actually did.</p></div><section class="buddy-entry"><div><p class="eyebrow">LIVE WORKOUT</p><h2>Workout Buddy</h2><p>${data.activeWorkout?`${esc(data.activeWorkout.type)} workout in progress`:'Fast set entry, rest timing, and exercise transitions.'}</p></div><div class="buddy-entry-actions">${data.activeWorkout?button('Resume','buddy-launch','primary')+button('End workout','buddy-end','outline small'):button('Start','buddy-launch','primary')}${button('Log manual lift','custom-lift','outline small')}</div></section>${dateHeader('Workout date')}<div class="routine-toolbar"><strong>ROUTINES</strong>${button('+ Manage','routine-manage','outline small')}</div><div class="workout-tabs">${templates.map(x=>button(esc(x.name),'workout',workout===x.name?'selected':'',`data-workout="${esc(x.name)}"`)).join('')}</div><section><div class="section-head"><div><p class="eyebrow">${esc(workout?workout.toUpperCase()+' ROUTINE':'NO ROUTINE')}</p><h2>Choose an exercise</h2></div><div class="section-actions">${button('Exercises','exercise-library','outline small')}${selected?button('Edit workout','edit-workout','outline small'):''}${button('+ Custom','custom-lift','outline small')}</div></div><div class="exercise-list">${exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e))).join(''):empty('This routine is empty. Edit it to add exercises.')}</div></section>${routineHistoryPanel()}`;
+ return `<div class="page-head"><h1>Lifting<span class="accent">.</span></h1></div><section class="buddy-entry"><div><h2>Workout Buddy</h2><p>${data.activeWorkout?`${esc(data.activeWorkout.type)} workout in progress`:''}</p></div><div class="buddy-entry-actions">${data.activeWorkout?button('Resume','buddy-launch','primary')+button('End workout','buddy-end','outline small'):button('Start','buddy-launch','primary')}${button('Log manual lift','custom-lift','outline small')}</div></section>${dateHeader('Workout date')}<div class="routine-toolbar"><strong>ROUTINES</strong>${button('+ Manage','routine-manage','outline small')}</div><div class="workout-tabs">${templates.map(x=>button(esc(x.name),'workout',workout===x.name?'selected':'',`data-workout="${esc(x.name)}"`)).join('')}</div><section><div class="section-head"><div><p class="eyebrow">${esc(workout?workout.toUpperCase()+' ROUTINE':'NO ROUTINE')}</p><h2>Choose an exercise</h2></div><div class="section-actions">${button('Exercises','exercise-library','outline small')}${selected?button('Edit workout','edit-workout','outline small'):''}${button('+ Custom','custom-lift','outline small')}</div></div><div class="exercise-list">${exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e))).join(''):empty('This routine is empty. Edit it to add exercises.')}</div></section>${routineHistoryPanel()}`;
 }
 
 function recentRoutineSessions(){
@@ -1425,7 +1431,7 @@ function routineHistoryRow(s){
 }
 function routineHistoryPanel(){
  const sessions=recentRoutineSessions();
- return '<section class="log-section routine-history-panel"><div class="section-head"><div><p class="eyebrow">WORKOUT HISTORY</p><h2>Recent routines</h2></div>'+
+ return '<section class="log-section routine-history-panel"><div class="section-head"><div><h2>Recent routines</h2></div>'+
  (sessions.length>3?button('View all','routine-history-all','outline small'):'')+'</div>'+
  (sessions.length?'<div class="routine-history-list">'+sessions.slice(0,3).map(routineHistoryRow).join('')+'</div>':empty('Completed Workout Buddy routines will appear here. Manual lifts remain available in History.'))+'</section>';
 }
@@ -1567,9 +1573,9 @@ function exerciseProgressLink(group){
 }
 function exerciseProgressPanel(){
  const groups=exerciseProgressGroups();
- if(!groups.length)return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><p class="eyebrow">LIFTING</p><h2>Exercise progress</h2></div></div>'+empty('Log some lifts to build exercise history.')+'</section>';
+ if(!groups.length)return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><h2>Exercise progress</h2></div></div>'+empty('Log some lifts to build exercise history.')+'</section>';
  const shown=groups.slice(0,4);
- return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><p class="eyebrow">LIFTING</p><h2>Exercise progress</h2></div><span class="progress-count">'+groups.length+' exercises</span></div><div class="exercise-progress-list">'+shown.map(exerciseProgressLink).join('')+'</div>'+(groups.length>4?'<button type="button" class="text-btn exercise-progress-all" data-action="exercise-progress-all">View all '+groups.length+' exercises</button>':'')+'</section>';
+ return '<section class="panel progress-details exercise-progress-panel"><div class="section-head"><div><h2>Exercise progress</h2></div><span class="progress-count">'+groups.length+' exercises</span></div><div class="exercise-progress-list">'+shown.map(exerciseProgressLink).join('')+'</div>'+(groups.length>4?'<button type="button" class="text-btn exercise-progress-all" data-action="exercise-progress-all">View all '+groups.length+' exercises</button>':'')+'</section>';
 }
 function syncExerciseProgressViewport(){const dialog=document.querySelector('.exercise-progress-all-modal');if(!dialog)return;const v=window.visualViewport;dialog.style.top=(v?v.offsetTop+v.height/2:window.innerHeight/2)+'px';dialog.style.maxHeight=Math.max(220,(v?v.height:window.innerHeight)-18)+'px';}
 function exerciseProgressAll(){const groups=exerciseProgressGroups();modal('Exercise progress','<div class="exercise-progress-all-list exercise-progress-card-list">'+groups.map(exerciseProgressLink).join('')+'</div>');document.querySelector('.modal')?.classList.add('exercise-progress-all-modal');document.body.classList.add('exercise-progress-modal-open');syncExerciseProgressViewport();}
@@ -1591,9 +1597,9 @@ const timingAverage=values=>values.length?Math.round(values.reduce((a,b)=>a+b,0)
 const timingText=seconds=>seconds==null?'—':buddyClock(seconds);
 function workoutTimingPanel(){
  const sessions=(data.workoutHistory||[]).map(workoutTiming).filter(Boolean).sort((a,b)=>Date.parse(b.session.completedAt||b.session.endedAt)-Date.parse(a.session.completedAt||a.session.endedAt));
- if(!sessions.length)return `<section class="panel progress-details timing-panel"><div class="section-head"><div><p class="eyebrow">WORKOUT BUDDY</p><h2>Workout timing</h2></div></div>${empty('Finish a Workout Buddy session to start building timing statistics.')}</section>`;
+ if(!sessions.length)return `<section class="panel progress-details timing-panel"><div class="section-head"><div><h2>Workout timing</h2></div></div>${empty('Finish a Workout Buddy session to start building timing statistics.')}</section>`;
  const allRests=sessions.flatMap(x=>x.rests),allTransitions=sessions.flatMap(x=>x.transitions),latest=sessions[0],recent=sessions.slice(0,5);
- return `<section class="panel progress-details timing-panel"><div class="section-head"><div><p class="eyebrow">WORKOUT BUDDY</p><h2>Workout timing</h2></div><span class="progress-count">${sessions.length} session${sessions.length===1?'':'s'}</span></div><div class="timing-summary"><div><small>Latest workout</small><strong>${timingText(latest.duration)}</strong></div><div><small>Average workout</small><strong>${timingText(timingAverage(sessions.map(x=>x.duration)))}</strong></div><div><small>Average rest</small><strong>${timingText(timingAverage(allRests))}</strong></div><div><small>Average transition</small><strong>${timingText(timingAverage(allTransitions))}</strong></div></div><p class="hint">Rest is measured from one finished set to the next set start in the same exercise. Transition is measured from the last set of one exercise to the first set of the next exercise actually performed.</p><div class="timing-history">${recent.map(x=>`<div class="timing-row"><span><strong>${esc(x.session.type||'Workout')}</strong><small>${niceDate(x.session.date)} · ${x.exerciseCount} exercise${x.exerciseCount===1?'':'s'}${x.session.savedEarly?' · Saved early':''}</small></span><span><b>${timingText(x.duration)}</b><small>rest ${timingText(timingAverage(x.rests))} · move ${timingText(timingAverage(x.transitions))}</small></span></div>`).join('')}</div></section>`;
+ return `<section class="panel progress-details timing-panel"><div class="section-head"><div><h2>Workout timing</h2></div><span class="progress-count">${sessions.length} session${sessions.length===1?'':'s'}</span></div><div class="timing-summary"><div><small>Latest workout</small><strong>${timingText(latest.duration)}</strong></div><div><small>Average workout</small><strong>${timingText(timingAverage(sessions.map(x=>x.duration)))}</strong></div><div><small>Average rest</small><strong>${timingText(timingAverage(allRests))}</strong></div><div><small>Average transition</small><strong>${timingText(timingAverage(allTransitions))}</strong></div></div><p class="hint">Rest is measured from one finished set to the next set start in the same exercise. Transition is measured from the last set of one exercise to the first set of the next exercise actually performed.</p><div class="timing-history">${recent.map(x=>`<div class="timing-row"><span><strong>${esc(x.session.type||'Workout')}</strong><small>${niceDate(x.session.date)} · ${x.exerciseCount} exercise${x.exerciseCount===1?'':'s'}${x.session.savedEarly?' · Saved early':''}</small></span><span><b>${timingText(x.duration)}</b><small>rest ${timingText(timingAverage(x.rests))} · move ${timingText(timingAverage(x.transitions))}</small></span></div>`).join('')}</div></section>`;
 }
 function weightSmoothPath(points){
  if(!points.length)return'';
@@ -1720,12 +1726,12 @@ function progress() {
   const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
   const chartStart=visibleWeeks.at(-1)?.week||weights.at(-1)?.date,chartEnd=visibleWeeks[0]?endOfWeek(visibleWeeks[0].week):weights[0]?.date;
   const chartWeights=chartStart&&chartEnd?weights.filter(w=>w.date>=chartStart&&w.date<=chartEnd):weights,chartBodyFat=chartStart&&chartEnd?bodyFat.filter(b=>b.date>=chartStart&&b.date<=chartEnd):bodyFat;
-  return `<div class="page-head progress-head"><p class="eyebrow">THE BIG PICTURE</p><h1>Progress<span class="accent">.</span></h1><p>Weekly averages put daily changes in perspective.</p></div><section class="panel progress-trend"><div class="section-head"><div><p class="eyebrow">BODY WEIGHT</p><h2>Weekly trend</h2></div>${button('+ Weigh in','weight','primary small')}</div><p class="week-setting">Weeks start Friday</p>${latest?`<div class="trend-highlight"><p class="eyebrow">${latest.week===currentWeek?'CURRENT WEEK':'LATEST LOGGED WEEK'}</p><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>${chartWeights.length?weightProgressChart(chartWeights):''}${chartBodyFat.length?bodyFatProgressChart(chartBodyFat):''}<div class="week-list">${visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.week.slice(0,4)}${w.week.slice(0,4)!==endOfWeek(w.week).slice(0,4)?'–'+endOfWeek(w.week).slice(0,4):''} · ${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')}</div>`:empty('Add a weigh-in to see weekly average weight and BMI.')}<p class="hint">Showing up to the last 6 Friday–Thursday weeks. Averages use logged weigh-ins only. BMI uses your height in Settings.</p></section><section class="panel progress-details weight-progress-panel"><div class="section-head"><h2>Individual weigh-ins</h2><div class="progress-head-actions"><span class="progress-count">${Math.min(5,weights.length)} shown${weights.length>5?' · '+weights.length+' total':''}</span>${weights.length>5?button('See all','weight-all','text-btn'):''}</div></div>${recentWeights.length?recentWeights.map(w=>`<div class="list-row"><span><strong>${fmt(w.value)} ${data.settings.unit}</strong><small>${niceDate(w.date)} · ${w.date.slice(0,4)} · BMI ${bmi(w.value,data.settings.heightInches,data.settings.unit)}</small></span>${button('Edit','edit-weight','text-btn',`data-id="${esc(w.id)}"`)}</div>`).join(''):empty('No weigh-ins yet.')}</section><section class="panel progress-details bodyfat-progress-panel"><div class="section-head"><div><p class="eyebrow">BODY COMPOSITION</p><h2>Body fat</h2></div>${button('+ Body fat','body-fat','outline small')}</div>${recentBodyFat.length?recentBodyFat.map(b=>`<div class="list-row"><span><strong>${fmt(b.value)}%</strong><small>${niceDate(b.date)} · ${b.date.slice(0,4)}</small></span>${button('Edit','edit-body-fat','text-btn',`data-id="${esc(b.id)}"`)}</div>`).join(''):empty('No body-fat readings yet.')}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><p class="eyebrow">NUTRITION</p><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
+  return `<div class="page-head progress-head"><h1>Progress<span class="accent">.</span></h1></div><section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div><p class="week-setting">Weeks start Friday</p>${latest?`<div class="trend-highlight"><p class="eyebrow">${latest.week===currentWeek?'CURRENT WEEK':'LATEST LOGGED WEEK'}</p><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>${chartWeights.length?weightProgressChart(chartWeights):''}${chartBodyFat.length?bodyFatProgressChart(chartBodyFat):''}<div class="week-list">${visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.week.slice(0,4)}${w.week.slice(0,4)!==endOfWeek(w.week).slice(0,4)?'–'+endOfWeek(w.week).slice(0,4):''} · ${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')}</div>`:empty('Add a weigh-in to see weekly average weight and BMI.')}<p class="hint">Showing up to the last 6 Friday–Thursday weeks. Averages use logged weigh-ins only. BMI uses your height in Settings.</p></section><section class="panel progress-details weight-progress-panel"><div class="section-head"><h2>Individual weigh-ins</h2><div class="progress-head-actions"><span class="progress-count">${Math.min(5,weights.length)} shown${weights.length>5?' · '+weights.length+' total':''}</span>${weights.length>5?button('See all','weight-all','text-btn'):''}</div></div>${recentWeights.length?recentWeights.map(w=>`<div class="list-row"><span><strong>${fmt(w.value)} ${data.settings.unit}</strong><small>${niceDate(w.date)} · ${w.date.slice(0,4)} · BMI ${bmi(w.value,data.settings.heightInches,data.settings.unit)}</small></span>${button('Edit','edit-weight','text-btn',`data-id="${esc(w.id)}"`)}</div>`).join(''):empty('No weigh-ins yet.')}</section><section class="panel progress-details bodyfat-progress-panel"><div class="section-head"><div><h2>Body fat</h2></div>${button('+ Body fat','body-fat','outline small')}</div>${recentBodyFat.length?recentBodyFat.map(b=>`<div class="list-row"><span><strong>${fmt(b.value)}%</strong><small>${niceDate(b.date)} · ${b.date.slice(0,4)}</small></span>${button('Edit','edit-body-fat','text-btn',`data-id="${esc(b.id)}"`)}</div>`).join(''):empty('No body-fat readings yet.')}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
 }
 function history() {
   const nonFoodDates=[...data.lifts,...data.weights,...(data.bodyFat||[])];
   const dates=[...new Set([...nonFoodDates.map(x=>x.date),...data.foodEntries.map(currentFoodTrackingDate)])].sort().reverse();
-  return `<div class="page-head"><p class="eyebrow">EVERY DAY COUNTS</p><h1>History<span class="accent">.</span></h1><p>Choose any date to view or correct what you logged.</p></div><div class="date-row">${input('Jump to date','date',chosenDate,'date','required')}${button('Open food','food','outline small')}</div>${dates.length?dates.map(date=>{const t=foodDayTotals(date), lifts=data.lifts.filter(x=>x.date===date).length, w=data.weights.find(x=>x.date===date),bf=(data.bodyFat||[]).filter(x=>x.date===date).at(-1);return `<button class="history-day" data-action="go-date" data-date="${date}"><strong>${niceDate(date)}</strong><span>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g protein<br>${lifts} lift${lifts===1?'':'s'}${w?` · ${fmt(w.value)} ${data.settings.unit}`:''}${bf?` · ${fmt(bf.value)}% BF`:''}</span><b>↗</b></button>`}).join(''):empty('Your logged days will show up here.')}`;
+  return `<div class="page-head"><h1>History<span class="accent">.</span></h1></div><div class="date-row">${input('Jump to date','date',chosenDate,'date','required')}${button('Open food','food','outline small')}</div>${dates.length?dates.map(date=>{const t=foodDayTotals(date), lifts=data.lifts.filter(x=>x.date===date).length, w=data.weights.find(x=>x.date===date),bf=(data.bodyFat||[]).filter(x=>x.date===date).at(-1);return `<button class="history-day" data-action="go-date" data-date="${date}"><strong>${niceDate(date)}</strong><span>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g protein<br>${lifts} lift${lifts===1?'':'s'}${w?` · ${fmt(w.value)} ${data.settings.unit}`:''}${bf?` · ${fmt(bf.value)}% BF`:''}</span><b>↗</b></button>`}).join(''):empty('Your logged days will show up here.')}`;
 }
 
 function dataDiagnostics(){
@@ -1760,13 +1766,13 @@ function googleSyncUsagePanel(){
   return '<div class="storage-meter"><p><strong>'+labels[section]+' · '+usedKiB.toFixed(1)+' KiB</strong> / '+(MAX_CLOUD_BYTES/1024).toFixed(1)+' KiB</p>'+
    '<div role="progressbar" aria-label="'+labels[section]+' cloud payload usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.min(100,pct).toFixed(1)+'"><span style="width:'+Math.min(100,pct).toFixed(1)+'%"></span></div></div>';
  }).join('');
- return '<section class="panel spaced google-sync-usage"><div class="section-head"><div><p class="eyebrow">GOOGLE SYNC</p><h2>Cloud section sizes</h2></div><span class="version-badge">3 files</span></div>'+
+ return '<section class="panel spaced google-sync-usage"><div class="section-head"><div><h2>Cloud section sizes</h2></div><span class="version-badge">3 files</span></div>'+
  rows+'<p class="hint">'+esc(status)+'. Each file has its own 800,000-byte safety limit; these are actual UTF-8 JSON sizes, not a shared account cap or browser quota.</p></section>';
 }
 
 function dataHealthPanel(){
  const d=dataDiagnostics(),status=d.issues.length?'Needs attention':d.warnings.length?'Review suggested':'Looks healthy',tone=d.issues.length?'bad':d.warnings.length?'warn':'good';
- return '<section class="panel spaced data-health-panel"><div class="section-head"><div><p class="eyebrow">DATA HEALTH</p><h2>Diagnostics</h2></div><span class="health-status '+tone+'">'+status+'</span></div><div class="diagnostic-counts"><span><strong>'+d.counts.foodEntries+'</strong><small>food logs</small></span><span><strong>'+d.counts.lifts+'</strong><small>lift logs</small></span><span><strong>'+d.counts.weights+'</strong><small>weights</small></span><span><strong>'+d.counts.bodyFat+'</strong><small>body fat</small></span></div>'+button('View diagnostic details','data-health-details','outline small')+'<p class="hint">Diagnostics are read-only. Nothing is repaired, deleted, or merged automatically.</p></section>';
+ return '<section class="panel spaced data-health-panel"><div class="section-head"><div><h2>Diagnostics</h2></div><span class="health-status '+tone+'">'+status+'</span></div><div class="diagnostic-counts"><span><strong>'+d.counts.foodEntries+'</strong><small>food logs</small></span><span><strong>'+d.counts.lifts+'</strong><small>lift logs</small></span><span><strong>'+d.counts.weights+'</strong><small>weights</small></span><span><strong>'+d.counts.bodyFat+'</strong><small>body fat</small></span></div>'+button('View diagnostic details','data-health-details','outline small')+'<p class="hint">Diagnostics are read-only. Nothing is repaired, deleted, or merged automatically.</p></section>';
 }
 function dataHealthDetails(){
  const d=dataDiagnostics();
@@ -1779,9 +1785,9 @@ function offlineWorkspacePanel(){
   if(demoMode)return '';
   if(offlineWorkspace){
     const status=offlineWorkspace.dirty?'Changes since last export':'No changes since last export/load';
-    return '<section class="panel spaced offline-workspace-panel active"><div class="section-head"><div><p class="eyebrow">OFFLINE JSON</p><h2>Workspace active</h2></div><span class="workspace-status '+(offlineWorkspace.dirty?'dirty':'clean')+'">'+(offlineWorkspace.dirty?'Export needed':'Up to date')+'</span></div><p class="body-copy"><strong>'+esc(offlineWorkspace.filename)+'</strong><br>'+esc(status)+'. All edits are saved only on this device while this workspace is active. Firebase and Apple Health are paused.</p><div class="offline-workspace-actions">'+button('Export updated JSON','offline-export','primary')+button('Replace workspace JSON','offline-replace','outline')+button('Exit offline mode','offline-exit','outline')+'</div><p class="hint">After exiting, use the normal Restore JSON backup flow if you want these changes applied to your account. Nothing syncs automatically. For travel, add Everyday to your iPhone Home Screen and open it once online after updates; the cached app can reopen without internet.</p></section>';
+    return '<section class="panel spaced offline-workspace-panel active"><div class="section-head"><div><h2>Workspace active</h2></div><span class="workspace-status '+(offlineWorkspace.dirty?'dirty':'clean')+'">'+(offlineWorkspace.dirty?'Export needed':'Up to date')+'</span></div><p class="body-copy"><strong>'+esc(offlineWorkspace.filename)+'</strong><br>'+esc(status)+'. All edits are saved only on this device while this workspace is active. Firebase and Apple Health are paused.</p><div class="offline-workspace-actions">'+button('Export updated JSON','offline-export','primary')+button('Replace workspace JSON','offline-replace','outline')+button('Exit offline mode','offline-exit','outline')+'</div><p class="hint">After exiting, use the normal Restore JSON backup flow if you want these changes applied to your account. Nothing syncs automatically. For travel, add Everyday to your iPhone Home Screen and open it once online after updates; the cached app can reopen without internet.</p></section>';
   }
-  return '<section class="panel spaced offline-workspace-panel"><p class="eyebrow">OFFLINE JSON</p><h2>Work from a backup</h2><p class="body-copy">Load an Everyday JSON backup into a separate local workspace. You can use the normal tracker, including Workout Buddy, edit everything, and export a new JSON without writing to Firebase.</p>'+button('Start offline JSON workspace','offline-start','outline')+'<p class="hint">This is a deliberate mode, not an automatic network fallback. Your current device or cloud data stays untouched. For a trip, add Everyday to your iPhone Home Screen, open it once while online, and keep the JSON backup downloaded in Files on the phone.</p></section>';
+  return '<section class="panel spaced offline-workspace-panel"><h2>Work from a backup</h2><p class="body-copy">Load an Everyday JSON backup into a separate local workspace. You can use the normal tracker, including Workout Buddy, edit everything, and export a new JSON without writing to Firebase.</p>'+button('Start offline JSON workspace','offline-start','outline')+'<p class="hint">This is a deliberate mode, not an automatic network fallback. Your current device or cloud data stays untouched. For a trip, add Everyday to your iPhone Home Screen, open it once while online, and keep the JSON backup downloaded in Files on the phone.</p></section>';
 }
 function offlineWorkspaceModal(replace=false){
   const warning=offlineWorkspace?.dirty&&replace?'<div class="import-alert"><strong>Unexported workspace changes</strong><p>Replacing the workspace will discard them. Export first if you want to keep them.</p></div>':'';
@@ -1814,11 +1820,11 @@ function storageProtectionPanel(){
   const usage=Number.isFinite(storageProtection.usage)?Math.round(storageProtection.usage/1024)+' KB used':'Usage unavailable';
   const quota=Number.isFinite(storageProtection.quota)?' · '+Math.round(storageProtection.quota/1024/1024)+' MB quota':'';
   const detail=storageProtection.persisted===true?'iOS/browser storage eviction protection is active for this app origin.':storageProtection.supported?'Everyday asked for persistent storage, but the browser has not granted it yet. Home Screen use can improve WebKit’s decision.':'This browser does not expose the persistent-storage API.';
-  return '<section class="panel spaced"><div class="section-head"><div><p class="eyebrow">DEVICE STORAGE</p><h2>Offline protection</h2></div><span class="health-status '+tone+'">'+status+'</span></div><p class="body-copy">'+esc(detail)+'</p><p class="hint">'+esc(usage+quota+(storageProtection.error?' · '+storageProtection.error:''))+'</p>'+(storageProtection.supported&&storageProtection.persisted!==true?button('Ask for persistent storage','storage-persist','outline small'):'')+'</section>';
+  return '<section class="panel spaced"><div class="section-head"><div><h2>Offline protection</h2></div><span class="health-status '+tone+'">'+status+'</span></div><p class="body-copy">'+esc(detail)+'</p><p class="hint">'+esc(usage+quota+(storageProtection.error?' · '+storageProtection.error:''))+'</p>'+(storageProtection.supported&&storageProtection.persisted!==true?button('Ask for persistent storage','storage-persist','outline small'):'')+'</section>';
 }
 function settings() {
   const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
-  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><p class="eyebrow">MAKE IT YOURS</p><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div><p>${esc(intro)} Export backups regularly.</p></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><p class="eyebrow">MOVE YOUR DATA</p><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
+  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
 function close(all=false) {pendingDeviceMigration=null;if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
@@ -2129,7 +2135,7 @@ document.addEventListener('click',async event=>{
   }
   if(action==='home-favorite-log'){
    const item=el.dataset.origin==='add-saved'?data.foods.find(f=>f.id===el.dataset.id):data.foodEntries.find(e=>e.id===el.dataset.id);
-   if(!item)return;chosenDate=currentTrackingDate();
+   if(!item)return;chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();
    if(el.dataset.origin==='add-saved')foodForm(null,item);
    else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot()});
    return;
@@ -2361,7 +2367,7 @@ document.addEventListener('click',async event=>{
     const i=Number(el.dataset.index);if(!Number.isInteger(i)||i<0||i>=foodBatch.length)return;
     foodBatch.splice(i,1);refreshFoodBatchView();return;
   }
-  if(action==='home-log-food'){chosenDate=currentTrackingDate();foodForm();return;}
+  if(action==='home-log-food'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm();return;}
   if(action==='new-food'){foodForm();return;}
   if(action==='food-relog'){
    const previous=data.foodEntries.find(e=>e.id===el.dataset.id);if(!previous)return;
@@ -2375,7 +2381,7 @@ document.addEventListener('click',async event=>{
   if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;await persist();render();return;}
   if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';await persist();return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
-  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f)foodForm(null,f);return;}
+  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f);}return;}
   if(action==='custom-lift'){liftForm();return;}
   if(action==='choose-exercise-match'){const form=el.closest('form[data-form="lift"]'),name=el.dataset.name,equipment=el.dataset.equipment;if(!form||!name)return;form.elements.exercise.value=name;form.elements.equipment.value=equipment;form.querySelector('.exercise-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(name)+'</strong><small>'+equipmentLabel(equipment)+' · Using canonical exercise</small></span><button type="button" class="text-btn" data-action="clear-exercise-match">Change</button></div>';return;}
   if(action==='clear-exercise-match'){const form=el.closest('form[data-form="lift"]');renderExerciseMatches(form);form.elements.exercise.focus();return;}
@@ -2690,7 +2696,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.3',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -2710,7 +2716,7 @@ function cloudSaveWarning(){
   return '';
 }
 function accountPanel(){
-  if(demoMode)return '<section class="panel demo-account-panel"><h2>Demo data</h2><p class="body-copy">A separate set of fictional nutrition, body weight and Workout Buddy records. No changes can be sent to your account or normal device logs.</p>'+button('Reset demo data','demo-reset','outline')+button('Exit demo','demo-exit','outline')+'</section>';
+  if(demoMode)return '<section class="panel demo-account-panel"><h2>Demo data</h2><p class="body-copy">Demo data is separate from your saved records.</p>'+button('Reset demo data','demo-reset','outline')+button('Exit demo','demo-exit','outline')+'</section>';
   if(offlineWorkspace){
     const cloudLine=account?'Signed in as '+account.email+'. Cloud loading and saving resume after you exit this workspace.':'Cloud account access is paused while this workspace is active.';
     return '<section class="panel"><h2>Cloud account paused</h2><p class="body-copy">'+esc(cloudLine)+'</p><p class="hint">Workspace edits cannot overwrite Firebase by accident. Export the workspace JSON, exit offline mode, then use the normal restore preview to apply it deliberately.</p></section>';
@@ -2748,7 +2754,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.2');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.3');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -2898,7 +2904,7 @@ async function commitImport(){
 
 function healthPanel(){
   if(offlineWorkspace||!account)return '';
-  return `<section class="panel spaced"><p class="eyebrow">APPLE HEALTH</p><h2>Weight & body fat sync</h2><p class="body-copy">Use an iPhone Shortcut to send your latest weight and, when available, body-fat percentage. Everyday checks when you open or return to the app. Your Home Screen icon stays the same.</p><p role="status">${esc(healthState.status||'Not connected. Weight access is granted in Shortcuts on your iPhone.')}</p>${healthState.enabled?`${button('Check Health','health-check','outline')}${button('Shortcut setup','health-setup','outline')}${button('Disconnect','health-disconnect','text-btn')}`:button('Connect Health Shortcut','health-enable','primary')}<p class="hint">Weight and body fat sync independently and may have different dates. Either measurement may be submitted by itself. Existing manual readings of the same type/date are kept. Everyday does not write back to Apple Health.</p></section>`;
+  return `<section class="panel spaced"><h2>Weight & body fat sync</h2><p class="body-copy">Use an iPhone Shortcut to send your latest weight and, when available, body-fat percentage. Everyday checks when you open or return to the app. Your Home Screen icon stays the same.</p><p role="status">${esc(healthState.status||'Not connected. Weight access is granted in Shortcuts on your iPhone.')}</p>${healthState.enabled?`${button('Check Health','health-check','outline')}${button('Shortcut setup','health-setup','outline')}${button('Disconnect','health-disconnect','text-btn')}`:button('Connect Health Shortcut','health-enable','primary')}<p class="hint">Weight and body fat sync independently and may have different dates. Either measurement may be submitted by itself. Existing manual readings of the same type/date are kept. Everyday does not write back to Apple Health.</p></section>`;
 }
 async function syncHealth(force=false){
  if(demoMode)return;

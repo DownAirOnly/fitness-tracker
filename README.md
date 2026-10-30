@@ -4,6 +4,17 @@
 
 A small mobile-first web app for food, lifting, progress, and finances. The Home command center places today's calorie/protein numbers above compact Food, Workout and Spending actions; a swipable dashboard shows finance, lifting or nutrition insights. Weight is available in Progress. On the first visit after 6 a.m. local time each day, the app may offer an optional weigh-in prompt with **Enter later**.
 
+## v99.3 — Design and copy refinement (verification patch)
+
+- Preserve the large, single-card Home dashboard and the existing calories/protein goal descriptions. Tighten only the metrics, Home buttons and excess space above the header.
+- Quick actions explicitly mean **Log food**, **Start/Resume workout**, **Log spending**, while the fixed bottom bar navigates to the full **Food, Lifting, Finances** sections.
+- Shared hand-drawn SVG line icons now cover Home actions, bottom navigation, Progress, Settings and Finances. The former workout weight-stack icon was replaced with a recognizable diagonal dumbbell.
+- Home card tabs **Money / Lifting / Nutrition** provide their own identity, with no extra “Your dashboard”, “Money at a glance”, “Quick repeat”, or filler titles. Card height remains intentionally unchanged.
+- Nutrition dashboard directly reuses the Food tab's saved-food **quick-add cards**, favoriting and edit controls; Home actions use today's tracking date. Demo mode uses its fixture date rather than incorrectly jumping to the real calendar.
+- Removes decorative uppercase pre-headings and unnecessary marketing/tagline-style explanations throughout Food, Lifting, Finance, Progress, History and Settings, while retaining material financial provenance, projected-vs-actual distinctions, sync warnings and import safety.
+- Initial loading renders a single Home skeleton without enormous offline-workspace content or placeholder account row. Only an actual failed account load opens a recovery dialog. First-paint HTML and cached assets are synchronized to v99.3.
+- No changes to stored user data, auth, backups, Firebase rules, bank transaction identifiers, or model schemas. Real iPhone sign-off remains necessary.
+
 ## v99.2 — iPhone Home viewport and stale-app recovery
 - Screenshot after the v99.1 Pages deployment showed the **older v99 layout** (oversized Food/Lifting cards, weight strip and account banner). This means the installed PWA had not loaded the newly published bundle; GitHub Pages publishing alone does not confirm the iPhone refreshed.
 - v99.2 locks the document and Home card from vertical scrolling, resets any previous page scroll on navigation back to Home, and leaves room for standalone iPhone status bar and safe-area dock. For very short screens the card compresses secondary descriptions rather than creating a long page.
