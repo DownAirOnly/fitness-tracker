@@ -15,6 +15,8 @@ const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
 assert.equal(initialHome.querySelectorAll('.home-metric').length,2,'daily totals first');
+assert.deepEqual([...initialHome.querySelectorAll('.home-metric-value')].map(el=>el.textContent),['— / —','— / —'],'loading skeleton shows inline current / goal');
+assert.equal(initialHome.querySelectorAll('.home-metric-sub').length,0,'obsolete left/over subtitle absent on first paint');
 assert.ok(initialHome.querySelector('.home-add-trigger').disabled);
 assert.ok(!dom.window.document.body.textContent.includes('Goals are guides, not grades'));
 for(const key of ['window','document','localStorage','navigator'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
@@ -34,10 +36,10 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+)?\1/g,
+source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
-source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+)?\1/g,"'"+pathToFileURL(fixture)+"'");
-assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+)?/.test(source),'all static app imports resolved');
+source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
+assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
 await writeFile(join(temp,'app.mjs'),source);
 const tick=()=>new Promise(r=>setTimeout(r,20));
 const click=async action=>{const el=document.querySelector(`[data-action="${action}"]`);assert.ok(el,action);el.click();await tick();};
@@ -52,7 +54,7 @@ try{
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'true');
  assert.equal(document.querySelectorAll('.home-metric').length,2,'pending Home keeps the same two metrics');
  assert.equal(document.querySelectorAll('.home-add-trigger').length,1,'pending Home has one Add action');
- assert.equal(document.querySelector('.home-metric-value').textContent,'—');
+ assert.equal(document.querySelector('.home-metric-value').textContent,'— / —');
  assert.ok(document.querySelector('.home-add-trigger').disabled);
  assert.ok(!document.querySelector('.home-actions,.today-card,.weight-strip'),'old duplicate cards and weight strip removed');
  assert.equal(document.querySelectorAll('main > *').length,1,'loading Home has one root, not a flex row with offline panel');
@@ -133,6 +135,14 @@ try{
   assert.equal(document.querySelector('header.top .home-settings').getAttribute('aria-current'),'page','Settings gear active');
   await click('home');
   assert.ok(document.querySelector('.home-command-center'),'Home navigation still works');
+  const homeCalories=document.querySelector('.home-metric.calories');
+  const homeProtein=document.querySelector('.home-metric.protein');
+  assert.equal(homeCalories.querySelector('.home-metric-label').textContent,'CALORIES');
+  assert.equal(homeProtein.querySelector('.home-metric-label').textContent,'PROTEIN');
+  assert.match(homeCalories.querySelector('.home-metric-value').textContent,/^\d+ \/ \d+$/,'Home calories show logged / target inline');
+  assert.match(homeProtein.querySelector('.home-metric-value').textContent,/^\d+g \/ \d+g$/,'Home protein shows logged / target with unit');
+  assert.equal(document.querySelectorAll('.home-metric-sub').length,0,'Home no longer repeats goal and left/over beneath totals');
+  assert.equal(document.querySelectorAll('.home-meter').length,2,'both progress bars are preserved');
   assert.equal(document.querySelectorAll('.home-quick-button').length,0,'three redundant shortcut cards removed');
   assert.equal(document.querySelectorAll('.home-add-trigger').length,1,'one Add control shares dashboard tabs row');
   assert.equal(document.querySelectorAll('.home-dashboard-controls .home-dash-tab').length,3,'one dashboard selection row');

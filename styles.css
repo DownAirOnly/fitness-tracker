@@ -2030,7 +2030,7 @@ html.buddy-active #overlay .modal{z-index:1101}
 .home-metric{padding:14px 15px 13px;background:#f0f5ec;border:1px solid #e2eadf;border-radius:19px;min-width:0}
 .home-metric.protein{background:#eef5f1;border-color:#daeae0}
 .home-metric-label,.home-dashboard-eyebrow{font-size:10px;font-weight:800;color:#6b8a71;letter-spacing:1.3px}
-.home-metric-value{font:700 clamp(26px,5.5vw,35px)/1.1 'Outfit',sans-serif;color:#193b2a;letter-spacing:-.9px;margin:7px 0 4px;font-variant-numeric:tabular-nums}
+.home-metric-value{font:700 clamp(26px,5.5vw,35px)/1.1 'Outfit',sans-serif;color:#193b2a;letter-spacing:-.9px;margin:7px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .home-metric-value small{font:600 15px 'Outfit',sans-serif;margin-left:2px;letter-spacing:0}
 .home-metric-sub{font-size:11px;line-height:1.5;color:#647c6c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .home-meter{height:5px;border-radius:999px;background:#d7e2d5;overflow:hidden;margin-top:11px}

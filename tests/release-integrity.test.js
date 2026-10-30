@@ -10,7 +10,7 @@ test('published version, entry assets, registration and offline bundle stay alig
  ]);
  const version=JSON.parse(manifest).version;
  const revision=version.slice(1);
- assert.match(version,/^v\d+(?:\.\d+)?$/);
+ assert.match(version,/^v\d+(?:\.\d+){0,2}$/);
  const cacheName=service.match(/const CACHE='([^']+)'/)?.[1];
  assert.ok(cacheName?.startsWith('everyday-'+version+'-'),'service-worker cache belongs to release '+version);
  assert.ok(index.includes('styles.css?v='+revision),'HTML loads release stylesheet');
@@ -20,14 +20,14 @@ test('published version, entry assets, registration and offline bundle stay alig
  assert.ok(app.includes("register('./sw.js?v="+revision+"'"),'app registers the release service worker');
  // Module imports are pinned to asset revisions. Ensure the corresponding
  // exact URLs are included for offline Home Screen use.
- for(const [,file,revision]of app.matchAll(/from ['"]\.\/([^'"/]+\.js)\?v=(\d+(?:\.\d+)?)['"]/g)){
+ for(const [,file,revision]of app.matchAll(/from ['"]\.\/([^'"/]+\.js)\?v=(\d+(?:\.\d+){0,2})['"]/g)){
   assert.ok(service.includes('"./'+file+'?v='+revision+'"'),'service worker must precache '+file+'?v='+revision);
  }
  // Check transitive cloud/Health imports, not only app.js's top-level imports.
  // A stale query token could otherwise load a different module while offline.
  for(const module of ['cloud.js','cloud-model.js','account-cloud-store.js','health-cloud.js','account-sections.js']){
   const source=await read(module);
-  for(const [,file,rev]of source.matchAll(/from ['"]\.\/([^'"/]+\.js)\?v=(\d+(?:\.\d+)?)['"]/g)){
+  for(const [,file,rev]of source.matchAll(/from ['"]\.\/([^'"/]+\.js)\?v=(\d+(?:\.\d+){0,2})['"]/g)){
    assert.ok(service.includes('"./'+file+'?v='+rev+'"'),module+' imports '+file+'@'+rev+' but it is not precached');
   }
  }
