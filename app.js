@@ -301,55 +301,52 @@ function homeIcon(name){
 function homeDashboardCard(view){
  if(view==='finances'){
   const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate());
-  const cash=snapshot.balanceCents===null?'Not entered':budgetMoney(snapshot.balanceCents);
-  const stamp=snapshot.balanceCents===null?'Enter your balance in Finances':snapshot.balanceCurrent?'Entered for today · not bank-verified':'Balance from '+esc(snapshot.balanceAsOf)+' · update before spending';
-  const bill=snapshot.billsSoonCents===0?'No scheduled bills':budgetMoney(snapshot.billsSoonCents)+' scheduled';
-  const outlook=snapshot.spendingEstimateCents===null?'Unavailable until current cash and bills are entered':budgetMoney(snapshot.spendingEstimateCents)+' projected before next paycheck';
-  return '<article class="home-dashboard-content home-dash-finance"><div class="home-dashboard-eyebrow">AVAILABLE CASH · MANUAL</div>'+
-   '<div class="home-dash-value">'+cash+'</div><p class="home-dash-caption">'+stamp+'</p>'+
-   '<div class="home-dashboard-stat"><span>Bills · next 14 days</span><strong>'+bill+'</strong></div>'+
-   '<p class="home-dashboard-hint">'+outlook+'</p><div class="home-dashboard-footer">'+
-   button('Open finances','finances','home-dash-link')+
-   (snapshot.balanceCents===null||!snapshot.balanceCurrent?button('Update cash','budget-balance','home-dash-link primary-link'):'')+'</div></article>';
+  const balanceSet=snapshot.balanceCents!==null;
+  const needUpdate=!balanceSet||!snapshot.balanceCurrent;
+  const cash=balanceSet?budgetMoney(snapshot.balanceCents):'Not set';
+  const bill=snapshot.billsSoon.length?budgetMoney(snapshot.billsSoonCents):'No bills scheduled';
+  const message=!balanceSet?'Manually entered balance':!snapshot.balanceCurrent?
+   'Balance from '+esc(snapshot.balanceAsOf)+' · update needed':
+   'Updated '+esc(snapshot.balanceAsOf)+' · manually entered';
+  const outcome=snapshot.spendingEstimateCents===null?'':budgetMoney(snapshot.spendingEstimateCents);
+  return '<article class="home-dashboard-content home-dash-finance">'+
+    '<div class="home-dash-value">'+cash+'</div><p class="home-dash-caption">'+message+'</p>'+
+    '<div class="home-dashboard-stat"><span>Bills · next 14 days</span><strong>'+bill+'</strong></div>'+
+    (outcome?'<div class="home-dashboard-stat"><span>After planned bills</span><strong>'+outcome+'</strong></div>':'')+
+    '<div class="home-dashboard-footer">'+
+    (needUpdate?button(balanceSet?'Update balance':'Set balance','budget-balance','home-dash-link primary-link'):
+    button('Finances','finances','home-dash-link primary-link'))+'</div></article>';
  }
  if(view==='lifting'){
   const recent=recentRoutineSessions(),last=recent[0],routines=savedWorkouts().filter(w=>(w.exercises||[]).length);
-  const lastRoutine=last?.type||'No completed workout yet';
+  const name=last?.type||'No workouts logged';
   const selected=routines.findIndex(w=>w.name===last?.type);
   const next=routines.length?routines[(selected>=0?selected+1:0)%routines.length]:null;
-  // A predicted calendar day needs at least three recent consistent intervals.
-  const dates=recent.slice(0,4).map(s=>Date.parse((s.date||routineFinishedDate(s))+'T12:00:00')).filter(Number.isFinite);
-  const intervals=dates.slice(1).map((d,i)=>Math.round((dates[i]-d)/86400000));
+  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
+  const intervals=dates.slice(1).map((date,i)=>Math.round((dates[i]-date)/86400000));
   let day='';
   if(dates.length===4&&intervals.every(n=>n>=1&&n<=7)&&Math.max(...intervals)-Math.min(...intervals)<=1){
-   const estimate=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),nextTime=dates[0]+estimate*86400000;
-   if(nextTime>=Date.now()-86400000&&nextTime<=Date.now()+14*86400000)day=' · around '+niceDate(localDate(new Date(nextTime)));
+   const offset=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),pred=dates[0]+offset*86400000;
+   if(pred>=Date.now()-86400000&&pred<=Date.now()+14*86400000)day=' · around '+niceDate(localDate(new Date(pred)));
   }
-  return '<article class="home-dashboard-content home-dash-lifting"><div class="home-dashboard-eyebrow">LAST COMPLETED</div>'+
-  '<div class="home-dash-value home-dash-routine">'+esc(lastRoutine)+'</div>'+
-  '<p class="home-dash-caption">'+(last?esc(niceDate(routineFinishedDate(last))):'Your completed routines will appear here')+'</p>'+
-  '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'Create a routine')+'</strong></div>'+
-  '<p class="home-dashboard-hint">'+(next?'Routine rotation suggestion'+day+' · not a scheduled workout':'Set up a routine on the Lifting tab')+'</p>'+
-  '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
-  button('View lifting','gym','home-dash-link')+'</div></article>';
+  return '<article class="home-dashboard-content home-dash-lifting">'+
+   '<div class="home-dash-value home-dash-routine">'+esc(name)+'</div>'+
+   '<p class="home-dash-caption">'+(last?'Last workout · '+esc(niceDate(routineFinishedDate(last))):'')+'</p>'+
+   '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'No routine set')+'</strong></div>'+
+   (day?'<p class="home-dashboard-hint">Estimated'+esc(day)+'</p>':'')+
+   '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
+   '</div></article>';
  }
- const pinned=(data.foods||[]).filter(f=>f.pinned),recent=recentFoodRelogs(3);
- const picks=pinned.slice(0,2).map(f=>({id:f.id,name:f.name,calories:f.calories,protein:f.protein,action:'add-saved'}));
- for(const e of recent){
-  if(picks.length>=2)break;
-  if(picks.some(item=>item.name.toLowerCase()===e.name.toLowerCase()))continue;
-  picks.push({id:e.id,name:e.name,calories:e.calories*e.quantity,protein:e.protein*e.quantity,action:'food-relog'});
- }
- return '<article class="home-dashboard-content home-dash-nutrition"><div class="home-dashboard-eyebrow">QUICK REPEAT</div>'+
-  '<div class="home-dash-value home-dash-routine">Meals you know</div>'+
-  '<p class="home-dash-caption">Favorite or recently logged portions</p>'+
-  '<div class="home-favorite-list">'+(picks.length?picks.map(f=>
-   '<div class="home-favorite-row"><span><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span>'+
-   button('Log','home-favorite-log','home-dash-link','data-origin="'+f.action+'" data-id="'+esc(f.id)+'" aria-label="Log '+esc(f.name)+'"')+'</div>').join(''):
-   '<p class="home-dashboard-hint">Pin foods in Food Library or log meals to see quick repeats.</p>')+'</div>'+
-  '<div class="home-dashboard-footer">'+button('Food Library','food-library','home-dash-link')+
-  button('Track food','home-log-food','home-dash-link primary-link')+'</div></article>';
+ // Same reusable cards as Food: favorite definitions first, then recent saved foods.
+ const all=sortFoods(data.foods||[],'recent');
+ const favorites=sortFoods(all.filter(food=>food.pinned),'recent');
+ const picks=favorites.concat(all.filter(food=>!food.pinned)).slice(0,2);
+ return '<article class="home-dashboard-content home-dash-nutrition">'+
+  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned))).join('')+'</div>':
+   '<p class="home-dashboard-empty">No saved foods</p>')+
+  '<div class="home-dashboard-footer">'+button('All foods','food','home-dash-link')+'</div></article>';
 }
+
 function home(loading=false) {
  const date=currentTrackingDate(),totals=foodDayTotals(date);
  const calTarget=data.settings.calories,proteinTarget=data.settings.protein;
