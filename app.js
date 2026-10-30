@@ -353,7 +353,7 @@ function homeDashboardCard(view){
 }
 
 function home(loading=false) {
- const date=currentTrackingDate(),totals=foodDayTotals(date);
+ const date=demoMode?DEMO_LAST_DATE:currentTrackingDate(),totals=foodDayTotals(date);
  const calTarget=data.settings.calories,proteinTarget=data.settings.protein;
  const calLeft=Math.round(calTarget-totals.calories),proteinLeft=Math.round(proteinTarget-totals.protein);
  const metric=(name,value,target,unit,left,cls)=>'<div class="home-metric '+cls+'"><div class="home-metric-label">'+name+'</div>'+
@@ -2135,7 +2135,7 @@ document.addEventListener('click',async event=>{
   }
   if(action==='home-favorite-log'){
    const item=el.dataset.origin==='add-saved'?data.foods.find(f=>f.id===el.dataset.id):data.foodEntries.find(e=>e.id===el.dataset.id);
-   if(!item)return;chosenDate=currentTrackingDate();
+   if(!item)return;chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();
    if(el.dataset.origin==='add-saved')foodForm(null,item);
    else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot()});
    return;
@@ -2367,7 +2367,7 @@ document.addEventListener('click',async event=>{
     const i=Number(el.dataset.index);if(!Number.isInteger(i)||i<0||i>=foodBatch.length)return;
     foodBatch.splice(i,1);refreshFoodBatchView();return;
   }
-  if(action==='home-log-food'){chosenDate=currentTrackingDate();foodForm();return;}
+  if(action==='home-log-food'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm();return;}
   if(action==='new-food'){foodForm();return;}
   if(action==='food-relog'){
    const previous=data.foodEntries.find(e=>e.id===el.dataset.id);if(!previous)return;
@@ -2381,7 +2381,7 @@ document.addEventListener('click',async event=>{
   if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;await persist();render();return;}
   if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';await persist();return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
-  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=currentTrackingDate();foodForm(null,f);}return;}
+  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f);}return;}
   if(action==='custom-lift'){liftForm();return;}
   if(action==='choose-exercise-match'){const form=el.closest('form[data-form="lift"]'),name=el.dataset.name,equipment=el.dataset.equipment;if(!form||!name)return;form.elements.exercise.value=name;form.elements.equipment.value=equipment;form.querySelector('.exercise-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(name)+'</strong><small>'+equipmentLabel(equipment)+' · Using canonical exercise</small></span><button type="button" class="text-btn" data-action="clear-exercise-match">Change</button></div>';return;}
   if(action==='clear-exercise-match'){const form=el.closest('form[data-form="lift"]');renderExerciseMatches(form);form.elements.exercise.focus();return;}
