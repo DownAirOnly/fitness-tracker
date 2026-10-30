@@ -14,6 +14,11 @@ assert.ok(stylesheet.includes('#buddy-root .buddy-setup-editor input,')&&stylesh
 assert.ok(stylesheet.includes('.home-metric-separator,.home-metric-target{font:500 12px/1.2'), 'Home slash and target use the Food card 12px goal treatment');
 assert.ok(stylesheet.includes('.home-metric-target small{font:inherit;margin-left:0'), 'Home protein target unit stays the same small size');
 assert.ok(stylesheet.includes('[data-theme="dark"] .home-metric-separator'), 'Home goal maintains subdued dark-mode color');
+assert.ok(stylesheet.includes('.home-command-center > .home-metrics,'),'Home metrics reset global section margin');
+assert.ok(stylesheet.includes('.home-command-center > .home-dashboard{margin-bottom:0}'),'dashboard resets global section margin');
+const initialGear=dom.window.document.querySelector('header .home-settings svg');
+assert.ok(initialGear.querySelector('circle[cx="12"][cy="12"][r="3.25"]'),'gear center concentric with viewBox');
+const firstPaintGear=initialGear.innerHTML;
 const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
@@ -74,7 +79,11 @@ try{
  state.releaseAuth();await tick();await tick();
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'false');
  assert.ok(document.querySelector('main').firstElementChild.classList.contains('home-command-center'));
- assert.ok(document.querySelector('main').nextElementSibling.classList.contains('account-banner'),'signed-out login access remains');
+ assert.equal(document.querySelectorAll('.account-banner').length,0,'signed-out users use the header gear, not an extra Account bar');
+ assert.equal(document.querySelector('header .home-settings svg').innerHTML,firstPaintGear,'hydrated header gear matches first paint');
+ await click('settings');
+ assert.ok(document.querySelector('.panel [data-action="sign-in"]'),'Settings retains signed-out Google sign-in');
+ await click('home');
  assert.ok(!document.querySelector('main .weight-strip'),'weight belongs in Progress, not Home');
 
   // v81 navigation regression: five bottom tabs and a header Settings gear.
@@ -151,6 +160,7 @@ try{
   assert.equal(document.querySelectorAll('.home-dashboard-controls .home-dash-tab').length,3,'one dashboard selection row');
   assert.equal(document.querySelectorAll('nav.nav .nav-icon svg').length,5,'bottom navigation shares SVG family');
   assert.equal(document.querySelector('header .home-settings svg')?.tagName.toLowerCase(),'svg','Settings uses a matched vector icon');
+  assert.ok(document.querySelector('header .home-settings circle[cx="12"][cy="12"]'),'gear center remains concentric after navigation');
   await click('home-add-menu');
   assert.equal(document.querySelectorAll('.home-add-options .home-add-option').length,3,'Add menu has three direct actions');
   const topDumbbell=document.querySelector('.home-add-options [data-action="buddy-launch"] svg');
@@ -703,8 +713,14 @@ try{
  assert.equal(foodFormTest.elements.quantity.value,'1','quick preset restores one serving');
  assert.ok(foodCsv.value.includes('"1"'),'open CSV updates with serving changes');await submit('food',{name:'Device meal',calories:'250',protein:'20'});
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries.length,1);
- await click('sign-in');await click('home');
- assert.ok(!document.querySelector('.account-banner'),'signed-in account details moved off Home');
+ await click('settings');await click('sign-in');await click('home');
+ assert.equal(document.querySelectorAll('.account-banner').length,0,'signed-in Home has no account banner');
+ for(const action of ['food','gym','finances','progress','settings']){
+   await click(action);
+   assert.equal(document.querySelectorAll('.account-banner').length,0,'signed-in '+action+' uses the gear instead of an Account bubble');
+   assert.ok(document.querySelector('header [data-action="settings"]'),'Settings remains reachable from '+action);
+ }
+ await click('home');
  await click('settings');assert.ok(document.querySelector('.settings-page-head'));
  assert.ok(document.querySelector('.app-update-controls [data-action="app-reload-latest"]'),'Settings offers a non-destructive manual reload');
  await click('food');

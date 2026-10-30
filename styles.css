@@ -2288,3 +2288,7 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
  .home-add-trigger{min-width:62px;padding:5px 7px}
  .home-dashboard-controls .home-dash-tab{font-size:10px}
 }
+
+/* v99.5: the Home flex gap alone governs spacing, not the global section bottom margin. */
+.home-command-center > .home-metrics,
+.home-command-center > .home-dashboard{margin-bottom:0}
