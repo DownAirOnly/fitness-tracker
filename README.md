@@ -4,6 +4,14 @@
 
 A small mobile-first web app for food, lifting, progress, and finances. The Home command center places today's calorie/protein numbers above compact Food, Workout and Spending actions; a swipable dashboard shows finance, lifting or nutrition insights. Weight is available in Progress. On the first visit after 6 a.m. local time each day, the app may offer an optional weigh-in prompt with **Enter later**.
 
+## v99.4 — Streamlined Home and consistent header (verification build)
+
+- Home no longer shows three Food, Workout, and Spending shortcut tiles *alongside* three dashboard tabs and five section tabs. There is one **+ Add** button aligned in the same row as the dashboard switcher; it opens a compact, accessible modal with Food, Workout (or Resume), and Spending actions, reusing the existing editors and validation.
+- Home dashboard tabs are ordered **Nutrition / Lifting / Money**. Nutrition becomes the default for first-time viewers; the last-selected dashboard remains saved locally on each device.
+- The Home header uses the **same 84px header and zero shell top padding as Food, Lifting, Finances, and Progress**, fixing the large Home-only top gap seen in v99.3 iPhone screenshots. Home stays non-scrolling, and the bottom nav remains unchanged.
+- One row of Home controls instead of two; the main dashboard card remains full-size; calorie/protein goal labels and data remain unchanged.
+- No stored data model, authentication, transaction, backup, cloud, or Firebase rules changes. CI, Pages, and actual iPhone validation remain separate checks.
+
 ## v99.3 — Design and copy refinement (verification patch)
 
 - Preserve the large, single-card Home dashboard and the existing calories/protein goal descriptions. Tighten only the metrics, Home buttons and excess space above the header.

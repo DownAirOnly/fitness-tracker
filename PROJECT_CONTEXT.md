@@ -161,6 +161,13 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Native packaging:** `native/` has Capacitor 8 configuration and package metadata; `scripts/prepare-native.mjs` creates offline web assets from the PWA release manifest; `NATIVE_IOS.md` details how to compile on macOS. Web sign-in is not verified in WKWebView. No Xcode build, native Firebase login, local data migration, HealthKit or TestFlight provisioning has been completed.
 - **v99 requirements:** unified Home dashboard, native-compatible Firebase authentication, restore/migration of PWA data across isolated storage origins, real macOS Xcode build, iPhone app switching and backup tests. Windows alone cannot build/sign for iOS. Do not claim v100 achieved before signed private iPhone build and on-device tests.
 - **Outstanding:** user has not confirmed applying the nine Bank of America clarifications; real iPhone v89 resume, v92–v95 Buddy and v96–v98 Finance verification remain open.
+## v99.4 — Home controls and shared header spacing (PR #19 planned)
+
+- User's screenshots showed Home header noticeably lower than Food. Cause: accumulated Home-specific standalone safe-area `padding-top` overrides, combined with a Home-only short header. The ordinary pages already have safe iPhone placement. The Home shell now explicitly adopts the same **zero additional top padding and standard 84px header** to align the brand/date/settings controls across tabs. Validate on actual iPhone after Pages deploy.
+- Users perceived the Food/Workout/Spending row, Nutrition/Lifting/Money dashboard tabs, and five bottom nav items as three repeated groups. Replace the dedicated action row with **one + Add dialog control beside the dashboard tabs**. The dialog contains the three original action flows (Food, Workout/Resume, Spending), preserving their forms, saves, navigation context, and account storage protections.
+- Dashboard tab order is **Nutrition, Lifting, Money**, with Nutrition as default only when no local selection already exists; preserve last selection. The large dashboard card and calorie/protein goal text are intentionally retained.
+- First paint, assets, SW cache revision and UI tests align to v99.4. No data schema or Firebase rules changes. Preserve v99.3 rollback and confirm both CI and user device before treating design as signed off.
+
 ## v99.3 — Design language, navigation and loading correction (PR #18)
 
 - User explicitly approved the v99.3 cleanup **except** shrinking the dashboard card or removing calorie/protein goal details. The Home dashboard remains large with a single swipeable card; metrics and top buffer become slightly more compact.

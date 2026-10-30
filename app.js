@@ -252,10 +252,10 @@ function render() {
 }
 
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
-const HOME_DASHBOARD_VIEWS=['finances','lifting','nutrition'];
+const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
 function readHomeDashboard(){
- try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'finances';}
- catch{return 'finances';}
+ try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'nutrition';}
+ catch{return 'nutrition';}
 }
 let homeDashboardView=readHomeDashboard();
 function selectHomeDashboard(next){
@@ -360,20 +360,14 @@ function home(loading=false) {
   '<div class="home-metric-value">'+(loading?'—':value)+'<small>'+unit+'</small></div>'+
   '<div class="home-metric-sub">of '+target+unit+' · '+(loading?'—':left>0?fmt(left)+unit+' left':left===0?'Goal reached':fmt(-left)+unit+' over')+'</div>'+
   '<div class="home-meter"><span style="width:'+(loading?0:Math.min(100,Math.max(0,value/Math.max(target,1)*100)))+'%"></span></div></div>';
- const action=(label,icon,handler)=>button('<span class="home-action-icon">'+homeIcon(icon)+'</span><span>'+label+'</span>',handler,'home-quick-button',loading?'disabled':'');
  return '<div class="home-command-center"><section class="home-metrics" aria-label="Today nutrition">'+
    metric('CALORIES',Math.round(totals.calories),calTarget,'',calLeft,'calories')+
    metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g',proteinLeft,'protein')+'</section>'+
-  '<section class="home-quick-commands" aria-label="Quick actions">'+
-    action('Log food','food','home-log-food')+
-    action(data.activeWorkout?'Resume':'Start workout','lifting','buddy-launch')+
-    action('Log spending','finance','home-log-finance')+
-   '</section>'+
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
-   '<nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
+   '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Money':view==='lifting'?'Lifting':'Nutrition','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
-   '</nav>'+
+   '</nav>'+button('<span class="home-add-plus" aria-hidden="true">＋</span> Add','home-add-menu','home-add-trigger',loading?'disabled':'aria-haspopup="dialog"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
 }
@@ -838,6 +832,13 @@ function financeTransactions(){
   button('Manage merchant rules','classification-rules-open','outline')+'</div>'+
   '<details class="finance-more finance-legacy-csv"><summary>CSV help</summary><div class="finance-import-actions">'+
   button('View CSV example','finance-csv-example','text-btn')+'</div></details></div></details>';
+}
+function homeAddMenu(){
+ modal('Add','<div class="home-add-options" role="group" aria-label="Choose what to log">'+
+  button(homeIcon('food')+'<span><strong>Food</strong></span>','home-log-food','home-add-option')+
+  button(homeIcon('lifting')+'<span><strong>'+(data.activeWorkout?'Resume workout':'Workout')+'</strong></span>','buddy-launch','home-add-option')+
+  button(homeIcon('finance')+'<span><strong>Spending</strong></span>','home-log-finance','home-add-option')+
+ '</div>');
 }
 function financeQuickModal(){
  modal('Log spending',
@@ -2070,6 +2071,7 @@ document.addEventListener('click',async event=>{
   if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='home-log-finance'){financeQuickModal();return;}
+  if(action==='home-add-menu'){homeAddMenu();return;}
   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
@@ -2696,7 +2698,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.3',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.4',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -2754,7 +2756,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.3');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.4');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
