@@ -347,7 +347,7 @@ function homeDashboardCard(view){
  const favorites=sortFoods(all.filter(food=>food.pinned),'recent');
  const picks=favorites.concat(all.filter(food=>!food.pinned)).slice(0,2);
  return '<article class="home-dashboard-content home-dash-nutrition">'+
-  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned))).join('')+'</div>':
+  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
    '<p class="home-dashboard-empty">No saved foods</p>')+
   '<div class="home-dashboard-footer">'+button('All foods','food','home-dash-link')+'</div></article>';
 }
@@ -972,8 +972,8 @@ function nutritionAccuracyIcon(food){
  if(accuracy==='estimate')return '<span class="nutrition-accuracy nutrition-accuracy-estimate" aria-label="'+esc(label)+'"><span aria-hidden="true">~</span></span>';
  return '<span class="nutrition-accuracy nutrition-accuracy-unknown" aria-label="'+esc(label)+'"><span aria-hidden="true"></span></span>';
 }
-function foodQuickCard(food,pinned=false){
- return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="food-favorite '+(food.pinned?'selected':'')+'" data-action="toggle-favorite" data-id="'+esc(food.id)+'" aria-label="'+(food.pinned?'Remove '+esc(food.name)+' from favorites':'Add '+esc(food.name)+' to favorites')+'" aria-pressed="'+(food.pinned?'true':'false')+'">'+(food.pinned?'★':'☆')+'</button><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
+function foodQuickCard(food,pinned=false,homeContext=false){
+ return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="food-favorite '+(food.pinned?'selected':'')+'" data-action="toggle-favorite" data-id="'+esc(food.id)+'" aria-label="'+(food.pinned?'Remove '+esc(food.name)+' from favorites':'Add '+esc(food.name)+' to favorites')+'" aria-pressed="'+(food.pinned?'true':'false')+'">'+(food.pinned?'★':'☆')+'</button><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(homeContext?'today':chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
 }
 const hasFoodTag=(food,tag)=>Array.isArray(food.tags)&&food.tags.includes(tag);
 function sortFoods(list,mode){
