@@ -161,6 +161,11 @@ The README includes granular older Workout Buddy and fitness feature versions; c
 - **Native packaging:** `native/` has Capacitor 8 configuration and package metadata; `scripts/prepare-native.mjs` creates offline web assets from the PWA release manifest; `NATIVE_IOS.md` details how to compile on macOS. Web sign-in is not verified in WKWebView. No Xcode build, native Firebase login, local data migration, HealthKit or TestFlight provisioning has been completed.
 - **v99 requirements:** unified Home dashboard, native-compatible Firebase authentication, restore/migration of PWA data across isolated storage origins, real macOS Xcode build, iPhone app switching and backup tests. Windows alone cannot build/sign for iOS. Do not claim v100 achieved before signed private iPhone build and on-device tests.
 - **Outstanding:** user has not confirmed applying the nine Bank of America clarifications; real iPhone v89 resume, v92–v95 Buddy and v96–v98 Finance verification remain open.
+## v99.4.2 — Home target typography hotfix
+- Match the Food daily totals shown in the iPhone screenshot: calories/protein consumed stays large, while the inline slash and target are subdued 12px text. Keep the existing Home logged-value styling, both uppercase labels, progress bars, saved targets and the single-line ratio.
+- The target's protein g suffix inherits the same small text; theme-specific muted colors work in light and dark modes.
+- No data/calculation/interaction changes. Align versioned assets, service-worker cache and smoke checks. Verify on a physical iPhone.
+
 ## v99.4.1 — Home nutrition metric ratio hotfix
 - On Home, show calories and protein as **logged / target** on one line, retaining the uppercase category label, current number typography/color, original protein unit treatment and each progress meter.
 - Remove the redundant “of target · remaining/over” line. The goal is still read live from the user's settings; no numerical calculations, records, preferences, sign-in, data schemas or Firebase rules change.

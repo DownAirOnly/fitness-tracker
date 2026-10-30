@@ -2032,6 +2032,10 @@ html.buddy-active #overlay .modal{z-index:1101}
 .home-metric-label,.home-dashboard-eyebrow{font-size:10px;font-weight:800;color:#6b8a71;letter-spacing:1.3px}
 .home-metric-value{font:700 clamp(26px,5.5vw,35px)/1.1 'Outfit',sans-serif;color:#193b2a;letter-spacing:-.9px;margin:7px 0 4px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .home-metric-value small{font:600 15px 'Outfit',sans-serif;margin-left:2px;letter-spacing:0}
+/* Match the Food total's small goal hierarchy; keep the logged value unchanged. */
+.home-metric-separator,.home-metric-target{font:500 12px/1.2 'Outfit',sans-serif;color:#647c6c;letter-spacing:0}
+.home-metric-target small{font:inherit;margin-left:0;letter-spacing:inherit}
+[data-theme="dark"] .home-metric-separator,[data-theme="dark"] .home-metric-target{color:#b1c7b5}
 .home-metric-sub{font-size:11px;line-height:1.5;color:#647c6c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .home-meter{height:5px;border-radius:999px;background:#d7e2d5;overflow:hidden;margin-top:11px}
 .home-meter span{display:block;height:100%;background:#7aab77;border-radius:inherit}
