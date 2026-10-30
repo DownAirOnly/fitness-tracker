@@ -2,7 +2,14 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
-A small mobile-first web app for food, lifting, and body weight. The home screen has two primary actions. On the first visit after 6 a.m. local time each day, it offers a weigh-in with an **Enter later** option. A weigh-in already recorded for today suppresses the prompt.
+A small mobile-first web app for food, lifting, progress, and finances. The Home command center places today's calorie/protein numbers above compact Food, Workout and Spending actions; a swipable dashboard shows finance, lifting or nutrition insights. Weight is available in Progress. On the first visit after 6 a.m. local time each day, the app may offer an optional weigh-in prompt with **Enter later**.
+
+## v99.1 — Home command center (PR #16; verify CI and Pages before claiming deployment)
+
+- Daily calories/protein first, three coordinated SVG quick-action buttons beneath, no duplicate Home navigation tiles and no Home weight strip. Normal signed-in account management remains in Settings; sign-in/demo/offline controls and sync warnings remain accessible.
+- Food uses the existing entry modal, Workout uses existing Workout Buddy, and Spending now opens the **same Finance entry fields in a modal** instead of switching tabs. Saving closes the overlay and returns focus to the previous context; existing transaction validation and cloud protections are reused.
+- A single dashboard card at a time: conservative manual-cash and upcoming-bills summary, latest and next suggested lifting routine, or saved/recent food portions with quick-log actions. Select a card by tabs or horizontal swipe; the choice is stored only in local UI preferences. Calendar-day guesses require consistent recent workout history.
+- Home fits a normal phone viewport; on short screens, signed-out Home, or when save/recovery warnings appear, scrolling remains possible rather than clipping controls. CSS includes light and dark themes. This patch is a user-requested verification correction, not final v99 approval.
 
 ## v99 — Verification build (passes 1–4, user-requested deployment)
 

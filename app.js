@@ -230,7 +230,7 @@ function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudCo
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   const navItems=[['home','⌂','Home'],['food','◒','Food'],['gym','▣','Lifting'],['finances','$','Finances'],['progress','↗','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span aria-hidden="true">⚙</span></button></div></header>${page==='home'?'':accountBanner()}${cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(!account||demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span>${icon}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -243,17 +243,133 @@ function render() {
   shell(views[page]?.()||home());
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
-function home(loading=false) {
-  const today=currentTrackingDate();
-  const totals=foodDayTotals(today),latest=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
-  const calRemaining=Math.round(data.settings.calories-totals.calories),proteinRemaining=Math.round(data.settings.protein-totals.protein);
-  const remainingBadges='<div class="home-remaining" aria-label="Daily goals remaining"><span class="'+(calRemaining<0?'over':'')+'"><small>CALORIES</small><strong>'+(loading?'—':calRemaining>=0?calRemaining+' left':(-calRemaining)+' over')+'</strong></span><span class="'+(proteinRemaining<=0?'reached':'')+'"><small>PROTEIN</small><strong>'+(loading?'—':proteinRemaining>0?proteinRemaining+'g left':'Goal reached')+'</strong></span></div>';
-  return `<section class="home-actions" aria-label="What do you want to log?"><button class="big-action food-action" data-action="food" ${loading?'disabled':''}><span class="action-icon">◒</span><span><strong>Food</strong><small>Calories, protein & saved foods</small></span><b>↗</b></button><button class="big-action lift-action" data-action="gym" ${loading?'disabled':''}><span class="action-icon">▣</span><span><strong>Lifting</strong><small>Sets, reps & previous workouts</small></span><b>↗</b></button></section><section class="home-quick-commands" aria-label="Quick log actions">
- ${button('Log food','home-log-food','home-quick-button',loading?'disabled':'')}
- ${button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-quick-button',loading?'disabled':'')}
- ${button('Log spending','finance-transactions-open','home-quick-button',loading?'disabled':'')}
- </section>${!account&&!demoMode&&!offlineWorkspace&&authChecked?'<section class="demo-entry"><span><strong>Try Everyday with sample logs</strong><small>Fictional food, weight and workout history · your records stay untouched</small></span>'+button('Load demo data','demo-start','outline small')+'</section>':''}<section class="today-card"><div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>Today so far</h2></div>${button('View day ↗','history','text-btn',loading?'disabled':'')}</div><div class="metric-row"><div><b>${loading?'—':Math.round(totals.calories).toLocaleString()}</b><small>of ${loading?'—':data.settings.calories} cal</small>${progressBar(loading?0:totals.calories,data.settings.calories,'#d8eb86')}</div><div><b>${loading?'—':Math.round(totals.protein)}<em>g</em></b><small>of ${loading?'—':data.settings.protein}g protein</small>${progressBar(loading?0:totals.protein,data.settings.protein,'#9fd9bf')}</div></div>${remainingBadges}</section><section class="weight-strip"><div><span class="small-icon">⚖</span><span><strong>${loading?'—':latest?`${fmt(latest.value)} ${data.settings.unit}`:'No weigh-in yet'}</strong><small>${loading?'—':latest?`Last logged ${niceDate(latest.date)}`:'A morning check-in when you are ready'}</small></span></div>${button('Log weight','weight','outline small',loading?'disabled':'')}</section>`;
+
+const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
+const HOME_DASHBOARD_VIEWS=['finances','lifting','nutrition'];
+function readHomeDashboard(){
+ try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'finances';}
+ catch{return 'finances';}
 }
+let homeDashboardView=readHomeDashboard();
+function selectHomeDashboard(next){
+ if(!HOME_DASHBOARD_VIEWS.includes(next))return;
+ homeDashboardView=next;
+ try{localStorage.setItem(HOME_DASHBOARD_KEY,next);}catch{}
+ const shell=document.querySelector('.home-command-center');
+ if(!shell)return;
+ const body=shell.querySelector('.home-dashboard-stage');
+ if(body)body.innerHTML=homeDashboardCard(next);
+ for(const item of shell.querySelectorAll('[data-action="home-dashboard-select"]')){
+  const selected=item.dataset.view===next;
+  item.setAttribute('aria-pressed',String(selected));
+  item.classList.toggle('selected',selected);
+ }
+ const title=shell.querySelector('[data-home-dashboard-title]');
+ if(title)title.textContent=({finances:'Money at a glance',lifting:'Your training',nutrition:'Your favorites'})[next];
+}
+let homeSwipeStart=null;
+document.addEventListener('touchstart',event=>{
+ const stage=event.target.closest('.home-dashboard-stage');
+ if(!stage||event.touches.length!==1)return;
+ homeSwipeStart={x:event.touches[0].clientX,y:event.touches[0].clientY};
+},{passive:true});
+document.addEventListener('touchend',event=>{
+ if(!homeSwipeStart)return;
+ const start=homeSwipeStart;homeSwipeStart=null;
+ const stage=event.target.closest('.home-dashboard-stage');
+ if(!stage||!event.changedTouches.length)return;
+ const dx=event.changedTouches[0].clientX-start.x,dy=event.changedTouches[0].clientY-start.y;
+ if(Math.abs(dx)<48||Math.abs(dx)<Math.abs(dy)*1.25)return;
+ const index=HOME_DASHBOARD_VIEWS.indexOf(homeDashboardView);
+ selectHomeDashboard(HOME_DASHBOARD_VIEWS[Math.max(0,Math.min(HOME_DASHBOARD_VIEWS.length-1,index+(dx<0?1:-1)))]);
+},{passive:true});
+function homeIcon(name){
+ const path={
+  food:'<path d="M5 3v8m4-8v8M5 7h4M7 11v10M17 3v18M17 3c-5 3-5 10 0 12"/>',
+  lifting:'<path d="M3 9v6m4-9v12m10-12v12m4-9v6M7 12h10M1 9h4m14 0h4"/>',
+  finance:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2M6 6V5a2 2 0 0 1 2-2h10"/>'
+ }[name]||'';
+ return '<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
+}
+function homeDashboardCard(view){
+ if(view==='finances'){
+  const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate());
+  const cash=snapshot.balanceCents===null?'Not entered':budgetMoney(snapshot.balanceCents);
+  const stamp=snapshot.balanceCents===null?'Enter your balance in Finances':snapshot.balanceCurrent?'Entered for today · not bank-verified':'Balance from '+esc(snapshot.balanceAsOf)+' · update before spending';
+  const bill=snapshot.billsSoonCents===0?'No scheduled bills':budgetMoney(snapshot.billsSoonCents)+' scheduled';
+  const outlook=snapshot.spendingEstimateCents===null?'Unavailable until current cash and bills are entered':budgetMoney(snapshot.spendingEstimateCents)+' projected before next paycheck';
+  return '<article class="home-dashboard-content home-dash-finance"><div class="home-dashboard-eyebrow">AVAILABLE CASH · MANUAL</div>'+
+   '<div class="home-dash-value">'+cash+'</div><p class="home-dash-caption">'+stamp+'</p>'+
+   '<div class="home-dashboard-stat"><span>Bills · next 14 days</span><strong>'+bill+'</strong></div>'+
+   '<p class="home-dashboard-hint">'+outlook+'</p><div class="home-dashboard-footer">'+
+   button('Open finances','finances','home-dash-link')+
+   (snapshot.balanceCents===null||!snapshot.balanceCurrent?button('Update cash','budget-balance','home-dash-link primary-link'):'')+'</div></article>';
+ }
+ if(view==='lifting'){
+  const recent=recentRoutineSessions(),last=recent[0],routines=savedWorkouts().filter(w=>(w.exercises||[]).length);
+  const lastRoutine=last?.type||'No completed workout yet';
+  const selected=routines.findIndex(w=>w.name===last?.type);
+  const next=routines.length?routines[(selected>=0?selected+1:0)%routines.length]:null;
+  // A predicted calendar day needs at least three recent consistent intervals.
+  const dates=recent.slice(0,4).map(s=>Date.parse((s.date||routineFinishedDate(s))+'T12:00:00')).filter(Number.isFinite);
+  const intervals=dates.slice(1).map((d,i)=>Math.round((dates[i]-d)/86400000));
+  let day='';
+  if(dates.length===4&&intervals.every(n=>n>=1&&n<=7)&&Math.max(...intervals)-Math.min(...intervals)<=1){
+   const estimate=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),nextTime=dates[0]+estimate*86400000;
+   if(nextTime>=Date.now()-86400000&&nextTime<=Date.now()+14*86400000)day=' · around '+niceDate(localDate(new Date(nextTime)));
+  }
+  return '<article class="home-dashboard-content home-dash-lifting"><div class="home-dashboard-eyebrow">LAST COMPLETED</div>'+
+  '<div class="home-dash-value home-dash-routine">'+esc(lastRoutine)+'</div>'+
+  '<p class="home-dash-caption">'+(last?esc(niceDate(routineFinishedDate(last))):'Your completed routines will appear here')+'</p>'+
+  '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'Create a routine')+'</strong></div>'+
+  '<p class="home-dashboard-hint">'+(next?'Routine rotation suggestion'+day+' · not a scheduled workout':'Set up a routine on the Lifting tab')+'</p>'+
+  '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
+  button('View lifting','gym','home-dash-link')+'</div></article>';
+ }
+ const pinned=(data.foods||[]).filter(f=>f.pinned),recent=recentFoodRelogs(3);
+ const picks=pinned.slice(0,2).map(f=>({id:f.id,name:f.name,calories:f.calories,protein:f.protein,action:'add-saved'}));
+ for(const e of recent){
+  if(picks.length>=2)break;
+  if(picks.some(item=>item.name.toLowerCase()===e.name.toLowerCase()))continue;
+  picks.push({id:e.id,name:e.name,calories:e.calories*e.quantity,protein:e.protein*e.quantity,action:'food-relog'});
+ }
+ return '<article class="home-dashboard-content home-dash-nutrition"><div class="home-dashboard-eyebrow">QUICK REPEAT</div>'+
+  '<div class="home-dash-value home-dash-routine">Meals you know</div>'+
+  '<p class="home-dash-caption">Favorite or recently logged portions</p>'+
+  '<div class="home-favorite-list">'+(picks.length?picks.map(f=>
+   '<div class="home-favorite-row"><span><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span>'+
+   button('Log','home-favorite-log','home-dash-link','data-origin="'+f.action+'" data-id="'+esc(f.id)+'" aria-label="Log '+esc(f.name)+'"')+'</div>').join(''):
+   '<p class="home-dashboard-hint">Pin foods in Food Library or log meals to see quick repeats.</p>')+'</div>'+
+  '<div class="home-dashboard-footer">'+button('Food Library','food-library','home-dash-link')+
+  button('Track food','home-log-food','home-dash-link primary-link')+'</div></article>';
+}
+function home(loading=false) {
+ const date=currentTrackingDate(),totals=foodDayTotals(date);
+ const calTarget=data.settings.calories,proteinTarget=data.settings.protein;
+ const calLeft=Math.round(calTarget-totals.calories),proteinLeft=Math.round(proteinTarget-totals.protein);
+ const metric=(name,value,target,unit,left,cls)=>'<div class="home-metric '+cls+'"><div class="home-metric-label">'+name+'</div>'+
+  '<div class="home-metric-value">'+(loading?'—':value)+'<small>'+unit+'</small></div>'+
+  '<div class="home-metric-sub">of '+target+unit+' · '+(loading?'—':left>0?fmt(left)+unit+' left':left===0?'Goal reached':fmt(-left)+unit+' over')+'</div>'+
+  '<div class="home-meter"><span style="width:'+(loading?0:Math.min(100,Math.max(0,value/Math.max(target,1)*100)))+'%"></span></div></div>';
+ const action=(label,icon,handler)=>button('<span class="home-action-icon">'+homeIcon(icon)+'</span><span>'+label+'</span>',handler,'home-quick-button',loading?'disabled':'');
+ return '<div class="home-command-center"><section class="home-metrics" aria-label="Today nutrition">'+
+   metric('CALORIES',Math.round(totals.calories),calTarget,'',calLeft,'calories')+
+   metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g',proteinLeft,'protein')+'</section>'+
+  '<section class="home-quick-commands" aria-label="Quick actions">'+
+    action('Food','food','home-log-food')+
+    action(data.activeWorkout?'Resume':'Workout','lifting','buddy-launch')+
+    action('Spending','finance','home-log-finance')+
+   '</section>'+
+   (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
+  '<section class="home-dashboard" aria-label="Personal dashboard">'+
+   '<div class="home-dashboard-heading"><div><p class="eyebrow">YOUR DASHBOARD</p><h2 data-home-dashboard-title>'+({finances:'Money at a glance',lifting:'Your training',nutrition:'Your favorites'})[homeDashboardView]+'</h2></div></div>'+
+   '<nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
+    HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Money':view==='lifting'?'Lifting':'Nutrition','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
+   '</nav>'+
+   '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
+  '</section></div>';
+}
+
 // Pass 3.3: usable daily transaction logging and reviewed ChatGPT CSV entry.
 const financeNowTime=(date=new Date())=>String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
 const financeKindLabels={expense:'Expense',income:'Income',transfer:'Transfer'};
@@ -714,6 +830,17 @@ function financeTransactions(){
   button('Manage merchant rules','classification-rules-open','outline')+'</div>'+
   '<details class="finance-more finance-legacy-csv"><summary>CSV help</summary><div class="finance-import-actions">'+
   button('View CSV example','finance-csv-example','text-btn')+'</div></details></div></details>';
+}
+function financeQuickModal(){
+ modal('Log spending','<p class="home-quick-modal-hint">Record a transaction without leaving this screen. Use Finances for your complete history.</p>'+
+ '<form class="form finance-form home-finance-modal" data-form="finance" data-quick-finance="true">'+financeFields(null,'home-modal')+
+ '<div class="form-actions"><button class="primary finance-save" type="submit">Save transaction</button>'+
+ button('Cancel','close','outline')+'</div></form>');
+}
+function homeSavedToast(label){
+ const overlay=document.querySelector('#overlay');if(!overlay)return;
+ overlay.innerHTML='<div class="home-save-toast" role="status">'+esc(label)+'</div>';
+ setTimeout(()=>{const toast=overlay.querySelector('.home-save-toast');if(toast)toast.remove();},4000);
 }
 function financeEditForm(tx){
  if(!tx)return;
@@ -1934,6 +2061,7 @@ document.addEventListener('click',async event=>{
   }
   if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
+  if(action==='home-log-finance'){financeQuickModal();return;}
   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
@@ -1990,6 +2118,14 @@ document.addEventListener('click',async event=>{
     financeHistoryMonth='all';financeHistoryCategory='all';
     financeHistoryVisible=50;refreshFinanceHistoryList();return;
    }
+  if(action==='home-dashboard-select'){selectHomeDashboard(el.dataset.view);return;}
+  if(action==='home-favorite-log'){
+   const item=el.dataset.origin==='add-saved'?data.foods.find(f=>f.id===el.dataset.id):data.foodEntries.find(e=>e.id===el.dataset.id);
+   if(!item)return;chosenDate=currentTrackingDate();
+   if(el.dataset.origin==='add-saved')foodForm(null,item);
+   else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot()});
+   return;
+  }
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
   if(action==='close'){close();return;}
   if(action.startsWith('health-')){await healthAction(action);return;}
@@ -2408,6 +2544,7 @@ app.addEventListener('submit',async event=>{
      try{
       const saved=await persist();
       if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';render();}
+      else if(form.dataset.quickFinance==='true'){close(true);render();homeSavedToast('Transaction saved');}
      }catch(error){
       financeNotice='Entry remains in this session, but saving needs attention. Export a backup before leaving.';render();
      }finally{
@@ -2532,7 +2669,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -2584,7 +2721,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.1');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

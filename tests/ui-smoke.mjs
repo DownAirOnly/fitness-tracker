@@ -11,10 +11,11 @@ const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'ever
 const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 assert.ok(stylesheet.includes('#buddy-root .buddy-setup-editor input,')&&stylesheet.includes('.routine-history-editor textarea{font-size:16px'),'iOS text inputs use >=16px without disabling pinch zoom');
-const initialHome=['.home-actions','.today-card','.weight-strip'].map(selector=>{
- const element=dom.window.document.querySelector(selector);assert.ok(element,'present before JavaScript: '+selector);return element.outerHTML;
-});
-assert.ok(dom.window.document.querySelector('.home-actions button').disabled);
+const initialHome=dom.window.document.querySelector('.home-command-center');
+assert.ok(initialHome,'first paint uses the compact Home layout');
+assert.equal(initialHome.querySelectorAll('.home-quick-button').length,3,'three buttons before JS');
+assert.equal(initialHome.querySelectorAll('.home-metric').length,2,'daily totals first');
+assert.ok(initialHome.querySelector('.home-quick-button').disabled);
 assert.ok(!dom.window.document.body.textContent.includes('Goals are guides, not grades'));
 for(const key of ['window','document','localStorage','navigator'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
 let storagePersisted=false,persistRequests=0;
@@ -47,16 +48,20 @@ try{
  await import(pathToFileURL(join(temp,'app.mjs')).href+'?v=67');await tick();await tick();
  assert.equal(persistRequests,1,'startup requests persistent origin storage once');
  const {state}=await import(pathToFileURL(fixture));
- assert.ok(document.querySelector('.home-actions'),'Home cards exist before auth finishes');
+ assert.ok(document.querySelector('.home-command-center'),'Home structure exists before auth finishes');
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'true');
- for(const [i,selector] of ['.home-actions','.today-card','.weight-strip'].entries())assert.equal(document.querySelector(selector).outerHTML,initialHome[i],'initial HTML matches pending layout');
- assert.equal(document.querySelector('.metric-row b').textContent,'—');
- assert.ok(document.querySelector('.home-actions button').disabled);
+ assert.equal(document.querySelectorAll('.home-metric').length,2,'pending Home keeps the same two metrics');
+ assert.equal(document.querySelectorAll('.home-quick-button').length,3,'pending Home keeps the same action geometry');
+ assert.equal(document.querySelector('.home-metric-value').textContent,'—');
+ assert.ok(document.querySelector('.home-quick-button').disabled);
+ assert.ok(!document.querySelector('.home-actions,.today-card,.weight-strip'),'old duplicate cards and weight strip removed');
+ assert.ok(stylesheet.includes('height:100dvh;min-height:0;display:flex;flex-direction:column'),'normal Home fits the viewport');
  assert.ok(!document.querySelector('main').textContent.includes('Connecting'));
  state.releaseAuth();await tick();await tick();
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'false');
- assert.ok(document.querySelector('main').firstElementChild.classList.contains('home-actions'));
- assert.ok(document.querySelector('main').nextElementSibling.classList.contains('account-banner'));
+ assert.ok(document.querySelector('main').firstElementChild.classList.contains('home-command-center'));
+ assert.ok(document.querySelector('main').nextElementSibling.classList.contains('account-banner'),'signed-out login access remains');
+ assert.ok(!document.querySelector('main .weight-strip'),'weight belongs in Progress, not Home');
 
   // v81 navigation regression: five bottom tabs and a header Settings gear.
   const tabs=[...document.querySelectorAll('nav.nav [data-action]')].map(el=>el.dataset.action);
@@ -118,8 +123,21 @@ try{
 
   assert.equal(document.querySelector('header.top .home-settings').getAttribute('aria-current'),'page','Settings gear active');
   await click('home');
-  assert.ok(document.querySelector('.home-actions'),'Home navigation still works');
+  assert.ok(document.querySelector('.home-command-center'),'Home navigation still works');
   assert.equal(document.querySelectorAll('.home-quick-button').length,3,'Home has three direct log actions');
+  assert.equal(document.querySelectorAll('.home-action-icon svg').length,3,'every action has a matching vector icon');
+  assert.equal(document.querySelectorAll('.home-dashboard-tabs button').length,3,'dashboard has three selectable views');
+  await click('home-dashboard-select');
+  assert.equal(document.querySelector('.home-dashboard-stage').textContent.includes('AVAILABLE CASH'),true,'finance card uses the manual cash snapshot');
+  const liftingTab=document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]');
+  liftingTab.click();await tick();
+  assert.ok(document.querySelector('.home-dash-lifting'),'Lifting dashboard is available');
+  assert.equal(localStorage.getItem('everyday-home-dashboard-v1'),'lifting','dashboard choice is saved locally');
+  document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
+  assert.ok(document.querySelector('.home-dash-nutrition'),'nutrition dashboard is available');
+  await click('home');
+  assert.ok(document.querySelector('.home-dash-nutrition'),'chosen dashboard survives navigation');
+  document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
   await click('home-log-food');
   assert.ok(document.querySelector('form[data-form="food"]'),'Home Log food opens the actual Food form');
   assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home shortcut opens today rather than an older selected date');
@@ -127,8 +145,22 @@ try{
   await click('buddy-launch');
   assert.ok(document.querySelector('.buddy-start-list'),'Home Start workout opens the existing Workout Buddy picker');
   await click('close');
-  await click('finance-transactions-open');
-  assert.ok(document.querySelector('form[data-form="finance"]'),'Home spending shortcut opens real Finance logging');
+  await click('home-log-finance');
+  assert.ok(document.querySelector('.home-finance-modal'),'Spending opens a shared transaction form in a modal');
+  assert.ok(document.querySelector('form[data-form="finance"]'),'Spending reuses finance validation and fields');
+  assert.equal(document.querySelector('nav.nav [data-action="home"]').getAttribute('aria-current'),'page','modal does not navigate away from Home');
+  await click('close');
+  assert.ok(document.querySelector('.home-command-center'),'cancel restores the same Home');
+  assert.equal(document.querySelector('nav.nav [data-action="home"]').getAttribute('aria-current'),'page');
+  await click('home-log-finance');
+  await submit('finance',{amount:'3.50',description:'Quick modal test',date:todayCalendarDate(),category:'Convenience Food'});
+  assert.ok(document.querySelector('.home-command-center'),'saving spending returns to Home');
+  assert.ok(!document.querySelector('.home-finance-modal'),'saved spending overlay closes');
+  assert.ok(document.querySelector('.home-save-toast'),'a short confirmation is shown');
+  assert.ok(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.some(x=>x.description==='Quick modal test'),'modal reuses original transaction storage');
+  await click('finances');await click('finance-transactions-open');
+  await click('finance-edit');await click('finance-delete');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'quick modal test cleans up its record');
   await click('home');
 
   // v83: Quick Log uses exact cents; calendar date changes cannot navigate to Food.
@@ -625,7 +657,10 @@ try{
  assert.equal(foodFormTest.elements.quantity.value,'1','quick preset restores one serving');
  assert.ok(foodCsv.value.includes('"1"'),'open CSV updates with serving changes');await submit('food',{name:'Device meal',calories:'250',protein:'20'});
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries.length,1);
- await click('sign-in');await click('food');
+ await click('sign-in');await click('home');
+ assert.ok(!document.querySelector('.account-banner'),'signed-in account details moved off Home');
+ await click('settings');assert.ok(document.querySelector('.settings-page-head'));
+ await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'no automatic migration');
  await click('settings');await click('migrate-device');
   assert.ok(document.querySelector('[data-action="migrate-device-confirm"]'),'device migration requires explicit review');
@@ -656,7 +691,7 @@ try{
  await click('custom-lift');const legacyLateralForm=document.querySelector('[data-form="lift"]');legacyLateralForm.elements.exercise.value='Dumbbell Lateral Raises';legacyLateralForm.elements.equipment.value='dumbbell';for(const row of legacyLateralForm.querySelectorAll('.set-row')){row.querySelector('[name="weight"]').value='17.5';row.querySelector('[name="reps"]').value='8';row.querySelector('[name="difficulty"]').value='4';}legacyLateralForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
  const fullBodyTab=[...document.querySelectorAll('[data-action="workout"]')].find(el=>el.dataset.workout==='Full body');assert.ok(fullBodyTab);fullBodyTab.click();await tick();
  const lateralCard=[...document.querySelectorAll('.exercise-list .exercise')].find(el=>el.dataset.name==='Lateral Raise');assert.ok(lateralCard,'Full body contains canonical Lateral Raise');assert.ok(lateralCard.textContent.includes('Last:'),'legacy Dumbbell Lateral Raises history resolves to Lateral Raise');assert.ok(!lateralCard.textContent.includes('First time'),'canonical history prevents false first-time state');
- await click('home');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
+ await click('progress');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
  await click('progress');await click('body-fat');await submit('body-fat',{value:'22.4',date:'2026-09-20'});
  await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
  await click('settings');assert.ok(document.querySelector('.version-badge'),'version remains visible');
@@ -734,7 +769,7 @@ try{
  await click('close');assert.ok(!document.querySelector('.modal'));
  await click('new-food');await click('close');assert.ok(!document.querySelector('.modal'),'direct add dismisses to Food');
  // Calendar keeps Friday as the fixed week boundary and never modifies historical records.
- await click('home');await click('weight');await submit('weight',{value:'178',date:'2026-09-21'});
+ await click('progress');await click('weight');await submit('weight',{value:'178',date:'2026-09-21'});
  await click('settings');
  const recordsBefore=JSON.parse(state.records.get('bob').payload);
  await submit('week-settings',{dayResetMinutes:'360'});
