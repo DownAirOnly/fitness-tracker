@@ -254,8 +254,8 @@ function render() {
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
 const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
 function readHomeDashboard(){
- try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'finances';}
- catch{return 'finances';}
+ try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'nutrition';}
+ catch{return 'nutrition';}
 }
 let homeDashboardView=readHomeDashboard();
 function selectHomeDashboard(next){
