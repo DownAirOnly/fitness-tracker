@@ -23,6 +23,7 @@ const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
 assert.equal(initialHome.querySelectorAll('.home-metric').length,2,'daily totals first');
+assert.ok(stylesheet.includes('padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))'),'Home dock clearance preserved');
 assert.deepEqual([...initialHome.querySelectorAll('.home-metric-value')].map(el=>el.textContent),['— / —','— / —'],'loading skeleton shows inline current / goal');
 assert.equal(initialHome.querySelectorAll('.home-metric-sub').length,0,'obsolete left/over subtitle absent on first paint');
 assert.ok(initialHome.querySelector('.home-add-trigger').disabled);
@@ -93,6 +94,7 @@ try{
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('finances');
   assert.equal(document.querySelectorAll('.finance-section-link').length,3,'Finances offers Overview, Transactions, Planning');
+  assert.ok(!document.querySelector('.finances-page-head h1'),'Finance title removed');
   assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('Not entered'),'no imaginary balance on Overview');
   assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('Not enough information'),'no invented spending allowance');
   assert.ok(document.querySelector('.finance-glance-card').textContent.includes('Not scheduled'),'future income is not assumed');
@@ -113,7 +115,7 @@ try{
   await click('classification-delete');
   assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).classificationRules.length,0);
   await click('classification-back');
-  assert.ok(document.querySelector('.finances-page-head'),'Finances route works');
+  assert.ok(document.querySelector('.finance-section-nav'),'Finances route works');
   assert.ok(document.querySelector('form[data-form="finance"]'),'Finances quick transaction form is ready');
   await click('finance-insights-open');
   assert.ok(document.querySelector('.finance-insight-intro'),'insights open with empty ledger');
@@ -219,7 +221,7 @@ try{
   financeForm.elements.date.value='2026-10-26';
   financeForm.elements.date.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
   await tick();
-  assert.ok(document.querySelector('.finances-page-head'),'changing finance date must not navigate away');
+  assert.ok(document.querySelector('.finance-section-nav'),'changing finance date must not navigate away');
   await submit('finance',{amount:'7.19',description:'Wawa water',date:'2026-10-26',category:'Household Supplies',merchant:'Wawa'});
   let financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
   assert.equal(financial.length,1);
@@ -354,7 +356,7 @@ try{
   historySort.value='oldest';historySort.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
   assert.ok(document.querySelector('.finance-history-list .finance-row .finance-row-date').textContent.includes('Oct 24'),'sort oldest first');
   assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'history filtering never mutates the ledger');
-  await click('finance-history-back');assert.ok(document.querySelector('.finances-page-head'),'back restores finance overview');
+  await click('finance-history-back');assert.ok(document.querySelector('.finance-section-nav'),'back restores finance overview');
   // v91: review access and filters never mutate the ledger.
   assert.ok(document.querySelector('[data-action="finance-review-open"]'),'review button appears for unclassified records');
   await click('finance-review-open');
@@ -467,8 +469,9 @@ try{
 
  // v99 pass 4: repeating a saved log opens a NEW editable record; never edits its source.
  await click('food');
- assert.ok(document.querySelector('.food-relog-section'),'previous food logs are surfaced for repeat');
- const relog=document.querySelector('.food-relog-row [data-action="food-relog"]');
+ assert.ok(!document.querySelector('.food-relog-section'),'standalone Recent foods panel is gone');
+  await click('food-log');
+ const relog=document.querySelector('.full-food-log [data-action="food-relog"]');
  assert.ok(relog,'the latest prior log has a repeat entry point');
  const source=normalizeData(sample.data).foodEntries.find(e=>e.id===relog.dataset.id);
  assert.ok(source);
@@ -567,7 +570,13 @@ try{
 
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
  await click('gym');
- assert.ok(document.querySelector('.buddy-entry [data-action="custom-lift"]'),'manual lifting is accessible beside Workout Buddy');
+ assert.ok(!document.querySelector('.buddy-entry [data-action="custom-lift"]'),'Buddy has no duplicate manual lift button');
+  assert.ok(document.querySelector('.routine-exercise-tools [data-action="custom-lift"]'),'manual lifting remains in exercise tools');
+  const routineSelector=document.querySelector('[data-routine-select]');
+  assert.ok(routineSelector,'routine selector is a dropdown');
+  assert.equal(routineSelector.options.length,normalizeData(sample.data).workoutTemplates.length,'all saved routines selectable');
+  assert.ok(document.querySelector('.routine-toolbar [data-action="routine-manage"]'),'Manage is next to routine dropdown');
+  assert.ok(!document.querySelector('.workout-tabs,.tracking-date,.routine-exercise-section h2,.routine-exercise-section .eyebrow'),'redundant Lifting labels removed');
  await click('custom-lift');
  assert.ok(document.querySelector('form[data-form="lift"]'),'manual lifting opens the existing lift editor');
  await click('close');
@@ -754,12 +763,14 @@ try{
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');
- await click('gym');assert.ok(document.querySelector('.tracking-date input'));
- const dateInput=document.querySelector('.tracking-date input');dateInput.value='2026-09-20';dateInput.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
- await click('custom-lift');await submit('lift',{exercise:'Test press',weight:'40',reps:'8',difficulty:'7'});
+ await click('gym');assert.ok(!document.querySelector('.tracking-date input'),'redundant Lifting date selector stays removed');
+ await click('custom-lift');assert.ok(document.querySelector('form[data-form="lift"] [name="date"]'),'manual lift editor retains an editable date');
+ await submit('lift',{exercise:'Test press',date:'2026-09-20',weight:'40',reps:'8',difficulty:'7'});
  assert.equal(JSON.parse(state.records.get('bob').payload).lifts[0].date,'2026-09-20');
  await click('custom-lift');const legacyLateralForm=document.querySelector('[data-form="lift"]');legacyLateralForm.elements.exercise.value='Dumbbell Lateral Raises';legacyLateralForm.elements.equipment.value='dumbbell';for(const row of legacyLateralForm.querySelectorAll('.set-row')){row.querySelector('[name="weight"]').value='17.5';row.querySelector('[name="reps"]').value='8';row.querySelector('[name="difficulty"]').value='4';}legacyLateralForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
- const fullBodyTab=[...document.querySelectorAll('[data-action="workout"]')].find(el=>el.dataset.workout==='Full body');assert.ok(fullBodyTab);fullBodyTab.click();await tick();
+ const fullBodySelect=document.querySelector('[data-routine-select]');assert.ok([...fullBodySelect.options].some(o=>o.value==='Full body'),'Full body remains a saved option');
+ fullBodySelect.value='Full body';fullBodySelect.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
+ assert.equal(document.querySelector('[data-routine-select]').value,'Full body','routine selector changes the exercise list');
  const lateralCard=[...document.querySelectorAll('.exercise-list .exercise')].find(el=>el.dataset.name==='Lateral Raise');assert.ok(lateralCard,'Full body contains canonical Lateral Raise');assert.ok(lateralCard.textContent.includes('Last:'),'legacy Dumbbell Lateral Raises history resolves to Lateral Raise');assert.ok(!lateralCard.textContent.includes('First time'),'canonical history prevents false first-time state');
  await click('progress');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
  await click('progress');await click('body-fat');await submit('body-fat',{value:'22.4',date:'2026-09-20'});
@@ -851,9 +862,14 @@ try{
  const visibleWeeks=weeklyWeights(savedCalendar.weights,68,'lb',5).slice(0,6);
  assert.deepEqual([...document.querySelectorAll('[data-week]')].map(e=>e.dataset.week),visibleWeeks.map(w=>w.week));
  assert.ok(document.querySelector('.progress-trend .weight-progress-chart'),'weight graph lives in Weekly trend');
+  assert.ok(!document.querySelector('.progress-head h1'),'Progress title removed');
  assert.ok(!document.querySelector('.weight-progress-panel .weight-progress-chart'),'individual weigh-ins is list-only');
- assert.ok(document.querySelector('.week-setting').textContent.includes('Friday'));
- assert.ok(!document.querySelector('.week-setting').textContent.includes('Change'));
+ assert.ok(!document.querySelector('.progress-trend .week-setting'),'week-start reminder removed');
+  assert.ok(!document.querySelector('.trend-highlight .eyebrow'),'redundant current-week heading removed');
+  assert.equal(document.querySelector('.weight-chart-key.trend b').textContent,'7-day average','legend accurately names seven-day average');
+  assert.ok(!document.querySelector('.weight-chart-note'),'obsolete chart explanation removed');
+  assert.equal(document.querySelectorAll('.bodyfat-progress-chart .weight-chart-range span').length,2,'body-fat graph has two date endpoints');
+ 
  assert.ok(document.querySelectorAll('.weight-progress-panel .list-row').length<=5);
  assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
  const progressExercise=document.querySelector('.exercise-progress-panel .progress-exercise-card');if(progressExercise){assert.ok(progressExercise.classList.contains('exercise'),'progress uses Lifting exercise card shell');assert.ok(progressExercise.querySelector('.equipment-art'),'progress exercise includes equipment art');assert.ok(progressExercise.className.includes('equipment-'),'progress exercise includes equipment color class');}
