@@ -204,6 +204,20 @@ try{
  await click('home-food-customize');
  assert.ok(document.querySelector('.home-food-picker'),'Home foods are customizable');
  await click('home-food-customize-reset');
+ // A fifth chosen card adds a middle page switch without disturbing Plan.
+ await click('home-food-customize');
+ const fifth=document.querySelector('.home-food-pick:not(.selected)');
+ if(fifth){
+  fifth.click();await tick();await click('home-food-customize-save');
+  const ids=JSON.parse(localStorage.getItem('everyday-home-food-ids-v1'));
+  assert.ok(ids.length>4,'five selections enable paging');
+  assert.ok(document.querySelector('[data-action="home-food-page"]'),'page switch appears');
+  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,4);
+  await click('home-food-page');
+  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,ids.length-4);
+  assert.ok(document.querySelector('[data-action="home-food-plan"]'),'Plan stays visible');
+  await click('home-food-customize');await click('home-food-customize-reset');
+ }else await click('close');
  await click('home-add-menu');
  assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add skips chooser');
  assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home food shortcut uses today');
