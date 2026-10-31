@@ -2,6 +2,12 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.5 — Stable iPhone dock, smaller calendar, six food cards per page
+
+- Nav is always visible inside a single fixed app frame, avoiding a fixed `body` and select-focus rule that could create iPhone hit-test offsets. Verify on a real iPhone after native dropdowns and tab changes.
+- Home Lifting uses a compact non-scrolling workout calendar with Schedule at the bottom. It displays three recent completed routines in Workout Buddy picker styling beside the red/yellow training map, without extra labels and monthly totals.
+- Nutrition Home shows six cards on each page, only paginating after six; Customize and Plan divide the footer when no paging is necessary. Shared food cards no longer show a favorite star; the Favorite checkbox remains in the three-dot edit dialog.
+
 ## v99.7.4 — Weekly workout schedule, recent sets and Home food pages
 
 - Workout calendar supports recurring weekdays and optional saved-routine choices; configured schedule overrides historical projections. It is saved with Lifting data, and old backups remain compatible.

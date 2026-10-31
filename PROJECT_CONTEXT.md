@@ -4,6 +4,12 @@
 
 ## Current direction — October 31, 2026
 
+- **v99.7.5 device-fix patch (iPhone check pending):** Removed the fixed-position body and focus-based nav hiding that could contribute to iOS touch-offset / disappearing-dock behavior. App and nav now share a single fixed #app frame; native select focus is blurred on modal close. This is a plausible fix rather than a verified iPhone root cause.
+- **Home Lifting is non-scrolling:** Compact reusable month grid; Schedule control in the footer, no redundant legend, Weekly Schedule subtitle or monthly totals. Below it, three *completed routines* use the same three colored picker styles as Workout Buddy alongside the existing front/back two-day training map. No "last three sets" or map color legend.
+- **Home Nutrition:** Six selected cards per page, 7–12 on the next, etc., selection order stable. Footer is exactly Customize/Plan at <=6, with middle page-cycle button only at 7+. Food cards across Home/Food reuse one renderer with no favorite star on the card face; three-dot Edit definition still has Favorite checkbox. No account data migration or Money changes.
+- **Checks:** Model/UI CI, merge, Pages and actual iPhone hit-target/nav checks are distinct; do not mark live or visually validated before evidence.
+
+
 - **v99.7.4 patch:** Lifting Home adds a recurring weekday routine schedule stored in the Lifting account section. When configured it replaces automatic projections; actual workouts remain distinct. The workout calendar now includes the three latest logged sets alongside red/yellow anatomical highlights for muscles exercised today/yesterday (training exposure only, **not measured fatigue or medical recovery**). The map reuses `muscle-map.js` anatomy. Nutrition Home footer uses full-width buttons, with Plan instead of redundant All foods, and a middle page toggle only when 5–6 foods are selected. First page shows four cards, second the remaining one/two; order remains fixed. v99.7.3 on-device navigation remains subject to user verification.
 - **Compatibility:** `workoutSchedule` is an optional top-level Lifting field. Old full backups/cloud sections without it continue to load; new saves/exports preserve it. Update tests and verify account sections/Firestore.
 
