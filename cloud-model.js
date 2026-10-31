@@ -1,5 +1,5 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=98';
-import {sectionPayloads} from './account-sections.js?v=98.2';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=99.7.4';
+import {sectionPayloads} from './account-sections.js?v=99.7.4';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -38,7 +38,8 @@ export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
  return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
   JSON.stringify(data.exerciseDefinitions||[])!==JSON.stringify(defaults.exerciseDefinitions)||
-  JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates);
+  JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates)||
+  (data.workoutSchedule||[]).length>0;
 }
 
 const migrationKeys=['foods','foodEntries','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
@@ -219,6 +220,10 @@ export function planDeviceMigration(cloud,device) {
   else ruleIds.add(copy.id);
   candidate.classificationRules.push(copy);
  }
+ // Preserve a device's intentional workout schedule when the cloud notebook has none.
+ // Existing cloud schedules win; never overwrite a personal schedule during migration.
+ if(!(candidate.workoutSchedule||[]).length && (incoming.workoutSchedule||[]).length)
+  candidate.workoutSchedule=structuredClone(incoming.workoutSchedule);
  // Cash-flow plans are unique per notebook. Copy only when cloud plan is blank; never merge monetary assumptions.
  if(signature(candidate.budgetPlan)===signature(emptyData().budgetPlan))candidate.budgetPlan=structuredClone(incoming.budgetPlan);
  // Validate all routine references and the encoded cloud payload BEFORE saving.

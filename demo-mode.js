@@ -1,4 +1,4 @@
-import {emptyData,normalizeData,encodeData} from './data.js?v=98';
+import {emptyData,normalizeData,encodeData} from './data.js?v=99.7.4';
 
 // A reproducible, fictional dataset. Never generated from a user's existing logs.
 export const DEMO_LAST_DATE='2026-10-23';

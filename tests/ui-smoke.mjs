@@ -176,6 +176,17 @@ try{
   assert.ok(document.querySelector('.home-dash-lifting'),'Lifting dashboard is available');
   assert.ok(document.querySelector('.home-lifting-calendar'),'Lifting dashboard has calendar');
   assert.ok(document.querySelector('.ed-calendar-grid'),'Lifting Home uses a reusable month grid');
+  assert.ok(document.querySelector('.home-recovery-panel'),'recent set and recovery area exists');
+  assert.ok(document.querySelector('.muscle-recovery-pair svg'),'workload map includes anatomy SVG');
+  await click('workout-schedule-open');
+  assert.equal(document.querySelectorAll('.workout-schedule-day select').length,7,'seven schedule days');
+  document.querySelector('[name=workoutSchedule1]').value='any';
+  await click('workout-schedule-save');
+  assert.ok(document.querySelector('.home-workout-calendar-header').textContent.includes('Weekly schedule'),'configured schedule used instead of estimate');
+  assert.ok(document.querySelector('.ed-calendar-legend').textContent.includes('Scheduled'),'calendar legend says scheduled rather than projected');
+  await click('workout-schedule-open');
+  assert.equal(document.querySelector('[name=workoutSchedule1]').value,'any','saved weekday restored');
+  await click('workout-schedule-clear');
   assert.ok(document.querySelector('#app > .nav'),'bottom nav is outside scrollable shell');
   await click('home-add-menu');
   assert.ok(document.querySelector('.buddy-start-list'),'Lifting Add opens the routine chooser');
@@ -184,6 +195,8 @@ try{
   assert.equal(localStorage.getItem('everyday-home-dashboard-v1'),'lifting','dashboard choice is saved locally');
   document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
   assert.ok(document.querySelector('.home-dash-nutrition'),'nutrition dashboard is available');
+  assert.ok(document.querySelector('.home-food-footer [data-action="home-food-plan"]'),'Home quick-food Plan control');
+  assert.ok(!document.querySelector('.home-food-footer [data-action="food"]'),'remove redundant All foods control');
   assert.equal(document.querySelector('.home-dash-nutrition .home-dash-value'),null,'no filler heading in Nutrition dashboard');
   await click('home');
   assert.ok(document.querySelector('.home-dash-nutrition'),'chosen dashboard survives navigation');
@@ -192,6 +205,20 @@ try{
  await click('home-food-customize');
  assert.ok(document.querySelector('.home-food-picker'),'Home foods are customizable');
  await click('home-food-customize-reset');
+ // A fifth chosen card adds a middle page switch without disturbing Plan.
+ await click('home-food-customize');
+ const fifth=document.querySelector('.home-food-pick:not(.selected)');
+ if(fifth){
+  fifth.click();await tick();await click('home-food-customize-save');
+  const ids=JSON.parse(localStorage.getItem('everyday-home-food-ids-v1'));
+  assert.ok(ids.length>4,'five selections enable paging');
+  assert.ok(document.querySelector('[data-action="home-food-page"]'),'page switch appears');
+  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,4);
+  await click('home-food-page');
+  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,ids.length-4);
+  assert.ok(document.querySelector('[data-action="home-food-plan"]'),'Plan stays visible');
+  await click('home-food-customize');await click('home-food-customize-reset');
+ }else await click('close');
  await click('home-add-menu');
  assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add skips chooser');
  assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home food shortcut uses today');

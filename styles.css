@@ -2508,3 +2508,38 @@ body:has(.modal input:focus,.modal textarea:focus,.modal select:focus) #app>.nav
 .food-plan-choice b{font-size:22px;color:#b5d58d}
 .food-plan-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .food-plan-actions button{min-height:43px}
+
+/* v99.7.4 Home food cards: two equal actions, or three with paging for 5–6 cards. */
+.home-dash-nutrition .home-food-footer{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%;margin-top:10px}
+.home-food-footer:has([data-action="home-food-page"]){grid-template-columns:repeat(3,minmax(0,1fr))}
+.home-food-footer .home-dash-link{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;min-height:40px;margin:0;text-align:center}
+.home-food-footer [data-action="home-food-page"]{font-variant-numeric:tabular-nums}
+/* Calendar schedule switch and secondary training details */
+.home-workout-calendar-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.home-workout-calendar-header small{font-size:11px;color:#bad7bf;font-weight:700}
+.home-workout-calendar-header .home-dash-link{min-height:32px;padding:6px 11px}
+.home-recovery-panel{display:grid;grid-template-columns:minmax(0,71fr) minmax(90px,29fr);align-items:stretch;gap:8px;
+ background:#203e2d;border:1px solid #4a6952;border-radius:13px;padding:10px;margin:0}
+.home-last-sets{display:flex;flex-direction:column;gap:6px;min-width:0;justify-content:center}
+.home-last-sets>strong{font-size:12px;line-height:1.2;color:#e0f3dd}
+.home-last-sets>p{font-size:11px;color:#aec3b2;margin:0}
+.home-last-set{display:flex;flex-direction:column;gap:2px;min-width:0;padding:3px 0;border-bottom:1px solid #ffffff17}
+.home-last-set span{font-size:10px;line-height:1.2;color:#a7c3b0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.home-last-set b{font-size:11px;line-height:1.2;color:#f1f8ec}
+.home-recovery-note{font-size:9px;color:#a9bbaa;line-height:1.35;margin-top:2px}
+.home-recovery-anatomy{min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.muscle-recovery-pair{display:flex;align-items:center;justify-content:center;gap:1px;width:100%;max-width:138px}
+.muscle-recovery-view{width:50%;max-width:67px;min-width:0;display:block}
+.muscle-recovery-view .muscle-body{width:100%;height:auto;max-height:160px;display:block}
+.muscle-recovery-view .muscle-silhouette{fill:#264943}
+.muscle-recovery-view .muscle-region.quiet{opacity:.16}
+.muscle-recovery-view .muscle-region.recent-today,.muscle-recovery-view .muscle-region.recent-yesterday{opacity:.95}
+.muscle-recovery-view .muscle-contours{opacity:.5}
+@media(max-width:380px){.home-recovery-panel{grid-template-columns:minmax(0,71fr) minmax(76px,29fr);padding:8px;gap:5px}.home-last-set span{font-size:9px}.home-recovery-note{font-size:8px}}
+/* Weekly schedule uses a concise row per weekday, accessible on iPhone. */
+.workout-schedule-form{display:grid;gap:8px}
+.workout-schedule-form>p{margin:0 0 6px}
+.workout-schedule-day{display:flex;align-items:center;gap:12px;justify-content:space-between}
+.workout-schedule-day>span{min-width:38px;font-size:13px;font-weight:800}
+.workout-schedule-day select{flex:1 1 auto;min-width:0;min-height:42px;border:1px solid #57725c;border-radius:10px;padding:8px;color:inherit;background:#243d2b;font-size:13px}
+.workout-schedule-form .form-actions{margin-top:8px}

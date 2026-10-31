@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=98';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=99.7.4';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=98';
 
@@ -50,7 +50,7 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
@@ -298,6 +298,18 @@ export function normalizeData(input) {
       if(def){e.exerciseId=def.id;e.name=def.name;e.equipment=def.equipment;if(def.setup)e.setup=def.setup;else delete e.setup;}
     }
   }
+  // One optional routine assignment per weekday, 0=Sunday…6=Saturday.
+  // Older exports and cloud sections without this field normalize to no schedule.
+  const schedule=input.workoutSchedule??[];
+  if(!Array.isArray(schedule)||schedule.length>7)throw Error('Backup workout schedule is invalid.');
+  const usedDays=new Set();
+  data.workoutSchedule=schedule.map(row=>{
+    if(!row||!Number.isInteger(row.day)||row.day<0||row.day>6||usedDays.has(row.day)||
+      typeof row.routineId!=='string'||row.routineId.length>160)
+      throw Error('Backup workout schedule is invalid.');
+    usedDays.add(row.day);
+    return {day:row.day,routineId:row.routineId};
+  }).sort((a,b)=>a.day-b.day);
   data.workoutHistory=Array.isArray(input.workoutHistory)?input.workoutHistory:[];
   data.promptDate=validDate(input.promptDate)?input.promptDate:'';
   return data;

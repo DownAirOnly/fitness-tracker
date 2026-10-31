@@ -1,7 +1,7 @@
 import {healthBridge} from './health-cloud.js?v=98.2';
 import {firebaseConfig} from './firebase-config.js';
-import {CloudSession,encodeState} from './cloud-model.js?v=98.2';
-import {sectionRefs,readAccountServer,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=98.2';
+import {CloudSession,encodeState} from './cloud-model.js?v=99.7.4';
+import {sectionRefs,readAccountServer,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=99.7.4';
 
 export async function connectCloud(onUser) {
   const [appSDK,authSDK,dbSDK]=await Promise.all([

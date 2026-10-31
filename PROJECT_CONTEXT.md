@@ -4,6 +4,10 @@
 
 ## Current direction — October 31, 2026
 
+- **v99.7.4 patch:** Lifting Home adds a recurring weekday routine schedule stored in the Lifting account section. When configured it replaces automatic projections; actual workouts remain distinct. The workout calendar now includes the three latest logged sets alongside red/yellow anatomical highlights for muscles exercised today/yesterday (training exposure only, **not measured fatigue or medical recovery**). The map reuses `muscle-map.js` anatomy. Nutrition Home footer uses full-width buttons, with Plan instead of redundant All foods, and a middle page toggle only when 5–6 foods are selected. First page shows four cards, second the remaining one/two; order remains fixed. v99.7.3 on-device navigation remains subject to user verification.
+- **Compatibility:** `workoutSchedule` is an optional top-level Lifting field. Old full backups/cloud sections without it continue to load; new saves/exports preserve it. Update tests and verify account sections/Firestore.
+
+
 - **v99.7.3 pending device verification:** Saving no longer triggers any UI redraw from the persistence routine; screen changes render deliberately at the time of user action. The bottom nav is outside the scrolling shell, and only tab main content scrolls. Home top Food Add saves to the Food tab, while Home food cards save back to Home. Any Workout Buddy exit, finish or deletion goes to Lifting.
 - **New reusable calendar:** `calendar-ui.js` and `CALENDAR_DESIGN.md` establish white-on-selected-green day tiles, light-green outlined completed days, white dotted projected days. Lifting Home now shows this calendar, with click-through day details and no old redundant empty block. Only consistent training history yields projections.
 - **Food:** “Suggest rest of day” becomes **Plan**; combine Saved Foods and quantities to compare projected calories/protein. Existing suggestions can populate the plan; nothing is logged until user chooses Log selected.

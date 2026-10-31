@@ -1,5 +1,5 @@
-import {encodeState,CloudConflict} from './cloud-model.js?v=98.2';
-import {sectionRefs,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=98.2';
+import {encodeState,CloudConflict} from './cloud-model.js?v=99.7.4';
+import {sectionRefs,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=99.7.4';
 import {planHealthWeight,shortcutURL} from './health-model.js?v=85';
 
 export function healthBridge({db,auth,sdk,projectId}) {

@@ -2,6 +2,12 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.4 — Weekly workout schedule, recent sets and Home food pages
+
+- Workout calendar supports recurring weekdays and optional saved-routine choices; configured schedule overrides historical projections. It is saved with Lifting data, and old backups remain compatible.
+- The Home Lifting panel shows three last recorded sets and a two-day anatomy overlay (red: trained today; yellow: yesterday), a training history visualization rather than a true fatigue measurement.
+- Home food shortcuts use all footer space: Customize and Plan, with a middle page toggle for five or six cards. Cards retain customized order.
+
 ## v99.7.3 — Stable navigation, reusable calendar and food Plan
 
 - Cloud/local saves update durability status without rebuilding screens; tab content scrolls inside a fixed shell with independently anchored bottom nav.
