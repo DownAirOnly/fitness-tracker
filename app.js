@@ -176,10 +176,11 @@ function checkLatestRelease(){
       const response=await fetch('./version.json?check='+Date.now(),{cache:'no-store',signal:controller.signal});
       if(!response.ok)return;
       const manifest=await response.json(),next=manifest?.version;
-      if(!/^v\d+(?:\.\d+)?$/.test(next))return;
-      const number=v=>v.slice(1).split('.').map(Number);
-      const [nextMajor,nextMinor=0]=number(next),[currentMajor,currentMinor=0]=number(APP_VERSION);
-      if(nextMajor<currentMajor||(nextMajor===currentMajor&&nextMinor<=currentMinor))return;
+      if(!/^v\d+(?:\.\d+){0,2}$/.test(next))return;
+      const parts=v=>v.slice(1).split('.').map(Number);
+      const future=parts(next),current=parts(APP_VERSION);
+      const comparison=[0,1,2].map(i=>(future[i]||0)-(current[i]||0)).find(n=>n!==0)||0;
+      if(comparison<=0)return;
       latestRelease=next;
       if('serviceWorker' in navigator){
         void navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
@@ -198,6 +199,20 @@ const effortChartColors={1:'#bbdabb',2:'#cadba8',3:'#dcd99f',4:'#e1c58d',5:'#e2a
 const effortChartColor=value=>effortChartColors[Number(value)]||'#91a096';
 const effortText=value=>effortLabels[value]||'';
 const effortOptions=value=>'<option value="">Effort</option>'+Object.entries(effortLabels).map(([n,label])=>`<option value="${n}" ${Number(value)===Number(n)?'selected':''}>${label}</option>`).join('');
+// A late cloud response must not replace a newer page, dialog or keyboard edit.
+let userInteractionEpoch=0;
+for(const type of ['click','input','change','scroll'])document.addEventListener(type,()=>{userInteractionEpoch++;},true);
+function refreshSyncIndicators(){
+ const surface=app.querySelector('.shell'),main=surface?.querySelector(':scope > main');
+ if(!main)return;
+ for(const node of surface.querySelectorAll(':scope > .home-sync-warning, :scope > .save-warning'))node.remove();
+ const markup=page==='home'?homeSyncWarning():cloudSaveWarning();
+ if(markup)main.insertAdjacentHTML('beforebegin',markup);
+}
+function renderAfterSave(epoch){
+ if(epoch!==userInteractionEpoch||document.querySelector('.modal')||document.querySelector('#buddy-root .buddy-screen')||document.activeElement?.matches('input,select,textarea,[contenteditable="true"]'))refreshSyncIndicators();
+ else render();
+}
 const persist=async()=>{
   if(demoMode){try{storeDemoWorkspace(data);render();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
   if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';render();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
@@ -205,11 +220,13 @@ const persist=async()=>{
   let localSafe=true;
   try{saveCloudRecoveryLocally(false);cloudPending=true;}catch{localSafe=false;cloudPending=true;}
   if(cloudRecoveryConflict){
-    cloudMessage='Saved on this device · resolve cloud recovery before syncing';render();return localSafe;
+    cloudMessage='Saved on this device · resolve cloud recovery before syncing';refreshSyncIndicators();return localSafe;
   }
-  if(!session?.ready){cloudMessage=localSafe?'Saved on this device · cloud unavailable':'Cloud unavailable and the device recovery copy could not be saved. Export a backup now.';render();return localSafe;}
-  if(cloudBusy){cloudMessage=localSafe?'Saved on this device · waiting for cloud':'Cloud save in progress; the device recovery copy could not be updated.';render();return localSafe;}
-  const active=session,snapshot=structuredClone(data);cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';render();let queueAgain=false;
+  if(!session?.ready){cloudMessage=localSafe?'Saved on this device · cloud unavailable':'Cloud unavailable and the device recovery copy could not be saved. Export a backup now.';refreshSyncIndicators();return localSafe;}
+  if(cloudBusy){cloudMessage=localSafe?'Saved on this device · waiting for cloud':'Cloud save in progress; the device recovery copy could not be updated.';refreshSyncIndicators();return localSafe;}
+  const active=session,snapshot=structuredClone(data);cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';
+   if(document.querySelector('.modal')||document.querySelector('#buddy-root .buddy-screen')||document.activeElement?.matches('input,select,textarea'))refreshSyncIndicators();else render();
+   const saveEpoch=userInteractionEpoch;let queueAgain=false;
   try{
     await active.save(snapshot);if(session!==active)return false;
     try{cloudConfirmed=writeCloudConfirmed(active.uid,active.revision,snapshot);}catch{cloudConfirmed={uid:active.uid,revision:active.revision,updatedAt:isoNow(),data:structuredClone(snapshot)};}
@@ -222,7 +239,7 @@ const persist=async()=>{
     return true;
   }
   catch(error){if(session===active){cloudMessage=describeCloudError(error)+(localSafe?' Device recovery kept.':' Device recovery also failed; export a backup now.');cloudPending=true;}return false;}
-  finally{if(session===active){cloudBusy=false;render();if(queueAgain)setTimeout(()=>{if(session===active&&!cloudBusy&&cloudPending)void persist();},0);}}
+  finally{if(session===active){cloudBusy=false;renderAfterSave(saveEpoch);if(queueAgain)setTimeout(()=>{if(session===active&&!cloudBusy&&cloudPending)void persist();},0);}}
 };
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
@@ -256,6 +273,23 @@ const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
 function readHomeDashboard(){
  try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'nutrition';}
  catch{return 'nutrition';}
+}
+const HOME_FOOD_IDS_KEY='everyday-home-food-ids-v1';
+function readHomeFoodIds(){
+ try{const raw=localStorage.getItem(HOME_FOOD_IDS_KEY);if(raw===null)return null;
+  const ids=JSON.parse(raw);return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'))].slice(0,6):null;
+ }catch{return null;}
+}
+function homeFoodPicks(){
+ const all=sortFoods(data.foods||[],'recent'),favorites=all.filter(f=>f.pinned),ids=readHomeFoodIds();
+ return ids?ids.map(id=>all.find(f=>f.id===id)).filter(Boolean):favorites.concat(all.filter(f=>!f.pinned)).slice(0,4);
+}
+function homeFoodCustomize(){
+ const choices=sortFoods(data.foods||[],'recent'),chosen=readHomeFoodIds()??homeFoodPicks().map(f=>f.id);
+ modal('Customize Home foods','<p class="body-copy">Choose up to six foods to show on Home, in the order listed here. This layout is saved on this device.</p>'+
+  '<label class="field"><span>Find a saved food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
+  '<div class="home-food-picker">'+choices.map(f=>'<label class="home-food-pick" data-search="'+esc(f.name.toLowerCase())+'"><input type="checkbox" name="homeFoodId" value="'+esc(f.id)+'"'+(chosen.includes(f.id)?' checked':'')+'><span><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span></label>').join('')+'</div>'+
+  '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Use favorites & recent','home-food-customize-reset','outline')+'</div>');
 }
 let homeDashboardView=readHomeDashboard();
 function selectHomeDashboard(next){
@@ -342,14 +376,12 @@ function homeDashboardCard(view){
    '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
    '</div></article>';
  }
- // Same reusable cards as Food: favorite definitions first, then recent saved foods.
- const all=sortFoods(data.foods||[],'recent');
- const favorites=sortFoods(all.filter(food=>food.pinned),'recent');
- const picks=favorites.concat(all.filter(food=>!food.pinned)).slice(0,2);
+ // Show four quick foods by default, or a saved local selection of up to six.
+  const picks=homeFoodPicks();
  return '<article class="home-dashboard-content home-dash-nutrition">'+
   (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
    '<p class="home-dashboard-empty">No saved foods</p>')+
-  '<div class="home-dashboard-footer">'+button('All foods','food','home-dash-link')+'</div></article>';
+  '<div class="home-dashboard-footer">'+button('Customize','home-food-customize','home-dash-link')+button('All foods','food','home-dash-link')+'</div></article>';
 }
 
 function home(loading=false) {
@@ -365,7 +397,7 @@ function home(loading=false) {
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Money':view==='lifting'?'Lifting':'Nutrition','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
-   '</nav>'+button('<span class="home-add-plus" aria-hidden="true">＋</span> Add','home-add-menu','home-add-trigger',loading?'disabled':'aria-haspopup="dialog"')+'</div>'+
+   '</nav>'+button('<span class="home-add-plus" aria-hidden="true">＋</span> Add','home-add-menu','home-add-trigger',loading?'disabled':'aria-label="Add to selected dashboard"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
 }
@@ -828,13 +860,6 @@ function financeTransactions(){
   button('Manage merchant rules','classification-rules-open','outline')+'</div>'+
   '<details class="finance-more finance-legacy-csv"><summary>CSV help</summary><div class="finance-import-actions">'+
   button('View CSV example','finance-csv-example','text-btn')+'</div></details></div></details>';
-}
-function homeAddMenu(){
- modal('Add','<div class="home-add-options" role="group" aria-label="Choose what to log">'+
-  button(homeIcon('food')+'<span><strong>Food</strong></span>','home-log-food','home-add-option')+
-  button(homeIcon('lifting')+'<span><strong>'+(data.activeWorkout?'Resume workout':'Workout')+'</strong></span>','buddy-launch','home-add-option')+
-  button(homeIcon('finance')+'<span><strong>Spending</strong></span>','home-log-finance','home-add-option')+
- '</div>');
 }
 function financeQuickModal(){
  modal('Log spending',
@@ -1336,7 +1361,8 @@ function buddyRender(){
  const state=reviewing?(showRest?`Edit set ${i+1} · rest is running`:`Review set ${i+1}`):running?`Set ${i+1} in progress`:showRest?(left?`Rest · ${buddyClock(left)} remaining`:'Rest complete'):`Set ${i+1} of ${target}`,action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
  if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view"><div class="buddy-set-status"><span>SET ${i+1} OF ${target} · ACTIVE</span></div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><div class="buddy-action-tools">${buddyUndoControl(s)}</div><button class="buddy-a" data-action="buddy-a"><span>Set ${i+1} in progress</span><b>Finish set ${i+1}</b></button></main></div>`;
  const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
- const setProgress=`<div class="buddy-set-status"><span>SET ${Math.min(i+1,target)} OF ${target}</span><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
+ const rest=showRest?`<span class="buddy-rest-inline" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></span>`:'';
+ const setProgress=`<div class="buddy-set-status"><span>SET ${Math.min(i+1,target)} OF ${target}</span><div class="buddy-set-indicators">${rest}<div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div></div>`;
  const journalButton='<button type="button" class="buddy-journal-chip" data-action="buddy-journal-toggle">Journal ↗</button>';
  const notes=e.notesOpen?`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>${journalButton}</div><div class="buddy-notes-editor"><textarea name="buddyNotes" maxlength="500" rows="2" placeholder="Form, pain, setup, anything worth remembering">${esc(e.notes||'')}</textarea><button type="button" class="buddy-notes-done" data-action="buddy-notes-toggle">Done</button></div></div>`:`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle ${e.notes?'has-note':''}" data-action="buddy-notes-toggle"><span><b>${e.notes?'Notes saved':'Add notes'}</b><small>${e.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering'}</small></span><strong aria-hidden="true">${e.notes?'✓':'＋'}</strong></button>${journalButton}</div></div>`;
  const recent=buddyHistory(e),lastSession=recent[0]||prior;
@@ -1344,8 +1370,7 @@ function buddyRender(){
  const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setupDraft??e.setup??'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
 
  const undo='';
- const rest=showRest?`<div class="buddy-rest-timer" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></div>`:'';
- const historyRest=history||rest?'<div class="buddy-history-rest-row'+(history&&rest?' buddy-history-rest-both':'')+'">'+history+rest+'</div>':'';
+ const historyRest=history?'<div class="buddy-history-rest-row">'+history+'</div>':'';
  return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
 }
 let buddyTicker=null;
@@ -1998,6 +2023,11 @@ app.addEventListener('change',event=>{
   financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
  if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
+document.addEventListener('input',event=>{
+ if(event.target.name!=='homeFoodSearch')return;
+ const query=event.target.value.trim().toLowerCase();
+ for(const row of document.querySelectorAll('.home-food-pick'))row.hidden=!row.dataset.search.includes(query);
+});
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
   if(action==='demo-start'||action==='demo-reset'){if(account||offlineWorkspace)return;if(demoMode&&action==='demo-start')return;if(demoMode&&action==='demo-reset'&&!confirm('Reset all demo entries to the original sample?'))return;const fixture=createDemoData();try{storeDemoWorkspace(fixture);}catch{alert('This device could not open the demo workspace.');return;}demoMode=true;data=fixture;chosenDate=DEMO_LAST_DATE;page='home';cloudMessage='Demo mode · saved separately on this device';close(true);render();return;}
@@ -2093,7 +2123,23 @@ document.addEventListener('click',async event=>{
   if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='home-log-finance'){financeQuickModal();return;}
-  if(action==='home-add-menu'){homeAddMenu();return;}
+  if(action==='home-add-menu'){
+    if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm();return;}
+    if(homeDashboardView==='finances'){financeQuickModal();return;}
+    if(data.activeWorkout){buddyOpen();return;}
+    const selected=workoutByName(workout);
+    if(selected&&workoutExercises(selected).length){buddyStart(selected.name);buddyOpen();return;}
+    // Fall back to the existing empty-routine guidance if nothing is runnable.
+    modal('Start Workout Buddy','<p class="body-copy">Add exercises to a saved routine to start Workout Buddy.</p>');return;
+   }
+   if(action==='home-food-customize'){homeFoodCustomize();return;}
+   if(action==='home-food-customize-reset'){try{localStorage.removeItem(HOME_FOOD_IDS_KEY);}catch{}close(true);selectHomeDashboard('nutrition');return;}
+   if(action==='home-food-customize-save'){
+    const chosen=[...document.querySelectorAll('.home-food-picker input[name="homeFoodId"]:checked')].map(input=>input.value);
+    if(!chosen.length||chosen.length>6){alert('Choose between one and six Home foods.');return;}
+    try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(chosen));}catch{alert('This device could not save the Home food layout.');return;}
+    close(true);selectHomeDashboard('nutrition');return;
+   }
   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
@@ -2594,10 +2640,10 @@ app.addEventListener('submit',async event=>{
      if(editing)close(true);
      try{
       const saved=await persist();
-      if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';render();}
-      else if(form.dataset.quickFinance==='true'){close(true);render();homeSavedToast('Transaction saved');}
+      if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';refreshSyncIndicators();}
+      else if(form.dataset.quickFinance==='true'&&form.isConnected&&document.querySelector('.modal')===form.closest('.modal')){close(true);render();homeSavedToast('Transaction saved');}
      }catch(error){
-      financeNotice='Entry remains in this session, but saving needs attention. Export a backup before leaving.';render();
+      financeNotice='Entry remains in this session, but saving needs attention. Export a backup before leaving.';refreshSyncIndicators();
      }finally{
       if(form.isConnected){delete form.dataset.financeSubmitting;if(saveButton)saveButton.disabled=false;}
      }
@@ -2720,7 +2766,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
