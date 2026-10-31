@@ -69,7 +69,7 @@ let storageProtection={supported:false,persisted:null,usage:null,quota:null,erro
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
-let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
+let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
@@ -209,14 +209,10 @@ function refreshSyncIndicators(){
  const markup=page==='home'?homeSyncWarning():cloudSaveWarning();
  if(markup)main.insertAdjacentHTML('beforebegin',markup);
 }
-function renderAfterSave(epoch){
- if(epoch!==userInteractionEpoch||document.querySelector('.modal')||document.querySelector('#buddy-root .buddy-screen')||document.activeElement?.matches('input,select,textarea,[contenteditable="true"]'))refreshSyncIndicators();
- else render();
-}
 const persist=async()=>{
-  if(demoMode){try{storeDemoWorkspace(data);if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
-  if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
-  if(!account){try{save(data);deviceData=structuredClone(data);if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
+  if(demoMode){try{storeDemoWorkspace(data);refreshSyncIndicators();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
+  if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';refreshSyncIndicators();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
+  if(!account){try{save(data);deviceData=structuredClone(data);refreshSyncIndicators();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
   let localSafe=true;
   try{saveCloudRecoveryLocally(false);cloudPending=true;}catch{localSafe=false;cloudPending=true;}
   if(cloudRecoveryConflict){
@@ -225,8 +221,7 @@ const persist=async()=>{
   if(!session?.ready){cloudMessage=localSafe?'Saved on this device · cloud unavailable':'Cloud unavailable and the device recovery copy could not be saved. Export a backup now.';refreshSyncIndicators();return localSafe;}
   if(cloudBusy){cloudMessage=localSafe?'Saved on this device · waiting for cloud':'Cloud save in progress; the device recovery copy could not be updated.';refreshSyncIndicators();return localSafe;}
   const active=session,snapshot=structuredClone(data);cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';
-   if(document.querySelector('.modal')||document.querySelector('#buddy-root .buddy-screen')||document.activeElement?.matches('input,select,textarea'))refreshSyncIndicators();else render();
-   const saveEpoch=userInteractionEpoch;let queueAgain=false;
+   refreshSyncIndicators();let queueAgain=false;
   try{
     await active.save(snapshot);if(session!==active)return false;
     try{cloudConfirmed=writeCloudConfirmed(active.uid,active.revision,snapshot);}catch{cloudConfirmed={uid:active.uid,revision:active.revision,updatedAt:isoNow(),data:structuredClone(snapshot)};}
@@ -239,7 +234,7 @@ const persist=async()=>{
     return true;
   }
   catch(error){if(session===active){cloudMessage=describeCloudError(error)+(localSafe?' Device recovery kept.':' Device recovery also failed; export a backup now.');cloudPending=true;}return false;}
-  finally{if(session===active){cloudBusy=false;renderAfterSave(saveEpoch);if(queueAgain)setTimeout(()=>{if(session===active&&!cloudBusy&&cloudPending)void persist();},0);}}
+  finally{if(session===active){cloudBusy=false;refreshSyncIndicators();if(queueAgain)setTimeout(()=>{if(session===active&&!cloudBusy&&cloudPending)void persist();},0);}}
 };
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
@@ -249,7 +244,7 @@ function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
   const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Finances'],['progress','progress','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -2003,7 +1998,7 @@ function commitFoodDraft(target,draft){
 }
 
 function foodForm(entry=null,card=null,options={}) {
-  if(!options.keepBatch)foodBatch=[];
+  if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
   modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><button type="button" class="text-btn" data-action="food-csv-toggle" aria-expanded="false">CSV ↔</button><div class="food-csv-panel" hidden><label class="field"><span>Copy or paste one food CSV row</span><textarea data-food-csv rows="3" spellcheck="false" placeholder="Paste a foodLog CSV row or a header and row"></textarea></label><small data-food-csv-status>Paste a row to fill the fields; Save to commit.</small></div></div><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
@@ -2158,7 +2153,7 @@ document.addEventListener('click',async event=>{
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='home-log-finance'){financeQuickModal();return;}
   if(action==='home-add-menu'){
-    if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm();return;}
+    if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,null,{returnPage:'food'});return;}
     if(homeDashboardView==='finances'){financeQuickModal();return;}
     buddyRoutinePicker();return;
    }
@@ -2245,8 +2240,8 @@ document.addEventListener('click',async event=>{
   if(action==='home-favorite-log'){
    const item=el.dataset.origin==='add-saved'?data.foods.find(f=>f.id===el.dataset.id):data.foodEntries.find(e=>e.id===el.dataset.id);
    if(!item)return;chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();
-   if(el.dataset.origin==='add-saved')foodForm(null,item);
-   else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot()});
+   if(el.dataset.origin==='add-saved')foodForm(null,item,{returnPage:'home'});
+   else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot(),returnPage:'home'});
    return;
   }
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
@@ -2311,11 +2306,11 @@ document.addEventListener('click',async event=>{
   if(action==='data-health-details'){dataHealthDetails();return;}
   if(action==='workout'){workout=el.dataset.workout;render();return;}
 
-  if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();buddyReadSetupDraft();await persist();buddyClose();render();return;}
+  if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();buddyReadSetupDraft();buddyClose();page='gym';render();void persist();return;}
   if(action==='buddy-end'){if(!data.activeWorkout)return;buddyEndOptions();return;}
-  if(action==='buddy-save-end'){const s=data.activeWorkout;if(!s)return;s.exercises.forEach(e=>buddyUpsertLift(s,e));s.endedAt=isoNow();s.savedEarly=true;data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;close(true);buddyClose();await persist();render();return;}
+  if(action==='buddy-save-end'){const s=data.activeWorkout;if(!s)return;s.exercises.forEach(e=>buddyUpsertLift(s,e));s.endedAt=isoNow();s.savedEarly=true;data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;close(true);buddyClose();page='gym';render();void persist();return;}
   if(action==='buddy-delete-prompt'){if(!data.activeWorkout)return;buddyDeletePrompt();return;}
-  if(action==='buddy-delete-confirm'){const s=data.activeWorkout;if(!s)return;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);data.activeWorkout=null;close(true);buddyClose();await persist();render();return;}
+  if(action==='buddy-delete-confirm'){const s=data.activeWorkout;if(!s)return;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);data.activeWorkout=null;close(true);buddyClose();page='gym';render();void persist();return;}
   if(action==='exercise-library'){exerciseLibrary();return;}
   if(action==='new-exercise-def'){exerciseDefinitionForm();return;}
   if(action==='routine-new-exercise'){if(!workoutEditorState)return;exerciseDefinitionForm(null,'routine');return;}
@@ -2408,7 +2403,7 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-picker'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(s){s.phase='picker';s.selected=null;delete s.undo;}await buddyPersist();return;}
   if(action==='buddy-back-picker'){const s=data.activeWorkout;if(s){s.phase='picker';delete s.completedAt;delete s.undo;}await buddyPersist();return;}
   if(action==='buddy-a'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||Number.isInteger(e.reviewSetIndex))return;const i=e.sets.length,d=e.draft||buddyDraft(e,i);buddyCaptureUndo(s,e.activeSetStartedAt?`finish set ${i+1}`:`start set ${i+1}`);if(!e.activeSetStartedAt){e.draft=d;e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';await buddyPersist();return;}const finishedAt=isoNow();e.sets.push({weight:d.weight,reps:d.reps,...(d.difficulty?{difficulty:d.difficulty}:{}),startedAt:e.activeSetStartedAt,finishedAt,durationSeconds:buddySeconds(e.activeSetStartedAt,finishedAt)});delete e.activeSetStartedAt;delete e.draft;e.reviewSetIndex=e.sets.length-1;e.restStartedAt=finishedAt;e.restSeconds=Number.isInteger(e.restSeconds)?e.restSeconds:90;await buddyPersist();return;}
-  if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;await persist();buddyClose();render();return;}
+  if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;buddyClose();page='gym';render();void persist();return;}
 
   if(action==='food-progress-period'){foodProgressPeriod=el.dataset.period||'week';foodProgressOffset=0;render();return;}
   if(action==='food-progress-nav'){foodProgressOffset=Math.min(0,foodProgressOffset+Number(el.dataset.delta||0));render();return;}
@@ -2488,10 +2483,10 @@ document.addEventListener('click',async event=>{
   if(action==='choose-food-match'){const form=el.closest('form[data-form="food"]'),food=data.foods.find(x=>x.id===el.dataset.id);if(!form||!food)return;form.elements.cardId.value=food.id;form.elements.name.value=food.name;form.elements.calories.value=food.calories;form.elements.protein.value=food.protein;const saveOption=form.querySelector('.save-new-food-option');if(saveOption)saveOption.hidden=true;form.querySelector('.food-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(food.name)+'</strong><small>Using saved food · '+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><button type="button" class="text-btn" data-action="clear-food-match">Change</button></div>';return;}
   if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';const saveOption=form.querySelector('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}renderFoodMatches(form);form.elements.name.focus();return;}
   if(action==='edit-card'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'food');return;}
-  if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;await persist();render();return;}
-  if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';await persist();return;}
+  if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;render();void persist();return;}
+  if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';render();void persist();return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
-  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f);}return;}
+  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f,{returnPage:page});}return;}
   if(action==='custom-lift'){liftForm();return;}
   if(action==='choose-exercise-match'){const form=el.closest('form[data-form="lift"]'),name=el.dataset.name,equipment=el.dataset.equipment;if(!form||!name)return;form.elements.exercise.value=name;form.elements.equipment.value=equipment;form.querySelector('.exercise-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(name)+'</strong><small>'+equipmentLabel(equipment)+' · Using canonical exercise</small></span><button type="button" class="text-btn" data-action="clear-exercise-match">Change</button></div>';return;}
   if(action==='clear-exercise-match'){const form=el.closest('form[data-form="lift"]');renderExerciseMatches(form);form.elements.exercise.focus();return;}
@@ -2510,7 +2505,7 @@ document.addEventListener('click',async event=>{
      const record=data.transactions.find(tx=>tx.id===el.dataset.id);
      if(!record||!confirm('Delete this transaction?'))return;
      const candidate=structuredClone(data);candidate.transactions=candidate.transactions.filter(tx=>tx.id!==record.id);
-     data=candidate;financeNotice='Transaction removed.';close(true);await persist();return;
+     data=candidate;financeNotice='Transaction removed.';close(true);render();void persist();return;
    }
    if(action==='import-data'){importHub();return;}
   if(action==='import-csv'){importModal('csv','file');return;}
@@ -2747,7 +2742,7 @@ app.addEventListener('submit',async event=>{
     if(edited){
       if(!draft)return;Object.assign(edited,draft.record);
       if(draft.record.t==null)delete edited.t;
-      chosenDate=currentFoodTrackingDate(edited);close(true);await persist();return;
+      chosenDate=currentFoodTrackingDate(edited);close(true);page=foodEntryReturnPage;render();void persist();return;
     }
     const prepared=foodBatch.map(item=>{
       if(!item.inheritTime)return item;
@@ -2760,7 +2755,7 @@ app.addEventListener('submit',async event=>{
     const candidate=structuredClone(data);let last;
     for(const item of prepared)last=commitFoodDraft(candidate,item);
     data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
-    foodBatch=[];close(true);await persist();
+    foodBatch=[];close(true);page=foodEntryReturnPage;render();void persist();
     if(prepared.length===1&&last.savedCard)showFoodUndo(last.entry.id,last.entry.name);
     return;
   }
@@ -2806,7 +2801,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.3',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
