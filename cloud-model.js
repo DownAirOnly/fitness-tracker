@@ -220,6 +220,10 @@ export function planDeviceMigration(cloud,device) {
   else ruleIds.add(copy.id);
   candidate.classificationRules.push(copy);
  }
+ // Preserve a device's intentional workout schedule when the cloud notebook has none.
+ // Existing cloud schedules win; never overwrite a personal schedule during migration.
+ if(!(candidate.workoutSchedule||[]).length && (incoming.workoutSchedule||[]).length)
+  candidate.workoutSchedule=structuredClone(incoming.workoutSchedule);
  // Cash-flow plans are unique per notebook. Copy only when cloud plan is blank; never merge monetary assumptions.
  if(signature(candidate.budgetPlan)===signature(emptyData().budgetPlan))candidate.budgetPlan=structuredClone(incoming.budgetPlan);
  // Validate all routine references and the encoded cloud payload BEFORE saving.
