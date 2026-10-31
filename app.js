@@ -361,7 +361,7 @@ function workoutCalendar(){
   '<div class="home-workout-calendar-header"><small>'+(data.workoutSchedule?.length?'Weekly schedule':'Estimated dates')+'</small>'+
    button('Schedule','workout-schedule-open','home-dash-link')+'</div>'+
   calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...completed],
-   projected:upcomingWorkoutDates(month,completed),action:'home-calendar-day',navAction:'home-calendar-month'})+
+   projected:upcomingWorkoutDates(month,completed),projectedLabel:data.workoutSchedule?.length?'Scheduled':'Projected',action:'home-calendar-day',navAction:'home-calendar-month'})+
   recentSetRecoveryPanel()+
   '<div class="home-lifting-summary"><span>This month</span><strong>'+workouts.length+' workouts · '+totalSets+' sets</strong></div>'+
   '</article>';
