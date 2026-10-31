@@ -1,3 +1,4 @@
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.3';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=98';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
@@ -69,7 +70,7 @@ let storageProtection={supported:false,persisted:null,usage:null,quota:null,erro
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
-let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
+let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
@@ -209,14 +210,10 @@ function refreshSyncIndicators(){
  const markup=page==='home'?homeSyncWarning():cloudSaveWarning();
  if(markup)main.insertAdjacentHTML('beforebegin',markup);
 }
-function renderAfterSave(epoch){
- if(epoch!==userInteractionEpoch||document.querySelector('.modal')||document.querySelector('#buddy-root .buddy-screen')||document.activeElement?.matches('input,select,textarea,[contenteditable="true"]'))refreshSyncIndicators();
- else render();
-}
 const persist=async()=>{
-  if(demoMode){try{storeDemoWorkspace(data);if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
-  if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
-  if(!account){try{save(data);deviceData=structuredClone(data);if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
+  if(demoMode){try{storeDemoWorkspace(data);refreshSyncIndicators();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
+  if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';refreshSyncIndicators();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
+  if(!account){try{save(data);deviceData=structuredClone(data);refreshSyncIndicators();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
   let localSafe=true;
   try{saveCloudRecoveryLocally(false);cloudPending=true;}catch{localSafe=false;cloudPending=true;}
   if(cloudRecoveryConflict){
@@ -225,8 +222,7 @@ const persist=async()=>{
   if(!session?.ready){cloudMessage=localSafe?'Saved on this device · cloud unavailable':'Cloud unavailable and the device recovery copy could not be saved. Export a backup now.';refreshSyncIndicators();return localSafe;}
   if(cloudBusy){cloudMessage=localSafe?'Saved on this device · waiting for cloud':'Cloud save in progress; the device recovery copy could not be updated.';refreshSyncIndicators();return localSafe;}
   const active=session,snapshot=structuredClone(data);cloudBusy=true;cloudPending=true;cloudMessage='Saving to your account…';
-   if(document.querySelector('.modal')||document.querySelector('#buddy-root .buddy-screen')||document.activeElement?.matches('input,select,textarea'))refreshSyncIndicators();else render();
-   const saveEpoch=userInteractionEpoch;let queueAgain=false;
+   refreshSyncIndicators();let queueAgain=false;
   try{
     await active.save(snapshot);if(session!==active)return false;
     try{cloudConfirmed=writeCloudConfirmed(active.uid,active.revision,snapshot);}catch{cloudConfirmed={uid:active.uid,revision:active.revision,updatedAt:isoNow(),data:structuredClone(snapshot)};}
@@ -239,7 +235,7 @@ const persist=async()=>{
     return true;
   }
   catch(error){if(session===active){cloudMessage=describeCloudError(error)+(localSafe?' Device recovery kept.':' Device recovery also failed; export a backup now.');cloudPending=true;}return false;}
-  finally{if(session===active){cloudBusy=false;renderAfterSave(saveEpoch);if(queueAgain)setTimeout(()=>{if(session===active&&!cloudBusy&&cloudPending)void persist();},0);}}
+  finally{if(session===active){cloudBusy=false;refreshSyncIndicators();if(queueAgain)setTimeout(()=>{if(session===active&&!cloudBusy&&cloudPending)void persist();},0);}}
 };
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
@@ -249,7 +245,7 @@ function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
   const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Finances'],['progress','progress','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}<nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav></div><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><button class="top-date" data-action="history">${niceDate(currentTrackingDate())} <span>↗</span></button><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -268,6 +264,35 @@ function render() {
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
 
+let homeCalendarMonth=currentTrackingDate().slice(0,7);
+function projectedWorkoutDates(recent){
+ const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
+ if(dates.length!==4)return [];
+ const intervals=dates.slice(1).map((date,i)=>Math.round((dates[i]-date)/86400000));
+ if(!intervals.every(n=>n>=1&&n<=7)||Math.max(...intervals)-Math.min(...intervals)>1)return [];
+ const spacing=Math.round(intervals.reduce((sum,n)=>sum+n,0)/intervals.length),results=[];
+ for(let when=dates[0]+spacing*86400000,i=0;i<12;i++,when+=spacing*86400000){
+  const date=localDate(new Date(when));
+  if(date>=currentTrackingDate())results.push(date);
+ }
+ return results;
+}
+function workoutCalendar(){
+ const recent=recentRoutineSessions(),complete=new Set([
+  ...recent.map(routineFinishedDate),...(data.lifts||[]).map(l=>l.date)
+ ].filter(Boolean));
+ const projected=projectedWorkoutDates(recent).filter(d=>!complete.has(d));
+ const month=homeCalendarMonth;
+ const workouts=recent.filter(s=>routineFinishedDate(s).startsWith(month));
+ const lifts=(data.lifts||[]).filter(l=>l.date.startsWith(month));
+ const totalSets=workouts.reduce((n,s)=>n+routineSessionCounts(s).sets,0);
+ // Manual lift records not tied to Buddy are separate sets.
+ const manualSets=lifts.filter(l=>!l.buddySessionId).reduce((n,l)=>n+(l.sets?.length||0),0);
+ return '<article class="home-dashboard-content home-dash-lifting home-lifting-calendar">'+
+  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...complete],projected,action:'home-calendar-day',navAction:'home-calendar-month'})+
+  '<div class="home-lifting-summary"><span>This month</span><strong>'+workouts.length+' workout'+(workouts.length===1?'':'s')+' · '+(totalSets+manualSets)+' sets</strong></div>'+
+  '</article>';
+}
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
 const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
 function readHomeDashboard(){
@@ -376,33 +401,7 @@ function homeDashboardCard(view){
     (needUpdate?button(balanceSet?'Update balance':'Set balance','budget-balance','home-dash-link primary-link'):
     button('Finances','finances','home-dash-link primary-link'))+'</div></article>';
  }
- if(view==='lifting'){
-  const recent=recentRoutineSessions(),last=recent[0],routines=savedWorkouts().filter(w=>(w.exercises||[]).length);
-  const name=last?.type||'No workouts logged';
-  const selected=routines.findIndex(w=>w.name===last?.type);
-  const next=routines.length?routines[(selected>=0?selected+1:0)%routines.length]:null;
-  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
-  const intervals=dates.slice(1).map((date,i)=>Math.round((dates[i]-date)/86400000));
-  const cutoff=Date.now()-7*86400000;
-  const weekly=recent.filter(session=>{const completed=Date.parse(session.completedAt||session.endedAt||session.startedAt||session.date+'T12:00:00');return Number.isFinite(completed)&&completed>=cutoff&&completed<=Date.now();});
-  const weeklySets=weekly.reduce((count,session)=>count+routineSessionCounts(session).sets,0);
-  const previous=recent.slice(1,3);
-  let day='';
-  if(dates.length===4&&intervals.every(n=>n>=1&&n<=7)&&Math.max(...intervals)-Math.min(...intervals)<=1){
-   const offset=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),pred=dates[0]+offset*86400000;
-   if(pred>=Date.now()-86400000&&pred<=Date.now()+14*86400000)day=' · around '+niceDate(localDate(new Date(pred)));
-  }
-  return '<article class="home-dashboard-content home-dash-lifting">'+
-   '<div class="home-dash-value home-dash-routine">'+esc(name)+'</div>'+
-   '<p class="home-dash-caption">'+(last?'Last workout · '+esc(niceDate(routineFinishedDate(last))):'')+'</p>'+
-   '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'No routine set')+'</strong></div>'+
-   (day?'<p class="home-dashboard-hint">Estimated'+esc(day)+'</p>':'')+
-   (data.activeWorkout?'<div class="home-dashboard-stat"><span>In progress</span><strong>'+esc(data.activeWorkout.type)+' · '+data.activeWorkout.exercises.filter(e=>e.status==='done').length+'/'+data.activeWorkout.exercises.length+' exercises</strong></div>':'')+
-   '<div class="home-lifting-week"><span>Last 7 days</span><strong>'+weekly.length+' workout'+(weekly.length===1?'':'s')+' · '+weeklySets+' sets</strong></div>'+
-   (previous.length?'<div class="home-lifting-recent"><span>Earlier sessions</span>'+previous.map(session=>'<div class="home-lifting-recent-row"><span>'+esc(session.type||'Workout')+'</span><small>'+esc(niceDate(routineFinishedDate(session)))+' · '+routineSessionCounts(session).sets+' sets</small></div>').join('')+'</div>':'')+
-   '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
-   '</div></article>';
- }
+ if(view==='lifting')return workoutCalendar();
  // Show four quick foods by default, or a saved local selection of up to six.
   const picks=homeFoodPicks();
  return '<article class="home-dashboard-content home-dash-nutrition">'+
@@ -1129,8 +1128,32 @@ function refreshSuggestionSearch(){
  const input=document.querySelector('[data-suggestion-search]'),box=document.querySelector('[data-suggestion-search-results]');if(!input||!box||!foodSuggestionState)return;
  foodSuggestionState.searchQuery=input.value;box.innerHTML=suggestionSearchRows(input.value,foodSuggestionState.excludedIds||[]);
 }
+function foodPlanSearchRows(query=''){
+ const q=String(query).trim().toLowerCase();
+ const matched=sortFoods(data.foods||[],'recent').filter(f=>!q||f.name.toLowerCase().includes(q)).slice(0,9);
+ return matched.length?matched.map(f=>'<button type="button" class="food-plan-choice" data-action="food-plan-add" data-id="'+esc(f.id)+'"><span><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span><b>+</b></button>').join(''):'<p class="body-copy">No matching saved foods.</p>';
+}
+function refreshFoodPlanSearch(){
+ const results=document.querySelector('[data-food-plan-results]');
+ if(results)results.innerHTML=foodPlanSearchRows(foodPlanSearch);
+}
+function foodPlan(){
+ const logged=foodDayTotals(chosenDate);
+ const rows=foodPlanItems.map(item=>{const food=data.foods.find(f=>f.id===item.id);return food?{food,q:item.q}:null;}).filter(Boolean);
+ const plannedCal=rows.reduce((n,x)=>n+x.food.calories*x.q,0),plannedProtein=rows.reduce((n,x)=>n+x.food.protein*x.q,0);
+ const projectedCal=logged.calories+plannedCal,projectedProtein=logged.protein+plannedProtein;
+ modal('Plan','<div class="food-plan"><div class="food-plan-totals">'+
+  '<div><small>Calories after plan</small><strong>'+Math.round(projectedCal)+' / '+fmt(data.settings.calories)+'</strong></div>'+
+  '<div><small>Protein after plan</small><strong>'+Math.round(projectedProtein)+'g / '+fmt(data.settings.protein)+'g</strong></div></div>'+
+  '<p class="food-plan-difference">Selected: '+Math.round(plannedCal)+' calories · '+Math.round(plannedProtein)+'g protein · Remaining: '+Math.round(data.settings.calories-projectedCal)+' cal / '+Math.round(data.settings.protein-projectedProtein)+'g</p>'+
+  '<div class="food-plan-items">'+(rows.length?rows.map(({food,q})=>'<div class="food-plan-item"><span><strong>'+esc(food.name)+'</strong><small>'+fmt(food.calories*q)+' cal · '+fmt(food.protein*q)+'g</small></span><div class="food-plan-quantity"><button type="button" data-action="food-plan-step" data-id="'+esc(food.id)+'" data-delta="-0.5" aria-label="Decrease servings">−</button><output>'+fmt(q)+'×</output><button type="button" data-action="food-plan-step" data-id="'+esc(food.id)+'" data-delta="0.5" aria-label="Increase servings">+</button><button type="button" data-action="food-plan-remove" data-id="'+esc(food.id)+'" aria-label="Remove '+esc(food.name)+'">×</button></div></div>').join(''):'<p class="body-copy">Choose foods to compare a possible rest-of-day plan.</p>')+'</div>'+
+  '<label class="field"><span>Find saved foods</span><input type="search" name="foodPlanSearch" value="'+esc(foodPlanSearch)+'" placeholder="Search foods" autocomplete="off"></label>'+
+  '<div class="food-plan-search-results" data-food-plan-results>'+foodPlanSearchRows(foodPlanSearch)+'</div>'+
+  '<p class="hint">Comparisons are estimates. Nothing is logged until you choose Log selected.</p>'+
+  '<div class="food-plan-actions">'+button('Suggest','food-plan-suggest','outline')+button('Log selected','food-plan-log','primary',rows.length?'':'disabled')+'</div></div>');
+}
 function foodSuggestions(state=null){
- const defaults={anchorId:'',preferIds:[],excludedIds:[],hiddenShapes:[],searchQuery:''};
+ const defaults={anchorId:'',preferIds:[],excludedIds:[],hiddenShapes:[],searchQuery:'',fromPlan:false};
  const next={...defaults,...(state||{})};next.preferIds=[...new Set(next.preferIds||[])];next.excludedIds=[...new Set(next.excludedIds||[])];next.hiddenShapes=[...new Set(next.hiddenShapes||[])];
  if(next.excludedIds.includes(next.anchorId))next.anchorId='';
  foodSuggestionState=next;
@@ -1139,7 +1162,7 @@ function foodSuggestions(state=null){
  const anchor=next.anchorId,anchorFood=data.foods.find(f=>f.id===anchor),excluded=next.excludedIds.map(id=>data.foods.find(f=>f.id===id)).filter(Boolean),preferred=next.preferIds.map(id=>data.foods.find(f=>f.id===id)).filter(Boolean);
  const feedbackSummary=(excluded.length||preferred.length)?'<div class="suggestion-feedback-summary">'+(preferred.length?'<div><small>Favoring</small>'+preferred.map(f=>'<button type="button" data-action="food-suggest-unprefer" data-id="'+esc(f.id)+'">'+esc(f.name)+' ×</button>').join('')+'</div>':'')+(excluded.length?'<div><small>Avoiding this round</small>'+excluded.map(f=>'<button type="button" data-action="food-suggest-restore" data-id="'+esc(f.id)+'">'+esc(f.name)+' ×</button>').join('')+'</div>':'')+'</div>':'';
  const selectedAnchor=anchorFood?'<div class="suggestion-selected-anchor"><span><small>Starting with</small><strong>'+esc(anchorFood.name)+'</strong></span><button type="button" class="text-btn" data-action="food-suggest-anchor" data-id="">Clear</button></div>':'';
- modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><div class="suggestion-anchor"><span class="buddy-mini-label">START WITH</span><label class="suggestion-search"><span>Find any saved food</span><input type="search" data-suggestion-search value="'+esc(next.searchQuery||'')+'" placeholder="Search Saved Foods"></label><div class="suggestion-search-results" data-suggestion-search-results>'+suggestionSearchRows(next.searchQuery,next.excludedIds)+'</div>'+selectedAnchor+'<div class="suggestion-anchor-recent"><small>Recent</small><div class="suggestion-chips"><button type="button" class="'+(!anchor?'selected':'')+'" data-action="food-suggest-anchor" data-id="">Anything</button>'+recent.filter(f=>!next.excludedIds.includes(f.id)).map(f=>'<button type="button" class="'+(anchor===f.id?'selected':'')+'" data-action="food-suggest-anchor" data-id="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></div></div>'+feedbackSummary+'<p class="body-copy">Ranked from your remaining goals plus your own logging history. Search or Recent can force a specific starting food. Feedback below only changes this suggestion round.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<article class="suggestion-card suggestion-card-feedback"><div class="suggestion-card-copy"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><em>'+esc(s.reason)+'</em></div><div class="suggestion-card-macros">'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</div><div class="suggestion-card-actions"><button type="button" class="primary small" data-action="apply-food-suggestion" data-index="'+i+'">Add</button><button type="button" class="text-btn" data-action="food-suggest-more" data-index="'+i+'">More like this</button><button type="button" class="text-btn" data-action="food-suggest-avoid" data-index="'+i+'">Avoid…</button><button type="button" class="text-btn" data-action="food-suggest-skip" data-index="'+i+'">Skip</button></div></article>').join('')+'</div>':'<p class="empty">No combinations match the current feedback. Remove an avoided item or reset Start with to Anything.</p>')+'</div>');
+ modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><div class="suggestion-anchor"><span class="buddy-mini-label">START WITH</span><label class="suggestion-search"><span>Find any saved food</span><input type="search" data-suggestion-search value="'+esc(next.searchQuery||'')+'" placeholder="Search Saved Foods"></label><div class="suggestion-search-results" data-suggestion-search-results>'+suggestionSearchRows(next.searchQuery,next.excludedIds)+'</div>'+selectedAnchor+'<div class="suggestion-anchor-recent"><small>Recent</small><div class="suggestion-chips"><button type="button" class="'+(!anchor?'selected':'')+'" data-action="food-suggest-anchor" data-id="">Anything</button>'+recent.filter(f=>!next.excludedIds.includes(f.id)).map(f=>'<button type="button" class="'+(anchor===f.id?'selected':'')+'" data-action="food-suggest-anchor" data-id="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></div></div>'+feedbackSummary+'<p class="body-copy">Ranked from your remaining goals plus your own logging history. Search or Recent can force a specific starting food. Feedback below only changes this suggestion round.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<article class="suggestion-card suggestion-card-feedback"><div class="suggestion-card-copy"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><em>'+esc(s.reason)+'</em></div><div class="suggestion-card-macros">'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</div><div class="suggestion-card-actions"><button type="button" class="primary small" data-action="apply-food-suggestion" data-index="'+i+'">'+(next.fromPlan?'Try in plan':'Add')+'</button><button type="button" class="text-btn" data-action="food-suggest-more" data-index="'+i+'">More like this</button><button type="button" class="text-btn" data-action="food-suggest-avoid" data-index="'+i+'">Avoid…</button><button type="button" class="text-btn" data-action="food-suggest-skip" data-index="'+i+'">Skip</button></div></article>').join('')+'</div>':'<p class="empty">No combinations match the current feedback. Remove an avoided item or reset Start with to Anything.</p>')+'</div>');
 }
 function foodSuggestionAvoidPicker(index){
  const suggestion=foodSuggestionState?.suggestions?.[index];if(!suggestion)return;
@@ -1152,7 +1175,7 @@ function food() {
   const totals=foodDayTotals(chosenDate),entries=foodEntriesNewestFirst(data.foodEntries.filter(x=>currentFoodTrackingDate(x)===chosenDate));
   const pinned=sortFoods(data.foods.filter(f=>f.pinned===true),foodSort),foods=sortFoods(data.foods.filter(f=>f.pinned!==true),foodSort);
   const pinnedSection=pinned.length?'<section class="pinned-foods"><div class="section-head food-section-title"><h2>Favorites</h2></div><div class="food-grid pinned-food-grid">'+pinned.map(f=>foodQuickCard(f,true)).join('')+'</div></section>':'';
-  return dateHeader('','Food date')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Suggest rest of day','food-suggest','outline small')+'</div></section>'+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
+  return dateHeader('','Food date')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Plan','food-plan-open','outline small')+'</div></section>'+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
 }
 function savedWorkouts(){return Array.isArray(data.workoutTemplates)?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
 function workoutByName(name){const list=savedWorkouts();return list.find(w=>w.name===name)||list[0];}
@@ -2003,7 +2026,7 @@ function commitFoodDraft(target,draft){
 }
 
 function foodForm(entry=null,card=null,options={}) {
-  if(!options.keepBatch)foodBatch=[];
+  if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
   modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><button type="button" class="text-btn" data-action="food-csv-toggle" aria-expanded="false">CSV ↔</button><div class="food-csv-panel" hidden><label class="field"><span>Copy or paste one food CSV row</span><textarea data-food-csv rows="3" spellcheck="false" placeholder="Paste a foodLog CSV row or a header and row"></textarea></label><small data-food-csv-status>Paste a row to fill the fields; Save to commit.</small></div></div><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
@@ -2058,6 +2081,7 @@ app.addEventListener('change',event=>{
  }
  if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('input',event=>{
+ if(event.target.name==='foodPlanSearch'){foodPlanSearch=event.target.value;refreshFoodPlanSearch();return;}
  if(event.target.name!=='homeFoodSearch')return;
  const query=event.target.value.trim().toLowerCase();
  for(const row of document.querySelectorAll('.home-food-pick'))row.hidden=!row.dataset.search.includes(query);
@@ -2158,7 +2182,7 @@ document.addEventListener('click',async event=>{
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='home-log-finance'){financeQuickModal();return;}
   if(action==='home-add-menu'){
-    if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm();return;}
+    if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,null,{returnPage:'food'});return;}
     if(homeDashboardView==='finances'){financeQuickModal();return;}
     buddyRoutinePicker();return;
    }
@@ -2236,6 +2260,19 @@ document.addEventListener('click',async event=>{
     financeHistoryVisible=50;refreshFinanceHistoryList();return;
    }
   if(action==='home-dashboard-select'){selectHomeDashboard(el.dataset.view);return;}
+  if(action==='home-calendar-month'){homeCalendarMonth=calendarShiftMonth(homeCalendarMonth,Number(el.dataset.delta)||0);selectHomeDashboard('lifting');return;}
+  if(action==='home-calendar-day'){
+   const date=el.dataset.date;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+   const sessions=recentRoutineSessions().filter(session=>routineFinishedDate(session)===date);
+   const lifts=(data.lifts||[]).filter(l=>l.date===date&&!l.buddySessionId);
+   const projected=projectedWorkoutDates(recentRoutineSessions()).includes(date);
+   if(!sessions.length&&!lifts.length&&!projected)return;
+   modal(niceDate(date),'<div class="home-calendar-details">'+
+    (sessions.map(session=>routineHistoryRow(session)).join(''))+
+    (lifts.map(lift=>'<div class="home-calendar-lift"><strong>'+esc(lift.exercise)+'</strong><small>'+lift.sets.length+' sets · manually logged</small></div>').join(''))+
+    (!sessions.length&&!lifts.length&&projected?'<p class="body-copy">Projected workout based on your recent intervals. Not scheduled.</p>':'')+'</div>');
+   return;
+  }
   if(action==='home-sync-review'){
    const warning=cloudSaveWarning();
    if(warning)modal('Cloud sync and recovery',warning);
@@ -2245,8 +2282,8 @@ document.addEventListener('click',async event=>{
   if(action==='home-favorite-log'){
    const item=el.dataset.origin==='add-saved'?data.foods.find(f=>f.id===el.dataset.id):data.foodEntries.find(e=>e.id===el.dataset.id);
    if(!item)return;chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();
-   if(el.dataset.origin==='add-saved')foodForm(null,item);
-   else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot()});
+   if(el.dataset.origin==='add-saved')foodForm(null,item,{returnPage:'home'});
+   else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot(),returnPage:'home'});
    return;
   }
   if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
@@ -2311,11 +2348,11 @@ document.addEventListener('click',async event=>{
   if(action==='data-health-details'){dataHealthDetails();return;}
   if(action==='workout'){workout=el.dataset.workout;render();return;}
 
-  if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();buddyReadSetupDraft();await persist();buddyClose();render();return;}
+  if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();buddyReadSetupDraft();buddyClose();page='gym';render();void persist();return;}
   if(action==='buddy-end'){if(!data.activeWorkout)return;buddyEndOptions();return;}
-  if(action==='buddy-save-end'){const s=data.activeWorkout;if(!s)return;s.exercises.forEach(e=>buddyUpsertLift(s,e));s.endedAt=isoNow();s.savedEarly=true;data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;close(true);buddyClose();await persist();render();return;}
+  if(action==='buddy-save-end'){const s=data.activeWorkout;if(!s)return;s.exercises.forEach(e=>buddyUpsertLift(s,e));s.endedAt=isoNow();s.savedEarly=true;data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;close(true);buddyClose();page='gym';render();void persist();return;}
   if(action==='buddy-delete-prompt'){if(!data.activeWorkout)return;buddyDeletePrompt();return;}
-  if(action==='buddy-delete-confirm'){const s=data.activeWorkout;if(!s)return;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);data.activeWorkout=null;close(true);buddyClose();await persist();render();return;}
+  if(action==='buddy-delete-confirm'){const s=data.activeWorkout;if(!s)return;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);data.activeWorkout=null;close(true);buddyClose();page='gym';render();void persist();return;}
   if(action==='exercise-library'){exerciseLibrary();return;}
   if(action==='new-exercise-def'){exerciseDefinitionForm();return;}
   if(action==='routine-new-exercise'){if(!workoutEditorState)return;exerciseDefinitionForm(null,'routine');return;}
@@ -2335,7 +2372,7 @@ document.addEventListener('click',async event=>{
     routineDeletedStack.push({routine:structuredClone(deleted),index,wasSelected:workout===deleted.name});
     data.workoutTemplates.splice(index,1);
     if(workout===deleted.name)workout=data.workoutTemplates[0]?.name||'';
-    close(true);await persist();render();routineManager();return;
+    close(true);render();routineManager();void persist();return;
   }
   if(action==='routine-undo-delete'){
     const undo=routineDeletedStack.at(-1);if(!undo)return;
@@ -2345,7 +2382,7 @@ document.addEventListener('click',async event=>{
     data.workoutTemplates.splice(Math.min(undo.index,data.workoutTemplates.length),0,restored);
     routineDeletedStack.pop();
     if(undo.wasSelected)workout=restored.name;
-    await persist();render();routineManager();return;
+    render();routineManager();void persist();return;
   }
   if(action==='edit-workout'){workoutTemplateForm(workout);return;}
   if(action==='workout-move'){workoutEditorCapture();const i=Number(el.dataset.index),d=Number(el.dataset.direction),j=i+d;if(!workoutEditorState||!Number.isInteger(i)||!Number.isInteger(j)||j<0||j>=workoutEditorState.exercises.length)return;[workoutEditorState.exercises[i],workoutEditorState.exercises[j]]=[workoutEditorState.exercises[j],workoutEditorState.exercises[i]];workoutTemplateForm(null,true);return;}
@@ -2408,7 +2445,7 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-picker'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(s){s.phase='picker';s.selected=null;delete s.undo;}await buddyPersist();return;}
   if(action==='buddy-back-picker'){const s=data.activeWorkout;if(s){s.phase='picker';delete s.completedAt;delete s.undo;}await buddyPersist();return;}
   if(action==='buddy-a'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||Number.isInteger(e.reviewSetIndex))return;const i=e.sets.length,d=e.draft||buddyDraft(e,i);buddyCaptureUndo(s,e.activeSetStartedAt?`finish set ${i+1}`:`start set ${i+1}`);if(!e.activeSetStartedAt){e.draft=d;e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';await buddyPersist();return;}const finishedAt=isoNow();e.sets.push({weight:d.weight,reps:d.reps,...(d.difficulty?{difficulty:d.difficulty}:{}),startedAt:e.activeSetStartedAt,finishedAt,durationSeconds:buddySeconds(e.activeSetStartedAt,finishedAt)});delete e.activeSetStartedAt;delete e.draft;e.reviewSetIndex=e.sets.length-1;e.restStartedAt=finishedAt;e.restSeconds=Number.isInteger(e.restSeconds)?e.restSeconds:90;await buddyPersist();return;}
-  if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;await persist();buddyClose();render();return;}
+  if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;buddyClose();page='gym';render();void persist();return;}
 
   if(action==='food-progress-period'){foodProgressPeriod=el.dataset.period||'week';foodProgressOffset=0;render();return;}
   if(action==='food-progress-nav'){foodProgressOffset=Math.min(0,foodProgressOffset+Number(el.dataset.delta||0));render();return;}
@@ -2421,6 +2458,32 @@ document.addEventListener('click',async event=>{
   if(action==='edit-body-fat'){bodyFatForm((data.bodyFat||[]).find(x=>x.id===el.dataset.id));return;}
   if(action==='food-log'){foodLog();return;}
   if(action==='food-library'){foodLibrary();return;}
+  if(action==='food-plan-open'){foodPlanItems=[];foodPlanSearch='';foodPlan();return;}
+  if(action==='food-plan-add'){
+   const f=data.foods.find(food=>food.id===el.dataset.id);if(!f)return;
+   const existing=foodPlanItems.find(item=>item.id===f.id);
+   if(existing)existing.q=Math.min(20,existing.q+1);else foodPlanItems.push({id:f.id,q:1});
+   foodPlan();return;
+  }
+  if(action==='food-plan-step'){
+   const item=foodPlanItems.find(x=>x.id===el.dataset.id);if(!item)return;
+   item.q=Math.round((item.q+Number(el.dataset.delta))*100)/100;
+   if(item.q<0.25)foodPlanItems=foodPlanItems.filter(x=>x!==item);
+   else item.q=Math.min(20,item.q);
+   foodPlan();return;
+  }
+  if(action==='food-plan-remove'){foodPlanItems=foodPlanItems.filter(x=>x.id!==el.dataset.id);foodPlan();return;}
+  if(action==='food-plan-suggest'){foodSuggestions({fromPlan:true});return;}
+  if(action==='food-plan-log'){
+   if(!foodPlanItems.length)return;
+   const candidate=structuredClone(data),date=chosenDate===currentTrackingDate()?localDate():chosenDate;
+   for(const item of foodPlanItems){
+    const food=candidate.foods.find(f=>f.id===item.id);
+    if(!food||!Number.isFinite(item.q)||item.q<=0)continue;
+    commitFoodDraft(candidate,{record:{name:food.name,calories:food.calories,protein:food.protein,quantity:item.q,date},cardId:food.id,saveAsFood:false});
+   }
+   data=candidate;foodPlanItems=[];foodPlanSearch='';close(true);page='food';render();void persist();return;
+  }
   if(action==='food-suggest'){foodSuggestions();return;}
   if(action==='food-suggest-anchor'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,anchorId:el.dataset.id||''});return;}
   if(action==='food-suggest-more'){const s=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!s)return;foodSuggestions({...foodSuggestionState,preferIds:[...(foodSuggestionState.preferIds||[]),...s.items.map(x=>x.food.id)]});return;}
@@ -2431,13 +2494,17 @@ document.addEventListener('click',async event=>{
   if(action==='food-suggest-unprefer'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,preferIds:(foodSuggestionState.preferIds||[]).filter(id=>id!==el.dataset.id)});return;}
   if(action==='apply-food-suggestion'){
     const suggestion=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!suggestion)return;
+    if(foodSuggestionState?.fromPlan){
+     for(const row of suggestion.items){const existing=foodPlanItems.find(x=>x.id===row.food.id);if(existing)existing.q=Math.min(20,existing.q+row.q);else foodPlanItems.push({id:row.food.id,q:row.q});}
+     foodSuggestionState=null;foodPlan();return;
+    }
     const date=chosenDate===currentTrackingDate()?localDate():chosenDate,timeSlot=chosenDate===currentTrackingDate()?currentFoodSlot():null;
     foodBatch=suggestion.items.map(item=>({record:{name:item.food.name,calories:item.food.calories,protein:item.food.protein,quantity:item.q,date},cardId:item.food.id,saveAsFood:false,inheritTime:true}));
     foodSuggestionState=null;foodForm(null,null,{keepBatch:true,date,timeSlot});return;
   }
   if(action==='new-food-def'){foodDefinitionForm(null,'library');return;}
   if(action==='edit-food-def'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'library');return;}
-  if(action==='delete-food-def'){const origin=el.dataset.origin||'library';data.foods=data.foods.filter(x=>x.id!==el.dataset.id);close(true);await persist();if(origin==='library')foodLibrary();else render();return;}
+  if(action==='delete-food-def'){const origin=el.dataset.origin||'library';data.foods=data.foods.filter(x=>x.id!==el.dataset.id);close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(action==='time-step'||action==='time-clear'||action==='time-now'){
     const input=el.closest('[data-time-stepper]')?.querySelector('[data-time-value]');
     if(!input)return;
@@ -2488,10 +2555,10 @@ document.addEventListener('click',async event=>{
   if(action==='choose-food-match'){const form=el.closest('form[data-form="food"]'),food=data.foods.find(x=>x.id===el.dataset.id);if(!form||!food)return;form.elements.cardId.value=food.id;form.elements.name.value=food.name;form.elements.calories.value=food.calories;form.elements.protein.value=food.protein;const saveOption=form.querySelector('.save-new-food-option');if(saveOption)saveOption.hidden=true;form.querySelector('.food-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(food.name)+'</strong><small>Using saved food · '+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><button type="button" class="text-btn" data-action="clear-food-match">Change</button></div>';return;}
   if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';const saveOption=form.querySelector('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}renderFoodMatches(form);form.elements.name.focus();return;}
   if(action==='edit-card'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'food');return;}
-  if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;await persist();render();return;}
-  if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';await persist();return;}
+  if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;render();void persist();return;}
+  if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';render();void persist();return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
-  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f);}return;}
+  if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f,{returnPage:page});}return;}
   if(action==='custom-lift'){liftForm();return;}
   if(action==='choose-exercise-match'){const form=el.closest('form[data-form="lift"]'),name=el.dataset.name,equipment=el.dataset.equipment;if(!form||!name)return;form.elements.exercise.value=name;form.elements.equipment.value=equipment;form.querySelector('.exercise-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(name)+'</strong><small>'+equipmentLabel(equipment)+' · Using canonical exercise</small></span><button type="button" class="text-btn" data-action="clear-exercise-match">Change</button></div>';return;}
   if(action==='clear-exercise-match'){const form=el.closest('form[data-form="lift"]');renderExerciseMatches(form);form.elements.exercise.focus();return;}
@@ -2499,7 +2566,7 @@ document.addEventListener('click',async event=>{
   if(action==='edit-lift'){liftForm(data.lifts.find(x=>x.id===el.dataset.id));return;}
   if(action==='add-set'){const wrap=document.querySelector('#sets'),last=wrap.lastElementChild;wrap.insertAdjacentHTML('beforeend',setRow(wrap.children.length,{weight:last?.querySelector('[name=weight]')?.value||0,reps:last?.querySelector('[name=reps]')?.value||8,difficulty:last?.querySelector('[name=difficulty]')?.value||''}));const row=wrap.lastElementChild;requestAnimationFrame(()=>row.querySelector('[name=weight]')?.focus());return;}
   if(action==='remove-set'){const wrap=document.querySelector('#sets');if(wrap.children.length>1){el.closest('.set-row').remove();[...wrap.children].forEach((r,i)=>r.firstElementChild.textContent=i+1);}return;}
-  if(action.startsWith('delete-')) {if(!confirm('Delete this item?'))return;const key={'delete-entry':'foodEntries','delete-card':'foods','delete-lift':'lifts','delete-weight':'weights','delete-body-fat':'bodyFat'}[action];data[key]=data[key].filter(x=>x.id!==el.dataset.id);close(true);persist();return;}
+  if(action.startsWith('delete-')) {if(!confirm('Delete this item?'))return;const key={'delete-entry':'foodEntries','delete-card':'foods','delete-lift':'lifts','delete-weight':'weights','delete-body-fat':'bodyFat'}[action];data[key]=data[key].filter(x=>x.id!==el.dataset.id);close(true);render();void persist();return;}
   if(action==='finance-bofa-import'){financeBankModal();return;}
    if(action==='finance-export-enrichment'){financeExportEnrichment();return;}
    if(action==='finance-enrichment-paste'){financeEnrichmentPaste();return;}
@@ -2510,7 +2577,7 @@ document.addEventListener('click',async event=>{
      const record=data.transactions.find(tx=>tx.id===el.dataset.id);
      if(!record||!confirm('Delete this transaction?'))return;
      const candidate=structuredClone(data);candidate.transactions=candidate.transactions.filter(tx=>tx.id!==record.id);
-     data=candidate;financeNotice='Transaction removed.';close(true);await persist();return;
+     data=candidate;financeNotice='Transaction removed.';close(true);render();void persist();return;
    }
    if(action==='import-data'){importHub();return;}
   if(action==='import-csv'){importModal('csv','file');return;}
@@ -2652,7 +2719,7 @@ app.addEventListener('submit',async event=>{
      const next=structuredClone(data);next.classificationRules=normalizeClassificationRules(
        existing?next.classificationRules.map(r=>r.id===existing.id?rule:r):[...next.classificationRules,rule]);
      const checked=normalizeData(next);if(account&&!offlineWorkspace)encodeState(checked);
-     data=checked;close(true);await persist();page='classificationRules';render();
+     data=checked;close(true);page='classificationRules';render();void persist();
     }catch(error){alert(error.message);}return;
    }
   if(form.dataset.form==='finance'||form.dataset.form==='finance-edit'){
@@ -2677,16 +2744,12 @@ app.addEventListener('submit',async event=>{
      const saveButton=form.querySelector('button[type="submit"]');
      if(saveButton)saveButton.disabled=true;
      data=candidate;financeNotice=editing?'Transaction updated.':'Transaction added.';
-     if(editing)close(true);
-     try{
-      const saved=await persist();
-      if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';refreshSyncIndicators();}
-      else if(form.dataset.quickFinance==='true'&&form.isConnected&&document.querySelector('.modal')===form.closest('.modal')){close(true);render();homeSavedToast('Transaction saved');}
-     }catch(error){
-      financeNotice='Entry remains in this session, but saving needs attention. Export a backup before leaving.';refreshSyncIndicators();
-     }finally{
-      if(form.isConnected){delete form.dataset.financeSubmitting;if(saveButton)saveButton.disabled=false;}
-     }
+     const quick=form.dataset.quickFinance==='true';
+     close(true);render();
+     if(quick)homeSavedToast('Transaction saved on this device');
+     void persist().then(saved=>{
+      if(!saved){financeNotice='Entry saved locally; cloud sync needs attention.';refreshSyncIndicators();}
+     }).catch(()=>{financeNotice='Entry remains in this session; export a backup if sync fails.';refreshSyncIndicators();});
      return;
    }
    if(form.dataset.form==='offline-workspace'){
@@ -2717,7 +2780,7 @@ app.addEventListener('submit',async event=>{
     if(v.returnTo==='routine'&&created&&workoutEditorState&&!workoutEditorState.exercises.some(e=>e.exerciseId===created.id)){
       workoutEditorState.exercises.push({exerciseId:created.id,repMin:6,repMax:12,targetSets:2,restSeconds:90});
     }
-    close(true);await persist();
+    close(true);void persist();
     if(v.returnTo==='routine'&&workoutEditorState)workoutTemplateForm(null,true);else render();
     return;
   }
@@ -2735,11 +2798,11 @@ app.addEventListener('submit',async event=>{
     }
     if(state.isNew)data.workoutTemplates.push({id:id(),name,exercises:structuredClone(state.exercises)});
     else{const existing=data.workoutTemplates?.find(w=>w.id===state.id);if(!existing)return alert('This routine was not found.');existing.name=name;existing.exercises=structuredClone(state.exercises);}
-    workout=name;workoutEditorState=null;close(true);await persist();render();return;
+    workout=name;workoutEditorState=null;close(true);render();void persist();return;
   }
-  if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();await persist();return;}
-  if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};persist();return;}
-  if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,lastUsed:new Date().toISOString()});close(true);await persist();if(origin==='library')foodLibrary();else render();return;}
+  if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
+  if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
+  if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
     const draft=foodDraftFromForm(form,foodBatch.length>0);
     if(draft===false||(!draft&&!foodBatch.length))return;
@@ -2747,7 +2810,7 @@ app.addEventListener('submit',async event=>{
     if(edited){
       if(!draft)return;Object.assign(edited,draft.record);
       if(draft.record.t==null)delete edited.t;
-      chosenDate=currentFoodTrackingDate(edited);close(true);await persist();return;
+      chosenDate=currentFoodTrackingDate(edited);close(true);page=foodEntryReturnPage;render();void persist();return;
     }
     const prepared=foodBatch.map(item=>{
       if(!item.inheritTime)return item;
@@ -2760,7 +2823,7 @@ app.addEventListener('submit',async event=>{
     const candidate=structuredClone(data);let last;
     for(const item of prepared)last=commitFoodDraft(candidate,item);
     data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
-    foodBatch=[];close(true);await persist();
+    foodBatch=[];close(true);page=foodEntryReturnPage;render();void persist();
     if(prepared.length===1&&last.savedCard)showFoodUndo(last.entry.id,last.entry.name);
     return;
   }
@@ -2782,12 +2845,11 @@ app.addEventListener('submit',async event=>{
     buddyUpsertLift(session,exercise);
     const {sessionId,fromFullHistory}=state;
     routineHistoryEditDraft=null;
-    await persist();
-    routineHistoryDetail(sessionId,fromFullHistory);
+    routineHistoryDetail(sessionId,fromFullHistory);void persist();
     return;
   }
-  if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
-  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),...next});if(v.date===currentTrackingDate())markWeightPromptSeen(currentTrackingDate());close(true);persist();return;}
+  if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);render();void persist();return;}
+  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),...next});if(v.date===currentTrackingDate())markWeightPromptSeen(currentTrackingDate());close(true);render();void persist();return;}
   if(form.dataset.form==='body-fat'){const value=Number(v.value);if(!Number.isFinite(value)||value<=0||value>100||!v.date)return alert('Enter a body-fat percentage from 0.1 to 100 and a date.');const item=(data.bodyFat||[]).find(x=>x.id===v.bodyFatId);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.bodyFat.push({id:id(),...next});close(true);persist();return;}
   if(form.dataset.form==='import') {
     const pasted=v.source==='paste',file=pasted?null:form.querySelector('[name=file]')?.files?.[0];if(!pasted&&!file)return;
@@ -2806,7 +2868,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.3',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -2866,7 +2928,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.3');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

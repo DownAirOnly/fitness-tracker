@@ -45,7 +45,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(data|calendar-ui|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
@@ -174,7 +174,9 @@ try{
   const liftingTab=document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]');
   liftingTab.click();await tick();
   assert.ok(document.querySelector('.home-dash-lifting'),'Lifting dashboard is available');
-  assert.ok(document.querySelector('.home-lifting-week'),'Lifting Home gives a seven-day workout summary');
+  assert.ok(document.querySelector('.home-lifting-calendar'),'Lifting dashboard has calendar');
+  assert.ok(document.querySelector('.ed-calendar-grid'),'Lifting Home uses a reusable month grid');
+  assert.ok(document.querySelector('#app > .nav'),'bottom nav is outside scrollable shell');
   await click('home-add-menu');
   assert.ok(document.querySelector('.buddy-start-list'),'Lifting Add opens the routine chooser');
   assert.ok(!document.querySelector('#buddy-root .buddy-screen'),'Lifting Add does not immediately start a workout');
@@ -484,6 +486,18 @@ try{
  const foodFromHome=document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]');
  foodFromHome.click();await tick();
  assert.ok(document.querySelector('form[data-form="food"]'),'the reused card opens Food entry');
+ await click('close');
+
+ // Food Plan combines foods without logging until explicit confirmation.
+ await click('food');await click('food-plan-open');
+ assert.ok(document.querySelector('.food-plan-totals'));
+ const planCountBefore=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data.foodEntries.length;
+ await click('food-plan-add');
+ assert.ok(document.querySelector('.food-plan-item'));
+ assert.equal(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data.foodEntries.length,planCountBefore,'Plan is non-destructive');
+ await click('food-plan-suggest');
+ assert.ok(document.querySelector('.food-suggestions'),'Plan Suggest uses the existing ranking engine');
+ if(document.querySelector('[data-action="apply-food-suggestion"]')){await click('apply-food-suggestion');assert.ok(document.querySelector('.food-plan-items'));}
  await click('close');
 
  // v99 pass 4: repeating a saved log opens a NEW editable record; never edits its source.

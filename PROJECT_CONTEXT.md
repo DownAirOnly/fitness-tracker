@@ -4,6 +4,12 @@
 
 ## Current direction — October 31, 2026
 
+- **v99.7.3 pending device verification:** Saving no longer triggers any UI redraw from the persistence routine; screen changes render deliberately at the time of user action. The bottom nav is outside the scrolling shell, and only tab main content scrolls. Home top Food Add saves to the Food tab, while Home food cards save back to Home. Any Workout Buddy exit, finish or deletion goes to Lifting.
+- **New reusable calendar:** `calendar-ui.js` and `CALENDAR_DESIGN.md` establish white-on-selected-green day tiles, light-green outlined completed days, white dotted projected days. Lifting Home now shows this calendar, with click-through day details and no old redundant empty block. Only consistent training history yields projections.
+- **Food:** “Suggest rest of day” becomes **Plan**; combine Saved Foods and quantities to compare projected calories/protein. Existing suggestions can populate the plan; nothing is logged until user chooses Log selected.
+- **No native iOS or Money expansion** in this patch. CI, Pages, and iPhone verification are distinct checks.
+
+
 - **v99.7.2 patch (pending validation):** Home quick foods retain saved positions, and customization numbers items by selection order from 1–6; default cards are frozen rather than moving when lastUsed changes. Lifting Home Add opens the routine selector; the Lifting glance adds previous sessions and actual seven-day set/workout counts. Workout Buddy moves the rest countdown to the right side of the large bottom action, removing it from the top row. No finance, storage schema or backend changes.
 
 - **v99.7.1 deployed patch:** Save acknowledgements preserve newer screens; Home Add follows the selected dashboard; Home shows four automatic food cards or up to six local custom choices; Workout Buddy keeps history full width, moves the rest countdown to set status and anchors muscle diagrams to the heading. iPhone verification required.
