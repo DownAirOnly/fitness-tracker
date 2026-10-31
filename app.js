@@ -1128,8 +1128,32 @@ function refreshSuggestionSearch(){
  const input=document.querySelector('[data-suggestion-search]'),box=document.querySelector('[data-suggestion-search-results]');if(!input||!box||!foodSuggestionState)return;
  foodSuggestionState.searchQuery=input.value;box.innerHTML=suggestionSearchRows(input.value,foodSuggestionState.excludedIds||[]);
 }
+function foodPlanSearchRows(query=''){
+ const q=String(query).trim().toLowerCase();
+ const matched=sortFoods(data.foods||[],'recent').filter(f=>!q||f.name.toLowerCase().includes(q)).slice(0,9);
+ return matched.length?matched.map(f=>'<button type="button" class="food-plan-choice" data-action="food-plan-add" data-id="'+esc(f.id)+'"><span><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span><b>+</b></button>').join(''):'<p class="body-copy">No matching saved foods.</p>';
+}
+function refreshFoodPlanSearch(){
+ const results=document.querySelector('[data-food-plan-results]');
+ if(results)results.innerHTML=foodPlanSearchRows(foodPlanSearch);
+}
+function foodPlan(){
+ const logged=foodDayTotals(chosenDate);
+ const rows=foodPlanItems.map(item=>{const food=data.foods.find(f=>f.id===item.id);return food?{food,q:item.q}:null;}).filter(Boolean);
+ const plannedCal=rows.reduce((n,x)=>n+x.food.calories*x.q,0),plannedProtein=rows.reduce((n,x)=>n+x.food.protein*x.q,0);
+ const projectedCal=logged.calories+plannedCal,projectedProtein=logged.protein+plannedProtein;
+ modal('Plan','<div class="food-plan"><div class="food-plan-totals">'+
+  '<div><small>Calories after plan</small><strong>'+Math.round(projectedCal)+' / '+fmt(data.settings.calories)+'</strong></div>'+
+  '<div><small>Protein after plan</small><strong>'+Math.round(projectedProtein)+'g / '+fmt(data.settings.protein)+'g</strong></div></div>'+
+  '<p class="food-plan-difference">Selected: '+Math.round(plannedCal)+' calories · '+Math.round(plannedProtein)+'g protein · Remaining: '+Math.round(data.settings.calories-projectedCal)+' cal / '+Math.round(data.settings.protein-projectedProtein)+'g</p>'+
+  '<div class="food-plan-items">'+(rows.length?rows.map(({food,q})=>'<div class="food-plan-item"><span><strong>'+esc(food.name)+'</strong><small>'+fmt(food.calories*q)+' cal · '+fmt(food.protein*q)+'g</small></span><div class="food-plan-quantity"><button type="button" data-action="food-plan-step" data-id="'+esc(food.id)+'" data-delta="-0.5" aria-label="Decrease servings">−</button><output>'+fmt(q)+'×</output><button type="button" data-action="food-plan-step" data-id="'+esc(food.id)+'" data-delta="0.5" aria-label="Increase servings">+</button><button type="button" data-action="food-plan-remove" data-id="'+esc(food.id)+'" aria-label="Remove '+esc(food.name)+'">×</button></div></div>').join(''):'<p class="body-copy">Choose foods to compare a possible rest-of-day plan.</p>')+'</div>'+
+  '<label class="field"><span>Find saved foods</span><input type="search" name="foodPlanSearch" value="'+esc(foodPlanSearch)+'" placeholder="Search foods" autocomplete="off"></label>'+
+  '<div class="food-plan-search-results" data-food-plan-results>'+foodPlanSearchRows(foodPlanSearch)+'</div>'+
+  '<p class="hint">Comparisons are estimates. Nothing is logged until you choose Log selected.</p>'+
+  '<div class="food-plan-actions">'+button('Suggest','food-plan-suggest','outline')+button('Log selected','food-plan-log','primary',rows.length?'':'disabled')+'</div></div>');
+}
 function foodSuggestions(state=null){
- const defaults={anchorId:'',preferIds:[],excludedIds:[],hiddenShapes:[],searchQuery:''};
+ const defaults={anchorId:'',preferIds:[],excludedIds:[],hiddenShapes:[],searchQuery:'',fromPlan:false};
  const next={...defaults,...(state||{})};next.preferIds=[...new Set(next.preferIds||[])];next.excludedIds=[...new Set(next.excludedIds||[])];next.hiddenShapes=[...new Set(next.hiddenShapes||[])];
  if(next.excludedIds.includes(next.anchorId))next.anchorId='';
  foodSuggestionState=next;
@@ -1138,7 +1162,7 @@ function foodSuggestions(state=null){
  const anchor=next.anchorId,anchorFood=data.foods.find(f=>f.id===anchor),excluded=next.excludedIds.map(id=>data.foods.find(f=>f.id===id)).filter(Boolean),preferred=next.preferIds.map(id=>data.foods.find(f=>f.id===id)).filter(Boolean);
  const feedbackSummary=(excluded.length||preferred.length)?'<div class="suggestion-feedback-summary">'+(preferred.length?'<div><small>Favoring</small>'+preferred.map(f=>'<button type="button" data-action="food-suggest-unprefer" data-id="'+esc(f.id)+'">'+esc(f.name)+' ×</button>').join('')+'</div>':'')+(excluded.length?'<div><small>Avoiding this round</small>'+excluded.map(f=>'<button type="button" data-action="food-suggest-restore" data-id="'+esc(f.id)+'">'+esc(f.name)+' ×</button>').join('')+'</div>':'')+'</div>':'';
  const selectedAnchor=anchorFood?'<div class="suggestion-selected-anchor"><span><small>Starting with</small><strong>'+esc(anchorFood.name)+'</strong></span><button type="button" class="text-btn" data-action="food-suggest-anchor" data-id="">Clear</button></div>':'';
- modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><div class="suggestion-anchor"><span class="buddy-mini-label">START WITH</span><label class="suggestion-search"><span>Find any saved food</span><input type="search" data-suggestion-search value="'+esc(next.searchQuery||'')+'" placeholder="Search Saved Foods"></label><div class="suggestion-search-results" data-suggestion-search-results>'+suggestionSearchRows(next.searchQuery,next.excludedIds)+'</div>'+selectedAnchor+'<div class="suggestion-anchor-recent"><small>Recent</small><div class="suggestion-chips"><button type="button" class="'+(!anchor?'selected':'')+'" data-action="food-suggest-anchor" data-id="">Anything</button>'+recent.filter(f=>!next.excludedIds.includes(f.id)).map(f=>'<button type="button" class="'+(anchor===f.id?'selected':'')+'" data-action="food-suggest-anchor" data-id="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></div></div>'+feedbackSummary+'<p class="body-copy">Ranked from your remaining goals plus your own logging history. Search or Recent can force a specific starting food. Feedback below only changes this suggestion round.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<article class="suggestion-card suggestion-card-feedback"><div class="suggestion-card-copy"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><em>'+esc(s.reason)+'</em></div><div class="suggestion-card-macros">'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</div><div class="suggestion-card-actions"><button type="button" class="primary small" data-action="apply-food-suggestion" data-index="'+i+'">Add</button><button type="button" class="text-btn" data-action="food-suggest-more" data-index="'+i+'">More like this</button><button type="button" class="text-btn" data-action="food-suggest-avoid" data-index="'+i+'">Avoid…</button><button type="button" class="text-btn" data-action="food-suggest-skip" data-index="'+i+'">Skip</button></div></article>').join('')+'</div>':'<p class="empty">No combinations match the current feedback. Remove an avoided item or reset Start with to Anything.</p>')+'</div>');
+ modal('Fill the rest of your day','<div class="food-suggestions"><div class="suggestion-target"><span><small>Calories left</small><strong>'+Math.round(calLeft)+'</strong></span><span><small>Protein left</small><strong>'+Math.round(proteinLeft)+'g</strong></span></div><div class="suggestion-anchor"><span class="buddy-mini-label">START WITH</span><label class="suggestion-search"><span>Find any saved food</span><input type="search" data-suggestion-search value="'+esc(next.searchQuery||'')+'" placeholder="Search Saved Foods"></label><div class="suggestion-search-results" data-suggestion-search-results>'+suggestionSearchRows(next.searchQuery,next.excludedIds)+'</div>'+selectedAnchor+'<div class="suggestion-anchor-recent"><small>Recent</small><div class="suggestion-chips"><button type="button" class="'+(!anchor?'selected':'')+'" data-action="food-suggest-anchor" data-id="">Anything</button>'+recent.filter(f=>!next.excludedIds.includes(f.id)).map(f=>'<button type="button" class="'+(anchor===f.id?'selected':'')+'" data-action="food-suggest-anchor" data-id="'+esc(f.id)+'">'+esc(f.name)+'</button>').join('')+'</div></div></div>'+feedbackSummary+'<p class="body-copy">Ranked from your remaining goals plus your own logging history. Search or Recent can force a specific starting food. Feedback below only changes this suggestion round.</p>'+(suggestions.length?'<div class="suggestion-list">'+suggestions.map((s,i)=>'<article class="suggestion-card suggestion-card-feedback"><div class="suggestion-card-copy"><span>'+s.items.map(x=>'<strong>'+(x.q===1?'':fmt(x.q)+'× ')+esc(x.food.name)+'</strong>').join('')+'</span><em>'+esc(s.reason)+'</em></div><div class="suggestion-card-macros">'+Math.round(s.calories)+' cal · '+Math.round(s.protein)+'g protein</div><div class="suggestion-card-actions"><button type="button" class="primary small" data-action="apply-food-suggestion" data-index="'+i+'">'+(next.fromPlan?'Try in plan':'Add')+'</button><button type="button" class="text-btn" data-action="food-suggest-more" data-index="'+i+'">More like this</button><button type="button" class="text-btn" data-action="food-suggest-avoid" data-index="'+i+'">Avoid…</button><button type="button" class="text-btn" data-action="food-suggest-skip" data-index="'+i+'">Skip</button></div></article>').join('')+'</div>':'<p class="empty">No combinations match the current feedback. Remove an avoided item or reset Start with to Anything.</p>')+'</div>');
 }
 function foodSuggestionAvoidPicker(index){
  const suggestion=foodSuggestionState?.suggestions?.[index];if(!suggestion)return;
@@ -1151,7 +1175,7 @@ function food() {
   const totals=foodDayTotals(chosenDate),entries=foodEntriesNewestFirst(data.foodEntries.filter(x=>currentFoodTrackingDate(x)===chosenDate));
   const pinned=sortFoods(data.foods.filter(f=>f.pinned===true),foodSort),foods=sortFoods(data.foods.filter(f=>f.pinned!==true),foodSort);
   const pinnedSection=pinned.length?'<section class="pinned-foods"><div class="section-head food-section-title"><h2>Favorites</h2></div><div class="food-grid pinned-food-grid">'+pinned.map(f=>foodQuickCard(f,true)).join('')+'</div></section>':'';
-  return dateHeader('','Food date')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Suggest rest of day','food-suggest','outline small')+'</div></section>'+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
+  return dateHeader('','Food date')+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.slice(0,3).map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+(entries.length>3?'View all '+entries.length+' entries':'Open full food log')+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Plan','food-plan-open','outline small')+'</div></section>'+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
 }
 function savedWorkouts(){return Array.isArray(data.workoutTemplates)?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
 function workoutByName(name){const list=savedWorkouts();return list.find(w=>w.name===name)||list[0];}
@@ -2057,6 +2081,7 @@ app.addEventListener('change',event=>{
  }
  if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('input',event=>{
+ if(event.target.name==='foodPlanSearch'){foodPlanSearch=event.target.value;refreshFoodPlanSearch();return;}
  if(event.target.name!=='homeFoodSearch')return;
  const query=event.target.value.trim().toLowerCase();
  for(const row of document.querySelectorAll('.home-food-pick'))row.hidden=!row.dataset.search.includes(query);
@@ -2433,6 +2458,32 @@ document.addEventListener('click',async event=>{
   if(action==='edit-body-fat'){bodyFatForm((data.bodyFat||[]).find(x=>x.id===el.dataset.id));return;}
   if(action==='food-log'){foodLog();return;}
   if(action==='food-library'){foodLibrary();return;}
+  if(action==='food-plan-open'){foodPlanItems=[];foodPlanSearch='';foodPlan();return;}
+  if(action==='food-plan-add'){
+   const f=data.foods.find(food=>food.id===el.dataset.id);if(!f)return;
+   const existing=foodPlanItems.find(item=>item.id===f.id);
+   if(existing)existing.q=Math.min(20,existing.q+1);else foodPlanItems.push({id:f.id,q:1});
+   foodPlan();return;
+  }
+  if(action==='food-plan-step'){
+   const item=foodPlanItems.find(x=>x.id===el.dataset.id);if(!item)return;
+   item.q=Math.round((item.q+Number(el.dataset.delta))*100)/100;
+   if(item.q<0.25)foodPlanItems=foodPlanItems.filter(x=>x!==item);
+   else item.q=Math.min(20,item.q);
+   foodPlan();return;
+  }
+  if(action==='food-plan-remove'){foodPlanItems=foodPlanItems.filter(x=>x.id!==el.dataset.id);foodPlan();return;}
+  if(action==='food-plan-suggest'){foodSuggestions({fromPlan:true});return;}
+  if(action==='food-plan-log'){
+   if(!foodPlanItems.length)return;
+   const candidate=structuredClone(data),date=chosenDate===currentTrackingDate()?localDate():chosenDate;
+   for(const item of foodPlanItems){
+    const food=candidate.foods.find(f=>f.id===item.id);
+    if(!food||!Number.isFinite(item.q)||item.q<=0)continue;
+    commitFoodDraft(candidate,{record:{name:food.name,calories:food.calories,protein:food.protein,quantity:item.q,date},cardId:food.id,saveAsFood:false});
+   }
+   data=candidate;foodPlanItems=[];foodPlanSearch='';close(true);page='food';render();void persist();return;
+  }
   if(action==='food-suggest'){foodSuggestions();return;}
   if(action==='food-suggest-anchor'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,anchorId:el.dataset.id||''});return;}
   if(action==='food-suggest-more'){const s=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!s)return;foodSuggestions({...foodSuggestionState,preferIds:[...(foodSuggestionState.preferIds||[]),...s.items.map(x=>x.food.id)]});return;}
@@ -2443,6 +2494,10 @@ document.addEventListener('click',async event=>{
   if(action==='food-suggest-unprefer'){if(!foodSuggestionState)return;foodSuggestions({...foodSuggestionState,preferIds:(foodSuggestionState.preferIds||[]).filter(id=>id!==el.dataset.id)});return;}
   if(action==='apply-food-suggestion'){
     const suggestion=foodSuggestionState?.suggestions?.[Number(el.dataset.index)];if(!suggestion)return;
+    if(foodSuggestionState?.fromPlan){
+     for(const row of suggestion.items){const existing=foodPlanItems.find(x=>x.id===row.food.id);if(existing)existing.q=Math.min(20,existing.q+row.q);else foodPlanItems.push({id:row.food.id,q:row.q});}
+     foodSuggestionState=null;foodPlan();return;
+    }
     const date=chosenDate===currentTrackingDate()?localDate():chosenDate,timeSlot=chosenDate===currentTrackingDate()?currentFoodSlot():null;
     foodBatch=suggestion.items.map(item=>({record:{name:item.food.name,calories:item.food.calories,protein:item.food.protein,quantity:item.q,date},cardId:item.food.id,saveAsFood:false,inheritTime:true}));
     foodSuggestionState=null;foodForm(null,null,{keepBatch:true,date,timeSlot});return;
