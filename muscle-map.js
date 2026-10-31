@@ -111,3 +111,27 @@ export function muscleGuideMarkup(name){
  (profile.secondary.length?'<div><i class="muscle-dot muscle-secondary"></i><strong>Secondary</strong><div class="muscle-names">'+pills(profile.secondary)+'</div></div>':'')+'</div>':'<p class="muscle-unmapped">No muscle-group mapping exists for this exercise yet. Nothing is highlighted rather than assuming which muscles it trains.</p>')+
  '<p class="muscle-disclaimer">Simplified reference diagram. Actual muscle involvement depends on exercise variation, technique, and equipment.</p></div>';
 }
+
+/** Two-day training-load indicator, not a clinical muscle fatigue assessment.
+ * red = trained today; yellow = trained previous calendar day.
+ * Uses the same anatomical paths as the regular Exercise muscle guide.
+ */
+function recoveryBodySvg(view,statuses){
+ const muscles=view==='front'?front:rear,uid='recovery-'+(++anatomySvgSequence);
+ const regions=Object.entries(muscles).map(([id,shape])=>{
+  const state=statuses[id]==='today'?'recent-today':statuses[id]==='yesterday'?'recent-yesterday':'quiet';
+  const color=state==='recent-today'?'#f16c68':state==='recent-yesterday'?'#f0ca53':'#638a81';
+  return '<g class="muscle-region '+state+'" data-muscle="'+id+'" style="fill:'+color+'"><title>'+
+   labels[id]+': '+(state==='recent-today'?'trained today':state==='recent-yesterday'?'trained yesterday':'no workout in last two days')+
+   '</title>'+shape+'</g>';
+ }).join('');
+ return '<svg class="muscle-body" viewBox="0 0 180 330" role="img" aria-label="'+
+   (view==='front'?'Front':'Back')+' muscles: red today, yellow yesterday">'+
+   '<g class="muscle-silhouette">'+silhouette+'</g>'+regions+
+   '<path class="muscle-contours" d="'+contours[view]+'" aria-hidden="true"/></svg>';
+}
+export function muscleRecoveryMarkup(statuses={}){
+ return '<div class="muscle-recovery-pair">'+
+  '<span class="muscle-recovery-view">'+recoveryBodySvg('front',statuses)+'</span>'+
+  '<span class="muscle-recovery-view">'+recoveryBodySvg('back',statuses)+'</span></div>';
+}

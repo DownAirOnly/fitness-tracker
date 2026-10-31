@@ -6,7 +6,7 @@ import {normalizeData,encodeData,emptyData} from './data.js?v=98';
 export const ACCOUNT_SECTIONS=['nutrition','lifting','finances'];
 export const SECTION_KEYS={
  nutrition:['settings','foods','foodEntries','weights','bodyFat','promptDate'],
- lifting:['weightUnit','exerciseDefinitions','workoutTemplates','lifts','activeWorkout','workoutHistory'],
+ lifting:['weightUnit','exerciseDefinitions','workoutTemplates','lifts','activeWorkout','workoutHistory','workoutSchedule'],
  finances:['transactions','classificationRules','budgetPlan']
 };
 export const SECTION_FORMAT='everyday-section-v1';
@@ -27,7 +27,7 @@ export function applySection(data,file){
   !file.data||typeof file.data!=='object'||Array.isArray(file.data))
   throw Error('This is not a supported Everyday section JSON file.');
  const keys=SECTION_KEYS[file.section],incoming=file.data;
- for(const key of keys)if(!hasOwn(incoming,key))throw Error('Missing required '+file.section+' field: '+key+'.');
+ for(const key of keys)if(!hasOwn(incoming,key)&&key!=='workoutSchedule')throw Error('Missing required '+file.section+' field: '+key+'.');
  for(const key of Object.keys(incoming))if(!keys.includes(key))throw Error('Unexpected '+file.section+' field: '+key+'.');
  const candidate=structuredClone(normalizeData(data));
  if(file.section==='lifting'&&incoming.weightUnit!==candidate.settings.unit)
@@ -35,7 +35,7 @@ export function applySection(data,file){
  if(file.section==='nutrition'&&incoming.settings?.unit!==candidate.settings.unit&&
     (candidate.lifts.length||candidate.workoutHistory.length||candidate.activeWorkout))
   throw Error('Nutrition weight unit differs from existing Lifting logs. Import matching Lifting JSON at the same time, or convert units before import.');
- for(const key of keys)if(key!=='weightUnit')candidate[key]=structuredClone(incoming[key]);
+ for(const key of keys)if(key!=='weightUnit'&&hasOwn(incoming,key))candidate[key]=structuredClone(incoming[key]);
  return normalizeData(candidate);
 }
 export function mergeSections(files){

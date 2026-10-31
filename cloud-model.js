@@ -38,7 +38,8 @@ export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
  return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
   JSON.stringify(data.exerciseDefinitions||[])!==JSON.stringify(defaults.exerciseDefinitions)||
-  JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates);
+  JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates)||
+  (data.workoutSchedule||[]).length>0;
 }
 
 const migrationKeys=['foods','foodEntries','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
