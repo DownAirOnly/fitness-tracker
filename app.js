@@ -1,7 +1,7 @@
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.3';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=98';
 
-import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.4';
 import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=98';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
@@ -264,7 +264,7 @@ function render() {
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
 
-let homeCalendarMonth=currentTrackingDate().slice(0,7);
+let homeCalendarMonth=currentTrackingDate().slice(0,7),homeFoodPage=0;
 function projectedWorkoutDates(recent){
  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
  if(dates.length!==4)return [];
@@ -277,20 +277,93 @@ function projectedWorkoutDates(recent){
  }
  return results;
 }
+
+function workoutPlanForDate(date){
+ const schedule=data.workoutSchedule||[];
+ if(schedule.length){
+  const dow=new Date(date+'T12:00:00').getDay();
+  const item=schedule.find(s=>s.day===dow);
+  if(!item)return null;
+  const routine=savedWorkouts().find(r=>r.id===item.routineId);
+  return {source:'schedule',label:routine?.name||'Any workout'};
+ }
+ return projectedWorkoutDates(recentRoutineSessions()).includes(date)?{source:'estimate',label:'Estimated workout'}:null;
+}
+function upcomingWorkoutDates(month,completed){
+ const [year,m]=month.split('-').map(Number),days=new Date(year,m,0).getDate(),result=[];
+ for(let i=1;i<=days;i++){
+  const date=month+'-'+String(i).padStart(2,'0');
+  if(date>=currentTrackingDate()&&!completed.has(date)&&workoutPlanForDate(date))result.push(date);
+ }
+ return result;
+}
+function workoutScheduleForm(){
+ const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],routines=savedWorkouts();
+ modal('Workout schedule','<div class="workout-schedule-form"><p class="body-copy">Set recurring workout days. Choose a routine or Any workout. A schedule replaces history-based projections.</p>'+
+  days.map((day,i)=>{
+   const match=(data.workoutSchedule||[]).find(x=>x.day===i),selected=match?.routineId||'';
+   return '<label class="workout-schedule-day"><span>'+day.slice(0,3)+'</span><select name="workoutSchedule'+i+'" aria-label="'+day+' workout">'+
+    '<option value=""'+(!selected?' selected':'')+'>Rest / none</option><option value="any"'+(selected==='any'?' selected':'')+'>Any workout</option>'+
+    routines.map(r=>'<option value="'+esc(r.id)+'"'+(selected===r.id?' selected':'')+'>'+esc(r.name)+'</option>').join('')+'</select></label>';
+  }).join('')+
+  '<div class="form-actions">'+button('Save schedule','workout-schedule-save','primary')+
+  button('Clear schedule','workout-schedule-clear','outline')+'</div></div>');
+}
+function recentThreeSets(){
+ const rows=[];
+ for(const lift of data.lifts||[])for(const [i,set]of(lift.sets||[]).entries()){
+  rows.push({name:lift.exercise,date:lift.date,weight:set.weight,reps:set.reps,index:i+1,
+    time:set.finishedAt||set.startedAt||lift.recordedAt||lift.date+'T12:00:00'});
+ }
+ const active=data.activeWorkout;
+ if(active)for(const ex of active.exercises||[]){
+  if((data.lifts||[]).some(l=>l.buddySessionId===active.id&&l.exercise===ex.name))continue;
+  for(const [i,set]of(ex.sets||[]).entries())rows.push({
+   name:ex.name,date:active.date||currentTrackingDate(),weight:set.weight,reps:set.reps,index:i+1,
+   time:set.finishedAt||set.startedAt||(active.date||currentTrackingDate())+'T12:00:00'
+  });
+ }
+ return rows.sort((a,b)=>String(b.time).localeCompare(String(a.time))||b.index-a.index).slice(0,3);
+}
+function recentMuscleWorkload(){
+ const today=currentTrackingDate(),yesterday=localDate(new Date(Date.parse(today+'T12:00:00')-86400000)),result={};
+ const mark=(date,name,count)=>{
+  if(count<=0||(date!==today&&date!==yesterday))return;
+  const groups=exerciseMuscleProfile(name);if(!groups)return;
+  for(const muscle of [...groups.primary,...groups.secondary]){
+   if(date===today||result[muscle]!=='today')result[muscle]=date===today?'today':'yesterday';
+  }
+ };
+ for(const l of data.lifts||[])mark(l.date,l.exercise,l.sets?.length||0);
+ const active=data.activeWorkout;
+ if(active)for(const e of active.exercises||[])mark(active.date||today,e.name,
+  (e.sets?.length||0)+(e.activeSetStartedAt?1:0));
+ return result;
+}
+function recentSetRecoveryPanel(){
+ const sets=recentThreeSets(),map=recentMuscleWorkload();
+ return '<section class="home-recovery-panel" aria-label="Recent sets and estimated recent muscle workload">'+
+  '<div class="home-last-sets"><strong>Last three sets</strong>'+
+   (sets.length?sets.map(set=>'<div class="home-last-set"><span>'+esc(set.name)+' · set '+set.index+'</span>'+
+    '<b>'+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+'</b></div>').join(''):'<p>No logged sets yet</p>')+
+   '<small class="home-recovery-note">Red = trained today · yellow = yesterday. Not measured fatigue.</small></div>'+
+  '<div class="home-recovery-anatomy">'+muscleRecoveryMarkup(map)+'</div></section>';
+}
 function workoutCalendar(){
- const recent=recentRoutineSessions(),complete=new Set([
+ const recent=recentRoutineSessions(),completed=new Set([
   ...recent.map(routineFinishedDate),...(data.lifts||[]).map(l=>l.date)
- ].filter(Boolean));
- const projected=projectedWorkoutDates(recent).filter(d=>!complete.has(d));
- const month=homeCalendarMonth;
+ ].filter(Boolean)),month=homeCalendarMonth;
  const workouts=recent.filter(s=>routineFinishedDate(s).startsWith(month));
- const lifts=(data.lifts||[]).filter(l=>l.date.startsWith(month));
- const totalSets=workouts.reduce((n,s)=>n+routineSessionCounts(s).sets,0);
- // Manual lift records not tied to Buddy are separate sets.
- const manualSets=lifts.filter(l=>!l.buddySessionId).reduce((n,l)=>n+(l.sets?.length||0),0);
+ const manual=(data.lifts||[]).filter(l=>l.date?.startsWith(month)&&!l.buddySessionId);
+ const totalSets=workouts.reduce((n,s)=>n+routineSessionCounts(s).sets,0)+
+   manual.reduce((n,l)=>n+(l.sets?.length||0),0);
  return '<article class="home-dashboard-content home-dash-lifting home-lifting-calendar">'+
-  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...complete],projected,action:'home-calendar-day',navAction:'home-calendar-month'})+
-  '<div class="home-lifting-summary"><span>This month</span><strong>'+workouts.length+' workout'+(workouts.length===1?'':'s')+' · '+(totalSets+manualSets)+' sets</strong></div>'+
+  '<div class="home-workout-calendar-header"><small>'+(data.workoutSchedule?.length?'Weekly schedule':'Estimated dates')+'</small>'+
+   button('Schedule','workout-schedule-open','home-dash-link')+'</div>'+
+  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...completed],
+   projected:upcomingWorkoutDates(month,completed),action:'home-calendar-day',navAction:'home-calendar-month'})+
+  recentSetRecoveryPanel()+
+  '<div class="home-lifting-summary"><span>This month</span><strong>'+workouts.length+' workouts · '+totalSets+' sets</strong></div>'+
   '</article>';
 }
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
@@ -402,12 +475,14 @@ function homeDashboardCard(view){
     button('Finances','finances','home-dash-link primary-link'))+'</div></article>';
  }
  if(view==='lifting')return workoutCalendar();
- // Show four quick foods by default, or a saved local selection of up to six.
-  const picks=homeFoodPicks();
+ // Keep selection order constant, showing four food cards per page.
+  const allPicks=homeFoodPicks(),pageCount=Math.max(1,Math.ceil(allPicks.length/4));
+  homeFoodPage=Math.min(homeFoodPage,pageCount-1);
+  const picks=allPicks.slice(homeFoodPage*4,(homeFoodPage+1)*4);
  return '<article class="home-dashboard-content home-dash-nutrition">'+
   (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
    '<p class="home-dashboard-empty">No saved foods</p>')+
-  '<div class="home-dashboard-footer">'+button('Customize','home-food-customize','home-dash-link')+button('All foods','food','home-dash-link')+'</div></article>';
+  '<div class="home-dashboard-footer home-food-footer">'+button('Customize','home-food-customize','home-dash-link')+(pageCount>1?button((homeFoodPage+1)+' / '+pageCount+' ↻','home-food-page','home-dash-link','aria-label="Show next food cards"'):'')+button('Plan','home-food-plan','home-dash-link')+'</div></article>';
 }
 
 function home(loading=false) {
@@ -2196,12 +2271,12 @@ document.addEventListener('click',async event=>{
    }
    if(action==='home-food-customize-reset'){
     try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(defaultHomeFoodIds()));}catch{alert('Could not save Home food layout.');return;}
-    homeFoodDraft=[];close(true);selectHomeDashboard('nutrition');return;
+    homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');return;
    }
    if(action==='home-food-customize-save'){
     if(!homeFoodDraft.length){alert('Choose at least one Home food.');return;}
     try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(homeFoodDraft));}catch{alert('Could not save Home food layout.');return;}
-    homeFoodDraft=[];close(true);selectHomeDashboard('nutrition');return;
+    homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');return;
    }
    if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
@@ -2260,17 +2335,26 @@ document.addEventListener('click',async event=>{
     financeHistoryVisible=50;refreshFinanceHistoryList();return;
    }
   if(action==='home-dashboard-select'){selectHomeDashboard(el.dataset.view);return;}
+  if(action==='workout-schedule-open'){workoutScheduleForm();return;}
+  if(action==='workout-schedule-save'){
+   const controls=[...document.querySelectorAll('.workout-schedule-day select')],scheduled=[];
+   for(const [day,ctrl]of controls.entries())if(ctrl.value)scheduled.push({day,routineId:ctrl.value});
+   data.workoutSchedule=scheduled;close(true);selectHomeDashboard('lifting');void persist();return;
+  }
+  if(action==='workout-schedule-clear'){data.workoutSchedule=[];close(true);selectHomeDashboard('lifting');void persist();return;}
+  if(action==='home-food-page'){homeFoodPage=(homeFoodPage+1)%Math.max(1,Math.ceil(homeFoodPicks().length/4));selectHomeDashboard('nutrition');return;}
+  if(action==='home-food-plan'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodPlanItems=[];foodPlanSearch='';foodPlan();return;}
   if(action==='home-calendar-month'){homeCalendarMonth=calendarShiftMonth(homeCalendarMonth,Number(el.dataset.delta)||0);selectHomeDashboard('lifting');return;}
   if(action==='home-calendar-day'){
    const date=el.dataset.date;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
    const sessions=recentRoutineSessions().filter(session=>routineFinishedDate(session)===date);
    const lifts=(data.lifts||[]).filter(l=>l.date===date&&!l.buddySessionId);
-   const projected=projectedWorkoutDates(recentRoutineSessions()).includes(date);
+   const plan=workoutPlanForDate(date),projected=Boolean(plan);
    if(!sessions.length&&!lifts.length&&!projected)return;
    modal(niceDate(date),'<div class="home-calendar-details">'+
     (sessions.map(session=>routineHistoryRow(session)).join(''))+
     (lifts.map(lift=>'<div class="home-calendar-lift"><strong>'+esc(lift.exercise)+'</strong><small>'+lift.sets.length+' sets · manually logged</small></div>').join(''))+
-    (!sessions.length&&!lifts.length&&projected?'<p class="body-copy">Projected workout based on your recent intervals. Not scheduled.</p>':'')+'</div>');
+    (!sessions.length&&!lifts.length&&projected?'<p class="body-copy">'+esc(plan.label)+(plan.source==='schedule'?' · Weekly schedule, not logged yet.':' · Based on recent history; not scheduled.')+'</p>':'')+'</div>');
    return;
   }
   if(action==='home-sync-review'){
@@ -2868,7 +2952,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.3',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.4',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
