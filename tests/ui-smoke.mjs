@@ -183,6 +183,7 @@ try{
   document.querySelector('[name=workoutSchedule1]').value='any';
   await click('workout-schedule-save');
   assert.ok(document.querySelector('.home-workout-calendar-header').textContent.includes('Weekly schedule'),'configured schedule used instead of estimate');
+  assert.ok(document.querySelector('.ed-calendar-legend').textContent.includes('Scheduled'),'calendar legend says scheduled rather than projected');
   await click('workout-schedule-open');
   assert.equal(document.querySelector('[name=workoutSchedule1]').value,'any','saved weekday restored');
   await click('workout-schedule-clear');
