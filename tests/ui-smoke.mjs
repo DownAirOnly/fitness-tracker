@@ -38,7 +38,7 @@ const fixture=join(temp,'cloud.mjs');
 await writeFile(fixture,`
  import {CloudSession,nextRecord} from '${new URL('cloud-model.js',root)}';
  export const state={user:'alice',records:new Map(),fail:false,callback:null};
- const store={read:async uid=>state.records.get(uid)||null,write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
+ const store={read:async uid=>state.records.get(uid)||null,write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');if(state.holdSave){state.holdSave=false;await new Promise(resolve=>{state.releaseSave=resolve;});}const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
  export const cloudError=e=>e.message;
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
@@ -775,7 +775,16 @@ try{
  await submit('finance',{amount:'4.25',description:'Logged while cloud unavailable',date:'2026-10-27',category:'Convenience Food'});
  const pendingNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data);
  assert.ok(pendingNotebook.transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'new finance log is retained in recovery while cloud pending');
- state.fail=false;await click('cloud-retry');assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
+ // A slow cloud confirmation must not destroy a new screen or its active modal.
+ state.fail=false;state.holdSave=true;await click('cloud-retry');
+ await click('progress');await click('weight');
+ const weightDialogDuringSync=document.querySelector('.modal');
+ assert.ok(weightDialogDuringSync,'a new editor stays open while cloud save is pending');
+ assert.equal(typeof state.releaseSave,'function','test save is held until the editor opens');
+ state.releaseSave();await tick();await tick();
+ assert.equal(document.querySelector('.modal'),weightDialogDuringSync,'cloud acknowledgement does not replace a newer editor');
+ await click('close');
+ assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
  assert.ok(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'local finance log syncs after retry');
  await click('finances');await click('finance-transactions-open');await click('finance-edit');await click('finance-delete');
  assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.length,0,'test transaction cleanup leaves existing cloud fixture intact');
