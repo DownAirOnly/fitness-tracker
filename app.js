@@ -214,9 +214,9 @@ function renderAfterSave(epoch){
  else render();
 }
 const persist=async()=>{
-  if(demoMode){try{storeDemoWorkspace(data);render();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
-  if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';render();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
-  if(!account){try{save(data);deviceData=structuredClone(data);render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
+  if(demoMode){try{storeDemoWorkspace(data);if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
+  if(offlineWorkspace){try{storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('This device could not save the offline workspace. Export your JSON before leaving.');return false;}}
+  if(!account){try{save(data);deviceData=structuredClone(data);if(document.querySelector('.modal'))refreshSyncIndicators();else render();return true;}catch{alert('This device could not save the change. Export a backup before leaving.');return false;}}
   let localSafe=true;
   try{saveCloudRecoveryLocally(false);cloudPending=true;}catch{localSafe=false;cloudPending=true;}
   if(cloudRecoveryConflict){
