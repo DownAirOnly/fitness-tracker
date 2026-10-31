@@ -2,6 +2,13 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.3 — Stable navigation, reusable calendar and food Plan
+
+- Cloud/local saves update durability status without rebuilding screens; tab content scrolls inside a fixed shell with independently anchored bottom nav.
+- Home top Food Add returns to Food after saving; Home quick-food cards remain on Home. Workout Buddy exits into Lifting.
+- Lifting Home features a reusable marked calendar (`calendar-ui.js`, `CALENDAR_DESIGN.md`).
+- Food's Plan is a non-destructive what-if combination editor with Suggest and explicit Log selected.
+
 ## v99.7.2 — Fixed card order, Lifting glance and rest placement
 
 - Home quick-food order remains fixed as foods are used. Customize now numbers selections in the order tapped, up to six.

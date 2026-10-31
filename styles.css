@@ -2446,3 +2446,65 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
 .buddy-a-with-rest .buddy-rest-in-action small{font-size:10px;line-height:1.1;color:#c6e4d1;font-weight:800;letter-spacing:.09em}
 .buddy-a-with-rest .buddy-rest-in-action strong{font:750 clamp(20px,5vw,29px)/1.08 'Outfit',sans-serif;color:#fff;font-variant-numeric:tabular-nums}
 @media(max-width:380px){.buddy-exercise-view .buddy-a-with-rest{gap:8px;padding-left:13px;padding-right:13px}.buddy-a-with-rest .buddy-rest-in-action{min-width:59px;padding-left:8px}}
+
+/* v99.7.3: stable shell. Scroll ONLY main, never the document or bottom navigation.
+   Nav is a direct sibling of .shell and cannot inherit its scroll/overflow. */
+html,body{height:100%;max-height:100%;overflow:hidden!important;overscroll-behavior:none}
+body{position:fixed;inset:0;width:100%;margin:0}
+#app{height:100dvh;max-height:100dvh;overflow:hidden}
+#app>.shell{height:100dvh;max-height:100dvh;min-height:0;width:100%;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(85px + env(safe-area-inset-bottom,0px))}
+#app>.shell>.top{flex:0 0 84px;min-height:84px}
+#app>.shell>main{flex:1 1 auto;min-height:0;max-height:100%;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y}
+#app>.shell:has(.home-command-center)>main{overflow:hidden;touch-action:auto}
+#app>.nav{position:fixed!important;z-index:20;bottom:0;left:0;right:0;transform:none!important;max-width:760px;margin:0 auto}
+body:has(.modal input:focus,.modal textarea:focus,.modal select:focus) #app>.nav{visibility:hidden;pointer-events:none}
+/* Shared calendar: design contract in CALENDAR_DESIGN.md */
+.ed-calendar{margin:0;border:0;border-radius:17px;padding:14px 12px;background:#385844;color:#fff;min-width:0}
+.ed-calendar-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.ed-calendar-header strong{font:700 16px 'Outfit',sans-serif;color:#fff}
+.ed-calendar-arrows{display:flex;align-items:center;gap:6px}
+.ed-calendar-arrows button{width:33px;height:32px;border:1px solid #ffffff50;border-radius:9px;background:#ffffff13;color:#fff;font-size:24px;line-height:1}
+.ed-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;justify-items:center;align-items:center}
+.ed-calendar-weekday{font:700 10px 'Outfit',sans-serif;color:#e1eee2;text-align:center;padding:6px 0}
+.ed-calendar-empty{width:100%;height:37px}
+.ed-calendar-day{border:0;background:transparent;color:#fff;min-width:0;width:37px;height:37px;display:grid;place-items:center;padding:0;border-radius:50%;font:650 13px 'Outfit',sans-serif}
+.ed-calendar-day span{display:grid;place-items:center;width:33px;height:33px;border-radius:50%;color:#fff}
+.ed-calendar-day.completed span{border:2px solid #b6e0b6;color:#fff}
+.ed-calendar-day.projected span{border:2px dotted #fff;color:#fff}
+.ed-calendar-day.today:not(.completed):not(.projected) span{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.ed-calendar-day:focus-visible{outline:2px solid #fff;outline-offset:0}
+.ed-calendar-legend{display:flex;gap:15px;flex-wrap:wrap;margin-top:11px;color:#e7f2e7;font:650 10px 'Outfit',sans-serif}
+.ed-calendar-legend span{display:flex;align-items:center;gap:6px}
+.ed-calendar-legend i{width:14px;height:14px;display:inline-block;border-radius:50%}
+.ed-calendar-legend i.completed{border:2px solid #b6e0b6}
+.ed-calendar-legend i.projected{border:2px dotted #fff}
+.home-lifting-calendar{justify-content:flex-start!important;gap:10px!important}
+.home-lifting-summary{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;color:#8eaa92}
+.home-lifting-summary strong{font-size:12px;color:#d5ecd5;text-align:right}
+.home-calendar-details{display:grid;gap:8px}
+.home-calendar-lift{display:grid;gap:4px;padding:11px;border:1px solid #657c6c;border-radius:12px}
+.home-calendar-lift small{font-size:11px;color:#abbfb0}
+@media(max-width:370px){.ed-calendar{padding:11px 7px}.ed-calendar-day{width:33px;height:33px}.ed-calendar-day span{width:30px;height:30px}}
+/* Rest-of-day Plan is a what-if editor, never an automatic food log. */
+.food-plan{display:grid;gap:11px}
+.food-plan-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.food-plan-totals>div{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px;background:#244331;color:#fff}
+.food-plan-totals small{font-size:10px;color:#cbdfd0}
+.food-plan-totals strong{font-size:18px;overflow-wrap:anywhere}
+.food-plan-difference{font-size:12px;line-height:1.45;margin:0;color:#aac3b0}
+.food-plan-items{display:grid;gap:7px;max-height:27dvh;overflow:auto}
+.food-plan-item{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #647a69;border-radius:12px;padding:9px}
+.food-plan-item>span{display:grid;gap:3px;min-width:0}
+.food-plan-item strong{font-size:12px;overflow-wrap:anywhere}
+.food-plan-item small{font-size:10px;color:#9eafa2}
+.food-plan-quantity{display:flex;gap:4px;align-items:center;flex:0 0 auto}
+.food-plan-quantity button{height:30px;min-width:27px;border:1px solid #64836b;border-radius:8px;background:#2e513b;color:#fff}
+.food-plan-quantity output{font-size:12px;font-variant-numeric:tabular-nums;min-width:30px;text-align:center}
+.food-plan-search-results{display:grid;gap:5px;max-height:23dvh;overflow:auto}
+.food-plan-choice{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;border:1px solid #546957;border-radius:11px;padding:9px 12px;text-align:left;background:#253d2c;color:inherit}
+.food-plan-choice span{display:grid;gap:3px}
+.food-plan-choice strong{font-size:12px}
+.food-plan-choice small{font-size:10px;color:#a3b6a7}
+.food-plan-choice b{font-size:22px;color:#b5d58d}
+.food-plan-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.food-plan-actions button{min-height:43px}
