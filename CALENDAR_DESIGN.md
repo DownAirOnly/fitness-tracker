@@ -9,6 +9,7 @@ Use this design for future requests involving a month calendar unless explicitly
 - A *recorded* workout: light-green outlined circle around the number (not a solid fill).
 - A *projected* workout: dotted white outlined circle, never confused with a recorded workout.
 - No marker is meaningful without source records or an explicitly explained estimate. A saved weekly schedule takes precedence over history-based spacing estimates; scheduled days remain dotted until a workout is logged.
+- For compact Home dashboards, put the Schedule control in the calendar footer without an unnecessary status legend; keep month navigation in the title row and make the grid fit without scrolling.
 - The calendar header can open an editable schedule with weekday-to-routine assignments. The schedule lives in the Lifting account data, not device-only layout preferences.
 - Under workout calendars, the current design includes a two-day training-load anatomical overlay: red for muscles trained today, yellow for yesterday, unmarked otherwise. This is not physiological recovery measurement.
 

@@ -340,31 +340,26 @@ function recentMuscleWorkload(){
   (e.sets?.length||0)+(e.activeSetStartedAt?1:0));
  return result;
 }
-function recentSetRecoveryPanel(){
- const sets=recentThreeSets(),map=recentMuscleWorkload();
- return '<section class="home-recovery-panel" aria-label="Recent sets and estimated recent muscle workload">'+
-  '<div class="home-last-sets"><strong>Last three sets</strong>'+
-   (sets.length?sets.map(set=>'<div class="home-last-set"><span>'+esc(set.name)+' · set '+set.index+'</span>'+
-    '<b>'+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+'</b></div>').join(''):'<p>No logged sets yet</p>')+
-   '<small class="home-recovery-note">Red = trained today · yellow = yesterday. Not measured fatigue.</small></div>'+
+function recentRoutineRecoveryPanel(){
+ const sessions=recentRoutineSessions().slice(0,3),map=recentMuscleWorkload();
+ const rows=sessions.map(session=>{
+  const details=routineSessionCounts(session),date=routineFinishedDate(session);
+  return '<button type="button" data-action="routine-history-detail" data-id="'+esc(session.id)+'"><span><strong>'+esc(session.type||'Workout')+'</strong><small>'+esc(date?niceDate(date):'Date unavailable')+' · '+details.exercises+' exercises · '+details.sets+' sets</small></span><b aria-hidden="true">›</b></button>';
+ }).join('');
+ return '<section class="home-recovery-panel" aria-label="Recent completed routines and muscle training">'+
+  '<div class="buddy-start-list home-recent-routines">'+(rows||'<p class="home-no-routines">Completed routines will appear here.</p>')+'</div>'+
   '<div class="home-recovery-anatomy">'+muscleRecoveryMarkup(map)+'</div></section>';
 }
 function workoutCalendar(){
  const recent=recentRoutineSessions(),completed=new Set([
   ...recent.map(routineFinishedDate),...(data.lifts||[]).map(l=>l.date)
  ].filter(Boolean)),month=homeCalendarMonth;
- const workouts=recent.filter(s=>routineFinishedDate(s).startsWith(month));
- const manual=(data.lifts||[]).filter(l=>l.date?.startsWith(month)&&!l.buddySessionId);
- const totalSets=workouts.reduce((n,s)=>n+routineSessionCounts(s).sets,0)+
-   manual.reduce((n,l)=>n+(l.sets?.length||0),0);
  return '<article class="home-dashboard-content home-dash-lifting home-lifting-calendar">'+
-  '<div class="home-workout-calendar-header"><small>'+(data.workoutSchedule?.length?'Weekly schedule':'Estimated dates')+'</small>'+
-   button('Schedule','workout-schedule-open','home-dash-link')+'</div>'+
   calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...completed],
-   projected:upcomingWorkoutDates(month,completed),projectedLabel:data.workoutSchedule?.length?'Scheduled':'Projected',action:'home-calendar-day',navAction:'home-calendar-month'})+
-  recentSetRecoveryPanel()+
-  '<div class="home-lifting-summary"><span>This month</span><strong>'+workouts.length+' workouts · '+totalSets+' sets</strong></div>'+
-  '</article>';
+   projected:upcomingWorkoutDates(month,completed),projectedLabel:data.workoutSchedule?.length?'Scheduled':'Projected',
+   action:'home-calendar-day',navAction:'home-calendar-month',showLegend:false,
+   footerAction:'workout-schedule-open',footerLabel:'Schedule'})+
+  recentRoutineRecoveryPanel()+'</article>';
 }
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
 const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
@@ -375,12 +370,12 @@ function readHomeDashboard(){
 const HOME_FOOD_IDS_KEY='everyday-home-food-ids-v1';
 function readHomeFoodIds(){
  try{const raw=localStorage.getItem(HOME_FOOD_IDS_KEY);if(raw===null)return null;
-  const ids=JSON.parse(raw);return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'))].slice(0,6):null;
+  const ids=JSON.parse(raw);return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'&&x.length<=160))]:null;
  }catch{return null;}
 }
 function defaultHomeFoodIds(){
  const all=sortFoods(data.foods||[],'recent');
- return all.filter(f=>f.pinned).concat(all.filter(f=>!f.pinned)).slice(0,4).map(f=>f.id);
+ return all.filter(f=>f.pinned).concat(all.filter(f=>!f.pinned)).slice(0,6).map(f=>f.id);
 }
 function homeFoodPicks(){
  const all=data.foods||[];let ids=readHomeFoodIds();
@@ -397,12 +392,12 @@ function updateHomeFoodNumbers(){
   number.textContent=position?String(position):'+';
  }
  const count=document.querySelector('.home-food-count');
- if(count)count.textContent=homeFoodDraft.length+' of 6 selected';
+ if(count)count.textContent=homeFoodDraft.length+' selected · in selection order';
 }
 function homeFoodCustomize(){
  const choices=sortFoods(data.foods||[],'recent');
  homeFoodDraft=homeFoodPicks().map(f=>f.id);
- modal('Customize Home foods','<p class="body-copy">Tap foods in the order you want them displayed. Numbers show their Home positions (up to six).</p>'+
+ modal('Customize Home foods','<p class="body-copy">Tap foods in the order you want them displayed. Positions 1–6 are page one, 7–12 are page two, and so on.</p>'+
   '<label class="field"><span>Find a saved food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
   '<p class="home-food-count" role="status"></p>'+
   '<div class="home-food-picker">'+choices.map(f=>'<button type="button" class="home-food-pick" data-action="home-food-pick-toggle" data-id="'+esc(f.id)+'" data-search="'+esc(f.name.toLowerCase())+'" aria-pressed="false"><span class="home-food-position" aria-hidden="true">+</span><span class="home-food-pick-copy"><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span></button>').join('')+'</div>'+
@@ -475,10 +470,10 @@ function homeDashboardCard(view){
     button('Finances','finances','home-dash-link primary-link'))+'</div></article>';
  }
  if(view==='lifting')return workoutCalendar();
- // Keep selection order constant, showing four food cards per page.
-  const allPicks=homeFoodPicks(),pageCount=Math.max(1,Math.ceil(allPicks.length/4));
+ // Keep six cards per page in exactly the order selected.
+  const allPicks=homeFoodPicks(),pageCount=Math.max(1,Math.ceil(allPicks.length/6));
   homeFoodPage=Math.min(homeFoodPage,pageCount-1);
-  const picks=allPicks.slice(homeFoodPage*4,(homeFoodPage+1)*4);
+  const picks=allPicks.slice(homeFoodPage*6,(homeFoodPage+1)*6);
  return '<article class="home-dashboard-content home-dash-nutrition">'+
   (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
    '<p class="home-dashboard-empty">No saved foods</p>')+
@@ -1096,7 +1091,8 @@ function nutritionAccuracyIcon(food){
  return '<span class="nutrition-accuracy nutrition-accuracy-unknown" aria-label="'+esc(label)+'"><span aria-hidden="true"></span></span>';
 }
 function foodQuickCard(food,pinned=false,homeContext=false){
- return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="food-favorite '+(food.pinned?'selected':'')+'" data-action="toggle-favorite" data-id="'+esc(food.id)+'" aria-label="'+(food.pinned?'Remove '+esc(food.name)+' from favorites':'Add '+esc(food.name)+' to favorites')+'" aria-pressed="'+(food.pinned?'true':'false')+'">'+(food.pinned?'★':'☆')+'</button><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(homeContext?'today':chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
+ // All screens share this card; favorite status remains editable in its three-dot menu.
+ return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(homeContext?'today':chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
 }
 const hasFoodTag=(food,tag)=>Array.isArray(food.tags)&&food.tags.includes(tag);
 function sortFoods(list,mode){
@@ -2007,7 +2003,8 @@ function settings() {
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
 }
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
-function close(all=false) {pendingDeviceMigration=null;if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
+function close(all=false) {pendingDeviceMigration=null;
+ const focused=document.activeElement;if(focused?.closest?.('.modal'))focused.blur();if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
 function filteredFoodLibrary(){
  let foods=sortFoods(data.foods,foodLibrarySort),q=foodLibrarySearch.trim().toLowerCase();
  if(q)foods=foods.filter(f=>f.name.toLowerCase().includes(q)||foodKindLabel(f.kind).toLowerCase().includes(q)||foodAccuracyLabel(f.accuracy).toLowerCase().includes(q)||(f.tags||[]).some(tag=>tag.includes(q))||(f.pinned&&'pinned'.includes(q)));
@@ -2265,8 +2262,7 @@ document.addEventListener('click',async event=>{
    if(action==='home-food-pick-toggle'){
     const foodId=el.dataset.id,pos=homeFoodDraft.indexOf(foodId);
     if(pos>=0)homeFoodDraft.splice(pos,1);
-    else if(homeFoodDraft.length<6)homeFoodDraft.push(foodId);
-    else{alert('Choose up to six Home foods. Remove one before adding another.');return;}
+    else homeFoodDraft.push(foodId);
     updateHomeFoodNumbers();return;
    }
    if(action==='home-food-customize-reset'){
@@ -2342,7 +2338,7 @@ document.addEventListener('click',async event=>{
    data.workoutSchedule=scheduled;close(true);selectHomeDashboard('lifting');void persist();return;
   }
   if(action==='workout-schedule-clear'){data.workoutSchedule=[];close(true);selectHomeDashboard('lifting');void persist();return;}
-  if(action==='home-food-page'){homeFoodPage=(homeFoodPage+1)%Math.max(1,Math.ceil(homeFoodPicks().length/4));selectHomeDashboard('nutrition');return;}
+  if(action==='home-food-page'){homeFoodPage=(homeFoodPage+1)%Math.max(1,Math.ceil(homeFoodPicks().length/6));selectHomeDashboard('nutrition');return;}
   if(action==='home-food-plan'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodPlanItems=[];foodPlanSearch='';foodPlan();return;}
   if(action==='home-calendar-month'){homeCalendarMonth=calendarShiftMonth(homeCalendarMonth,Number(el.dataset.delta)||0);selectHomeDashboard('lifting');return;}
   if(action==='home-calendar-day'){
@@ -2952,7 +2948,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.4',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.5',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3012,7 +3008,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7.4');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.5');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

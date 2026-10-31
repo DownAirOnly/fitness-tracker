@@ -176,14 +176,19 @@ try{
   assert.ok(document.querySelector('.home-dash-lifting'),'Lifting dashboard is available');
   assert.ok(document.querySelector('.home-lifting-calendar'),'Lifting dashboard has calendar');
   assert.ok(document.querySelector('.ed-calendar-grid'),'Lifting Home uses a reusable month grid');
-  assert.ok(document.querySelector('.home-recovery-panel'),'recent set and recovery area exists');
+  assert.ok(document.querySelector('.home-recovery-panel'),'recent routines and recovery anatomy exist');
+   assert.equal(document.querySelector('.home-recovery-panel .home-last-set'),null,'no verbose individual set history');
+   assert.equal(document.querySelector('.home-workout-calendar-header'),null,'remove redundant Weekly schedule header');
+   assert.equal(document.querySelector('.ed-calendar-legend'),null,'remove redundant calendar legend');
+   assert.ok(document.querySelector('.ed-calendar-footer [data-action="workout-schedule-open"]'),'schedule action sits in calendar footer');
+   assert.equal(document.querySelector('.home-lifting-summary'),null,'remove monthly total footer');
   assert.ok(document.querySelector('.muscle-recovery-pair svg'),'workload map includes anatomy SVG');
   await click('workout-schedule-open');
   assert.equal(document.querySelectorAll('.workout-schedule-day select').length,7,'seven schedule days');
   document.querySelector('[name=workoutSchedule1]').value='any';
   await click('workout-schedule-save');
-  assert.ok(document.querySelector('.home-workout-calendar-header').textContent.includes('Weekly schedule'),'configured schedule used instead of estimate');
-  assert.ok(document.querySelector('.ed-calendar-legend').textContent.includes('Scheduled'),'calendar legend says scheduled rather than projected');
+  assert.ok(document.querySelector('.ed-calendar-footer [data-action="workout-schedule-open"]'),'configured schedule remains editable');
+  assert.ok(!document.querySelector('.ed-calendar-legend'),'legend remains removed after setting schedule');
   await click('workout-schedule-open');
   assert.equal(document.querySelector('[name=workoutSchedule1]').value,'any','saved weekday restored');
   await click('workout-schedule-clear');
@@ -201,24 +206,20 @@ try{
   await click('home');
   assert.ok(document.querySelector('.home-dash-nutrition'),'chosen dashboard survives navigation');
   document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
- assert.ok(document.querySelectorAll('.home-dashboard-food-grid .food-card').length<=4,'Home defaults to four food cards');
+ assert.ok(document.querySelectorAll('.home-dashboard-food-grid .food-card').length<=6,'Home page displays up to six food cards');
+  assert.equal(document.querySelector('.home-dashboard-food-grid .food-favorite'),null,'shared cards do not display favorite stars');
  await click('home-food-customize');
  assert.ok(document.querySelector('.home-food-picker'),'Home foods are customizable');
  await click('home-food-customize-reset');
- // A fifth chosen card adds a middle page switch without disturbing Plan.
+ // Six or fewer chosen cards must not show a paging control.
  await click('home-food-customize');
- const fifth=document.querySelector('.home-food-pick:not(.selected)');
- if(fifth){
-  fifth.click();await tick();await click('home-food-customize-save');
-  const ids=JSON.parse(localStorage.getItem('everyday-home-food-ids-v1'));
-  assert.ok(ids.length>4,'five selections enable paging');
-  assert.ok(document.querySelector('[data-action="home-food-page"]'),'page switch appears');
-  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,4);
-  await click('home-food-page');
-  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,ids.length-4);
-  assert.ok(document.querySelector('[data-action="home-food-plan"]'),'Plan stays visible');
-  await click('home-food-customize');await click('home-food-customize-reset');
- }else await click('close');
+ const initialCards=[...document.querySelectorAll('.home-food-pick.selected')];
+ if(initialCards.length<6){
+  for(const row of [...document.querySelectorAll('.home-food-pick:not(.selected)')].slice(0,6-initialCards.length)){row.click();await tick();}
+ }
+ await click('home-food-customize-save');
+ assert.ok(document.querySelectorAll('.home-dashboard-food-grid .food-card').length<=6);
+ assert.ok(!document.querySelector('[data-action="home-food-page"]'),'paging stays hidden at six');
  await click('home-add-menu');
  assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add skips chooser');
  assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home food shortcut uses today');
@@ -488,9 +489,24 @@ try{
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
+  assert.ok(sample.data.foods.length>=7,'demo provides enough foods to test paging');
  await click('home');
  const nutritionDashTab=document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]');
  nutritionDashTab.click();await tick();
+ // Seven selected foods have six on page one and the seventh on page two.
+ await click('home-food-customize');
+ const chosenDemo=[...document.querySelectorAll('.home-food-pick.selected')];
+ for(const row of chosenDemo){row.click();await tick();}
+ const seven=[...document.querySelectorAll('.home-food-pick')].slice(0,7);
+ for(const row of seven){row.click();await tick();}
+ await click('home-food-customize-save');
+ assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,6,'first page has six cards');
+ assert.ok(document.querySelector('[data-action="home-food-page"]'),'seventh card enables paging');
+ await click('home-food-page');
+ assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,1,'second page starts at card seven');
+ assert.equal(document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]').dataset.id,seven[6].dataset.id,'seventh selection begins page two');
+ assert.ok(document.querySelector('[data-action="home-food-plan"]'),'Plan remains available on additional pages');
+ await click('home-food-page');
  // Customize records tap order, and the order survives rerenders.
  await click('home-food-customize');
  const preselected=[...document.querySelectorAll('.home-food-pick.selected')];
