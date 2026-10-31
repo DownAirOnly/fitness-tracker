@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=98';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=99.7.4';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=98';
 
