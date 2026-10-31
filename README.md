@@ -2,6 +2,12 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.2 — Fixed card order, Lifting glance and rest placement
+
+- Home quick-food order remains fixed as foods are used. Customize now numbers selections in the order tapped, up to six.
+- Lifting Home Add opens the saved routine picker again. The Lifting dashboard includes last-seven-day workout and set counts plus two earlier sessions.
+- Workout Buddy shows the rest countdown on the right side of its large bottom action button instead of near the set progress.
+
 ## v99.7.1 — Navigation and usability patch
 
 - Cloud save confirmations no longer rebuild new screens or active dialogs.

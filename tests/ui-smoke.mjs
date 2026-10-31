@@ -174,6 +174,11 @@ try{
   const liftingTab=document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]');
   liftingTab.click();await tick();
   assert.ok(document.querySelector('.home-dash-lifting'),'Lifting dashboard is available');
+  assert.ok(document.querySelector('.home-lifting-week'),'Lifting Home gives a seven-day workout summary');
+  await click('home-add-menu');
+  assert.ok(document.querySelector('.buddy-start-list'),'Lifting Add opens the routine chooser');
+  assert.ok(!document.querySelector('#buddy-root .buddy-screen'),'Lifting Add does not immediately start a workout');
+  await click('close');
   assert.equal(localStorage.getItem('everyday-home-dashboard-v1'),'lifting','dashboard choice is saved locally');
   document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
   assert.ok(document.querySelector('.home-dash-nutrition'),'nutrition dashboard is available');
@@ -457,6 +462,22 @@ try{
  await click('home');
  const nutritionDashTab=document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]');
  nutritionDashTab.click();await tick();
+ // Customize records tap order, and the order survives rerenders.
+ await click('home-food-customize');
+ const preselected=[...document.querySelectorAll('.home-food-pick.selected')];
+ for(const row of preselected){row.click();await tick();}
+ const choices=[...document.querySelectorAll('.home-food-pick')].slice(0,3);
+ for(const [index,row] of [choices[2],choices[0],choices[1]].entries()){
+  row.click();await tick();
+  assert.equal(row.querySelector('.home-food-position').textContent,String(index+1),'number is assigned by selection order');
+ }
+ await click('home-food-customize-save');
+ const orderedFoodIds=JSON.parse(localStorage.getItem('everyday-home-food-ids-v1'));
+ assert.deepEqual(orderedFoodIds,[choices[2].dataset.id,choices[0].dataset.id,choices[1].dataset.id]);
+ assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(el=>el.dataset.id),orderedFoodIds,'cards use fixed stored order');
+ await click('home');
+ assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(el=>el.dataset.id),orderedFoodIds,'cards retain fixed order on rerender');
+
  assert.ok(document.querySelector('.home-dashboard-food-grid .food-card'),'Nutrition reuses actual saved-food cards from the Food tab');
  assert.ok(document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]'),'quick add uses the same saved-food action');
  assert.ok(!document.querySelector('.home-dashboard-content').textContent.includes('Meals you know'),'no redundant filler about favorite meals');
@@ -660,7 +681,8 @@ try{
   const row=document.querySelector('.buddy-history-rest-row');
   assert.ok(row,'history remains full-width during rest');
   assert.ok(row.querySelector('.buddy-compact-history'),'history expansion is contained');
-  assert.ok(document.querySelector('.buddy-set-indicators [data-buddy-rest]'),'rest timer remains in the set status');
+  assert.ok(document.querySelector('.buddy-a-with-rest [data-buddy-rest]'),'rest countdown is on the bottom action at right');
+  assert.ok(!document.querySelector('.buddy-set-status [data-buddy-rest]'),'rest countdown is not at top');
   await click('buddy-toggle-history');
  }
  document.querySelector('[name=buddyWeight]').value='120';

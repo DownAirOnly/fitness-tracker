@@ -280,16 +280,36 @@ function readHomeFoodIds(){
   const ids=JSON.parse(raw);return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'))].slice(0,6):null;
  }catch{return null;}
 }
+function defaultHomeFoodIds(){
+ const all=sortFoods(data.foods||[],'recent');
+ return all.filter(f=>f.pinned).concat(all.filter(f=>!f.pinned)).slice(0,4).map(f=>f.id);
+}
 function homeFoodPicks(){
- const all=sortFoods(data.foods||[],'recent'),favorites=all.filter(f=>f.pinned),ids=readHomeFoodIds();
- return ids?ids.map(id=>all.find(f=>f.id===id)).filter(Boolean):favorites.concat(all.filter(f=>!f.pinned)).slice(0,4);
+ const all=data.foods||[];let ids=readHomeFoodIds();
+ // Persist the first selected order. Logging a food must not move its Home card.
+ if(ids===null){ids=defaultHomeFoodIds();try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(ids));}catch{}}
+ return ids.map(foodId=>all.find(f=>f.id===foodId)).filter(Boolean);
+}
+let homeFoodDraft=[];
+function updateHomeFoodNumbers(){
+ for(const row of document.querySelectorAll('.home-food-pick')){
+  const position=homeFoodDraft.indexOf(row.dataset.id)+1,number=row.querySelector('.home-food-position');
+  row.setAttribute('aria-pressed',String(position>0));
+  row.classList.toggle('selected',position>0);
+  number.textContent=position?String(position):'+';
+ }
+ const count=document.querySelector('.home-food-count');
+ if(count)count.textContent=homeFoodDraft.length+' of 6 selected';
 }
 function homeFoodCustomize(){
- const choices=sortFoods(data.foods||[],'recent'),chosen=readHomeFoodIds()??homeFoodPicks().map(f=>f.id);
- modal('Customize Home foods','<p class="body-copy">Choose up to six foods to show on Home, in the order listed here. This layout is saved on this device.</p>'+
+ const choices=sortFoods(data.foods||[],'recent');
+ homeFoodDraft=homeFoodPicks().map(f=>f.id);
+ modal('Customize Home foods','<p class="body-copy">Tap foods in the order you want them displayed. Numbers show their Home positions (up to six).</p>'+
   '<label class="field"><span>Find a saved food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
-  '<div class="home-food-picker">'+choices.map(f=>'<label class="home-food-pick" data-search="'+esc(f.name.toLowerCase())+'"><input type="checkbox" name="homeFoodId" value="'+esc(f.id)+'"'+(chosen.includes(f.id)?' checked':'')+'><span><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span></label>').join('')+'</div>'+
+  '<p class="home-food-count" role="status"></p>'+
+  '<div class="home-food-picker">'+choices.map(f=>'<button type="button" class="home-food-pick" data-action="home-food-pick-toggle" data-id="'+esc(f.id)+'" data-search="'+esc(f.name.toLowerCase())+'" aria-pressed="false"><span class="home-food-position" aria-hidden="true">+</span><span class="home-food-pick-copy"><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span></button>').join('')+'</div>'+
   '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Use favorites & recent','home-food-customize-reset','outline')+'</div>');
+ updateHomeFoodNumbers();
 }
 let homeDashboardView=readHomeDashboard();
 function selectHomeDashboard(next){
@@ -363,6 +383,10 @@ function homeDashboardCard(view){
   const next=routines.length?routines[(selected>=0?selected+1:0)%routines.length]:null;
   const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
   const intervals=dates.slice(1).map((date,i)=>Math.round((dates[i]-date)/86400000));
+  const cutoff=Date.now()-7*86400000;
+  const weekly=recent.filter(session=>{const completed=Date.parse(session.completedAt||session.endedAt||session.startedAt||session.date+'T12:00:00');return Number.isFinite(completed)&&completed>=cutoff&&completed<=Date.now();});
+  const weeklySets=weekly.reduce((count,session)=>count+routineSessionCounts(session).sets,0);
+  const previous=recent.slice(1,3);
   let day='';
   if(dates.length===4&&intervals.every(n=>n>=1&&n<=7)&&Math.max(...intervals)-Math.min(...intervals)<=1){
    const offset=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),pred=dates[0]+offset*86400000;
@@ -373,6 +397,9 @@ function homeDashboardCard(view){
    '<p class="home-dash-caption">'+(last?'Last workout · '+esc(niceDate(routineFinishedDate(last))):'')+'</p>'+
    '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'No routine set')+'</strong></div>'+
    (day?'<p class="home-dashboard-hint">Estimated'+esc(day)+'</p>':'')+
+   (data.activeWorkout?'<div class="home-dashboard-stat"><span>In progress</span><strong>'+esc(data.activeWorkout.type)+' · '+data.activeWorkout.exercises.filter(e=>e.status==='done').length+'/'+data.activeWorkout.exercises.length+' exercises</strong></div>':'')+
+   '<div class="home-lifting-week"><span>Last 7 days</span><strong>'+weekly.length+' workout'+(weekly.length===1?'':'s')+' · '+weeklySets+' sets</strong></div>'+
+   (previous.length?'<div class="home-lifting-recent"><span>Earlier sessions</span>'+previous.map(session=>'<div class="home-lifting-recent-row"><span>'+esc(session.type||'Workout')+'</span><small>'+esc(niceDate(routineFinishedDate(session)))+' · '+routineSessionCounts(session).sets+' sets</small></div>').join('')+'</div>':'')+
    '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
    '</div></article>';
  }
@@ -1358,11 +1385,11 @@ function buddyRender(){
  }
  if(s.phase==='complete')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-complete"><div><p class="eyebrow">CIRCUIT COMPLETE</p><h1>${esc(s.type)} finished</h1><p>${done} exercises · ${buddyClock(buddySeconds(s.startedAt,s.completedAt))} total</p></div>${buddyUndoControl(s)}<button class="buddy-a" data-action="buddy-confirm-finish"><span>Ready to wrap up?</span><b>Finish workout</b></button><button class="buddy-secondary" data-action="buddy-back-picker">Back to exercises</button></main></div>`;
  const e=buddyFind(s,s.selected);if(!e)return'';if(e.journalOpen)return buddyJournalScreen(head,e);const reviewing=Number.isInteger(e.reviewSetIndex),i=reviewing?e.reviewSetIndex:e.sets.length,target=buddyTargetSets(e),d=reviewing?e.sets[e.reviewSetIndex]:(e.draft||buddyDraft(e,i)),prior=buddyPrior(e),running=Boolean(e.activeSetStartedAt),resting=Boolean(e.restStartedAt&&!running),showRest=Boolean(e.restStartedAt&&!running)&&e.sets.length<target,left=showRest?Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt)):0,range=buddyRepRange(e);
- const state=reviewing?(showRest?`Edit set ${i+1} · rest is running`:`Review set ${i+1}`):running?`Set ${i+1} in progress`:showRest?(left?`Rest · ${buddyClock(left)} remaining`:'Rest complete'):`Set ${i+1} of ${target}`,action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
+ const state=reviewing?`Review set ${i+1}`:running?`Set ${i+1} in progress`:`Set ${i+1} of ${target}`,action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
  if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view"><div class="buddy-set-status"><span>SET ${i+1} OF ${target} · ACTIVE</span></div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><div class="buddy-action-tools">${buddyUndoControl(s)}</div><button class="buddy-a" data-action="buddy-a"><span>Set ${i+1} in progress</span><b>Finish set ${i+1}</b></button></main></div>`;
  const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
- const rest=showRest?`<span class="buddy-rest-inline" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></span>`:'';
- const setProgress=`<div class="buddy-set-status"><span>SET ${Math.min(i+1,target)} OF ${target}</span><div class="buddy-set-indicators">${rest}<div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div></div>`;
+ const rest=showRest?`<span class="buddy-rest-in-action" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></span>`:'';
+ const setProgress=`<div class="buddy-set-status"><span>SET ${Math.min(i+1,target)} OF ${target}</span><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
  const journalButton='<button type="button" class="buddy-journal-chip" data-action="buddy-journal-toggle">Journal ↗</button>';
  const notes=e.notesOpen?`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>${journalButton}</div><div class="buddy-notes-editor"><textarea name="buddyNotes" maxlength="500" rows="2" placeholder="Form, pain, setup, anything worth remembering">${esc(e.notes||'')}</textarea><button type="button" class="buddy-notes-done" data-action="buddy-notes-toggle">Done</button></div></div>`:`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle ${e.notes?'has-note':''}" data-action="buddy-notes-toggle"><span><b>${e.notes?'Notes saved':'Add notes'}</b><small>${e.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering'}</small></span><strong aria-hidden="true">${e.notes?'✓':'＋'}</strong></button>${journalButton}</div></div>`;
  const recent=buddyHistory(e),lastSession=recent[0]||prior;
@@ -1371,7 +1398,7 @@ function buddyRender(){
 
  const undo='';
  const historyRest=history?'<div class="buddy-history-rest-row">'+history+'</div>':'';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span data-buddy-state>${state}</span><b>${action}</b></button></main></div>`;
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span class="buddy-action-label"><span data-buddy-state>${state}</span><b>${action}</b></span>${rest}</button></main></div>`;
 }
 let buddyTicker=null;
 // Set screens normally do not scroll. Allow a contained fallback if an unusually
@@ -1439,6 +1466,13 @@ function buddyEndOptions(){modal('End workout',`<div class="buddy-end-options"><
 function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-confirm"><p class="body-copy"><strong>Are you sure?</strong> This removes this Workout Buddy session and its Buddy-created lift records.</p><button type="button" id="buddy-delete-confirm" class="danger" data-action="buddy-delete-confirm" disabled>Delete workout · 3</button><button type="button" class="outline" data-action="close">Cancel</button></div>`);const btn=document.querySelector('#buddy-delete-confirm');if(!btn)return;setTimeout(()=>{if(btn.isConnected)btn.textContent='Delete workout · 2';},1000);setTimeout(()=>{if(btn.isConnected)btn.textContent='Delete workout · 1';},2000);setTimeout(()=>{if(btn.isConnected){btn.disabled=false;btn.textContent='Delete workout';}},3000);}
 
 
+function buddyRoutinePicker(){
+ const active=data.activeWorkout,choices=savedWorkouts().filter(r=>(r.exercises||[]).length>0);
+ const rows=choices.map(r=>'<button type="button" data-action="'+(active?'buddy-resume-from-picker':'buddy-start')+'" data-workout="'+esc(r.name)+'"'+(active&&active.type!==r.name?' disabled':'')+'><span><strong>'+esc(r.name)+'</strong><small>'+r.exercises.length+' exercises'+(active&&active.type===r.name?' · Resume active workout':active?' · Finish current workout first':' · Bike warm-up first')+'</small></span><b>›</b></button>').join('');
+ modal('Choose a routine','<div class="buddy-start-list">'+
+  (active&&!choices.some(r=>r.name===active.type)?button('Resume '+esc(active.type),'buddy-resume-from-picker','primary'):'')+
+  (rows||'<p class="empty">Add exercises to a routine before starting Workout Buddy.</p>')+'</div>');
+}
 function gym() {
  const templates=savedWorkouts(),selected=workoutByName(workout);workout=selected?.name||'';const exercises=workoutExercises(selected);
  const picker='<div class="routine-toolbar"><label class="routine-picker"><select data-routine-select aria-label="Choose routine">'+
@@ -2126,21 +2160,26 @@ document.addEventListener('click',async event=>{
   if(action==='home-add-menu'){
     if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm();return;}
     if(homeDashboardView==='finances'){financeQuickModal();return;}
-    if(data.activeWorkout){buddyOpen();return;}
-    const selected=workoutByName(workout);
-    if(selected&&workoutExercises(selected).length){buddyStart(selected.name);buddyOpen();return;}
-    // Fall back to the existing empty-routine guidance if nothing is runnable.
-    modal('Start Workout Buddy','<p class="body-copy">Add exercises to a saved routine to start Workout Buddy.</p>');return;
+    buddyRoutinePicker();return;
    }
    if(action==='home-food-customize'){homeFoodCustomize();return;}
-   if(action==='home-food-customize-reset'){try{localStorage.removeItem(HOME_FOOD_IDS_KEY);}catch{}close(true);selectHomeDashboard('nutrition');return;}
-   if(action==='home-food-customize-save'){
-    const chosen=[...document.querySelectorAll('.home-food-picker input[name="homeFoodId"]:checked')].map(input=>input.value);
-    if(!chosen.length||chosen.length>6){alert('Choose between one and six Home foods.');return;}
-    try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(chosen));}catch{alert('This device could not save the Home food layout.');return;}
-    close(true);selectHomeDashboard('nutrition');return;
+   if(action==='home-food-pick-toggle'){
+    const foodId=el.dataset.id,pos=homeFoodDraft.indexOf(foodId);
+    if(pos>=0)homeFoodDraft.splice(pos,1);
+    else if(homeFoodDraft.length<6)homeFoodDraft.push(foodId);
+    else{alert('Choose up to six Home foods. Remove one before adding another.');return;}
+    updateHomeFoodNumbers();return;
    }
-  if(action==='budget-back'){page='finances';render();return;}
+   if(action==='home-food-customize-reset'){
+    try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(defaultHomeFoodIds()));}catch{alert('Could not save Home food layout.');return;}
+    homeFoodDraft=[];close(true);selectHomeDashboard('nutrition');return;
+   }
+   if(action==='home-food-customize-save'){
+    if(!homeFoodDraft.length){alert('Choose at least one Home food.');return;}
+    try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(homeFoodDraft));}catch{alert('Could not save Home food layout.');return;}
+    homeFoodDraft=[];close(true);selectHomeDashboard('nutrition');return;
+   }
+   if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
    modal('Update available cash','<form class="form" data-form="budget-balance">'+
@@ -2313,7 +2352,8 @@ document.addEventListener('click',async event=>{
   if(action==='workout-remove'){workoutEditorCapture();const i=Number(el.dataset.index);if(!workoutEditorState||!Number.isInteger(i)||i<0||i>=workoutEditorState.exercises.length)return;workoutEditorState.exercises.splice(i,1);workoutTemplateForm(null,true);return;}
   if(action==='workout-add-picker'){workoutExercisePicker();return;}
   if(action==='workout-add-exercise'){const def=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!def||!workoutEditorState||workoutEditorState.exercises.some(x=>x.exerciseId===def.id))return;workoutEditorState.exercises.push({exerciseId:def.id,repMin:def.name==='Calf Extension'?10:6,repMax:def.name==='Calf Extension'?16:12,targetSets:2,restSeconds:90});workoutTemplateForm(null,true);return;}
-  if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}modal('Start Workout Buddy',`<div class="buddy-start-list">${savedWorkouts().filter(x=>x.exercises.length>0).map(x=>`<button data-action="buddy-start" data-workout="${esc(x.name)}"><span><strong>${esc(x.name)}</strong><small>${x.exercises.length} exercises · Bike warm-up first</small></span><b>›</b></button>`).join('')||'<p class="empty">Add exercises to a routine before starting Workout Buddy.</p>'}</div>`);return;}
+  if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}buddyRoutinePicker();return;}
+  if(action==='buddy-resume-from-picker'){close(true);buddyOpen();return;}
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
   if(action==='buddy-bike-done'){const s=data.activeWorkout;if(!s||s.phase!=='bike')return;buddyCaptureUndo(s,'bike finished');s.phase='picker';s.bikeCompletedAt=isoNow();await buddyPersist();return;}
   if(action==='buddy-choose'){const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);if(!e)return;buddyCaptureUndo(s,'start exercise');e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
@@ -2766,7 +2806,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
