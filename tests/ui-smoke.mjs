@@ -598,6 +598,7 @@ try{
   await click('buddy-toggle-history');
   assert.equal(document.querySelector('.buddy-last-toggle').getAttribute('aria-expanded'),'true');
   assert.ok(document.querySelector('.buddy-compact-history'),'previous workouts remain available as a history dropdown');
+  assert.ok(document.querySelector('.buddy-compact-history[role="region"]'),'expanded history is a distinct scroll region');
   await click('buddy-toggle-history');
   assert.equal(document.querySelector('.buddy-last-toggle').getAttribute('aria-expanded'),'false');
  }
@@ -656,12 +657,32 @@ try{
  await click('buddy-a');
  assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo finish set 1'));
  assert.ok(!document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set'));
+ if(document.querySelector('[data-action="buddy-toggle-history"]')){
+  await click('buddy-toggle-history');
+  const row=document.querySelector('.buddy-history-rest-both');
+  assert.ok(row,'history and rest share a row during active rest');
+  assert.ok(row.querySelector('.buddy-compact-history'),'expanded history remains in its own column');
+  assert.ok(row.querySelector('[data-buddy-rest]'),'countdown remains visible alongside expanded history');
+  await click('buddy-toggle-history');
+ }
  document.querySelector('[name=buddyWeight]').value='120';
  await click('buddy-review-next');
  assert.ok(document.querySelector('.buddy-running-values').textContent.includes('120'),'set 2 inherits edited set 1 from this workout');
  assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start next set'));
  await click('buddy-undo');
  assert.equal(document.querySelector('[name=buddyWeight]').value,'120','undo start next set restores the edited first set');
+ await click('buddy-review-next');
+ await click('buddy-a');
+ await click('buddy-review-next');
+ assert.ok(document.querySelector('.buddy-picker-screen'),'after an exercise, the next-exercise picker is visible');
+ const doneCard=document.querySelector('.buddy-completed-exercise-strip .buddy-exercise-done');
+ assert.ok(doneCard,'completed exercises remain visible as cards');
+ assert.ok(document.querySelector('.buddy-completed-exercise-strip .exercise-muscle-peek'),'completed cards show muscles used');
+ assert.ok(document.querySelector('.buddy-exercise-list [data-action="buddy-choose"]'),'remaining exercises stay selectable');
+ doneCard.click();await tick();
+ assert.ok(document.querySelector('.buddy-muscle-screen'),'completed card opens muscle details');
+ await click('buddy-muscle-back');
+ assert.ok(document.querySelector('.buddy-completed-exercise-strip'),'back to picker retains completed exercises');
  await click('buddy-exit');
 
  assert.equal(localStorage.getItem('everyday-fitness-v1'),deviceBeforeDemo,'demo never writes normal device records');
