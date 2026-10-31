@@ -1,3 +1,4 @@
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.3';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=98';
 
 import {muscleGuideMarkup,muscleMiniMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=80';
@@ -263,6 +264,35 @@ function render() {
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
 
+let homeCalendarMonth=currentTrackingDate().slice(0,7);
+function projectedWorkoutDates(recent){
+ const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
+ if(dates.length!==4)return [];
+ const intervals=dates.slice(1).map((date,i)=>Math.round((dates[i]-date)/86400000));
+ if(!intervals.every(n=>n>=1&&n<=7)||Math.max(...intervals)-Math.min(...intervals)>1)return [];
+ const spacing=Math.round(intervals.reduce((sum,n)=>sum+n,0)/intervals.length),results=[];
+ for(let when=dates[0]+spacing*86400000,i=0;i<12;i++,when+=spacing*86400000){
+  const date=localDate(new Date(when));
+  if(date>=currentTrackingDate())results.push(date);
+ }
+ return results;
+}
+function workoutCalendar(){
+ const recent=recentRoutineSessions(),complete=new Set([
+  ...recent.map(routineFinishedDate),...(data.lifts||[]).map(l=>l.date)
+ ].filter(Boolean));
+ const projected=projectedWorkoutDates(recent).filter(d=>!complete.has(d));
+ const month=homeCalendarMonth;
+ const workouts=recent.filter(s=>routineFinishedDate(s).startsWith(month));
+ const lifts=(data.lifts||[]).filter(l=>l.date.startsWith(month));
+ const totalSets=workouts.reduce((n,s)=>n+routineSessionCounts(s).sets,0);
+ // Manual lift records not tied to Buddy are separate sets.
+ const manualSets=lifts.filter(l=>!l.buddySessionId).reduce((n,l)=>n+(l.sets?.length||0),0);
+ return '<article class="home-dashboard-content home-dash-lifting home-lifting-calendar">'+
+  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...complete],projected,action:'home-calendar-day',navAction:'home-calendar-month'})+
+  '<div class="home-lifting-summary"><span>This month</span><strong>'+workouts.length+' workout'+(workouts.length===1?'':'s')+' · '+(totalSets+manualSets)+' sets</strong></div>'+
+  '</article>';
+}
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
 const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
 function readHomeDashboard(){
@@ -371,33 +401,7 @@ function homeDashboardCard(view){
     (needUpdate?button(balanceSet?'Update balance':'Set balance','budget-balance','home-dash-link primary-link'):
     button('Finances','finances','home-dash-link primary-link'))+'</div></article>';
  }
- if(view==='lifting'){
-  const recent=recentRoutineSessions(),last=recent[0],routines=savedWorkouts().filter(w=>(w.exercises||[]).length);
-  const name=last?.type||'No workouts logged';
-  const selected=routines.findIndex(w=>w.name===last?.type);
-  const next=routines.length?routines[(selected>=0?selected+1:0)%routines.length]:null;
-  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
-  const intervals=dates.slice(1).map((date,i)=>Math.round((dates[i]-date)/86400000));
-  const cutoff=Date.now()-7*86400000;
-  const weekly=recent.filter(session=>{const completed=Date.parse(session.completedAt||session.endedAt||session.startedAt||session.date+'T12:00:00');return Number.isFinite(completed)&&completed>=cutoff&&completed<=Date.now();});
-  const weeklySets=weekly.reduce((count,session)=>count+routineSessionCounts(session).sets,0);
-  const previous=recent.slice(1,3);
-  let day='';
-  if(dates.length===4&&intervals.every(n=>n>=1&&n<=7)&&Math.max(...intervals)-Math.min(...intervals)<=1){
-   const offset=Math.round(intervals.reduce((x,y)=>x+y,0)/intervals.length),pred=dates[0]+offset*86400000;
-   if(pred>=Date.now()-86400000&&pred<=Date.now()+14*86400000)day=' · around '+niceDate(localDate(new Date(pred)));
-  }
-  return '<article class="home-dashboard-content home-dash-lifting">'+
-   '<div class="home-dash-value home-dash-routine">'+esc(name)+'</div>'+
-   '<p class="home-dash-caption">'+(last?'Last workout · '+esc(niceDate(routineFinishedDate(last))):'')+'</p>'+
-   '<div class="home-dashboard-stat"><span>Suggested next</span><strong>'+esc(next?.name||'No routine set')+'</strong></div>'+
-   (day?'<p class="home-dashboard-hint">Estimated'+esc(day)+'</p>':'')+
-   (data.activeWorkout?'<div class="home-dashboard-stat"><span>In progress</span><strong>'+esc(data.activeWorkout.type)+' · '+data.activeWorkout.exercises.filter(e=>e.status==='done').length+'/'+data.activeWorkout.exercises.length+' exercises</strong></div>':'')+
-   '<div class="home-lifting-week"><span>Last 7 days</span><strong>'+weekly.length+' workout'+(weekly.length===1?'':'s')+' · '+weeklySets+' sets</strong></div>'+
-   (previous.length?'<div class="home-lifting-recent"><span>Earlier sessions</span>'+previous.map(session=>'<div class="home-lifting-recent-row"><span>'+esc(session.type||'Workout')+'</span><small>'+esc(niceDate(routineFinishedDate(session)))+' · '+routineSessionCounts(session).sets+' sets</small></div>').join('')+'</div>':'')+
-   '<div class="home-dashboard-footer">'+button(data.activeWorkout?'Resume workout':'Start workout','buddy-launch','home-dash-link primary-link')+
-   '</div></article>';
- }
+ if(view==='lifting')return workoutCalendar();
  // Show four quick foods by default, or a saved local selection of up to six.
   const picks=homeFoodPicks();
  return '<article class="home-dashboard-content home-dash-nutrition">'+
@@ -2231,6 +2235,19 @@ document.addEventListener('click',async event=>{
     financeHistoryVisible=50;refreshFinanceHistoryList();return;
    }
   if(action==='home-dashboard-select'){selectHomeDashboard(el.dataset.view);return;}
+  if(action==='home-calendar-month'){homeCalendarMonth=calendarShiftMonth(homeCalendarMonth,Number(el.dataset.delta)||0);selectHomeDashboard('lifting');return;}
+  if(action==='home-calendar-day'){
+   const date=el.dataset.date;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+   const sessions=recentRoutineSessions().filter(session=>routineFinishedDate(session)===date);
+   const lifts=(data.lifts||[]).filter(l=>l.date===date&&!l.buddySessionId);
+   const projected=projectedWorkoutDates(recentRoutineSessions()).includes(date);
+   if(!sessions.length&&!lifts.length&&!projected)return;
+   modal(niceDate(date),'<div class="home-calendar-details">'+
+    (sessions.map(session=>routineHistoryRow(session)).join(''))+
+    (lifts.map(lift=>'<div class="home-calendar-lift"><strong>'+esc(lift.exercise)+'</strong><small>'+lift.sets.length+' sets · manually logged</small></div>').join(''))+
+    (!sessions.length&&!lifts.length&&projected?'<p class="body-copy">Projected workout based on your recent intervals. Not scheduled.</p>':'')+'</div>');
+   return;
+  }
   if(action==='home-sync-review'){
    const warning=cloudSaveWarning();
    if(warning)modal('Cloud sync and recovery',warning);
