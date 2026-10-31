@@ -2,6 +2,12 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
+## Current direction — October 31, 2026
+
+- **v99.7.1 pending patch:** Save acknowledgements preserve newer screens; Home Add follows the selected dashboard; Home shows four automatic food cards or up to six local custom choices; Workout Buddy keeps history full width, moves the rest countdown to set status and anchors muscle diagrams to the heading. iPhone verification required.
+- **Roadmap supersession:** v99.8 UI review, v99.9 stabilization, **v100 stable PWA interface/workflow milestone, not native iOS**. Capacitor/TestFlight deferred; earlier v100-native statements below are historical.
+- **Money after UI:** Prioritize safe-to-spend/paycheck-period guidance. The nine-row transfer correction is still unconfirmed.
+
 ## Snapshot
 
 - **App:** Everyday — mobile-first personal fitness, food, workout, measurement, and finance tracker.

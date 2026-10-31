@@ -2388,3 +2388,28 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
 [data-theme="dark"] .buddy-completed-exercise-strip .exercise-card{
  background:#1b3023;border-color:#4b7858;
 }
+
+/* v99.7.1: full-width history, compact rest at set status, anchored anatomy. */
+.buddy-exercise-view .buddy-exercise-title{position:relative}
+.buddy-exercise-view .buddy-muscle-mini{top:0;right:0}
+.buddy-exercise-view .buddy-history-rest-row{display:block;margin-bottom:6px}
+.buddy-exercise-view .buddy-history-rest-row .buddy-history-preview{width:100%}
+.buddy-exercise-view .buddy-history-rest-row .buddy-last-toggle{min-height:48px}
+.buddy-exercise-view .buddy-history-rest-row .buddy-last-toggle>span:first-child{min-width:0;display:flex;flex-wrap:wrap;gap:5px 12px}
+.buddy-exercise-view .buddy-history-rest-row .buddy-last-toggle small{white-space:normal;overflow-wrap:anywhere;font-size:11px}
+.buddy-exercise-view .buddy-history-rest-row .buddy-compact-history{max-height:86px}
+.buddy-set-indicators{display:flex;align-items:center;gap:9px;min-width:0}
+.buddy-set-indicators .buddy-set-bars{flex:0 0 auto}
+.buddy-rest-inline{display:inline-flex;align-items:baseline;gap:5px;border:1px solid #486953;border-radius:10px;background:#233d2e;padding:5px 8px;white-space:nowrap}
+.buddy-rest-inline small{font-size:9px;font-weight:850;letter-spacing:.06em}
+.buddy-rest-inline strong{font-size:16px;line-height:1;font-variant-numeric:tabular-nums;color:inherit}
+@media(max-width:380px){.buddy-set-indicators{gap:5px}.buddy-rest-inline{gap:4px;padding:5px}.buddy-set-indicators .buddy-set-bars i{width:20px}}
+.shell:has(.home-command-center) .home-dashboard-stage:has(.home-dash-nutrition){overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain}
+.home-dash-nutrition .home-dashboard-footer{position:sticky;bottom:0;padding:7px 0 4px;background:inherit;z-index:1}
+.home-food-picker{display:grid;gap:6px;max-height:min(43dvh,340px);overflow:auto;padding:4px 0}
+.home-food-pick{display:flex;align-items:center;gap:12px;padding:10px 11px;border:1px solid #c9d8cc;border-radius:11px}
+.home-food-pick[hidden]{display:none}
+.home-food-pick input{width:19px;height:19px;flex:0 0 auto}
+.home-food-pick span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.home-food-pick strong{font-size:13px;overflow-wrap:anywhere}
+.home-food-pick small{font-size:11px;color:#829388}
