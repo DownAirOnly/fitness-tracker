@@ -8,7 +8,10 @@ Use this design for future requests involving a month calendar unless explicitly
 - Background matches the selected dark-green Home tab (#385844 in dark mode), and day numbers are white.
 - A *recorded* workout: light-green outlined circle around the number (not a solid fill).
 - A *projected* workout: dotted white outlined circle, never confused with a recorded workout.
-- No marker is meaningful without source records or an explicitly explained estimate.
+- No marker is meaningful without source records or an explicitly explained estimate. A saved weekly schedule takes precedence over history-based spacing estimates; scheduled days remain dotted until a workout is logged.
+- The calendar header can open an editable schedule with weekday-to-routine assignments. The schedule lives in the Lifting account data, not device-only layout preferences.
+- Under workout calendars, the current design includes a two-day training-load anatomical overlay: red for muscles trained today, yellow for yesterday, unmarked otherwise. This is not physiological recovery measurement.
+
 - Keep day buttons keyboard-focusable with accessible date and marker labels; visually distinguish today without adding a competing status circle.
 - Host screens own data, month state, click handling, and the outcome of choosing a day. The shared component only renders.
 - For Workout Calendar, source recorded days from workout history and lifts, and project only when past training intervals are consistent. All projections are estimates, not scheduled workouts.
