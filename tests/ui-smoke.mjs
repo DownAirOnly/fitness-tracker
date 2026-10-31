@@ -38,7 +38,7 @@ const fixture=join(temp,'cloud.mjs');
 await writeFile(fixture,`
  import {CloudSession,nextRecord} from '${new URL('cloud-model.js',root)}';
  export const state={user:'alice',records:new Map(),fail:false,callback:null};
- const store={read:async uid=>state.records.get(uid)||null,write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
+ const store={read:async uid=>state.records.get(uid)||null,write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');if(state.holdSave){state.holdSave=false;await new Promise(resolve=>{state.releaseSave=resolve;});}const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
  export const cloudError=e=>e.message;
  export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
@@ -164,13 +164,9 @@ try{
   assert.equal(document.querySelector('header .home-settings svg')?.tagName.toLowerCase(),'svg','Settings uses a matched vector icon');
   assert.ok(document.querySelector('header .home-settings circle[cx="12"][cy="12"]'),'gear center remains concentric after navigation');
   await click('home-add-menu');
-  assert.equal(document.querySelectorAll('.home-add-options .home-add-option').length,3,'Add menu has three direct actions');
-  const topDumbbell=document.querySelector('.home-add-options [data-action="buddy-launch"] svg');
-  const bottomDumbbell=document.querySelector('nav.nav [data-action="gym"] svg');
-  assert.equal(topDumbbell.innerHTML,bottomDumbbell.innerHTML,'Add and bottom bar share the same dumbbell path');
-  assert.ok(topDumbbell.innerHTML.includes('m6.5 6.5 11 11'),'improved dumbbell remains intact');
-  await click('close');
-  assert.ok(!document.querySelector('main .loading-offline-option'),'normal loading never inserts a flex sibling that crushes Home');
+ assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add launches Food entry directly');
+ await click('close');
+ assert.ok(!document.querySelector('main .loading-offline-option'),'normal loading never inserts a flex sibling that crushes Home');
   assert.deepEqual([...document.querySelectorAll('.home-dashboard-tabs button')].map(e=>e.textContent),['Nutrition','Lifting','Money'],'Nutrition and Money dashboard tabs swapped');
   document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
   assert.ok(document.querySelector('.home-dash-finance'),'finance dashboard uses manual cash records without repetitive headings');
@@ -184,22 +180,24 @@ try{
   assert.equal(document.querySelector('.home-dash-nutrition .home-dash-value'),null,'no filler heading in Nutrition dashboard');
   await click('home');
   assert.ok(document.querySelector('.home-dash-nutrition'),'chosen dashboard survives navigation');
-  document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
-  await click('home-add-menu');await click('home-log-food');
-  assert.ok(document.querySelector('form[data-form="food"]'),'Add > Food opens existing Food form');
-  assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home shortcut opens today rather than an older selected date');
-  await click('close');
-  await click('home-add-menu');await click('buddy-launch');
-  assert.ok(document.querySelector('.buddy-start-list'),'Add > Workout opens existing Workout Buddy picker');
-  await click('close');
-  await click('home-add-menu');await click('home-log-finance');
-  assert.ok(document.querySelector('.home-finance-modal'),'Add > Spending opens shared Finance modal');
+  document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
+ assert.ok(document.querySelectorAll('.home-dashboard-food-grid .food-card').length<=4,'Home defaults to four food cards');
+ await click('home-food-customize');
+ assert.ok(document.querySelector('.home-food-picker'),'Home foods are customizable');
+ await click('home-food-customize-reset');
+ await click('home-add-menu');
+ assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add skips chooser');
+ assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home food shortcut uses today');
+ await click('close');
+ document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
+ await click('home-add-menu');
+ assert.ok(document.querySelector('.home-finance-modal'),'Add > Spending opens shared Finance modal');
   assert.ok(document.querySelector('form[data-form="finance"]'),'Spending reuses finance validation and fields');
   assert.equal(document.querySelector('nav.nav [data-action="home"]').getAttribute('aria-current'),'page','modal does not navigate away from Home');
   await click('close');
   assert.ok(document.querySelector('.home-command-center'),'cancel restores the same Home');
   assert.equal(document.querySelector('nav.nav [data-action="home"]').getAttribute('aria-current'),'page');
-  await click('home-add-menu');await click('home-log-finance');
+  await click('home-add-menu');
   await submit('finance',{amount:'3.50',description:'Quick modal test',date:todayCalendarDate(),category:'Convenience Food'});
   assert.ok(document.querySelector('.home-command-center'),'saving spending returns to Home');
   assert.ok(!document.querySelector('.home-finance-modal'),'saved spending overlay closes');
@@ -659,10 +657,10 @@ try{
  assert.ok(!document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set'));
  if(document.querySelector('[data-action="buddy-toggle-history"]')){
   await click('buddy-toggle-history');
-  const row=document.querySelector('.buddy-history-rest-both');
-  assert.ok(row,'history and rest share a row during active rest');
-  assert.ok(row.querySelector('.buddy-compact-history'),'expanded history remains in its own column');
-  assert.ok(row.querySelector('[data-buddy-rest]'),'countdown remains visible alongside expanded history');
+  const row=document.querySelector('.buddy-history-rest-row');
+  assert.ok(row,'history remains full-width during rest');
+  assert.ok(row.querySelector('.buddy-compact-history'),'history expansion is contained');
+  assert.ok(document.querySelector('.buddy-set-indicators [data-buddy-rest]'),'rest timer remains in the set status');
   await click('buddy-toggle-history');
  }
  document.querySelector('[name=buddyWeight]').value='120';
@@ -777,7 +775,16 @@ try{
  await submit('finance',{amount:'4.25',description:'Logged while cloud unavailable',date:'2026-10-27',category:'Convenience Food'});
  const pendingNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data);
  assert.ok(pendingNotebook.transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'new finance log is retained in recovery while cloud pending');
- state.fail=false;await click('cloud-retry');assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
+ // A slow cloud confirmation must not destroy a new screen or its active modal.
+ state.fail=false;state.holdSave=true;await click('cloud-retry');
+ await click('progress');await click('weight');
+ const weightDialogDuringSync=document.querySelector('.modal');
+ assert.ok(weightDialogDuringSync,'a new editor stays open while cloud save is pending');
+ assert.equal(typeof state.releaseSave,'function','test save is held until the editor opens');
+ state.releaseSave();await tick();await tick();
+ assert.equal(document.querySelector('.modal'),weightDialogDuringSync,'cloud acknowledgement does not replace a newer editor');
+ await click('close');
+ assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
  assert.ok(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'local finance log syncs after retry');
  await click('finances');await click('finance-transactions-open');await click('finance-edit');await click('finance-delete');
  assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.length,0,'test transaction cleanup leaves existing cloud fixture intact');

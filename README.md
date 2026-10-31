@@ -2,6 +2,13 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.1 — Navigation and usability patch
+
+- Cloud save confirmations no longer rebuild new screens or active dialogs.
+- Home Add directly opens Food, the selected Workout Buddy routine, or Spending; Food shows four automatic quick cards or up to six customized local cards.
+- Buddy history stays full width, rest moves to set status, and muscle art anchors to the title.
+- Native iOS packaging is deferred; v100 becomes an interface/workflow milestone.
+
 A small mobile-first web app for food, lifting, progress, and finances. The Home command center places today's calorie/protein numbers above compact Food, Workout and Spending actions; a swipable dashboard shows finance, lifting or nutrition insights. Weight is available in Progress. On the first visit after 6 a.m. local time each day, the app may offer an optional weigh-in prompt with **Enter later**.
 
 ## v99.4 — Streamlined Home and consistent header (verification build)
