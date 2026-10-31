@@ -2319,3 +2319,72 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
 /* Body fat range now has just its two endpoint dates. */
 .bodyfat-progress-chart .weight-chart-range{display:flex;justify-content:space-between;gap:8px}
 .bodyfat-progress-chart .weight-chart-range span:last-child{margin-left:auto;text-align:right}
+
+/* v99.7: history and active rest timer share one row, without popover overlap. */
+.buddy-exercise-view .buddy-history-rest-row{
+ display:block;min-width:0;flex:0 0 auto;margin:0 0 6px;
+}
+.buddy-exercise-view .buddy-history-rest-both{
+ display:grid;grid-template-columns:minmax(0,1fr) 112px;align-items:start;gap:8px;
+}
+.buddy-exercise-view .buddy-history-rest-row .buddy-history-preview{
+ min-width:0;margin:0;z-index:auto;
+}
+.buddy-exercise-view .buddy-history-rest-row .buddy-last-toggle{
+ min-width:0;min-height:52px;height:auto;
+}
+.buddy-exercise-view .buddy-history-rest-both .buddy-last-toggle>span:first-child{
+ display:grid;align-content:center;gap:2px;min-width:0;
+}
+.buddy-exercise-view .buddy-history-rest-both .buddy-last-toggle small{
+ display:block;font-size:10px;line-height:1.2;overflow:hidden;
+ text-overflow:ellipsis;white-space:nowrap;
+}
+.buddy-exercise-view .buddy-history-rest-both .buddy-last-toggle b{
+ display:block;font-size:10px;line-height:1.2;overflow:hidden;
+ text-overflow:ellipsis;white-space:nowrap;
+}
+.buddy-exercise-view .buddy-history-rest-row .buddy-compact-history{
+ position:static;left:auto;right:auto;top:auto;max-height:86px;
+ margin:4px 0 0;overflow-y:auto;box-shadow:none;
+}
+.buddy-exercise-view .buddy-history-rest-both .buddy-compact-history>div{
+ display:grid;gap:1px;margin-bottom:4px;overflow-wrap:anywhere;
+}
+.buddy-exercise-view .buddy-history-rest-both .buddy-rest-timer{
+ display:flex;flex-direction:column;justify-content:center;align-items:center;
+ align-self:start;gap:3px;min-height:52px;margin:0;padding:5px 6px;
+}
+.buddy-exercise-view .buddy-history-rest-both .buddy-rest-timer strong{
+ font-size:27px;line-height:1;white-space:nowrap;
+}
+@media(max-width:380px){
+ .buddy-exercise-view .buddy-history-rest-both{grid-template-columns:minmax(0,1fr) 100px;gap:6px}
+ .buddy-exercise-view .buddy-history-rest-both .buddy-rest-timer strong{font-size:23px}
+}
+/* Next exercise: visible, horizontally scrollable completed cards with muscle peeks. */
+.buddy-picker-screen .buddy-progress{flex:0 0 auto;margin-bottom:10px}
+.buddy-picker-completed{flex:0 0 auto;min-width:0;margin:0 0 9px}
+.buddy-picker-completed-head{
+ display:flex;align-items:center;justify-content:space-between;
+ margin-bottom:6px;gap:8px;color:#789583;font-size:11px;
+}
+.buddy-picker-completed-head strong{font-weight:800;text-transform:uppercase;letter-spacing:.07em}
+.buddy-completed-exercise-strip{
+ display:flex;gap:9px;overflow-x:auto;overflow-y:hidden;min-width:0;
+ padding:2px 2px 7px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+ scrollbar-width:thin;
+}
+.buddy-completed-exercise-strip .exercise-muscle-wrapper{
+ flex:0 0 min(265px,76vw);width:min(265px,76vw);
+}
+.buddy-completed-exercise-strip .exercise-card{
+ min-height:92px;opacity:.84;border-color:#648a6d;
+}
+.buddy-completed-exercise-strip .exercise-card-summary{color:#7eaa89}
+.buddy-completed-exercise-strip .exercise-card-trailing{color:#9ac4a2}
+.buddy-picker-screen .buddy-picker-head h1{font-size:clamp(27px,8vw,40px)}
+.buddy-picker-screen .buddy-picker-head p:not(.eyebrow){margin:5px 0 9px}
+[data-theme="dark"] .buddy-completed-exercise-strip .exercise-card{
+ background:#1b3023;border-color:#4b7858;
+}
