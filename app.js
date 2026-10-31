@@ -2372,7 +2372,7 @@ document.addEventListener('click',async event=>{
     routineDeletedStack.push({routine:structuredClone(deleted),index,wasSelected:workout===deleted.name});
     data.workoutTemplates.splice(index,1);
     if(workout===deleted.name)workout=data.workoutTemplates[0]?.name||'';
-    close(true);await persist();render();routineManager();return;
+    close(true);render();routineManager();void persist();return;
   }
   if(action==='routine-undo-delete'){
     const undo=routineDeletedStack.at(-1);if(!undo)return;
@@ -2382,7 +2382,7 @@ document.addEventListener('click',async event=>{
     data.workoutTemplates.splice(Math.min(undo.index,data.workoutTemplates.length),0,restored);
     routineDeletedStack.pop();
     if(undo.wasSelected)workout=restored.name;
-    await persist();render();routineManager();return;
+    render();routineManager();void persist();return;
   }
   if(action==='edit-workout'){workoutTemplateForm(workout);return;}
   if(action==='workout-move'){workoutEditorCapture();const i=Number(el.dataset.index),d=Number(el.dataset.direction),j=i+d;if(!workoutEditorState||!Number.isInteger(i)||!Number.isInteger(j)||j<0||j>=workoutEditorState.exercises.length)return;[workoutEditorState.exercises[i],workoutEditorState.exercises[j]]=[workoutEditorState.exercises[j],workoutEditorState.exercises[i]];workoutTemplateForm(null,true);return;}
@@ -2504,7 +2504,7 @@ document.addEventListener('click',async event=>{
   }
   if(action==='new-food-def'){foodDefinitionForm(null,'library');return;}
   if(action==='edit-food-def'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'library');return;}
-  if(action==='delete-food-def'){const origin=el.dataset.origin||'library';data.foods=data.foods.filter(x=>x.id!==el.dataset.id);close(true);await persist();if(origin==='library')foodLibrary();else render();return;}
+  if(action==='delete-food-def'){const origin=el.dataset.origin||'library';data.foods=data.foods.filter(x=>x.id!==el.dataset.id);close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(action==='time-step'||action==='time-clear'||action==='time-now'){
     const input=el.closest('[data-time-stepper]')?.querySelector('[data-time-value]');
     if(!input)return;
@@ -2566,7 +2566,7 @@ document.addEventListener('click',async event=>{
   if(action==='edit-lift'){liftForm(data.lifts.find(x=>x.id===el.dataset.id));return;}
   if(action==='add-set'){const wrap=document.querySelector('#sets'),last=wrap.lastElementChild;wrap.insertAdjacentHTML('beforeend',setRow(wrap.children.length,{weight:last?.querySelector('[name=weight]')?.value||0,reps:last?.querySelector('[name=reps]')?.value||8,difficulty:last?.querySelector('[name=difficulty]')?.value||''}));const row=wrap.lastElementChild;requestAnimationFrame(()=>row.querySelector('[name=weight]')?.focus());return;}
   if(action==='remove-set'){const wrap=document.querySelector('#sets');if(wrap.children.length>1){el.closest('.set-row').remove();[...wrap.children].forEach((r,i)=>r.firstElementChild.textContent=i+1);}return;}
-  if(action.startsWith('delete-')) {if(!confirm('Delete this item?'))return;const key={'delete-entry':'foodEntries','delete-card':'foods','delete-lift':'lifts','delete-weight':'weights','delete-body-fat':'bodyFat'}[action];data[key]=data[key].filter(x=>x.id!==el.dataset.id);close(true);persist();return;}
+  if(action.startsWith('delete-')) {if(!confirm('Delete this item?'))return;const key={'delete-entry':'foodEntries','delete-card':'foods','delete-lift':'lifts','delete-weight':'weights','delete-body-fat':'bodyFat'}[action];data[key]=data[key].filter(x=>x.id!==el.dataset.id);close(true);render();void persist();return;}
   if(action==='finance-bofa-import'){financeBankModal();return;}
    if(action==='finance-export-enrichment'){financeExportEnrichment();return;}
    if(action==='finance-enrichment-paste'){financeEnrichmentPaste();return;}
@@ -2719,7 +2719,7 @@ app.addEventListener('submit',async event=>{
      const next=structuredClone(data);next.classificationRules=normalizeClassificationRules(
        existing?next.classificationRules.map(r=>r.id===existing.id?rule:r):[...next.classificationRules,rule]);
      const checked=normalizeData(next);if(account&&!offlineWorkspace)encodeState(checked);
-     data=checked;close(true);await persist();page='classificationRules';render();
+     data=checked;close(true);page='classificationRules';render();void persist();
     }catch(error){alert(error.message);}return;
    }
   if(form.dataset.form==='finance'||form.dataset.form==='finance-edit'){
@@ -2744,16 +2744,12 @@ app.addEventListener('submit',async event=>{
      const saveButton=form.querySelector('button[type="submit"]');
      if(saveButton)saveButton.disabled=true;
      data=candidate;financeNotice=editing?'Transaction updated.':'Transaction added.';
-     if(editing)close(true);
-     try{
-      const saved=await persist();
-      if(!saved){financeNotice='Entry is in this session, but saving needs attention. Check the sync warning or export a backup.';refreshSyncIndicators();}
-      else if(form.dataset.quickFinance==='true'&&form.isConnected&&document.querySelector('.modal')===form.closest('.modal')){close(true);render();homeSavedToast('Transaction saved');}
-     }catch(error){
-      financeNotice='Entry remains in this session, but saving needs attention. Export a backup before leaving.';refreshSyncIndicators();
-     }finally{
-      if(form.isConnected){delete form.dataset.financeSubmitting;if(saveButton)saveButton.disabled=false;}
-     }
+     const quick=form.dataset.quickFinance==='true';
+     close(true);render();
+     if(quick)homeSavedToast('Transaction saved on this device');
+     void persist().then(saved=>{
+      if(!saved){financeNotice='Entry saved locally; cloud sync needs attention.';refreshSyncIndicators();}
+     }).catch(()=>{financeNotice='Entry remains in this session; export a backup if sync fails.';refreshSyncIndicators();});
      return;
    }
    if(form.dataset.form==='offline-workspace'){
@@ -2784,7 +2780,7 @@ app.addEventListener('submit',async event=>{
     if(v.returnTo==='routine'&&created&&workoutEditorState&&!workoutEditorState.exercises.some(e=>e.exerciseId===created.id)){
       workoutEditorState.exercises.push({exerciseId:created.id,repMin:6,repMax:12,targetSets:2,restSeconds:90});
     }
-    close(true);await persist();
+    close(true);void persist();
     if(v.returnTo==='routine'&&workoutEditorState)workoutTemplateForm(null,true);else render();
     return;
   }
@@ -2802,11 +2798,11 @@ app.addEventListener('submit',async event=>{
     }
     if(state.isNew)data.workoutTemplates.push({id:id(),name,exercises:structuredClone(state.exercises)});
     else{const existing=data.workoutTemplates?.find(w=>w.id===state.id);if(!existing)return alert('This routine was not found.');existing.name=name;existing.exercises=structuredClone(state.exercises);}
-    workout=name;workoutEditorState=null;close(true);await persist();render();return;
+    workout=name;workoutEditorState=null;close(true);render();void persist();return;
   }
-  if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();await persist();return;}
-  if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};persist();return;}
-  if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,lastUsed:new Date().toISOString()});close(true);await persist();if(origin==='library')foodLibrary();else render();return;}
+  if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
+  if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
+  if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
     const draft=foodDraftFromForm(form,foodBatch.length>0);
     if(draft===false||(!draft&&!foodBatch.length))return;
@@ -2849,12 +2845,11 @@ app.addEventListener('submit',async event=>{
     buddyUpsertLift(session,exercise);
     const {sessionId,fromFullHistory}=state;
     routineHistoryEditDraft=null;
-    await persist();
-    routineHistoryDetail(sessionId,fromFullHistory);
+    routineHistoryDetail(sessionId,fromFullHistory);void persist();
     return;
   }
-  if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);persist();return;}
-  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),...next});if(v.date===currentTrackingDate())markWeightPromptSeen(currentTrackingDate());close(true);persist();return;}
+  if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);render();void persist();return;}
+  if(form.dataset.form==='weight') {const value=Number(v.value);if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.weights.push({id:id(),...next});if(v.date===currentTrackingDate())markWeightPromptSeen(currentTrackingDate());close(true);render();void persist();return;}
   if(form.dataset.form==='body-fat'){const value=Number(v.value);if(!Number.isFinite(value)||value<=0||value>100||!v.date)return alert('Enter a body-fat percentage from 0.1 to 100 and a date.');const item=(data.bodyFat||[]).find(x=>x.id===v.bodyFatId);const next={date:v.date,value};if(item){Object.assign(item,next);delete item.source;delete item.recordedAt;}else data.bodyFat.push({id:id(),...next});close(true);persist();return;}
   if(form.dataset.form==='import') {
     const pasted=v.source==='paste',file=pasted?null:form.querySelector('[name=file]')?.files?.[0];if(!pasted&&!file)return;
@@ -2933,7 +2928,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.3');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
