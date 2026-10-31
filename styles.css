@@ -2413,3 +2413,36 @@ body:has(.home-command-center) #app{height:100dvh;overflow:hidden}
 .home-food-pick span{display:flex;flex-direction:column;gap:3px;min-width:0}
 .home-food-pick strong{font-size:13px;overflow-wrap:anywhere}
 .home-food-pick small{font-size:11px;color:#829388}
+
+/* v99.7.2: numbered, stable-order Home food selection. */
+.home-food-picker .home-food-pick{width:100%;display:flex;align-items:center;text-align:left;gap:12px;background:#f8faf6;color:inherit;cursor:pointer;font:inherit}
+.home-food-picker .home-food-pick.selected{background:#e7f1e5;border-color:#729d79}
+.home-food-pick .home-food-position{flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:#e2e8e0;color:#596f5c;font-size:15px;font-weight:850}
+.home-food-pick.selected .home-food-position{background:#315e3d;color:white}
+.home-food-pick .home-food-pick-copy{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:3px}
+.home-food-count{font-size:12px;color:#617865;margin:0 0 8px}
+[data-theme="dark"] .home-food-picker .home-food-pick{background:#1d3024;border-color:#3f6049;color:#e6f3e6}
+[data-theme="dark"] .home-food-picker .home-food-pick.selected{background:#294b35;border-color:#79a581}
+[data-theme="dark"] .home-food-pick .home-food-position{background:#38523e;color:#dce9de}
+[data-theme="dark"] .home-food-pick.selected .home-food-position{background:#9ec3a1;color:#173624}
+/* Lifting glance content scrolls inside Home, not behind the navigation dock. */
+.shell:has(.home-command-center) .home-dashboard-stage:has(.home-dash-lifting){overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain}
+.home-lifting-week{border-top:1px solid #e9eee8;padding-top:8px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.home-lifting-week span,.home-lifting-recent>span{font-size:11px;color:#728575}
+.home-lifting-week strong{font-size:12px;color:#28543a;text-align:right}
+.home-lifting-recent{display:grid;gap:4px;padding-top:3px}
+.home-lifting-recent-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-top:4px}
+.home-lifting-recent-row span{font-size:12px;font-weight:650;color:#31563c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-lifting-recent-row small{font-size:10px;color:#728575;text-align:right;white-space:nowrap}
+.home-dash-lifting .home-dashboard-footer{position:sticky;bottom:0;background:inherit;padding:7px 0 4px;z-index:1}
+[data-theme="dark"] .home-lifting-week,[data-theme="dark"] .home-lifting-recent{border-color:#36503b}
+[data-theme="dark"] .home-lifting-week strong,[data-theme="dark"] .home-lifting-recent-row span{color:#cae9cc}
+/* Rest is integrated at the right of the large bottom action button. */
+.buddy-exercise-view .buddy-a-with-rest{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:14px}
+.buddy-a-with-rest .buddy-action-label{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px;opacity:1}
+.buddy-a-with-rest .buddy-action-label>span{font-size:12px;opacity:.78}
+.buddy-a-with-rest .buddy-action-label>b{line-height:1.1}
+.buddy-a-with-rest .buddy-rest-in-action{flex:0 0 auto;min-width:70px;display:flex;flex-direction:column;align-items:flex-end;gap:2px;opacity:1;border-left:1px solid rgba(255,255,255,.28);padding-left:14px}
+.buddy-a-with-rest .buddy-rest-in-action small{font-size:10px;line-height:1.1;color:#c6e4d1;font-weight:800;letter-spacing:.09em}
+.buddy-a-with-rest .buddy-rest-in-action strong{font:750 clamp(20px,5vw,29px)/1.08 'Outfit',sans-serif;color:#fff;font-variant-numeric:tabular-nums}
+@media(max-width:380px){.buddy-exercise-view .buddy-a-with-rest{gap:8px;padding-left:13px;padding-right:13px}.buddy-a-with-rest .buddy-rest-in-action{min-width:59px;padding-left:8px}}

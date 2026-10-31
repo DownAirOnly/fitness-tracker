@@ -4,7 +4,9 @@
 
 ## Current direction — October 31, 2026
 
-- **v99.7.1 pending patch:** Save acknowledgements preserve newer screens; Home Add follows the selected dashboard; Home shows four automatic food cards or up to six local custom choices; Workout Buddy keeps history full width, moves the rest countdown to set status and anchors muscle diagrams to the heading. iPhone verification required.
+- **v99.7.2 patch (pending validation):** Home quick foods retain saved positions, and customization numbers items by selection order from 1–6; default cards are frozen rather than moving when lastUsed changes. Lifting Home Add opens the routine selector; the Lifting glance adds previous sessions and actual seven-day set/workout counts. Workout Buddy moves the rest countdown to the right side of the large bottom action, removing it from the top row. No finance, storage schema or backend changes.
+
+- **v99.7.1 deployed patch:** Save acknowledgements preserve newer screens; Home Add follows the selected dashboard; Home shows four automatic food cards or up to six local custom choices; Workout Buddy keeps history full width, moves the rest countdown to set status and anchors muscle diagrams to the heading. iPhone verification required.
 - **Roadmap supersession:** v99.8 UI review, v99.9 stabilization, **v100 stable PWA interface/workflow milestone, not native iOS**. Capacitor/TestFlight deferred; earlier v100-native statements below are historical.
 - **Money after UI:** Prioritize safe-to-spend/paycheck-period guidance. The nine-row transfer correction is still unconfirmed.
 
