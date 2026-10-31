@@ -1,7 +1,7 @@
 // v98.1 — independent, complete sections of a single Everyday notebook.
 // All shared transforms validate via normal notebook schemas; never copy one
 // section's fields into another. Web and iOS use the same versioned contract.
-import {normalizeData,encodeData,emptyData} from './data.js?v=98';
+import {normalizeData,encodeData,emptyData} from './data.js?v=99.7.4';
 
 export const ACCOUNT_SECTIONS=['nutrition','lifting','finances'];
 export const SECTION_KEYS={
