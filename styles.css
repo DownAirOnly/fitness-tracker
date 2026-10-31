@@ -2457,7 +2457,7 @@ body{position:fixed;inset:0;width:100%;margin:0}
 #app>.shell>main{flex:1 1 auto;min-height:0;max-height:100%;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y}
 #app>.shell:has(.home-command-center)>main{overflow:hidden;touch-action:auto}
 #app>.nav{position:fixed!important;z-index:20;bottom:0;left:0;right:0;transform:none!important;max-width:760px;margin:0 auto}
-body:has(.modal input:focus,.modal textarea:focus,.modal select:focus) #app>.nav{visibility:hidden;pointer-events:none}
+/* Navigation stays visible and anchored while iOS native inputs/selects change focus. */
 /* Shared calendar: design contract in CALENDAR_DESIGN.md */
 .ed-calendar{margin:0;border:0;border-radius:17px;padding:14px 12px;background:#385844;color:#fff;min-width:0}
 .ed-calendar-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
@@ -2543,3 +2543,54 @@ body:has(.modal input:focus,.modal textarea:focus,.modal select:focus) #app>.nav
 .workout-schedule-day>span{min-width:38px;font-size:13px;font-weight:800}
 .workout-schedule-day select{flex:1 1 auto;min-width:0;min-height:42px;border:1px solid #57725c;border-radius:10px;padding:8px;color:inherit;background:#243d2b;font-size:13px}
 .workout-schedule-form .form-actions{margin-top:8px}
+
+/* v99.7.5: iPhone viewport consistency.
+   Never fix the BODY: WebKit can leave its hit-testing viewport offset after native select dismissal.
+   App and its dock instead share one stable fixed coordinate system. */
+html,body{height:100%;min-height:0;max-height:100%;overflow:hidden!important;overscroll-behavior:none}
+body{position:static!important;inset:auto!important;width:100%;margin:0}
+#app{position:fixed;inset:0;width:100%;height:100dvh;max-height:100dvh;overflow:hidden;isolation:isolate}
+#app>.shell{height:100%;max-height:100%;overflow:hidden;overscroll-behavior:none}
+#app>.nav{position:absolute!important;bottom:0;left:0;right:0;z-index:30!important;visibility:visible!important;pointer-events:auto!important;transform:none!important}
+#overlay:not(:empty){position:relative;z-index:40}
+#overlay:empty{pointer-events:none}
+/* Home stays non-scrolling; calendar content must fit its existing fixed stage. */
+.shell:has(.home-command-center) .home-dashboard-stage:has(.home-dash-lifting),
+.shell:has(.home-command-center) .home-dashboard-stage:has(.home-dash-nutrition){overflow:hidden!important;touch-action:auto!important}
+.home-lifting-calendar{min-height:0!important;height:100%;justify-content:flex-start!important;gap:7px!important;padding:10px!important;overflow:hidden!important}
+.home-lifting-calendar .ed-calendar{flex:0 0 auto;border-radius:13px;padding:9px 12px 8px}
+.home-lifting-calendar .ed-calendar-header{margin-bottom:2px;gap:6px}
+.home-lifting-calendar .ed-calendar-header strong{font-size:15px}
+.home-lifting-calendar .ed-calendar-arrows button{width:29px;height:29px;font-size:20px}
+.home-lifting-calendar .ed-calendar-grid{gap:0px 2px}
+.home-lifting-calendar .ed-calendar-weekday{font-size:9px;padding:3px 0}
+.home-lifting-calendar .ed-calendar-day{width:30px;height:30px;font-size:12px}
+.home-lifting-calendar .ed-calendar-day span{width:28px;height:28px}
+.home-lifting-calendar .ed-calendar-empty{height:30px}
+.home-lifting-calendar .ed-calendar-day.projected span{border-width:1.5px}
+.home-lifting-calendar .ed-calendar-day.completed span{border-width:1.5px}
+.home-lifting-calendar .ed-calendar-footer{display:flex;justify-content:flex-end;margin-top:3px;padding-top:3px;border-top:1px solid #ffffff23}
+.home-lifting-calendar .ed-calendar-schedule{border:1px solid #ffffff55;border-radius:8px;background:#ffffff12;color:#fff;padding:5px 13px;font-size:11px;font-weight:800;min-height:30px}
+/* Reuse Workout Buddy's existing colored routine-choice surfaces, compressed for Home. */
+.home-recovery-panel{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,73fr) minmax(75px,27fr);align-items:stretch;gap:7px;padding:7px 9px;overflow:hidden}
+.home-recent-routines{min-width:0;min-height:0;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:5px;align-content:stretch}
+.home-recent-routines button{min-height:0;width:100%;padding:6px 9px;border-radius:9px;gap:5px;overflow:hidden}
+.home-recent-routines button span{min-width:0;display:grid;gap:1px}
+.home-recent-routines button strong{font-size:12px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-recent-routines button small{font-size:9px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-recent-routines button b{font-size:17px;opacity:.75}
+.home-no-routines{font-size:11px;color:#b1c8b8;margin:auto 0}
+.home-recovery-anatomy{height:100%;min-height:0}
+.home-recovery-anatomy .muscle-recovery-pair{max-height:100%;height:100%}
+.home-recovery-anatomy .muscle-recovery-view .muscle-body{height:auto;max-height:min(140px,100%);object-fit:contain}
+/* Default 6-card quick foods never need an extra paging control. */
+.home-dash-nutrition .home-dashboard-food-grid .food-card{min-height:0}
+.home-dash-nutrition .home-dashboard-food-grid{grid-template-rows:repeat(3,minmax(0,1fr));gap:7px;flex:1 1 auto;min-height:0}
+.home-dash-nutrition .home-dashboard-food-grid .food-main{min-height:0;height:100%;padding:24px 10px 7px}
+.home-dash-nutrition .home-dashboard-food-grid .food-card{height:100%}
+.home-dash-nutrition .home-dashboard-food-grid .food-main strong{font-size:11px;line-height:1.18}
+.home-dash-nutrition .home-dashboard-food-grid .food-card-nutrition{margin-top:3px!important}
+.home-dash-nutrition .home-dashboard-food-grid .food-card-add{margin-top:4px!important}
+.home-dash-nutrition .home-food-footer{flex:0 0 auto;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:7px}
+.home-dash-nutrition .home-food-footer:has([data-action="home-food-page"]){grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-height:740px){.home-lifting-calendar .ed-calendar-day,.home-lifting-calendar .ed-calendar-empty{height:26px}.home-lifting-calendar .ed-calendar-day span{height:25px;width:25px}.home-lifting-calendar .ed-calendar{padding:7px 10px}.home-recent-routines button{padding:4px 7px}.home-dash-nutrition .home-dashboard-food-grid .food-main{padding:22px 8px 6px}}
