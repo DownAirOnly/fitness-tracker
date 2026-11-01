@@ -524,6 +524,12 @@ try{
  assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(el=>el.dataset.id),orderedFoodIds,'cards retain fixed order on rerender');
 
  assert.ok(document.querySelector('.home-dashboard-food-grid .food-card'),'Nutrition reuses actual saved-food cards from the Food tab');
+ assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card:first-child .food-card-macro').length,2,'Home cards show separate calories/protein figures');
+ assert.ok(document.querySelector('.home-dashboard-food-grid .food-card-title-area .food-card-name'),'food title lives in its own upper area');
+ assert.equal(document.querySelector('.home-dashboard-food-grid .food-card-add'),null,'no redundant + Add to today text');
+ const homeCard=document.querySelector('.home-dashboard-food-grid .food-card');
+ assert.ok(homeCard.querySelector('.card-edit'),'card retains its three-dot action');
+ assert.ok(!homeCard.querySelector('.food-main .card-edit'),'three-dot button is not nested in log action');
  assert.ok(document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]'),'quick add uses the same saved-food action');
  assert.ok(!document.querySelector('.home-dashboard-content').textContent.includes('Meals you know'),'no redundant filler about favorite meals');
  const foodFromHome=document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]');
@@ -942,7 +948,12 @@ try{
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'),'saved card opens normal food form');assert.equal(document.querySelector('[data-form="food"] [name="date"]').value,'2025-01-02');await submit('food',{quantity:'0.5'});
  let current=JSON.parse(state.records.get('bob').payload);assert.equal(current.foodEntries.at(-1).date,'2025-01-02');assert.equal(current.foodEntries.at(-1).quantity,0.5);assert.ok(document.querySelector('.food-undo-toast'));
  await click('undo-food-add');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,countBeforeSaved,'saved-food undo removes only the new entry');
- await click('today');assert.ok(document.querySelector('.food-card-add').textContent.includes('Add to today'));
+ await click('today');
+ assert.ok(document.querySelector('.food-card .food-card-macros'),'Food page shares the title/macros layout');
+ assert.equal(document.querySelectorAll('.food-card .food-card-macro').length>=2,true,'Food cards show calories and protein');
+ assert.equal(document.querySelector('.food-card-add'),null,'the food card is directly tappable without Add text');
+ assert.ok(stylesheet.includes('.food-card .food-card-title-area::before'),'title reserves the edit button area before wrapping');
+ assert.ok(stylesheet.includes('float:right;width:41px;height:35px'),'title's first lines cannot overlap the upper-right menu');
  assert.ok(!document.querySelector('.food-preview').textContent.includes('History food'));
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'));await submit('food',{quantity:'1'});current=JSON.parse(state.records.get('bob').payload);
  assert.equal(current.foodEntries.at(-1).date,todayCalendarDate(),'new food entries use their actual calendar date, even before the tracking-day reset');
