@@ -2810,3 +2810,18 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .daily-food-card :is(.food-preview-heading,.food-preview,.food-log-open){
  margin-left:17px;margin-right:17px
 }
+
+/* v99.7.10 — consistent dock clearance, measured from Money's existing
+   18px final-action margin. Main is the only scroll area; the dock remains
+   a sibling in the app flex layout. Reserve the same interior bottom gutter
+   for Home and every scrollable page, without changing header/metric anchors. */
+#app>.shell>main{
+ --page-bottom-gap:18px;
+ padding-bottom:var(--page-bottom-gap);
+ scroll-padding-bottom:var(--page-bottom-gap);
+}
+/* Previously the last block could contribute 8–27px of different margins.
+   Use the main gutter instead so there is exactly one source of spacing. */
+#app>.shell>main:not(:has(.home-command-center)) > :last-child{
+ margin-bottom:0!important;
+}
