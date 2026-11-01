@@ -2,7 +2,7 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
-## v99.7.7.1 — Native-menu viewport and shared routine cards
+## v99.7.8 — Native-menu viewport and shared routine cards
 
 - Anchor layout to the viewport with a theme-matched background and normalize accidental document scroll on select/modal dismissal; check the reported black strip on iPhone.
 - Reuse the colored routine-card component in Workout Buddy and Home; month arrows have wider hit areas.
