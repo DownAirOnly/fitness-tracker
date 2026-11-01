@@ -28,6 +28,7 @@ const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('/* No overlapping arms: padded and separated fixed anatomy columns. */'),'recovery figures occupy distinct columns');
+assert.ok(stylesheet.includes('/* v99.7.13 — daily check-in: optional body-fat entry alongside weight. */'),'paired measurement inputs have mobile grid styling');
 const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
@@ -910,9 +911,20 @@ try{
  fullBodySelect.value='Full body';fullBodySelect.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
  assert.equal(document.querySelector('[data-routine-select]').value,'Full body','routine selector changes the exercise list');
  const lateralCard=[...document.querySelectorAll('.exercise-list .exercise')].find(el=>el.dataset.name==='Lateral Raise');assert.ok(lateralCard,'Full body contains canonical Lateral Raise');assert.ok(lateralCard.textContent.includes('Last:'),'legacy Dumbbell Lateral Raises history resolves to Lateral Raise');assert.ok(!lateralCard.textContent.includes('First time'),'canonical history prevents false first-time state');
- await click('progress');await click('weight');await submit('weight',{value:'180',date:'2026-09-20'});
+ await click('progress');await click('weight');
+ assert.ok(document.querySelector('form[data-form="weight"] [name="bodyFatValue"]'),'new manual weigh-in includes optional body-fat field');
+ assert.equal(document.querySelector('form[data-form="weight"] [name="bodyFatValue"]').required,false,'body fat remains optional');
+ await submit('weight',{value:'180',date:'2026-09-20'});
  await click('progress');await click('body-fat');await submit('body-fat',{value:'22.4',date:'2026-09-20'});
  await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
+ // The same weight form can update a day's body fat without creating duplicates.
+ await click('progress');await click('weight');
+ await submit('weight',{value:'180',bodyFatValue:'22.8',date:'2026-09-20'});
+ const combinedMeasurements=JSON.parse(state.records.get('bob').payload);
+ assert.equal(combinedMeasurements.bodyFat.length,1,'daily check-in updates same-date body fat without duplicate entries');
+ assert.equal(combinedMeasurements.bodyFat[0].value,22.8,'optional body-fat value persists with weight');
+ assert.equal(combinedMeasurements.weights.length,1,'re-entered same-day weight updates instead of duplicating');
+
  await click('settings');assert.ok(document.querySelector('.version-badge'),'version remains visible');
  let exported;const originalCreate=URL.createObjectURL;URL.createObjectURL=blob=>{exported=blob;return 'blob:test';};
  dom.window.HTMLAnchorElement.prototype.click=function(){};
