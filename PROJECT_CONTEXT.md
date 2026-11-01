@@ -4,6 +4,9 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.11 design parity (iPhone check pending):** Home and Food daily nutrition now share a metric markup helper and styling: calories/protein numbers, font, positions, units, goal type and bar widths/heights/positions are identical; per-page meter/card colors remain. Standard full-size Food quick-card renderer is reused in Home using only a compact `food-card--compact` modifier, retaining the Food card’s title/footer treatment and edit/accuracy elements. Home selector now reads Eat / Workout / Spend. First paint matches. Preserve fixed iPhone viewport and 18px dock clearance. No data/model or cloud changes.
+
+
 - **v99.7.10 dock-spacing pass (iPhone visual sign-off pending):** The Money overview's 18px trailing gap is now the single consistent `main` bottom gutter across Home, Food, Lifting, Money, Progress, History and Settings. Home's dashboard flex stage shrinks to leave the same gutter, and scrollable pages have last-child margins neutralized to avoid double spacing. Fixed header and calorie/protein top anchors are unchanged. User confirmed the native/context-menu top black strip is fixed on their iPhone after v99.7.9; do not rework the validated viewport fix in this release. No persistence/model changes.
 
 
