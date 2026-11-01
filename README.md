@@ -2,6 +2,14 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.12 — screenshot-guided interface correction
+
+- Retain six Home quick-add cards while restoring the standard Food cards' title size, macro band, edit control and accuracy icon.
+- Keep front/back muscle SVGs as large as they fit in two separate padded columns, with no arm overlap, and center the Schedule control vertically.
+- Use exactly the same scaleX-based progress fill calculations for Home and Food while preserving separate colors.
+- Replace the asterisk header mark with the supplied transparent Minimal Peak SVG, the favicon with the supplied dark SVG, and regenerate PWA/apple-touch PNGs from that icon.
+- Keep the iPhone viewport fixes, shared dock spacing, account and data behavior.
+
 ## v99.7.11 — shared nutrition metrics and quick-food cards
 
 - Home and Food now render daily calories/protein with one shared numeric + progress-meter component. Font face, font size, units, goal text, bar height, width, top offset and left edge match exactly when switching Home ↔ Food. Each page retains its established foreground/background and meter-fill colors.

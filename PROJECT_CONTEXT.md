@@ -4,6 +4,9 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.12 — review patch pending iPhone signoff:** Restore near-full Food-card typography and controls on six-card Home; prevent anatomy overlap via independently clipped, padded SVG columns; center calendar Schedule button; apply one shared scaleX bar-fill calculation for Home/Food; install supplied Minimal Peak header mark and dark app/website favicon/PWA icons. Keep the verified iOS viewport solution and shared dock clearance. No data changes.
+
+
 - **v99.7.11 design parity (iPhone check pending):** Home and Food daily nutrition now share a metric markup helper and styling: calories/protein numbers, font, positions, units, goal type and bar widths/heights/positions are identical; per-page meter/card colors remain. Standard full-size Food quick-card renderer is reused in Home using only a compact `food-card--compact` modifier, retaining the Food card’s title/footer treatment and edit/accuracy elements. Home selector now reads Eat / Workout / Spend. First paint matches. Preserve fixed iPhone viewport and 18px dock clearance. No data/model or cloud changes.
 
 
