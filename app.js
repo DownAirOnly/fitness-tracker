@@ -477,7 +477,13 @@ function homeDashboardCard(view){
  return '<article class="home-dashboard-content home-dash-nutrition">'+
   (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
    '<p class="home-dashboard-empty">No saved foods</p>')+
-  '<div class="home-dashboard-footer home-food-footer">'+button('Customize','home-food-customize','home-dash-link')+(pageCount>1?button((homeFoodPage+1)+' / '+pageCount+' ↻','home-food-page','home-dash-link','aria-label="Show next food cards"'):'')+button('Plan','home-food-plan','home-dash-link')+'</div></article>';
+  '<div class="home-dashboard-footer home-food-footer">'+button('Customize','home-food-customize','home-dash-link')+(pageCount>1?'<div class="home-food-pager" role="group" aria-label="Quick food pages">'+
+    '<button type="button" data-action="home-food-page" data-step="-1" aria-label="Previous food page">‹</button>'+
+    '<span class="home-food-page-position" aria-label="Page '+(homeFoodPage+1)+' of '+pageCount+'">'+
+    (pageCount<=4?Array.from({length:pageCount},(_,index)=>'<i class="'+(index===homeFoodPage?'active':'')+'"></i>').join(''):
+    '<small>'+(homeFoodPage+1)+' / '+pageCount+'</small>')+'</span>'+
+    '<button type="button" data-action="home-food-page" data-step="1" aria-label="Next food page">›</button>'+
+    '</div>':'')+button('Plan','home-food-plan','home-dash-link')+'</div></article>';
 }
 
 function home(loading=false) {
@@ -1078,7 +1084,7 @@ function recentFoodRelogSection(){
 }
 function foodLog(){
   const entries=foodEntriesNewestFirst(data.foodEntries.filter(e=>currentFoodTrackingDate(e)===chosenDate));
-  modal(`Food log · ${niceDate(chosenDate)}`,`<div class="food-log-totals">${foodTotals(foodDayTotals(chosenDate))}</div><p class="hint">${esc(chosenDate)} · ${entries.length} entr${entries.length===1?'y':'ies'} · untimed entries first · then newest recorded time</p><div class="full-food-log">${entries.length?entries.map(e=>`<div class="list-row"><span><strong>${esc(e.name)}</strong><small>${foodEntryDetail(e)}</small></span>${button('Log again','food-relog','outline small',`data-id="${esc(e.id)}" aria-label="Log ${esc(e.name)} again"`)}${button('Edit','edit-entry','text-btn',`data-id="${esc(e.id)}" aria-label="Edit ${esc(e.name)}"`)}</div>`).join(''):empty('Nothing logged for this date yet.')}</div><div class="form-actions spaced">${button('+ Add food','new-food','primary')}</div>`);
+  modal('All food entries',`<div class="date-row tracking-date food-log-date">${input('Viewing date','date',chosenDate,'date','required aria-label="Food log date"')}${button('Today','food-log-today','outline small','aria-label="View today"')}</div><div class="food-log-totals">${foodTotals(foodDayTotals(chosenDate))}</div><p class="hint">${esc(chosenDate)} · ${entries.length} entr${entries.length===1?'y':'ies'} · untimed entries first · then newest recorded time</p><div class="full-food-log">${entries.length?entries.map(e=>`<div class="list-row"><span><strong>${esc(e.name)}</strong><small>${foodEntryDetail(e)}</small></span>${button('Log again','food-relog','outline small',`data-id="${esc(e.id)}" aria-label="Log ${esc(e.name)} again"`)}${button('Edit','edit-entry','text-btn',`data-id="${esc(e.id)}" aria-label="Edit ${esc(e.name)}"`)}</div>`).join(''):empty('Nothing logged for this date yet.')}</div><div class="form-actions spaced">${button('+ Add food','new-food','primary')}</div>`);
 }
 
 const foodKindLabel=kind=>kind==='drink'?'Drink':'Food';
