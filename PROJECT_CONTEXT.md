@@ -4,6 +4,10 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.13 daily check-in (iPhone review pending):** The once-daily first-open weight prompt now includes a second optional body-fat percentage field adjacent to weight. A shared date/save action saves weight, and body fat only when entered, with same-date upsert to avoid duplicating Shortcut-synced readings. New manual weigh-ins support both fields; edit-weight and the separate Progress body-fat editor retain their behavior. No model/cloud changes.
+- **DEFERRED BUG / NEXT HEALTH WORK:** The iPhone Health Shortcut intermittently fails. Diagnose invocation, Shortcuts automation/permissions, app foreground/return, callback handshake, stale/duplicate readings and recovery messaging. **Do not change or claim to fix the Shortcut in v99.7.13.** Keep the manual daily body-fat fallback available regardless of Shortcut status.
+
+
 - **v99.7.12 — review patch pending iPhone signoff:** Restore near-full Food-card typography and controls on six-card Home; prevent anatomy overlap via independently clipped, padded SVG columns; center calendar Schedule button; apply one shared scaleX bar-fill calculation for Home/Food; install supplied Minimal Peak header mark and dark app/website favicon/PWA icons. Keep the verified iOS viewport solution and shared dock clearance. No data changes.
 
 

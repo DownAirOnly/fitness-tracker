@@ -2,6 +2,14 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.13 — optional body fat beside weight in the daily check-in
+
+- The once-per-tracking-day weight prompt now displays side-by-side **Weight** and **Body fat % (optional)** inputs, sharing one date and Save action.
+- Saving weight alone leaves body-fat records untouched. Entering body fat writes a separate body-fat measurement, updating an existing same-date record instead of creating a duplicate (including data previously supplied by the Health Shortcut).
+- New manual weigh-ins use the same paired fields; editing an existing weigh-in still edits only weight. The dedicated body-fat editor in Progress is unchanged.
+- **Deferred:** Investigate recurring iPhone Health Shortcut reliability: invocation failures, permission/automation behaviors, import callbacks, background/foreground timing, and duplicate/stale readings. Do not change the Shortcut integration in this release.
+- No changes to existing stored records, cloud schemas, or iPhone viewport behavior.
+
 ## v99.7.12 — screenshot-guided interface correction
 
 - Retain six Home quick-add cards while restoring the standard Food cards' title size, macro band, edit control and accuracy icon.

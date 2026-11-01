@@ -2995,3 +2995,12 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  flex:0 0 auto;min-height:30px;display:inline-flex;
  align-items:center;justify-content:center;
 }
+
+/* v99.7.13 — daily check-in: optional body-fat entry alongside weight. */
+.measurement-fields{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:12px;align-items:start;min-width:0;
+}
+.measurement-fields .field{min-width:0}
+.measurement-fields input{width:100%;min-width:0;font-size:16px}
+@media(max-width:350px){.measurement-fields{gap:8px}}
