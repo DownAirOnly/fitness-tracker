@@ -4,6 +4,9 @@
 
 ## v99.7.7 — Home controls, stable dock and focused dates
 
+- Context-menu viewport mitigation: absolute root plus native-select scroll normalization and theme-matched document background (iPhone verification pending).
+- Month navigation buttons now have roughly double-width tap areas. The same colored routine-choice card component serves Workout Buddy and recent routines on Home.
+
 - Home dashboard labels: Eat / Work out / Spend, with an equally sized plus-only fourth action. Bottom Finances becomes Money with a dollar-sign SVG.
 - Home quick food paging uses centered dots and separate back/forward chevrons; 1–6 remain the first page.
 - Home card titles are larger and retain the dedicated three-dot clearance. Workout Home recent routines and diagrams share a roughly 50/50 split, with the two anatomy figures staggered diagonally and enlarged.
