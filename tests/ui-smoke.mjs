@@ -25,6 +25,9 @@ assert.ok(stylesheet.includes('.home-command-center > .home-dashboard{margin-bot
 const initialGear=dom.window.document.querySelector('header .home-settings svg');
 assert.ok(initialGear.querySelector('circle[cx="12"][cy="12"][r="3.25"]'),'gear center concentric with viewBox');
 const firstPaintGear=initialGear.innerHTML;
+assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
+assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
+assert.ok(stylesheet.includes('/* No overlapping arms: padded and separated fixed anatomy columns. */'),'recovery figures occupy distinct columns');
 const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
