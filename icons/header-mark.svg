@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Everyday Minimal Peak logo: sun above a rising mountain and a stylized capital E">
+  <defs>
+    <linearGradient id="cream" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#fff9f0"/><stop offset="1" stop-color="#eee1cd"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffbc29"/><stop offset="1" stop-color="#ff9715"/>
+    </linearGradient>
+    <linearGradient id="ridge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#91d4a1"/><stop offset="1" stop-color="#61bba0"/>
+    </linearGradient>
+    <linearGradient id="letter" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1e4cc"/>
+    </linearGradient>
+    <clipPath id="sun-clip" clipPathUnits="userSpaceOnUse">
+      <!-- The sun ends above the mountain crest, leaving a clean negative-space gap. -->
+      <path d="M 0 0 H 512 V 290 L 454 244 L 321 138 Q 314 130 306 139 L 236 212 L 197 185 Q 187 177 181 186 L 58 338 L 43 347 L 0 385 Z"/>
+    </clipPath>
+    <clipPath id="rounded"><rect width="512" height="512" rx="93"/></clipPath>
+  </defs>
+  <g >
+    
+    <circle cx="315" cy="174" r="111" fill="url(#sun)" clip-path="url(#sun-clip)"/>
+    <path d="M 43 370
+  C 47 370 52 367 58 362
+  L 181 210
+  Q 187 201 197 209
+  L 236 236
+  L 306 163
+  Q 314 154 321 161
+  L 454 267
+  Q 461 272 452 272
+  L 432 272
+  Q 420 271 411 266
+  L 365 232
+  L 356 251
+  L 317 213
+  L 285 256
+  L 291 226
+  L 238 277
+  L 195 247
+  L 63 362
+  Q 53 372 43 370 Z" fill="url(#ridge)"/>
+    <path d="M 134 467
+  L 224 318
+  C 235 297 252 292 281 292
+  L 441 292
+  C 432 313 424 326 403 331
+  C 394 334 383 335 369 335
+  L 289 335
+  C 281 335 276 336 270 347
+  L 251 363
+  L 371 363
+  C 355 386 340 400 315 401
+  L 227 401
+  L 206 430
+  L 384 430
+  C 374 455 352 468 323 468
+  Z" fill="url(#letter)"/>
+  </g>
+</svg>
