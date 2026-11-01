@@ -426,7 +426,7 @@ function selectHomeDashboard(next){
   item.classList.toggle('selected',selected);
  }
  const title=shell.querySelector('[data-home-dashboard-title]');
- if(title)title.textContent=({finances:'Spend',lifting:'Work out',nutrition:'Eat'})[next];
+ if(title)title.textContent=({finances:'Spend',lifting:'Workout',nutrition:'Eat'})[next];
 }
 let homeSwipeStart=null;
 document.addEventListener('touchstart',event=>{
@@ -496,16 +496,14 @@ function homeDashboardCard(view){
 function home(loading=false) {
  const date=demoMode?DEMO_LAST_DATE:currentTrackingDate(),totals=foodDayTotals(date);
  const calTarget=data.settings.calories,proteinTarget=data.settings.protein;
- const metric=(name,value,target,unit,cls)=>'<div class="home-metric '+cls+'"><div class="home-metric-label">'+name+'</div>'+
-  '<div class="home-metric-value"><span class="home-metric-current">'+(loading?'—':value)+'<small>'+unit+'</small></span><span class="home-metric-separator"> / </span><span class="home-metric-target">'+(loading?'—':target)+'<small>'+unit+'</small></span></div>'+
-  '<div class="home-meter"><span style="width:'+(loading?0:Math.min(100,Math.max(0,value/Math.max(target,1)*100)))+'%"></span></div></div>';
+ const metric=(name,value,target,unit,cls)=>'<div class="home-metric '+cls+'">'+nutritionMetricContent(name,value,target,unit,loading,true)+'</div>';
  return '<div class="home-command-center"><section class="home-metrics" aria-label="Today nutrition">'+
    metric('CALORIES',Math.round(totals.calories),calTarget,'','calories')+
    metric('PROTEIN',Math.round(totals.protein),proteinTarget,'g','protein')+'</section>'+
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
-    HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Spend':view==='lifting'?'Work out':'Eat','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
+    HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Spend':view==='lifting'?'Workout':'Eat','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
    '</nav>'+button('<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger',loading?'disabled':'aria-label="Add to selected dashboard"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
@@ -1055,8 +1053,23 @@ function financeCsvPaste(){
  form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste prepared transaction CSV from ChatGPT, preview the rows, then confirm. Screenshots are processed in ChatGPT, not uploaded to Everyday.</p>');
 }
 
+// Home and Food render the same nutrition label, number and meter geometry.
+// Parent cards retain their own colors and behavior; the values never relocate.
+function nutritionMetricContent(label,value,target,unit='',loading=false,homeContext=false){
+ const amount=loading?'—':Math.round(value),goal=loading?'—':target;
+ const suffix=unit?'<small class="nutrition-total-unit">'+unit+'</small>':'';
+ const percent=loading?0:Math.min(100,Math.max(0,value/Math.max(1,target)*100));
+ return '<small class="nutrition-total-label'+(homeContext?' home-metric-label':'')+'">'+label+'</small>'+
+  '<span class="nutrition-total-value '+(homeContext?'home-metric-value':'food-total-number')+'">'+
+    '<strong class="nutrition-total-current'+(homeContext?' home-metric-current':'')+'">'+amount+suffix+'</strong>'+
+    '<span class="nutrition-total-separator'+(homeContext?' home-metric-separator':'')+'"> / </span>'+
+    '<span class="nutrition-total-target'+(homeContext?' home-metric-target':'')+'">'+goal+suffix+'</span></span>'+
+  '<span class="nutrition-total-meter '+(homeContext?'home-meter':'bar')+'"><span style="width:'+percent+'%"></span></span>';
+}
 function foodTotals(totals){
-  return `<span class="food-total-grid"><span><small>CALORIES</small><span class="food-total-number"><strong>${Math.round(totals.calories)}</strong><span>/ ${data.settings.calories}</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.calories/data.settings.calories*100))}%;background:#d8eb86"></span></span></span><span><small>PROTEIN</small><span class="food-total-number"><strong>${Math.round(totals.protein)}g</strong><span>/ ${data.settings.protein}g</span></span><span class="bar"><span style="width:${Math.min(100,Math.max(0,totals.protein/data.settings.protein*100))}%;background:#9fd9bf"></span></span></span></span>`;
+ return '<span class="food-total-grid">'+
+  '<span class="nutrition-total-cell">'+nutritionMetricContent('CALORIES',totals.calories,data.settings.calories)+'</span>'+
+  '<span class="nutrition-total-cell">'+nutritionMetricContent('PROTEIN',totals.protein,data.settings.protein,'g')+'</span></span>';
 }
 function foodEntryDetail(e){return `${e.t!=null?(currentFoodTrackingDate(e)!==e.date?niceDate(e.date)+' · ':'')+foodTimeLabel(e.t)+' · ':''}${fmt(e.calories*e.quantity)} cal · ${fmt(e.protein*e.quantity)}g protein${e.quantity!==1?` · ${fmt(e.quantity)} servings`:''}`;}
 function foodMatches(name){
@@ -1106,7 +1119,7 @@ function nutritionAccuracyIcon(food){
 function foodQuickCard(food,pinned=false,homeContext=false){
  // One shared card for Food and Home: entire content opens food entry,
  // while the independent three-dot edit button remains usable above it.
- return '<div class="food-card '+(pinned?'food-card-pinned':'')+'">'+
+ return '<div class="food-card '+(pinned?'food-card-pinned':'')+(homeContext?' food-card--compact':'')+'">'+
    '<button type="button" class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'" aria-label="Log '+esc(food.name)+'">'+
      '<span class="food-card-title-area"><strong class="food-card-name">'+esc(food.name)+'</strong>'+
        (hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'</span>'+
@@ -2981,7 +2994,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.10',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.11',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3041,7 +3054,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7.10');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.11');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
