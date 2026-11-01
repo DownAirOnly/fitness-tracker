@@ -2830,53 +2830,53 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
    The two Food columns and two Home cards already have the same x anchors;
    use the same contents, font, baseline, gap and bar sizing for both. */
 .home-metric .nutrition-total-label,
-.daily-food-card .nutrition-total-label{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-label{
  display:block;font:800 10px/12px 'DM Sans',sans-serif;
  letter-spacing:1.2px;margin:0;
 }
 .home-metric .nutrition-total-value,
-.daily-food-card .nutrition-total-value{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value{
  display:flex;align-items:baseline;flex-wrap:nowrap;gap:0;
  font:700 clamp(26px,5.5vw,35px)/1.1 'Outfit',sans-serif;
  letter-spacing:-.9px;font-variant-numeric:tabular-nums;
  margin:5px 0 3px;white-space:nowrap;min-width:0;
 }
 .home-metric .nutrition-total-value>.nutrition-total-current,
-.daily-food-card .nutrition-total-value>.nutrition-total-current{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value>.nutrition-total-current{
  font:inherit!important;letter-spacing:inherit;
  color:inherit;display:inline;min-width:0;
 }
 .home-metric .nutrition-total-value .nutrition-total-unit,
-.daily-food-card .nutrition-total-value .nutrition-total-unit{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-unit{
  display:inline!important;font:600 15px/1 'Outfit',sans-serif!important;
  letter-spacing:0;margin:0 0 0 2px!important;
 }
 .home-metric .nutrition-total-value .nutrition-total-separator,
 .home-metric .nutrition-total-value .nutrition-total-target,
-.daily-food-card .nutrition-total-value .nutrition-total-separator,
-.daily-food-card .nutrition-total-value .nutrition-total-target{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-separator,
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-target{
  display:inline;font:500 12px/1.2 'Outfit',sans-serif;
  letter-spacing:0;white-space:nowrap;margin:0;
 }
 .home-metric .nutrition-total-target .nutrition-total-unit,
-.daily-food-card .nutrition-total-target .nutrition-total-unit{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-target .nutrition-total-unit{
  font:inherit!important;letter-spacing:inherit;margin:0!important;
 }
 .home-metric .nutrition-total-meter,
-.daily-food-card .nutrition-total-meter{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-meter{
  display:block;width:100%;height:5px;margin:8px 0 0;
  padding:0;border-radius:999px;overflow:hidden;
 }
 .home-metric .nutrition-total-meter>span,
-.daily-food-card .nutrition-total-meter>span{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-meter>span{
  display:block;height:100%;border-radius:inherit;
 }
-.daily-food-card .nutrition-total-value{color:#fff}
-.daily-food-card .nutrition-total-value .nutrition-total-separator,
-.daily-food-card .nutrition-total-value .nutrition-total-target{color:#c3d3c4}
-.daily-food-card .nutrition-total-meter{background:#345644}
-.daily-food-card .nutrition-total-cell:first-child .nutrition-total-meter>span{background:#d8eb86}
-.daily-food-card .nutrition-total-cell:last-child .nutrition-total-meter>span{background:#9fd9bf}
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value{color:#fff}
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-separator,
+:is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-target{color:#c3d3c4}
+:is(.daily-food-card,.food-log-totals) .nutrition-total-meter{background:#345644}
+:is(.daily-food-card,.food-log-totals) .nutrition-total-cell:first-child .nutrition-total-meter>span{background:#d8eb86}
+:is(.daily-food-card,.food-log-totals) .nutrition-total-cell:last-child .nutrition-total-meter>span{background:#9fd9bf}
 .home-metric .nutrition-total-value{color:#193b2a}
 .home-metric .nutrition-total-value .nutrition-total-separator,
 .home-metric .nutrition-total-value .nutrition-total-target{color:#647c6c}
@@ -2931,7 +2931,7 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .brand .brand-mark{display:block;width:31px;height:31px;flex:0 0 31px;object-fit:contain}
 /* The two bars share identical fill math, radii, and endpoints. */
 .home-metric .nutrition-total-meter>span,
-.daily-food-card .nutrition-total-meter>span{
+:is(.daily-food-card,.food-log-totals) .nutrition-total-meter>span{
  width:100%!important;transform-origin:0 50%;
  transform:scaleX(var(--nutrition-fill,0));border-radius:inherit;
 }
@@ -3004,3 +3004,14 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .measurement-fields .field{min-width:0}
 .measurement-fields input{width:100%;min-width:0;font-size:16px}
 @media(max-width:350px){.measurement-fields{gap:8px}}
+
+/* v99.7.14 — full food-log modal uses exactly the Food tab's metric
+   typography and bar geometry. The shared selectors above also cover the
+   modal: its protein unit must stay inline instead of inheriting the
+   legacy .food-total-grid small {display:block} rule. */
+.food-log-totals .food-total-grid{gap:10px}
+.food-log-totals .nutrition-total-cell{min-width:0}
+.food-log-totals .nutrition-total-value{overflow:visible}
+.food-log-totals .nutrition-total-value .nutrition-total-unit{
+ display:inline!important;white-space:nowrap;margin-bottom:0!important;
+}
