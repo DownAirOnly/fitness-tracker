@@ -2790,3 +2790,23 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .home-recovery-anatomy .muscle-recovery-view{width:64%!important;height:92%!important}
 .home-recovery-anatomy .muscle-recovery-view:first-child{top:0;left:0;z-index:1}
 .home-recovery-anatomy .muscle-recovery-view:last-child{right:0;bottom:0;z-index:2}
+
+/* v99.7.9 — preserve the calorie/protein number anchors between Home and Food.
+   Both screens begin below the same header. Home's 2px section inset plus
+   11px metric padding matches Food's 13px top inset. The Food card stays a
+   single tappable surface; only its internal metric grid reaches its edges. */
+.daily-food-card{padding:13px 0 17px}
+.daily-food-card .food-total-grid{
+ width:calc(100% + 2px);margin:0 -1px;gap:10px
+}
+.daily-food-card .food-total-grid>span{padding:0 15px}
+.home-metric-label,.daily-food-card .food-total-grid>span>small{
+ font-size:10px;line-height:12px;letter-spacing:1.2px
+}
+.daily-food-card .food-total-number strong{
+ font-size:clamp(26px,5.5vw,35px);line-height:1.1;
+ font-variant-numeric:tabular-nums
+}
+.daily-food-card :is(.food-preview-heading,.food-preview,.food-log-open){
+ margin-left:17px;margin-right:17px
+}
