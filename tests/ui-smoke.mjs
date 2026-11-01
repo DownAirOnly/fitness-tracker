@@ -14,6 +14,9 @@ assert.ok(stylesheet.includes('--page-bottom-gap:18px'),'all pages share Money�
 assert.ok(stylesheet.includes('padding-bottom:var(--page-bottom-gap)'),'Home and scrolling pages reserve dock clearance within main');
 assert.ok(stylesheet.includes('main:not(:has(.home-command-center)) > :last-child'),'scrollable pages do not double the new bottom gutter');
 assert.ok(stylesheet.includes('#buddy-root .buddy-setup-editor input,')&&stylesheet.includes('.routine-history-editor textarea{font-size:16px'),'iOS text inputs use >=16px without disabling pinch zoom');
+assert.ok(stylesheet.includes('v99.7.11 — identical nutrition meter geometry'),'Home and Food share numeric and meter style rules');
+assert.ok(stylesheet.includes('.home-metric .nutrition-total-meter,')&&stylesheet.includes('.daily-food-card .nutrition-total-meter'),'Home and Food share the same bar sizing');
+assert.ok(stylesheet.includes('.food-card--compact{'),'Home food cards use only a compact variant of the standard design');
 assert.ok(stylesheet.includes('.home-metric-separator,.home-metric-target{font:500 12px/1.2'), 'Home slash and target use the Food card 12px goal treatment');
 assert.ok(stylesheet.includes('.home-metric-target small{font:inherit;margin-left:0'), 'Home protein target unit stays the same small size');
 assert.ok(stylesheet.includes('[data-theme="dark"] .home-metric-separator'), 'Home goal maintains subdued dark-mode color');
@@ -26,6 +29,8 @@ const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
 assert.equal(initialHome.querySelectorAll('.home-metric').length,2,'daily totals first');
+assert.equal(initialHome.querySelectorAll('.nutrition-total-value').length,2,'first-paint numbers use the shared metric component');
+assert.equal(initialHome.querySelectorAll('.nutrition-total-meter').length,2,'first-paint meters use the shared sizing component');
 assert.ok(stylesheet.includes('padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))'),'Home dock clearance preserved');
 assert.deepEqual([...initialHome.querySelectorAll('.home-metric-value')].map(el=>el.textContent),['— / —','— / —'],'loading skeleton shows inline current / goal');
 assert.equal(initialHome.querySelectorAll('.home-metric-sub').length,0,'obsolete left/over subtitle absent on first paint');
@@ -174,7 +179,7 @@ try{
  assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add launches Food entry directly');
  await click('close');
  assert.ok(!document.querySelector('main .loading-offline-option'),'normal loading never inserts a flex sibling that crushes Home');
-  assert.deepEqual([...document.querySelectorAll('.home-dashboard-tabs button')].map(e=>e.textContent),['Eat','Work out','Spend'],'Home uses action verbs');
+  assert.deepEqual([...document.querySelectorAll('.home-dashboard-tabs button')].map(e=>e.textContent),['Eat','Workout','Spend'],'Home uses action verbs');
   document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
   assert.ok(document.querySelector('.home-dash-finance'),'finance dashboard uses manual cash records without repetitive headings');
   assert.ok(!document.querySelector('.home-dashboard-heading,.home-dashboard-eyebrow'),'Home dashboard has only its tabs, not extra headings');
@@ -216,6 +221,7 @@ try{
   assert.ok(document.querySelector('.home-dash-nutrition'),'chosen dashboard survives navigation');
   document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
  assert.ok(document.querySelectorAll('.home-dashboard-food-grid .food-card').length<=6,'Home page displays up to six food cards');
+ assert.ok([...document.querySelectorAll('.home-dashboard-food-grid .food-card')].every(el=>el.classList.contains('food-card--compact')),'Home renders the standard food card with a compact modifier');
   assert.equal(document.querySelector('.home-dashboard-food-grid .food-favorite'),null,'shared cards do not display favorite stars');
  await click('home-food-customize');
  assert.ok(document.querySelector('.home-food-picker'),'Home foods are customizable');
@@ -966,6 +972,9 @@ try{
  await click('undo-food-add');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,countBeforeSaved,'saved-food undo removes only the new entry');
  await click('food-log');await click('food-log-today');await click('close');
  assert.ok(document.querySelector('.food-card .food-card-macros'),'Food page shares the title/macros layout');
+ assert.equal(document.querySelectorAll('.daily-food-card .nutrition-total-value').length,2,'Food uses the shared metric markup');
+ assert.equal(document.querySelectorAll('.daily-food-card .nutrition-total-meter').length,2,'Food uses the shared meter markup');
+ assert.equal(document.querySelector('.food-card--compact'),null,'Food tab uses full-size standard cards without the Home modifier');
  assert.equal(document.querySelectorAll('.food-card .food-card-macro').length>=2,true,'Food cards show calories and protein');
  assert.equal(document.querySelector('.food-card-add'),null,'the food card is directly tappable without Add text');
  assert.ok(stylesheet.includes('.food-card .food-card-title-area::before'),'title reserves the edit button area before wrapping');
