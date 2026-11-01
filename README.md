@@ -2,6 +2,12 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.14 — fix full food-log protein wrapping and progress alignment
+
+- The **All food entries** modal now uses the same shared Food nutrition metric styling as the Food tab and Home. Before this patch the v99.7.11 scoped typography and inline-`g` rules did not apply to the modal, causing both protein units to wrap beneath the numbers and dropping its progress bar.
+- Apply the same unit, current/goal, label and progress-bar rules to the modal using the shared CSS selector. Keep both units inline, and both calorie/protein bars level, without changing totals, entry dates, or any records.
+- Add UI-smoke assertions for modal metric cells, unit markup and matching shared style rules. No data, Shortcut, or other screen changes.
+
 ## v99.7.13 — optional body fat beside weight in the daily check-in
 
 - The once-per-tracking-day weight prompt now displays side-by-side **Weight** and **Body fat % (optional)** inputs, sharing one date and Save action.

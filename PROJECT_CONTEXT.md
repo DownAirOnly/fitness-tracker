@@ -4,6 +4,9 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.14 full food-log modal fix (iPhone sign-off pending):** The Food page's shared nutrition metric CSS previously excluded `.food-log-totals`, leaving its legacy small-label styles to turn current and goal protein `g` into separate lines and misalign its progress bar. Extend the shared metric and `scaleX` meter selectors to the All food entries modal, preserve page-specific colors and both inline units. No measurement or logging logic changes.
+
+
 - **v99.7.13 daily check-in (iPhone review pending):** The once-daily first-open weight prompt now includes a second optional body-fat percentage field adjacent to weight. A shared date/save action saves weight, and body fat only when entered, with same-date upsert to avoid duplicating Shortcut-synced readings. New manual weigh-ins support both fields; edit-weight and the separate Progress body-fat editor retain their behavior. No model/cloud changes.
 - **DEFERRED BUG / NEXT HEALTH WORK:** The iPhone Health Shortcut intermittently fails. Diagnose invocation, Shortcuts automation/permissions, app foreground/return, callback handshake, stale/duplicate readings and recovery messaging. **Do not change or claim to fix the Shortcut in v99.7.13.** Keep the manual daily body-fat fallback available regardless of Shortcut status.
 
