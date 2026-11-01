@@ -4,6 +4,13 @@
 
 ## Current direction — October 31, 2026
 
+- **v99.7.7 interface patch (device verification required):** Home selection labels are Eat, Work out, Spend, and a plus-only equal-width action. Bottom Finances renamed Money with dollar-sign SVG. Nutrition Home paging now shows center-position dots and separate previous/next controls instead of a number/number plus odd arrow. Home food card names use a larger consistent clamp while preserving the existing three-dot text exclusion.
+- **Lifting Home:** Routines and recent training anatomy now use equal columns. Front SVG is larger and aligned upper-left, back SVG larger and lower-right, using a diagonal composition; no underlying workout or workload logic changed.
+- **Viewport:** The dock is an in-flow flex sibling of the shell, no separate shell bottom padding, to eliminate the extra strip above bottom nav without clipping. Validate on iPhone after modal/focus changes.
+- **Dates:** The header shows a plain tracking date with no tap action. Food main has no date selector; the full All food entries modal has the date selector and Today button. Changing that date refreshes Food and full log together. History retains explicit date jumping.
+- **No Money functionality or user data changes.** v99.7.6 was deployed successfully, and v99.7.7 still requires CI, merge, Pages and real-device visual validation.
+
+
 - **v99.7.6 visual-only card patch (device verification pending):** One shared Food/Home food card. Remove the redundant “+ Add to today” line. Main card tap still opens food-entry form, and the three-dot edit action remains independent. Title occupies the upper ~2/3 with a float-reserved menu space on the upper-right so long names wrap beneath it, rather than overlap. Lower ~1/3 displays calories and protein as two visually distinct numeric fields. Compact styling for six Home cards, with standard Food tab dimensions, keeps the six-per-page layout unchanged. No saved data, finance, navigation, cloud schema or workout updates.
 
 

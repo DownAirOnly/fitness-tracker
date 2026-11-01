@@ -2,6 +2,15 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.7 — Home controls, stable dock and focused dates
+
+- Home dashboard labels: Eat / Work out / Spend, with an equally sized plus-only fourth action. Bottom Finances becomes Money with a dollar-sign SVG.
+- Home quick food paging uses centered dots and separate back/forward chevrons; 1–6 remain the first page.
+- Home card titles are larger and retain the dedicated three-dot clearance. Workout Home recent routines and diagrams share a roughly 50/50 split, with the two anatomy figures staggered diagonally and enlarged.
+- The app uses a flex-height shell plus an in-flow bottom dock; this removes the extra padded strip above the dock while preserving the bottom safe area.
+- Header date is display-only. Food's date picker and Today shortcut live in All food entries; Food main is no longer duplicated with its own date picker. History still has its own date-jump controls.
+- No saved record, account schema, finance or native packaging changes.
+
 ## v99.7.6 — Shared food-card visual refinement
 
 - Food and Home share a two-zone card: readable multi-line name above and side-by-side calorie/protein figures below; no redundant Add instruction.
