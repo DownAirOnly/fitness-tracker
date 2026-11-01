@@ -28,6 +28,10 @@ const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('/* No overlapping arms: padded and separated fixed anatomy columns. */'),'recovery figures occupy distinct columns');
+assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-value'),'Food page and full-log modal use shared value geometry');
+assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-unit'),'protein unit has matching inline rules inside modal');
+assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-meter>span'),'modal progress fill uses identical sizing and scale');
+
 assert.ok(stylesheet.includes('/* v99.7.13 — daily check-in: optional body-fat entry alongside weight. */'),'paired measurement inputs have mobile grid styling');
 const initialHome=dom.window.document.querySelector('.home-command-center');
 assert.ok(initialHome,'first paint uses the compact Home layout');
@@ -974,7 +978,11 @@ try{
   assert.equal(document.querySelector('.food-total-number strong').textContent,String(420+i*200));
  }
  assert.deepEqual([...document.querySelectorAll('.food-preview-row strong')].map(e=>e.textContent),['History food 5','History food 4','History food 3']);
- await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,6);
+ await click('food-log');
+ assert.equal(document.querySelectorAll('.food-log-totals .nutrition-total-value').length,2,'full-log modal shares the Food metric structure');
+ assert.equal(document.querySelectorAll('.food-log-totals .nutrition-total-meter').length,2,'full-log modal has both matching meter tracks');
+ assert.equal(document.querySelectorAll('.food-log-totals .nutrition-total-unit').length,2,'protein current and goal units use inline shared styling');
+ assert.equal(document.querySelectorAll('.full-food-log .list-row').length,6);
  assert.ok(document.querySelector('.modal').textContent.includes('2025-01-02'));
  await click('edit-entry');await submit('food',{name:'Edited historical food',calories:'150',protein:'15',quantity:'2'});
  assert.equal(document.querySelector('.food-total-number strong').textContent,'1520');
