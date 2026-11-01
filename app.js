@@ -340,11 +340,18 @@ function recentMuscleWorkload(){
   (e.sets?.length||0)+(e.activeSetStartedAt?1:0));
  return result;
 }
+// Shared by Workout Buddy's routine chooser and the Home recent-routines dashboard.
+function routineChoiceCard({action,name,detail,id='',workout='',disabled=false}){
+ return '<button type="button" class="buddy-routine-choice" data-action="'+esc(action)+'"'+
+   (id?' data-id="'+esc(id)+'"':'')+(workout?' data-workout="'+esc(workout)+'"':'')+
+   (disabled?' disabled':'')+'><span><strong>'+esc(name)+'</strong><small>'+esc(detail)+'</small></span><b aria-hidden="true">›</b></button>';
+}
 function recentRoutineRecoveryPanel(){
  const sessions=recentRoutineSessions().slice(0,3),map=recentMuscleWorkload();
  const rows=sessions.map(session=>{
   const details=routineSessionCounts(session),date=routineFinishedDate(session);
-  return '<button type="button" data-action="routine-history-detail" data-id="'+esc(session.id)+'"><span><strong>'+esc(session.type||'Workout')+'</strong><small>'+esc(date?niceDate(date):'Date unavailable')+' · '+details.exercises+' exercises · '+details.sets+' sets</small></span><b aria-hidden="true">›</b></button>';
+  return routineChoiceCard({action:'routine-history-detail',id:session.id,name:session.type||'Workout',
+   detail:(date?niceDate(date):'Date unavailable')+' · '+details.exercises+' exercises · '+details.sets+' sets'});
  }).join('');
  return '<section class="home-recovery-panel" aria-label="Recent completed routines and muscle training">'+
   '<div class="buddy-start-list home-recent-routines">'+(rows||'<p class="home-no-routines">Completed routines will appear here.</p>')+'</div>'+
@@ -1578,7 +1585,9 @@ function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-c
 
 function buddyRoutinePicker(){
  const active=data.activeWorkout,choices=savedWorkouts().filter(r=>(r.exercises||[]).length>0);
- const rows=choices.map(r=>'<button type="button" data-action="'+(active?'buddy-resume-from-picker':'buddy-start')+'" data-workout="'+esc(r.name)+'"'+(active&&active.type!==r.name?' disabled':'')+'><span><strong>'+esc(r.name)+'</strong><small>'+r.exercises.length+' exercises'+(active&&active.type===r.name?' · Resume active workout':active?' · Finish current workout first':' · Bike warm-up first')+'</small></span><b>›</b></button>').join('');
+ const rows=choices.map(r=>routineChoiceCard({action:active?'buddy-resume-from-picker':'buddy-start',workout:r.name,name:r.name,
+  detail:r.exercises.length+' exercises'+(active&&active.type===r.name?' · Resume active workout':active?' · Finish current workout first':' · Bike warm-up first'),
+  disabled:Boolean(active&&active.type!==r.name)})).join('');
  modal('Choose a routine','<div class="buddy-start-list">'+
   (active&&!choices.some(r=>r.name===active.type)?button('Resume '+esc(active.type),'buddy-resume-from-picker','primary'):'')+
   (rows||'<p class="empty">Add exercises to a routine before starting Workout Buddy.</p>')+'</div>');
@@ -2018,9 +2027,15 @@ function settings() {
   const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
 }
+function normalizeDocumentViewport(){const root=document.scrollingElement;if(root&&root.scrollTop!==0)root.scrollTop=0;if(window.scrollY!==0)window.scrollTo(0,0);}
+document.addEventListener('focusout',event=>{
+ // iOS can leave the document's visual origin displaced after native select menus.
+ // Only reset document scrolling; never replace the active screen or modal contents.
+ if(event.target?.matches?.('select'))requestAnimationFrame(normalizeDocumentViewport);
+},true);
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
 function close(all=false) {pendingDeviceMigration=null;
- const focused=document.activeElement;if(focused?.closest?.('.modal'))focused.blur();if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
+ const focused=document.activeElement;if(focused?.closest?.('.modal'))focused.blur();if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';normalizeDocumentViewport();pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
 function filteredFoodLibrary(){
  let foods=sortFoods(data.foods,foodLibrarySort),q=foodLibrarySearch.trim().toLowerCase();
  if(q)foods=foods.filter(f=>f.name.toLowerCase().includes(q)||foodKindLabel(f.kind).toLowerCase().includes(q)||foodAccuracyLabel(f.accuracy).toLowerCase().includes(q)||(f.tags||[]).some(tag=>tag.includes(q))||(f.pinned&&'pinned'.includes(q)));
@@ -2966,7 +2981,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.7',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.7.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3026,7 +3041,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7.7');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.7.1');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
