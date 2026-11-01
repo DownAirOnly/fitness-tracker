@@ -245,7 +245,7 @@ function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
   const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Money'],['progress','progress','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="mark">✳</span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><img class="brand-mark" src="icons/header-mark.svg" alt="" aria-hidden="true"> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
   modalBack=null;pendingImport=null;importReadToken++;
@@ -1064,7 +1064,7 @@ function nutritionMetricContent(label,value,target,unit='',loading=false,homeCon
     '<strong class="nutrition-total-current'+(homeContext?' home-metric-current':'')+'">'+amount+suffix+'</strong>'+
     '<span class="nutrition-total-separator'+(homeContext?' home-metric-separator':'')+'"> / </span>'+
     '<span class="nutrition-total-target'+(homeContext?' home-metric-target':'')+'">'+goal+suffix+'</span></span>'+
-  '<span class="nutrition-total-meter '+(homeContext?'home-meter':'bar')+'"><span style="width:'+percent+'%"></span></span>';
+  '<span class="nutrition-total-meter '+(homeContext?'home-meter':'bar')+'"><span style="--nutrition-fill:'+(percent/100)+'"></span></span>';
 }
 function foodTotals(totals){
  return '<span class="food-total-grid">'+
@@ -2994,7 +2994,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.11',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.12',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3054,7 +3054,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7.11');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.12');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
