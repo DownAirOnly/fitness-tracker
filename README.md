@@ -2,7 +2,15 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.8 — Native-menu viewport and shared routine cards
+
+- Anchor layout to the viewport with a theme-matched background and normalize accidental document scroll on select/modal dismissal; check the reported black strip on iPhone.
+- Reuse the colored routine-card component in Workout Buddy and Home; month arrows have wider hit areas.
+
 ## v99.7.7 — Home controls, stable dock and focused dates
+
+- Context-menu viewport mitigation: absolute root plus native-select scroll normalization and theme-matched document background (iPhone verification pending).
+- Month navigation buttons now have roughly double-width tap areas. The same colored routine-choice card component serves Workout Buddy and recent routines on Home.
 
 - Home dashboard labels: Eat / Work out / Spend, with an equally sized plus-only fourth action. Bottom Finances becomes Money with a dollar-sign SVG.
 - Home quick food paging uses centered dots and separate back/forward chevrons; 1–6 remain the first page.
