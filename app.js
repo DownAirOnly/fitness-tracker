@@ -1091,8 +1091,18 @@ function nutritionAccuracyIcon(food){
  return '<span class="nutrition-accuracy nutrition-accuracy-unknown" aria-label="'+esc(label)+'"><span aria-hidden="true"></span></span>';
 }
 function foodQuickCard(food,pinned=false,homeContext=false){
- // All screens share this card; favorite status remains editable in its three-dot menu.
- return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(homeContext?'today':chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
+ // One shared card for Food and Home: entire content opens food entry,
+ // while the independent three-dot edit button remains usable above it.
+ return '<div class="food-card '+(pinned?'food-card-pinned':'')+'">'+
+   '<button type="button" class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'" aria-label="Log '+esc(food.name)+'">'+
+     '<span class="food-card-title-area"><strong class="food-card-name">'+esc(food.name)+'</strong>'+
+       (hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'</span>'+
+     '<span class="food-card-macros">'+
+       '<span class="food-card-macro"><small>CALORIES</small><b>'+fmt(food.calories)+'</b></span>'+
+       '<span class="food-card-macro food-card-macro-protein"><small>PROTEIN</small><b>'+fmt(food.protein)+'g</b></span>'+
+     '</span></button>'+
+   '<div class="food-card-controls"><button type="button" class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div>'+
+   '<span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
 }
 const hasFoodTag=(food,tag)=>Array.isArray(food.tags)&&food.tags.includes(tag);
 function sortFoods(list,mode){
