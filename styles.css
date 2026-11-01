@@ -2651,7 +2651,7 @@ body{position:static!important;inset:auto!important;width:100%;margin:0}
  background:#f1f6ef;color:#526f5b;
  font-size:17px;letter-spacing:1px;line-height:1;
 }
-.food-card .food-card-accuracy-corner{right:4px;bottom:calc(1px + 0.08 * 100%);width:17px;height:20px}
+.food-card .food-card-accuracy-corner{right:4px;bottom:11px;width:17px;height:20px}
 [data-theme="dark"] .food-card .food-card-title-area{color:#e6f3e7!important}
 [data-theme="dark"] .food-card .food-card-macros{background:#253e2d;border-color:#385940}
 [data-theme="dark"] .food-card .food-card-macro+.food-card-macro{border-color:#385940}
