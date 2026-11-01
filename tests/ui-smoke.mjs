@@ -953,7 +953,7 @@ try{
  assert.equal(document.querySelectorAll('.food-card .food-card-macro').length>=2,true,'Food cards show calories and protein');
  assert.equal(document.querySelector('.food-card-add'),null,'the food card is directly tappable without Add text');
  assert.ok(stylesheet.includes('.food-card .food-card-title-area::before'),'title reserves the edit button area before wrapping');
- assert.ok(stylesheet.includes('float:right;width:41px;height:35px'),'title's first lines cannot overlap the upper-right menu');
+ assert.ok(stylesheet.includes('float:right;width:41px;height:35px'),'title lines cannot overlap the upper-right menu');
  assert.ok(!document.querySelector('.food-preview').textContent.includes('History food'));
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'));await submit('food',{quantity:'1'});current=JSON.parse(state.records.get('bob').payload);
  assert.equal(current.foodEntries.at(-1).date,todayCalendarDate(),'new food entries use their actual calendar date, even before the tracking-day reset');
