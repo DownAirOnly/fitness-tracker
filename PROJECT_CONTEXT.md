@@ -4,6 +4,10 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.10 dock-spacing pass (iPhone visual sign-off pending):** The Money overview's 18px trailing gap is now the single consistent `main` bottom gutter across Home, Food, Lifting, Money, Progress, History and Settings. Home's dashboard flex stage shrinks to leave the same gutter, and scrollable pages have last-child margins neutralized to avoid double spacing. Fixed header and calorie/protein top anchors are unchanged. User confirmed the native/context-menu top black strip is fixed on their iPhone after v99.7.9; do not rework the validated viewport fix in this release. No persistence/model changes.
+
+
+
 - **v99.7.9 visual alignment (device verification pending):** Home's calories/protein cards and Food's single log card now use matched internal metric offsets and grid columns, retaining their different card designs. This is a CSS-only position/typography adjustment with no data changes. Black strip after native menus remains an outstanding real-iPhone verification issue; the prior v99.7.8 mitigation should not be represented as a confirmed device fix.
 
 

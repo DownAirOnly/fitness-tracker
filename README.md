@@ -2,6 +2,13 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.10 — consistent bottom spacing across tabs
+
+- Use Money's existing 18px bottom gap as the shared spacing between page content and the dock on Home, Food, Lifting, Money, Progress, History, and Settings.
+- Home's full-height dashboard now ends above that reserved gutter instead of touching the dock; its contents retain a non-scrolling compact layout. Scrollable pages use the same main padding, replacing inconsistent last-element margins.
+- No change to fixed header positioning, calorie/protein anchors, data, authentication, save behavior, or iPhone menu-viewport workaround.
+- User confirmed the black strip from native/context menus no longer occurs on their iPhone after the prior release. The new spacing still needs iPhone visual confirmation.
+
 ## v99.7.9 — stable calorie/protein anchors between Home and Food
 
 - Keep both daily calorie and protein values anchored to matching column positions and label/value heights when navigating Home → Food. Food retains its single full-card tap target, dark appearance and detailed log; Home retains its separate metric cards. No data or behavior changes.
