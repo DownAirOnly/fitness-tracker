@@ -2,7 +2,11 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current direction — October 31, 2026
+## Current direction — November 1, 2026
+
+- **v99.7.9 visual alignment (device verification pending):** Home's calories/protein cards and Food's single log card now use matched internal metric offsets and grid columns, retaining their different card designs. This is a CSS-only position/typography adjustment with no data changes. Black strip after native menus remains an outstanding real-iPhone verification issue; the prior v99.7.8 mitigation should not be represented as a confirmed device fix.
+
+
 
 - **v99.7.8 follow-up:** Restore iPhone native/context-menu viewport alignment, add theme-matched document background and scroll recovery, widen reusable month navigation buttons, and share a single colored routine-card renderer between Workout Buddy and Home. On-device verification remains necessary.
 

@@ -2,6 +2,11 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.9 — stable calorie/protein anchors between Home and Food
+
+- Keep both daily calorie and protein values anchored to matching column positions and label/value heights when navigating Home → Food. Food retains its single full-card tap target, dark appearance and detailed log; Home retains its separate metric cards. No data or behavior changes.
+- The native-menu black strip is **not confirmed fixed on iPhone**. v99.7.8 added a mitigation, but real-device screenshots/version confirmation are still necessary; avoid claiming another fix on CSS inspection alone.
+
 ## v99.7.8 — Native-menu viewport and shared routine cards
 
 - Anchor layout to the viewport with a theme-matched background and normalize accidental document scroll on select/modal dismissal; check the reported black strip on iPhone.
