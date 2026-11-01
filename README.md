@@ -2,6 +2,13 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.11 — shared nutrition metrics and quick-food cards
+
+- Home and Food now render daily calories/protein with one shared numeric + progress-meter component. Font face, font size, units, goal text, bar height, width, top offset and left edge match exactly when switching Home ↔ Food. Each page retains its established foreground/background and meter-fill colors.
+- The Food quick-add card is the standard reusable renderer; Home uses that same card with a compact size modifier rather than a divergent visual treatment. It keeps the Food card’s title-to-macros proportions, title-wrap clearance, 3-dot edit control, footer styling and nutrition-accuracy marker at reduced scale.
+- Home dashboard tab uses one-word **Workout**. The initial loading shell matches the current Home tabs, plus-only action and shared metric structure.
+- No changes to saved records, preferences, cloud sync, workout scheduling or Money. Validate positioning and six compact cards on a real iPhone, especially shorter viewports.
+
 ## v99.7.10 — consistent bottom spacing across tabs
 
 - Use Money's existing 18px bottom gap as the shared spacing between page content and the dock on Home, Food, Lifting, Money, Progress, History, and Settings.
