@@ -17,3 +17,5 @@ Use this design for future requests involving a month calendar unless explicitly
 - Host screens own data, month state, click handling, and the outcome of choosing a day. The shared component only renders.
 - For Workout Calendar, source recorded days from workout history and lifts, and project only when past training intervals are consistent. All projections are estimates, not scheduled workouts.
 - Render within the Home dashboard's internal scroller so the fixed bottom navigation is never displaced.
+
+- **Month navigation sizing (v99.7.7):** Previous/next controls have broad touch targets (64px shared calendar, 58px compact Home calendar); preserve this sizing in future screens.
