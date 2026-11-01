@@ -2825,3 +2825,104 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 #app>.shell>main:not(:has(.home-command-center)) > :last-child{
  margin-bottom:0!important;
 }
+
+/* v99.7.11 — identical nutrition meter geometry on Home and Food.
+   The two Food columns and two Home cards already have the same x anchors;
+   use the same contents, font, baseline, gap and bar sizing for both. */
+.home-metric .nutrition-total-label,
+.daily-food-card .nutrition-total-label{
+ display:block;font:800 10px/12px 'DM Sans',sans-serif;
+ letter-spacing:1.2px;margin:0;
+}
+.home-metric .nutrition-total-value,
+.daily-food-card .nutrition-total-value{
+ display:flex;align-items:baseline;flex-wrap:nowrap;gap:0;
+ font:700 clamp(26px,5.5vw,35px)/1.1 'Outfit',sans-serif;
+ letter-spacing:-.9px;font-variant-numeric:tabular-nums;
+ margin:5px 0 3px;white-space:nowrap;min-width:0;
+}
+.home-metric .nutrition-total-value>.nutrition-total-current,
+.daily-food-card .nutrition-total-value>.nutrition-total-current{
+ font:inherit!important;letter-spacing:inherit;
+ color:inherit;display:inline;min-width:0;
+}
+.home-metric .nutrition-total-value .nutrition-total-unit,
+.daily-food-card .nutrition-total-value .nutrition-total-unit{
+ display:inline!important;font:600 15px/1 'Outfit',sans-serif!important;
+ letter-spacing:0;margin:0 0 0 2px!important;
+}
+.home-metric .nutrition-total-value .nutrition-total-separator,
+.home-metric .nutrition-total-value .nutrition-total-target,
+.daily-food-card .nutrition-total-value .nutrition-total-separator,
+.daily-food-card .nutrition-total-value .nutrition-total-target{
+ display:inline;font:500 12px/1.2 'Outfit',sans-serif;
+ letter-spacing:0;white-space:nowrap;margin:0;
+}
+.home-metric .nutrition-total-target .nutrition-total-unit,
+.daily-food-card .nutrition-total-target .nutrition-total-unit{
+ font:inherit!important;letter-spacing:inherit;margin:0!important;
+}
+.home-metric .nutrition-total-meter,
+.daily-food-card .nutrition-total-meter{
+ display:block;width:100%;height:5px;margin:8px 0 0;
+ padding:0;border-radius:999px;overflow:hidden;
+}
+.home-metric .nutrition-total-meter>span,
+.daily-food-card .nutrition-total-meter>span{
+ display:block;height:100%;border-radius:inherit;
+}
+.daily-food-card .nutrition-total-value{color:#fff}
+.daily-food-card .nutrition-total-value .nutrition-total-separator,
+.daily-food-card .nutrition-total-value .nutrition-total-target{color:#c3d3c4}
+.daily-food-card .nutrition-total-meter{background:#345644}
+.daily-food-card .nutrition-total-cell:first-child .nutrition-total-meter>span{background:#d8eb86}
+.daily-food-card .nutrition-total-cell:last-child .nutrition-total-meter>span{background:#9fd9bf}
+.home-metric .nutrition-total-value{color:#193b2a}
+.home-metric .nutrition-total-value .nutrition-total-separator,
+.home-metric .nutrition-total-value .nutrition-total-target{color:#647c6c}
+.home-metric .nutrition-total-meter{background:#d7e2d5}
+.home-metric.calories .nutrition-total-meter>span{background:#7aab77}
+.home-metric.protein .nutrition-total-meter>span{background:#7db7a0}
+[data-theme="dark"] .home-metric .nutrition-total-value{color:#eef6eb}
+[data-theme="dark"] .home-metric .nutrition-total-value .nutrition-total-separator,
+[data-theme="dark"] .home-metric .nutrition-total-value .nutrition-total-target{color:#b1c7b5}
+
+/* A single Food quick-card design, with a compact variant only for its
+   dimensions. Home keeps the Food card's title/footer layout, colors,
+   accessible edit control and nutrition accuracy indicator. */
+.food-card{
+ --food-title-padding:12px 12px 5px;
+ --food-title-size:14px;
+ --food-macro-padding:5px 9px;
+ --food-macro-label-size:8px;
+ --food-macro-value-size:clamp(12px,3.5vw,17px);
+}
+.food-card--compact{
+ --food-title-padding:9px 10px 3px;
+ --food-title-size:13px;
+ --food-macro-padding:4px 6px;
+ --food-macro-label-size:7px;
+ --food-macro-value-size:13px;
+}
+.food-card .food-card-title-area{padding:var(--food-title-padding)!important}
+.food-card .food-card-macro{padding:var(--food-macro-padding)!important}
+.food-card .food-card-macro small{font-size:var(--food-macro-label-size)!important}
+.food-card .food-card-macro b{font-size:var(--food-macro-value-size)!important}
+.home-dash-nutrition .home-dashboard-food-grid .food-card--compact .food-main{
+ min-height:0!important;height:100%;
+ grid-template-rows:minmax(0,2fr) minmax(39px,1fr)!important;
+}
+.home-dash-nutrition .home-dashboard-food-grid .food-card--compact .food-card-name{
+ font:750 var(--food-title-size)/1.19 'Outfit',sans-serif!important;
+ letter-spacing:normal!important;overflow-wrap:anywhere;
+}
+.home-dash-nutrition .home-dashboard-food-grid .food-card--compact .food-card-title-area::before{
+ width:36px;height:29px;
+}
+.home-dash-nutrition .home-dashboard-food-grid .food-card--compact .food-card-macro-protein{
+ padding-right:20px!important;
+}
+.home-dash-nutrition .home-dashboard-food-grid .food-card--compact .food-card-accuracy-corner{
+ display:block;right:2px;bottom:5px;transform:scale(.78);
+ transform-origin:bottom right;
+}
