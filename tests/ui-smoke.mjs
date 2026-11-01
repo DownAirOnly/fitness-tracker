@@ -161,13 +161,17 @@ try{
   assert.equal(document.querySelectorAll('.home-add-trigger').length,1,'one Add control shares dashboard tabs row');
   assert.equal(document.querySelectorAll('.home-dashboard-controls .home-dash-tab').length,3,'one dashboard selection row');
   assert.equal(document.querySelectorAll('nav.nav .nav-icon svg').length,5,'bottom navigation shares SVG family');
+   assert.equal(document.querySelector('nav.nav [data-action="finances"] small').textContent,'Money');
+   assert.ok(document.querySelector('nav.nav [data-action="finances"] svg').innerHTML.includes('M12 2v20'));
+   assert.equal(document.querySelector('.home-add-trigger').textContent.trim(),'＋');
+   assert.ok(!document.querySelector('header .top-date[data-action]'));
   assert.equal(document.querySelector('header .home-settings svg')?.tagName.toLowerCase(),'svg','Settings uses a matched vector icon');
   assert.ok(document.querySelector('header .home-settings circle[cx="12"][cy="12"]'),'gear center remains concentric after navigation');
   await click('home-add-menu');
  assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add launches Food entry directly');
  await click('close');
  assert.ok(!document.querySelector('main .loading-offline-option'),'normal loading never inserts a flex sibling that crushes Home');
-  assert.deepEqual([...document.querySelectorAll('.home-dashboard-tabs button')].map(e=>e.textContent),['Nutrition','Lifting','Money'],'Nutrition and Money dashboard tabs swapped');
+  assert.deepEqual([...document.querySelectorAll('.home-dashboard-tabs button')].map(e=>e.textContent),['Eat','Work out','Spend'],'Home uses action verbs');
   document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
   assert.ok(document.querySelector('.home-dash-finance'),'finance dashboard uses manual cash records without repetitive headings');
   assert.ok(!document.querySelector('.home-dashboard-heading,.home-dashboard-eyebrow'),'Home dashboard has only its tabs, not extra headings');
@@ -502,6 +506,8 @@ try{
  await click('home-food-customize-save');
  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,6,'first page has six cards');
  assert.ok(document.querySelector('[data-action="home-food-page"]'),'seventh card enables paging');
+ assert.equal(document.querySelectorAll('[data-action="home-food-page"]').length,2,'pager has previous and next');
+ assert.ok(document.querySelector('.home-food-page-position i.active'),'pager uses page dots');
  await click('home-food-page');
  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,1,'second page starts at card seven');
  assert.equal(document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]').dataset.id,seven[6].dataset.id,'seventh selection begins page two');
@@ -789,7 +795,7 @@ try{
  assert.equal(resetInput.value,'390','reset time steps forward 30 minutes');
  resetRow.querySelector('[data-delta="-1"]').click();await tick();
  assert.equal(resetInput.value,'360','reset time steps backward 30 minutes');
- await click('food');assert.ok(document.querySelector('.tracking-date input'));await click('new-food');
+ await click('food');assert.equal(document.querySelector('.tracking-date input'),null,'Food selector is only in full entries');await click('new-food');
  assert.equal(document.activeElement.getAttribute('role'),'dialog','opening forms must not autofocus an input');
  const foodFormTest=document.querySelector('form[data-form="food"]');assert.ok(foodFormTest);
  document.querySelector('[data-action="food-quantity"][data-amount="0.5"]').click();await tick();
@@ -923,7 +929,7 @@ try{
  assert.deepEqual(JSON.parse(state.records.get('bob').payload),backup,'JSON restore preserves the exported snapshot');
  // Pass 2: selected-day preview and full log share the same entries/totals.
  await click('food');
- const setDate=async value=>{const field=document.querySelector('.tracking-date input');field.value=value;field.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();};
+ const setDate=async value=>{await click('food-log');const field=document.querySelector('.food-log-date input');assert.ok(field,'date picker is in All food entries');field.value=value;field.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();assert.equal(document.querySelector('.food-log-date input').value,value);await click('close');};
  await setDate('2025-01-02');
  assert.ok(document.querySelector('.food-preview-empty'));
  assert.ok([...document.querySelectorAll('.food-section-title h2')].some(el=>el.textContent==='More foods'),'Food page exposes the current library section');
@@ -948,7 +954,7 @@ try{
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'),'saved card opens normal food form');assert.equal(document.querySelector('[data-form="food"] [name="date"]').value,'2025-01-02');await submit('food',{quantity:'0.5'});
  let current=JSON.parse(state.records.get('bob').payload);assert.equal(current.foodEntries.at(-1).date,'2025-01-02');assert.equal(current.foodEntries.at(-1).quantity,0.5);assert.ok(document.querySelector('.food-undo-toast'));
  await click('undo-food-add');assert.equal(JSON.parse(state.records.get('bob').payload).foodEntries.length,countBeforeSaved,'saved-food undo removes only the new entry');
- await click('today');
+ await click('food-log');await click('food-log-today');await click('close');
  assert.ok(document.querySelector('.food-card .food-card-macros'),'Food page shares the title/macros layout');
  assert.equal(document.querySelectorAll('.food-card .food-card-macro').length>=2,true,'Food cards show calories and protein');
  assert.equal(document.querySelector('.food-card-add'),null,'the food card is directly tappable without Add text');
