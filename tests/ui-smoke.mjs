@@ -181,6 +181,8 @@ try{
   assert.ok(document.querySelector('.home-lifting-calendar'),'Lifting dashboard has calendar');
   assert.ok(document.querySelector('.ed-calendar-grid'),'Lifting Home uses a reusable month grid');
   assert.ok(document.querySelector('.home-recovery-panel'),'recent routines and recovery anatomy exist');
+   assert.ok(stylesheet.includes('.home-lifting-calendar .ed-calendar-arrows button{width:58px!important'),'calendar month buttons have wider hit targets');
+   assert.ok(stylesheet.includes('#app{position:absolute!important;top:0!important'),'app stays anchored to the layout viewport after native context menus');
    assert.equal(document.querySelector('.home-recovery-panel .home-last-set'),null,'no verbose individual set history');
    assert.equal(document.querySelector('.home-workout-calendar-header'),null,'remove redundant Weekly schedule header');
    assert.equal(document.querySelector('.ed-calendar-legend'),null,'remove redundant calendar legend');
@@ -495,6 +497,11 @@ try{
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
   assert.ok(sample.data.foods.length>=7,'demo provides enough foods to test paging');
  await click('home');
+ document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]').click();await tick();
+ assert.equal(document.querySelectorAll('.home-recent-routines .buddy-routine-choice').length,3,'Home uses the shared colored routine cards');
+ await click('home-add-menu');
+ assert.ok(document.querySelector('.modal .buddy-start-list .buddy-routine-choice'),'Workout Buddy picker uses the same routine-card renderer');
+ await click('close');
  const nutritionDashTab=document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]');
  nutritionDashTab.click();await tick();
  // Seven selected foods have six on page one and the seventh on page two.
