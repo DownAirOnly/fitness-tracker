@@ -15,7 +15,7 @@ assert.ok(stylesheet.includes('padding-bottom:var(--page-bottom-gap)'),'Home and
 assert.ok(stylesheet.includes('main:not(:has(.home-command-center)) > :last-child'),'scrollable pages do not double the new bottom gutter');
 assert.ok(stylesheet.includes('#buddy-root .buddy-setup-editor input,')&&stylesheet.includes('.routine-history-editor textarea{font-size:16px'),'iOS text inputs use >=16px without disabling pinch zoom');
 assert.ok(stylesheet.includes('v99.7.11 — identical nutrition meter geometry'),'Home and Food share numeric and meter style rules');
-assert.ok(stylesheet.includes('.home-metric .nutrition-total-meter,')&&stylesheet.includes('.daily-food-card .nutrition-total-meter'),'Home and Food share the same bar sizing');
+assert.ok(stylesheet.includes('.home-metric .nutrition-total-meter,')&&stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-meter'),'Home and Food share the same bar sizing');
 assert.ok(stylesheet.includes('.food-card--compact{'),'Home food cards use only a compact variant of the standard design');
 assert.ok(stylesheet.includes('.home-metric-separator,.home-metric-target{font:500 12px/1.2'), 'Home slash and target use the Food card 12px goal treatment');
 assert.ok(stylesheet.includes('.home-metric-target small{font:inherit;margin-left:0'), 'Home protein target unit stays the same small size');
