@@ -2,6 +2,12 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.6 — Shared food-card visual refinement
+
+- Food and Home share a two-zone card: readable multi-line name above and side-by-side calorie/protein figures below; no redundant Add instruction.
+- The independent upper-right three-dot edit button keeps its own tap target and protected space so the first title lines do not run underneath it.
+- Existing food logging, Favorite checkbox in the edit form, nutrition-accuracy markers, ordering, and six-card Home paging are unchanged.
+
 ## v99.7.5 — Stable iPhone dock, smaller calendar, six food cards per page
 
 - Nav is always visible inside a single fixed app frame, avoiding a fixed `body` and select-focus rule that could create iPhone hit-test offsets. Verify on a real iPhone after native dropdowns and tab changes.
