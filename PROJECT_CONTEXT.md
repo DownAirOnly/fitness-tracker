@@ -4,7 +4,7 @@
 
 ## Current direction — October 31, 2026
 
-- **v99.7.7.1 follow-up:** Restore iPhone native/context-menu viewport alignment, add theme-matched document background and scroll recovery, widen reusable month navigation buttons, and share a single colored routine-card renderer between Workout Buddy and Home. On-device verification remains necessary.
+- **v99.7.8 follow-up:** Restore iPhone native/context-menu viewport alignment, add theme-matched document background and scroll recovery, widen reusable month navigation buttons, and share a single colored routine-card renderer between Workout Buddy and Home. On-device verification remains necessary.
 
 - **v99.7.7 interface patch (device verification required):** Home selection labels are Eat, Work out, Spend, and a plus-only equal-width action. Bottom Finances renamed Money with dollar-sign SVG. Nutrition Home paging now shows center-position dots and separate previous/next controls instead of a number/number plus odd arrow. Home food card names use a larger consistent clamp while preserving the existing three-dot text exclusion.
 - **Lifting Home:** Routines and recent training anatomy now use equal columns. Front SVG is larger and aligned upper-left, back SVG larger and lower-right, using a diagonal composition; no underlying workout or workload logic changed.
