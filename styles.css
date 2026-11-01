@@ -2772,3 +2772,21 @@ body{position:static!important;inset:auto!important;width:100%;margin:0}
 .food-log-date .field{max-width:none;min-width:0}
 .food-log-date input[type=date]{min-width:0;width:100%;font-size:16px}
 .food-log-date .outline{min-height:44px}
+
+/* v99.7.7 finishing pass — stable top edge after iOS native/context menus.
+   An absolute root is tied to the layout viewport; fixed-root offsets have
+   previously lingered after the native picker closes in standalone WebKit. */
+html,body{height:100%;width:100%;overscroll-behavior:none}
+html[data-theme="dark"],html[data-theme="dark"] body,html[data-theme="dark"] #app{background:#101914}
+html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] #app{background:#f7f8f2}
+#app{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:0!important;height:100%!important;max-height:100%!important}
+#app>.shell{overflow:hidden!important;min-height:0!important}
+#app>.nav{position:relative!important;flex-shrink:0!important;z-index:30}
+/* Wider month controls without increasing calendar height. */
+.ed-calendar-arrows button{width:64px!important;min-width:0;height:34px}
+.home-lifting-calendar .ed-calendar-arrows button{width:58px!important;height:30px}
+/* Shared three-tone routine choice cards are used by both the chooser and Home. */
+.home-recent-routines .buddy-routine-choice{width:100%}
+.home-recovery-anatomy .muscle-recovery-view{width:64%!important;height:92%!important}
+.home-recovery-anatomy .muscle-recovery-view:first-child{top:0;left:0;z-index:1}
+.home-recovery-anatomy .muscle-recovery-view:last-child{right:0;bottom:0;z-index:2}
