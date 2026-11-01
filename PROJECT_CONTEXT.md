@@ -4,6 +4,9 @@
 
 ## Current direction — October 31, 2026
 
+- **v99.7.6 visual-only card patch (device verification pending):** One shared Food/Home food card. Remove the redundant “+ Add to today” line. Main card tap still opens food-entry form, and the three-dot edit action remains independent. Title occupies the upper ~2/3 with a float-reserved menu space on the upper-right so long names wrap beneath it, rather than overlap. Lower ~1/3 displays calories and protein as two visually distinct numeric fields. Compact styling for six Home cards, with standard Food tab dimensions, keeps the six-per-page layout unchanged. No saved data, finance, navigation, cloud schema or workout updates.
+
+
 - **v99.7.5 device-fix patch (iPhone check pending):** Removed the fixed-position body and focus-based nav hiding that could contribute to iOS touch-offset / disappearing-dock behavior. App and nav now share a single fixed #app frame; native select focus is blurred on modal close. This is a plausible fix rather than a verified iPhone root cause.
 - **Home Lifting is non-scrolling:** Compact reusable month grid; Schedule control in the footer, no redundant legend, Weekly Schedule subtitle or monthly totals. Below it, three *completed routines* use the same three colored picker styles as Workout Buddy alongside the existing front/back two-day training map. No "last three sets" or map color legend.
 - **Home Nutrition:** Six selected cards per page, 7–12 on the next, etc., selection order stable. Footer is exactly Customize/Plan at <=6, with middle page-cycle button only at 7+. Food cards across Home/Food reuse one renderer with no favorite star on the card face; three-dot Edit definition still has Favorite checkbox. No account data migration or Money changes.

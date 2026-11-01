@@ -1091,8 +1091,18 @@ function nutritionAccuracyIcon(food){
  return '<span class="nutrition-accuracy nutrition-accuracy-unknown" aria-label="'+esc(label)+'"><span aria-hidden="true"></span></span>';
 }
 function foodQuickCard(food,pinned=false,homeContext=false){
- // All screens share this card; favorite status remains editable in its three-dot menu.
- return '<div class="food-card '+(pinned?'food-card-pinned':'')+'"><div class="food-card-controls"><button class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div><button class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'"><strong>'+esc(food.name)+'</strong><span class="food-card-nutrition"><span>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</span></span>'+(hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'<span class="food-card-add">+ Add to '+(homeContext?'today':chosenDate===currentTrackingDate()?'today':niceDate(chosenDate))+'</span></button><span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
+ // One shared card for Food and Home: entire content opens food entry,
+ // while the independent three-dot edit button remains usable above it.
+ return '<div class="food-card '+(pinned?'food-card-pinned':'')+'">'+
+   '<button type="button" class="food-main" data-action="add-saved" data-id="'+esc(food.id)+'" aria-label="Log '+esc(food.name)+'">'+
+     '<span class="food-card-title-area"><strong class="food-card-name">'+esc(food.name)+'</strong>'+
+       (hasFoodTag(food,'ingredient')?'<small class="food-card-tag">Ingredient</small>':'')+'</span>'+
+     '<span class="food-card-macros">'+
+       '<span class="food-card-macro"><small>CALORIES</small><b>'+fmt(food.calories)+'</b></span>'+
+       '<span class="food-card-macro food-card-macro-protein"><small>PROTEIN</small><b>'+fmt(food.protein)+'g</b></span>'+
+     '</span></button>'+
+   '<div class="food-card-controls"><button type="button" class="card-edit" data-action="edit-card" data-id="'+esc(food.id)+'" aria-label="Edit '+esc(food.name)+'">•••</button></div>'+
+   '<span class="food-card-accuracy-corner" aria-hidden="true">'+nutritionAccuracyIcon(food)+'</span></div>';
 }
 const hasFoodTag=(food,tag)=>Array.isArray(food.tags)&&food.tags.includes(tag);
 function sortFoods(list,mode){
@@ -2948,7 +2958,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.5',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.6',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3008,7 +3018,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7.5');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.6');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
