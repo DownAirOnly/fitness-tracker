@@ -24,8 +24,10 @@ export function canUndoBuddyTransition(session){
   return phase==='picker'&&!key&&undo.phase==='exercise'&&prev?.status==='active';
  }
  if(label==='start exercise'){
-  return phase==='exercise'&&current?.status==='active'&&
-   !current.activeSetStartedAt&&!Number.isInteger(current.reviewSetIndex)&&current.sets.length===0;
+  const before=(undo.exercises||[]).find(e=>keyFor(e)===key);
+  return phase==='exercise'&&undo.phase==='picker'&&current?.status==='active'&&
+   !current.activeSetStartedAt&&!Number.isInteger(current.reviewSetIndex)&&
+   Boolean(before)&&current.sets.length===before.sets.length;
  }
  if(phase!=='exercise'||!current||undo.selected!==key)return false;
  const started=Boolean(current.activeSetStartedAt);
