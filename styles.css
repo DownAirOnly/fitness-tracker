@@ -3028,3 +3028,13 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  font:750 clamp(24px,6vw,31px)/1.1 'Outfit',sans-serif;
  letter-spacing:-.02em;
 }
+
+/* v99.7.16 — prevent iPhone's focus auto-zoom in Workout Buddy Notes.
+   The old 16px minimum was marginal on some WebKit display settings.
+   Use a comfortably above-threshold computed size; keep pinch zoom enabled. */
+#buddy-root .buddy-notes-editor textarea[name="buddyNotes"]{
+ font-size:18px!important;
+ line-height:1.35;
+ -webkit-text-size-adjust:100%;
+ text-size-adjust:100%;
+}
