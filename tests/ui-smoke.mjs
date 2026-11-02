@@ -870,7 +870,7 @@ try{
  assert.ok(document.querySelector('.buddy-exercise-list [data-action="buddy-choose"]'),'remaining exercises stay selectable');
  const original=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
  const existingLift=original.lifts.find(l=>l.buddySessionId===original.activeWorkout.id&&l.exercise===doneCard.querySelector('.exercise-name-row strong')?.textContent);
- assert.ok(existingLift,'completed exercise already has a Buddy lift record');
+ assert.ok(existingLift,`completed exercise Buddy lift missing: ${JSON.stringify({activeId:original.activeWorkout?.id,cardTitle:doneCard.querySelector('.exercise-name-row strong')?.textContent,lastLifts:original.lifts.slice(-3).map(l=>({id:l.id,buddySessionId:l.buddySessionId,exercise:l.exercise}))})}`);
  const liftId=existingLift.id,liftCount=original.lifts.length;
  doneCard.click();await tick();
  assert.ok(document.querySelector('.buddy-completed-editor'),'completed exercise card opens a full-screen editor');
