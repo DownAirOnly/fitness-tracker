@@ -4,6 +4,9 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.17 — Buddy layout iteration (iPhone review pending):** Move ready/review Start set N and Next exercise into top toolbar by Undo/rest; hide redundant Undo start exercise (Exercises already returns to chooser) but retain set undo and active bottom Finish set N. Standardize full-opacity dark-green bold action styling and vertically centered text; change PERCEIVED EFFORT to EFFORT. Share Home's pair layout via `muscleExercisePairMarkup` with Buddy's existing primary/secondary/quiet per-exercise bodySvg colors, larger diagonally offset bodies below running time or Notes on ready screen; omit former tiny heading thumbnail, hide large view while keyboard editing. Home Workout fourth button switches '+' to Resume if an active workout exists and opens Buddy directly. No data/model or cloud changes; physical iPhone test needed.
+
+
 - **v99.7.16 Buddy Notes iPhone focus zoom (device verification pending):** Despite an earlier 16px Notes textarea rule, the iPhone sometimes auto-zooms while entering text. Explicitly set its computed font-size to 18px with text-size-adjust 100%, blur the textarea *before* dismissing/re-rendering with Done, then sync keyboard viewport and document scroll/touch origin on the next frame. Do not add `maximum-scale=1` or disable manual pinch zoom, and do not claim that JS can reliably reset Safari zoom. Keep observing intermittent tap-offset reports. No data model changes.
 
 

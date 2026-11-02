@@ -2,6 +2,14 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.17 — Buddy anatomy, top set actions and Home Resume
+
+- Workout Buddy's ready/review Start set N and Next exercise actions move to a compact top row alongside meaningful Undo controls and the live rest indicator. The redundant Undo start exercise is hidden when Exercises already provides the same navigation; Undo for actual set transitions is preserved. Finish set N retains a vertically centered, full-opacity, dark-green bottom action with the original bold style.
+- Replace PERCEIVED EFFORT with **EFFORT**.
+- Reuse the actual Home front/back anatomy pair layout on Buddy. Display the current exercise's primary (warm) and secondary (cool) muscles from the existing map, with quiet muscles still drawn; position the two body SVGs diagonally in separate columns, using the large available space (below set timer when a set is running). Hide the large diagram only while the keyboard is editing.
+- When an active Buddy session exists and the Home Workout dashboard is selected, the '+' becomes **Resume** and opens that session directly.
+- No workout, nutrition, health, account, or cloud schema changes. iPhone sizing and keyboard verification pending.
+
 ## v99.7.16 — prevent Workout Buddy Notes focus zoom
 
 - Set the editable **Notes** textarea to 18px on iPhone (above Safari's 16px focus auto-zoom threshold), retaining normal manual pinch-to-zoom and accessible text scaling.

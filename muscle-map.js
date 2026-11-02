@@ -135,3 +135,13 @@ export function muscleRecoveryMarkup(statuses={}){
   '<span class="muscle-recovery-view">'+recoveryBodySvg('front',statuses)+'</span>'+
   '<span class="muscle-recovery-view">'+recoveryBodySvg('back',statuses)+'</span></div>';
 }
+
+/** Exercise-only anatomy using the same front/back sizing structure as Home.
+ * Unlike recovery, this uses the warm/cool/quiet SVG already used by Buddy.
+ * Unmapped muscles are still rendered, never removed. */
+export function muscleExercisePairMarkup(name){
+ const profile=exerciseMuscleProfile(name);
+ return '<div class="muscle-recovery-pair muscle-exercise-pair">'+
+  '<span class="muscle-recovery-view">'+bodySvg('front',profile)+'</span>'+
+  '<span class="muscle-recovery-view">'+bodySvg('back',profile)+'</span></div>';
+}

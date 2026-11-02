@@ -1,7 +1,7 @@
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=99.7.4';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.4';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
 import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=98';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
@@ -427,6 +427,15 @@ function selectHomeDashboard(next){
  }
  const title=shell.querySelector('[data-home-dashboard-title]');
  if(title)title.textContent=({finances:'Spend',lifting:'Workout',nutrition:'Eat'})[next];
+ // Switching the card does not rerender Home's surrounding controls; update
+ // the action too so active sessions always display Resume, not a stale '+'.
+ const add=shell.querySelector('.home-add-trigger');
+ if(add&&!add.disabled){
+  const resume=next==='lifting'&&Boolean(data.activeWorkout);
+  add.innerHTML=resume?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>';
+  add.classList.toggle('home-add-resume',resume);
+  add.setAttribute('aria-label',resume?'Resume workout':'Add to selected dashboard');
+ }
 }
 let homeSwipeStart=null;
 document.addEventListener('touchstart',event=>{
@@ -504,7 +513,7 @@ function home(loading=false) {
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Spend':view==='lifting'?'Workout':'Eat','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
-   '</nav>'+button('<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger',loading?'disabled':'aria-label="Add to selected dashboard"')+'</div>'+
+   '</nav>'+button(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger'+(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?' home-add-resume':''),loading?'disabled':homeDashboardView==='lifting'&&data.activeWorkout?'aria-label="Resume workout"':'aria-label="Add to selected dashboard"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
 }
@@ -1478,7 +1487,7 @@ function buddyEffortButtons(value){return Object.entries(effortLabels).map(([n,l
 /* Reuse the exact set controls in Workout Buddy and archived exercise editing. */
 function buddySetControlsMarkup(d){
  const weightStep=data.settings.unit==='kg'?1.1:2.5;
- return `<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>PERCEIVED EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>`;
+ return `<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>`;
 }
 function buddyReadNotes(){const s=data.activeWorkout,field=document.querySelector('[name=buddyNotes]');if(!s||!field||!s.selected)return;const e=buddyFind(s,s.selected);if(e)e.notes=field.value.slice(0,500);}
 // Uncommitted Setup text stays in the active workout's recoverable draft.
@@ -1496,8 +1505,12 @@ function buddyDraft(e,index){return nextBuddySetDraft(e,index,buddyPrior(e));}
 function buddyStart(type){const w=workoutByName(type);if(!w)return;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
 function buddyExerciseHeading(e){
- return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div>'+
- '<button type="button" class="buddy-muscle-mini" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscles for '+esc(e.name)+'">'+muscleMiniMarkup(e.name)+'</button></div>';
+ return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div></div>';
+}
+function buddyExerciseMuscleStage(e){
+ // Share Home's spaced front/back layout, using this exercise's existing
+ // warm-primary / cool-secondary anatomy mapping rather than recent workload.
+ return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e.name)+'</button>';
 }
 function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
@@ -1514,22 +1527,31 @@ function buddyRender(){
   return `<div class="buddy-screen">${head}<main class="buddy-main buddy-picker-screen"><div class="buddy-progress"><span>${done} of ${total} exercises</span><span>${total-done} remaining</span></div>${buddyUndoControl(s)}${completedStrip}<div class="buddy-picker-head"><p class="eyebrow">${done?'CHOOSE WHAT’S NEXT':'READY TO LIFT'}</p><h1>${done?'Next exercise':'Choose your first exercise'}</h1><p>Select what’s available. Timing starts when you start the set.</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;
  }
  if(s.phase==='complete')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-complete"><div><p class="eyebrow">CIRCUIT COMPLETE</p><h1>${esc(s.type)} finished</h1><p>${done} exercises · ${buddyClock(buddySeconds(s.startedAt,s.completedAt))} total</p></div>${buddyUndoControl(s)}<button class="buddy-a" data-action="buddy-confirm-finish"><span>Ready to wrap up?</span><b>Finish workout</b></button><button class="buddy-secondary" data-action="buddy-back-picker">Back to exercises</button></main></div>`;
- const e=buddyFind(s,s.selected);if(!e)return'';if(e.journalOpen)return buddyJournalScreen(head,e);const reviewing=Number.isInteger(e.reviewSetIndex),i=reviewing?e.reviewSetIndex:e.sets.length,target=buddyTargetSets(e),d=reviewing?e.sets[e.reviewSetIndex]:(e.draft||buddyDraft(e,i)),prior=buddyPrior(e),running=Boolean(e.activeSetStartedAt),resting=Boolean(e.restStartedAt&&!running),showRest=Boolean(e.restStartedAt&&!running)&&e.sets.length<target,left=showRest?Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt)):0,range=buddyRepRange(e);
+ const e=buddyFind(s,s.selected);if(!e)return'';
+ if(e.journalOpen)return buddyJournalScreen(head,e);
+ const reviewing=Number.isInteger(e.reviewSetIndex),i=reviewing?e.reviewSetIndex:e.sets.length,
+  target=buddyTargetSets(e),d=reviewing?e.sets[e.reviewSetIndex]:(e.draft||buddyDraft(e,i)),
+  prior=buddyPrior(e),running=Boolean(e.activeSetStartedAt),
+  showRest=Boolean(e.restStartedAt&&!running)&&e.sets.length<target,
+  left=showRest?Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt)):0,range=buddyRepRange(e);
  const action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
- // Keep the count in the accessibility label, not as overlapping visible copy.
  const setProgress=`<div class="buddy-set-status buddy-set-status-bars" role="status" aria-label="Set ${Math.min(i+1,target)} of ${target}"><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
- if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view">${setProgress}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><div class="buddy-action-tools">${buddyUndoControl(s)}</div><button class="buddy-a" data-action="buddy-a"><b>Finish set ${i+1}</b></button></main></div>`;
- const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
- const rest=showRest?`<span class="buddy-rest-in-action" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></span>`:'';
+ // Selecting an exercise does not start a timed set. Exercises already returns
+ // to the picker, so do not show a redundant "Undo start exercise".
+ const undoSet=s.undo?.label==='start exercise'?'':buddyUndoControl(s);
+ const setToolbar=`<div class="buddy-set-toolbar">${undoSet}<button type="button" class="buddy-top-set-action" data-action="${reviewing?'buddy-review-next':'buddy-a'}">${action}</button>${showRest?'<span class="buddy-rest-top" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>'+(left?buddyClock(left):'Ready')+'</strong></span>':''}</div>`;
+ const muscleStage=buddyExerciseMuscleStage(e);
+ if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view">${setProgress}<div class="buddy-set-toolbar buddy-set-toolbar-running">${undoSet}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div>${muscleStage}<button class="buddy-a" data-action="buddy-a"><b>Finish set ${i+1}</b></button></main></div>`;
+ const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;
+ const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
  const journalButton='<button type="button" class="buddy-journal-chip" data-action="buddy-journal-toggle">Journal ↗</button>';
  const notes=e.notesOpen?`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>${journalButton}</div><div class="buddy-notes-editor"><textarea name="buddyNotes" maxlength="500" rows="2" placeholder="Form, pain, setup, anything worth remembering">${esc(e.notes||'')}</textarea><button type="button" class="buddy-notes-done" data-action="buddy-notes-toggle">Done</button></div></div>`:`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle ${e.notes?'has-note':''}" data-action="buddy-notes-toggle"><span><b>${e.notes?'Notes saved':'Add notes'}</b><small>${e.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering'}</small></span><strong aria-hidden="true">${e.notes?'✓':'＋'}</strong></button>${journalButton}</div></div>`;
  const recent=buddyHistory(e),lastSession=recent[0]||prior;
  const history=lastSession?'<div class="buddy-history-preview"><button type="button" class="buddy-last-toggle" data-action="buddy-toggle-history" aria-expanded="'+Boolean(e.showRecent)+'"><span><b>LAST · '+esc(niceDate(lastSession.date))+'</b><small>'+esc(buddyLastTwo(lastSession))+'</small></span><span class="buddy-last-chevron" aria-hidden="true">'+(e.showRecent?'⌃':'⌄')+'</span></button>'+(e.showRecent?'<div class="buddy-compact-history" role="region" aria-label="Earlier exercise history">'+recent.slice(1,3).map(l=>'<div><small>'+esc(niceDate(l.date))+'</small><span>'+esc(buddyLastTwo(l))+'</span></div>').join('')+(recent.length===1?'<small>No earlier workouts</small>':'')+'</div>':'')+'</div>':'';
  const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setupDraft??e.setup??'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
-
- const undo='';
  const historyRest=history?'<div class="buddy-history-rest-row">'+history+'</div>':'';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span class="buddy-action-label"><b>${action}</b></span>${rest}</button></main></div>`;
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}${setToolbar}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${muscleStage}</main></div>`;
+
 }
 let buddyTicker=null;
 // Set screens normally do not scroll. Allow a contained fallback if an unusually
@@ -2323,6 +2345,7 @@ document.addEventListener('click',async event=>{
   if(action==='home-add-menu'){
     if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,null,{returnPage:'food'});return;}
     if(homeDashboardView==='finances'){financeQuickModal();return;}
+    if(data.activeWorkout){buddyOpen();return;}
     buddyRoutinePicker();return;
    }
    if(action==='home-food-customize'){homeFoodCustomize();return;}
@@ -3043,7 +3066,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.16',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.17',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3103,7 +3126,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7.16');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.17');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

@@ -28,6 +28,9 @@ const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('v99.7.15 — single-action Buddy CTA'),'single action style is present');
+assert.ok(stylesheet.includes('v99.7.17 — consistent set actions'),'Buddy action + anatomy styling loaded');
+assert.ok(stylesheet.includes('.buddy-muscle-stage .muscle-recovery-view .muscle-region.quiet'),'inactive muscles remain drawn');
+
 assert.ok(stylesheet.includes('#buddy-root .buddy-notes-editor textarea[name="buddyNotes"]{'),'Buddy Notes has its own iOS anti-zoom rule');
 assert.ok(stylesheet.includes('font-size:18px!important;'),'Buddy Notes stays larger than Safari\'s 16px auto-zoom threshold');
 
@@ -698,7 +701,18 @@ try{
  assert.ok(document.querySelector('form[data-form="lift"]'),'manual lifting opens the existing lift editor');
  await click('close');
  await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
+ await click('buddy-exit');await click('home');
+ document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]').click();await tick();
+ assert.equal(document.querySelector('.home-add-trigger')?.textContent,'Resume','Home Workout action says Resume during an active workout');
+ await click('home-add-menu');
+ assert.ok(document.querySelector('#buddy-root .buddy-picker-screen'),'Home Resume reopens the same active session instead of starting a new one');
  await click('buddy-choose');
+ assert.ok(document.querySelector('.buddy-muscle-stage .muscle-exercise-pair'),'Buddy uses Home anatomy wrapper with exercise muscle mapping');
+ assert.equal(document.querySelectorAll('.buddy-muscle-stage .muscle-recovery-view').length,2,'both body views remain visible');
+ assert.ok(document.querySelector('.buddy-muscle-stage .muscle-region.primary'),'the selected exercise retains primary muscle highlights');
+ assert.ok(document.querySelector('.buddy-muscle-stage .muscle-region.quiet'),'inactive muscles remain visible');
+ assert.equal(document.querySelector('.buddy-muscle-mini'),null,'old small heading muscle thumbnail removed');
+ assert.ok(!document.querySelector('[data-action="buddy-undo"]')?.textContent.includes('start exercise'),'redundant Undo start exercise hidden');
  let firstSet=document.querySelector('[name=buddyWeight]');
  assert.ok(firstSet,'first Buddy set is editable');
  // v93: the normal set view is fitted; constrained viewports switch to an explicit safe fallback.
@@ -770,15 +784,22 @@ try{
 
  firstSet.value='110';
  document.querySelector('[name=buddyReps]').value='9';
- assert.equal(document.querySelector('#buddy-root [data-action="buddy-a"] b')?.textContent,'Start set 1','ready button shows only action');
+ assert.equal(document.querySelector('#buddy-root .buddy-set-toolbar [data-action="buddy-a"]')?.textContent,'Start set 1','ready button shows only action');
+ assert.ok(document.querySelector('.buddy-set-toolbar [data-action="buddy-a"]'),'Start set 1 now sits in the top action row');
+ assert.equal(document.querySelector('.buddy-exercise-view > .buddy-a'),null,'ready screen has no bottom CTA');
+
  assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'secondary set text removed');
  assert.equal(document.querySelectorAll('#buddy-root .buddy-set-status span').length,0,'progress bar replaces redundant set-count text');
  await click('buddy-a');
  assert.equal(document.querySelector('#buddy-root [data-action="buddy-a"] b')?.textContent,'Finish set 1','active button shows only finish action');
+ assert.ok(document.querySelector('.buddy-set-active .buddy-muscle-stage'),'exercise muscle views move below running set timer');
+ assert.ok(document.querySelector('.buddy-set-active .buddy-a'),'Finish set stays reachable at bottom during an active set');
+
  assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set 1'));
  await click('buddy-a');
  assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo finish set 1'));
- assert.equal(document.querySelector('#buddy-root [data-action="buddy-review-next"] b')?.textContent,'Start set 2','review button only shows next set action');
+ assert.equal(document.querySelector('#buddy-root .buddy-set-toolbar [data-action="buddy-review-next"]')?.textContent,'Start set 2','review action is now at the top');
+ assert.equal(document.querySelector('.buddy-exercise-view > .buddy-a'),null,'review has no redundant bottom CTA');
  assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'review has no extra action label');
  assert.ok(!document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set'));
  if(document.querySelector('[data-action="buddy-toggle-history"]')){
@@ -786,7 +807,7 @@ try{
   const row=document.querySelector('.buddy-history-rest-row');
   assert.ok(row,'history remains full-width during rest');
   assert.ok(row.querySelector('.buddy-compact-history'),'history expansion is contained');
-  assert.ok(document.querySelector('.buddy-a-with-rest [data-buddy-rest]'),'rest countdown is on the bottom action at right');
+  assert.ok(document.querySelector('.buddy-set-toolbar [data-buddy-rest]'),'rest countdown now follows the top set action');
   assert.ok(!document.querySelector('.buddy-set-status [data-buddy-rest]'),'rest countdown is not at top');
   await click('buddy-toggle-history');
  }
