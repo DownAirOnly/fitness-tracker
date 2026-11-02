@@ -52,9 +52,38 @@ test('undo exercise and workout transitions are contextual',()=>{
  const ready=session('start exercise',{sets:[]});assert.equal(canUndoBuddyTransition(ready),true);
  ready.exercises[0].sets=[{weight:100,reps:8}];assert.equal(canUndoBuddyTransition(ready),false);
  const done=session('finish exercise',{phase:'picker',selected:null,sets:[{weight:100,reps:8}]});done.exercises[0].status='done';
- assert.equal(canUndoBuddyTransition(done),true);
+ assert.equal(canUndoBuddyTransition(done),false,'completed exercises are never undoable');
  done.selected=key;assert.equal(canUndoBuddyTransition(done),false);
  const bike=session('bike finished',{phase:'picker',selected:null});
  bike.bikeCompletedAt='now';assert.equal(canUndoBuddyTransition(bike),true);
  bike.phase='exercise';assert.equal(canUndoBuddyTransition(bike),false);
+});
+
+test('multi-step Undo is available through unfinished selections and restores navigation',()=>{
+ const before=exercise([]);before.status='pending';
+ const active=exercise([]);
+ const state={phase:'exercise',selected:key,exercises:[active],undoStack:[
+  {label:'bike finished',phase:'bike',selected:null,exercises:[before]},
+  {label:'start exercise',phase:'picker',selected:null,exercises:[before]}
+ ]};
+ assert.equal(canUndoBuddyTransition(state),true,'the last navigation step can be undone');
+ active.activeSetStartedAt='now';
+ state.undoStack.push({label:'start set 1',phase:'exercise',selected:key,exercises:[exercise([])]});
+ assert.equal(canUndoBuddyTransition(state),true,'an active timed set can be undone');
+ state.exercises[0].activeSetStartedAt=undefined;
+ state.undoStack.pop();
+ assert.equal(canUndoBuddyTransition(state),true,'the preceding start exercise remains undoable');
+ state.undoStack=[{label:'view exercises',phase:'exercise',selected:key,exercises:[exercise([])]}];
+ state.phase='picker';state.selected=null;
+ assert.equal(canUndoBuddyTransition(state),true,'Undo can return from chooser to prior unfinished exercise');
+});
+test('Undo never changes a finalized exercise, including old or stale snapshots',()=>{
+ const current=exercise([{weight:100,reps:8}]);current.status='done';
+ const earlier=exercise([]);earlier.status='pending';
+ const state={phase:'picker',selected:null,exercises:[current],undoStack:[
+  {label:'view exercises',phase:'exercise',selected:key,exercises:[earlier]}
+ ]};
+ assert.equal(canUndoBuddyTransition(state),false,'stale snapshot cannot delete finalized sets');
+ state.undoStack=[{label:'finish exercise',selected:key,exercises:[earlier]}];
+ assert.equal(canUndoBuddyTransition(state),false,'legacy finish-exercise undo is blocked');
 });
