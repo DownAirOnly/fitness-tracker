@@ -9,7 +9,7 @@ import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights
 import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=99.7.4';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=99';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=92';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=103';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=98';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=99.7.4';
@@ -1498,9 +1498,37 @@ function buddyReadSetupDraft(){
  const e=buddyFind(s,s.selected);
  if(e?.setupEditing)e.setupDraft=field.value.slice(0,200);
 }
-function buddyCaptureUndo(s,label){const snapshot={label,phase:s.phase,selected:s.selected,exercises:structuredClone(s.exercises),performedOrder:structuredClone(s.performedOrder||[])};if(s.completedAt)snapshot.completedAt=s.completedAt;if(s.bikeCompletedAt)snapshot.bikeCompletedAt=s.bikeCompletedAt;s.undo=snapshot;}
-function buddyUndo(s){if(!canUndoBuddyTransition(s))return;const u=s.undo;s.phase=u.phase;s.selected=u.selected;s.exercises=structuredClone(u.exercises);s.performedOrder=structuredClone(u.performedOrder||[]);if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;if(u.bikeCompletedAt)s.bikeCompletedAt=u.bikeCompletedAt;else delete s.bikeCompletedAt;delete s.undo;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);for(const e of s.exercises)if(e.status==='done')buddyUpsertLift(s,e);}
-function buddyUndoControl(s){return canUndoBuddyTransition(s)?`<button type="button" class="buddy-undo" data-action="buddy-undo">↶ Undo ${esc(s.undo.label||'last action')}</button>`:'';}
+// Keep a bounded, flat history of reversible transitions; never nest undo snapshots.
+const BUDDY_UNDO_LIMIT=30;
+function buddyUndoSteps(s){
+ if(!s)return [];
+ if(Array.isArray(s.undoStack))return s.undoStack;
+ return s.undo&&s.undo.label!=='finish exercise'?[s.undo]:[];
+}
+function buddyCaptureUndo(s,label){
+ const snapshot={label,phase:s.phase,selected:s.selected,exercises:structuredClone(s.exercises),performedOrder:structuredClone(s.performedOrder||[])};
+ if(s.completedAt)snapshot.completedAt=s.completedAt;
+ if(s.bikeCompletedAt)snapshot.bikeCompletedAt=s.bikeCompletedAt;
+ s.undoStack=[...buddyUndoSteps(s).slice(-(BUDDY_UNDO_LIMIT-1)),snapshot];
+ delete s.undo; // Migrate any single-step snapshot from pre-v103 sessions.
+}
+function buddyUndo(s){
+ if(!canUndoBuddyTransition(s))return;
+ const steps=buddyUndoSteps(s),u=steps.at(-1);
+ s.phase=u.phase;s.selected=u.selected;
+ s.exercises=structuredClone(u.exercises);
+ s.performedOrder=structuredClone(u.performedOrder||[]);
+ if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;
+ if(u.bikeCompletedAt)s.bikeCompletedAt=u.bikeCompletedAt;else delete s.bikeCompletedAt;
+ s.undoStack=steps.slice(0,-1);
+ delete s.undo;
+ // Finalized exercises are an undo boundary. Retain their lift identifiers;
+ // only discard a Buddy lift if its exercise is no longer finalized.
+ const doneKeys=new Set(s.exercises.filter(e=>e.status==='done').map(buddyKey));
+ data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id||doneKeys.has(String(l.exercise||'').toLowerCase()+'|'+String(l.equipment||'other')));
+ for(const e of s.exercises)if(e.status==='done')buddyUpsertLift(s,e);
+}
+function buddyUndoControl(s){return canUndoBuddyTransition(s)?'<button type="button" class="buddy-undo" data-action="buddy-undo" aria-label="Undo last step">↶ Undo</button>':'';}
 function buddyDraft(e,index){return nextBuddySetDraft(e,index,buddyPrior(e));}
 function buddyStart(type){const w=workoutByName(type);if(!w)return;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
@@ -1539,12 +1567,12 @@ function buddyRender(){
  const setProgress=`<div class="buddy-set-status buddy-set-status-bars" role="status" aria-label="Set ${Math.min(i+1,target)} of ${target}"><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
  // Selecting an exercise does not start a timed set. Exercises already returns
  // to the picker, so do not show a redundant "Undo start exercise".
- const undoSet=s.undo?.label==='start exercise'?'':buddyUndoControl(s);
+ const undoSet=buddyUndoControl(s);
  const rest=showRest?`<span class="buddy-rest-in-action" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></span>`:'';
  const muscleStage=buddyExerciseMuscleStage(e);
  if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view">${setProgress}<div class="buddy-action-tools">${undoSet}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e,false)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div>${muscleStage}<button class="buddy-a" data-action="buddy-a"><b>Finish set ${i+1}</b></button></main></div>`;
  // Every finished set belongs in COMPLETED SETS, including the set under review.
- const confirmedSets=e.sets;
+ const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;
  const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
  const journalButton='<button type="button" class="buddy-journal-chip" data-action="buddy-journal-toggle">Journal ↗</button>';
  const notes=e.notesOpen?`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>${journalButton}</div><div class="buddy-notes-editor"><textarea name="buddyNotes" maxlength="500" rows="2" placeholder="Form, pain, setup, anything worth remembering">${esc(e.notes||'')}</textarea><button type="button" class="buddy-notes-done" data-action="buddy-notes-toggle">Done</button></div></div>`:`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle ${e.notes?'has-note':''}" data-action="buddy-notes-toggle"><span><b>${e.notes?'Notes saved':'Add notes'}</b><small>${e.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering'}</small></span><strong aria-hidden="true">${e.notes?'✓':'＋'}</strong></button>${journalButton}</div></div>`;
@@ -2597,7 +2625,7 @@ document.addEventListener('click',async event=>{
    else e.showRecent=!e.showRecent;
    await buddyPersist();return;
  }
-  if(action==='buddy-review-next'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||!Number.isInteger(e.reviewSetIndex))return;const finished=e.sets.length>=buddyTargetSets(e);buddyCaptureUndo(s,finished?'finish exercise':'start next set');delete e.reviewSetIndex;if(finished)buddyCompleteExercise(s,e);else{e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';}await buddyPersist();return;}
+  if(action==='buddy-review-next'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||!Number.isInteger(e.reviewSetIndex))return;const finished=e.sets.length>=buddyTargetSets(e);if(!finished)buddyCaptureUndo(s,'start next set');delete e.reviewSetIndex;if(finished){buddyCompleteExercise(s,e);s.undoStack=[];delete s.undo;}else{e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';}await buddyPersist();return;}
   if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;if(el.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
   if(action==='buddy-effort'){const root=el.closest('.buddy-exercise-view,.routine-history-editor'),input=root?.querySelector('[name=buddyDifficulty]');if(!input)return;input.value=el.dataset.value;root.querySelectorAll('.buddy-effort').forEach(btn=>{const selected=btn===el;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',selected?'true':'false');});if(root.matches('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
   if(action==='buddy-notes-toggle'){
@@ -2623,8 +2651,8 @@ document.addEventListener('click',async event=>{
    }
    return;
  }
-  if(action==='buddy-undo'){buddyReadNotes();const s=data.activeWorkout;if(!canUndoBuddyTransition(s))return;buddyUndo(s);await buddyPersist();return;}
-  if(action==='buddy-picker'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(s){s.phase='picker';s.selected=null;delete s.undo;}await buddyPersist();return;}
+  if(action==='buddy-undo'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(!canUndoBuddyTransition(s))return;buddyUndo(s);await buddyPersist();return;}
+  if(action==='buddy-picker'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(s){if(s.phase==='exercise'&&s.selected)buddyCaptureUndo(s,'view exercises');s.phase='picker';s.selected=null;}await buddyPersist();return;}
   if(action==='buddy-back-picker'){const s=data.activeWorkout;if(s){s.phase='picker';delete s.completedAt;delete s.undo;}await buddyPersist();return;}
   if(action==='buddy-a'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||Number.isInteger(e.reviewSetIndex))return;const i=e.sets.length,d=e.draft||buddyDraft(e,i);buddyCaptureUndo(s,e.activeSetStartedAt?`finish set ${i+1}`:`start set ${i+1}`);if(!e.activeSetStartedAt){e.draft=d;e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';await buddyPersist();return;}const finishedAt=isoNow();e.sets.push({weight:d.weight,reps:d.reps,...(d.difficulty?{difficulty:d.difficulty}:{}),startedAt:e.activeSetStartedAt,finishedAt,durationSeconds:buddySeconds(e.activeSetStartedAt,finishedAt)});delete e.activeSetStartedAt;delete e.draft;e.reviewSetIndex=e.sets.length-1;e.restStartedAt=finishedAt;e.restSeconds=Number.isInteger(e.restSeconds)?e.restSeconds:90;await buddyPersist();return;}
   if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;buddyClose();page='gym';render();void persist();return;}
@@ -3068,7 +3096,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=102',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=103',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3128,7 +3156,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=102');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=103');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
