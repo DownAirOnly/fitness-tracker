@@ -3096,23 +3096,27 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .buddy-set-active .buddy-exercise-view .buddy-running-clock{margin:9px 0 4px!important;flex:0 0 auto}
 
 
-/* v102 — match the v99.7.16 bottom CTA label exactly: Outfit 750,
-   24–31px and full white. The label is a direct <b> child so the legacy
-   .buddy-a span dimming rule cannot mute it. No secondary action copy. */
+/* v103 — match the older pre-v99.7.15 caption-era action type:
+   inherited DM Sans with normal bold (700), not Outfit 750. The small
+   caption remains removed. Keep the bottom CTA and rest timer geometry. */
 #buddy-root .buddy-exercise-view > button.buddy-a{
- display:flex;flex-direction:row;align-items:center;justify-content:center;
- text-align:center;
+ display:flex;flex-direction:row;align-items:center;justify-content:flex-start;
+ text-align:left;
 }
 #buddy-root .buddy-exercise-view > button.buddy-a > b{
  flex:1 1 auto;min-width:0;display:block;margin:0;
- font:750 clamp(24px,6vw,31px)/1.1 'Outfit',sans-serif;
- letter-spacing:-.02em;text-align:center;color:#fff;opacity:1;
+ font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+ font-size:25px;font-weight:700;line-height:1.15;letter-spacing:-.02em;
+ text-align:left;color:#fff;opacity:1;
 }
 #buddy-root .buddy-exercise-view > button.buddy-a-with-rest{
  justify-content:space-between;gap:14px;
 }
 #buddy-root .buddy-exercise-view > button.buddy-a-with-rest > .buddy-rest-in-action{
  flex:0 0 auto;opacity:1;
+}
+@media(max-height:820px){
+ #buddy-root .buddy-exercise-view > button.buddy-a > b{font-size:23px}
 }
 /* The two active-set bodies sit on the same baseline, not staggered.
    Home's deliberately diagonal recovery visuals are unchanged. */

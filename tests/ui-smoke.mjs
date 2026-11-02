@@ -28,7 +28,7 @@ const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('v99.7.15 — single-action Buddy CTA'),'single action style is present');
-assert.ok(stylesheet.includes('v102 — match the v99.7.16 bottom CTA label exactly'),'Buddy bottom action typography loaded');
+assert.ok(stylesheet.includes('v103 — match the older pre-v99.7.15 caption-era action type'),'Buddy bottom action typography loaded');
  assert.ok(stylesheet.includes('padding:0;'),'active figures have matching vertical offsets');
 assert.ok(stylesheet.includes('.buddy-set-active .buddy-muscle-stage .muscle-recovery-view .muscle-region.quiet'),'inactive muscles remain drawn');
 
@@ -711,7 +711,7 @@ try{
  assert.ok(document.querySelector('.buddy-muscle-mini .muscle-mini-pair'),'ready screen restores the small front/back muscle thumbnail');
  assert.equal(document.querySelector('.buddy-muscle-stage'),null,'large anatomy pair is absent before starting a set');
  assert.ok(!document.querySelector('.buddy-set-toolbar'),'no set action is in a top toolbar');
- assert.ok(!document.querySelector('[data-action="buddy-undo"]')?.textContent.includes('start exercise'),'redundant Undo start exercise hidden');
+ assert.equal(document.querySelector('[data-action="buddy-undo"]')?.textContent?.trim(),'↶ Undo','general Undo appears on current exercise');
  let firstSet=document.querySelector('[name=buddyWeight]');
  assert.ok(firstSet,'first Buddy set is editable');
  // v93: the normal set view is fitted; constrained viewports switch to an explicit safe fallback.
@@ -785,8 +785,9 @@ try{
  document.querySelector('[name=buddyReps]').value='9';
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a [data-action="buddy-a"]'),null,'bottom CTA is itself the action');
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-a"] b')?.textContent,'Start set 1','ready action is the large bottom button');
- assert.ok(stylesheet.includes("font:750 clamp(24px,6vw,31px)/1.1 'Outfit',sans-serif;"),'action font exactly matches v99.7.16');
- assert.ok(stylesheet.includes('text-align:center;color:#fff;opacity:1;'),'action label is centered and fully white');
+ assert.ok(stylesheet.includes("font-family:'DM Sans',system-ui,-apple-system,sans-serif;"),'button label inherits the older DM Sans family');
+ assert.ok(stylesheet.includes('font-size:25px;font-weight:700;line-height:1.15;letter-spacing:-.02em;'),'original non-extra-bold button typography');
+ assert.ok(stylesheet.includes('text-align:left;color:#fff;opacity:1;'),'button label is left-aligned and fully white');
  assert.ok(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-a"] > b'),'ready label is a direct bold child, not a dimmed span');
  assert.equal(document.querySelector('.buddy-exercise-view > .buddy-a .buddy-action-label'),null,'no legacy dimmed action-label wrapper remains');
  assert.equal(document.querySelector('.buddy-exercise-view .buddy-top-set-action'),null,'no small top Start set button');
@@ -799,14 +800,15 @@ try{
  assert.ok(document.querySelector('.buddy-set-active .buddy-a'),'Finish set stays reachable at bottom during an active set');
  assert.ok(stylesheet.includes('.buddy-set-active .buddy-muscle-stage .muscle-recovery-view:last-child'),'active anatomy has equal-height view alignment');
 
- assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set 1'));
+ assert.equal(document.querySelector('[data-action=buddy-undo]')?.textContent?.trim(),'↶ Undo');
  await click('buddy-a');
- assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo finish set 1'));
+ assert.equal(document.querySelector('[data-action=buddy-undo]')?.textContent?.trim(),'↶ Undo');
+ assert.equal(document.querySelectorAll('#buddy-root .buddy-completed-sets .buddy-completed-set').length,0,'set one stays under review until its reps and effort are confirmed');
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-review-next"] b')?.textContent,'Start set 2','review action returns to the large bottom button');
  assert.ok(document.querySelector('.buddy-exercise-view .buddy-muscle-mini'),'review keeps compact upper-right anatomy thumbnail');
  assert.equal(document.querySelector('.buddy-muscle-stage'),null,'review screen does not display large anatomy');
  assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'review has no extra action label');
- assert.ok(!document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set'));
+ assert.equal(document.querySelector('[data-action=buddy-undo]')?.textContent?.trim(),'↶ Undo','Undo is a general control without a step-specific label');
  if(document.querySelector('[data-action="buddy-toggle-history"]')){
   await click('buddy-toggle-history');
   const row=document.querySelector('.buddy-history-rest-row');
@@ -821,15 +823,45 @@ try{
  document.querySelector('[name=buddyWeight]').value='120';
  await click('buddy-review-next');
  assert.ok(document.querySelector('.buddy-running-values').textContent.includes('120'),'set 2 inherits edited set 1 from this workout');
- assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start next set'));
+ assert.equal(document.querySelector('[data-action=buddy-undo]')?.textContent?.trim(),'↶ Undo');
  await click('buddy-undo');
  assert.equal(document.querySelector('[name=buddyWeight]').value,'120','undo start next set restores the edited first set');
- await click('buddy-review-next');
+ assert.equal(document.querySelectorAll('.buddy-completed-set').length,0,'the current set remains excluded after undo');
+ // Undo all preceding transitions, instead of stopping after one step.
+ await click('buddy-undo');
+ assert.ok(document.querySelector('.buddy-set-active'),'undo finish set one returns to the active timed set');
+ await click('buddy-undo');
+ assert.equal(document.querySelector('.buddy-exercise-view [data-action=buddy-a] b')?.textContent,'Start set 1','undo start set one restores the ready state');
+ await click('buddy-undo');
+ assert.ok(document.querySelector('.buddy-picker-screen'),'undo choosing an exercise returns to the picker');
+ assert.equal(document.querySelector('.buddy-completed-exercise-strip'),null,'undo never manufactures a completed exercise');
+ // Choosing another unfinished exercise can be undone back to this one.
+ await click('buddy-choose');
+ const selectedExercise=document.querySelector('.buddy-exercise-title h1')?.textContent;
+ assert.ok(document.querySelector('.buddy-notes-toggle')?.textContent.includes('Notes saved'),'undoing transitions retains existing notes');
+ assert.ok(document.querySelector('.buddy-setup')?.textContent.includes('Seat 6'),'undoing transitions retains saved equipment setup');
+ await click('buddy-picker');
+ const other=[...document.querySelectorAll('.buddy-exercise-list [data-action=buddy-choose]')].find(btn=>!btn.textContent.includes(selectedExercise));
+ assert.ok(other,'other unfinished exercise is available');
+ other.click();await tick();
+ assert.notEqual(document.querySelector('.buddy-exercise-title h1')?.textContent,selectedExercise,'another exercise was selected');
+ await click('buddy-undo');
+ assert.ok(document.querySelector('.buddy-picker-screen'),'undo selection returns to exercise chooser');
+ await click('buddy-undo');
+ assert.equal(document.querySelector('.buddy-exercise-title h1')?.textContent,selectedExercise,'undo returns to previous unfinished exercise');
+ document.querySelector('[name=buddyWeight]').value='120';
+ document.querySelector('[name=buddyReps]').value='9';
  await click('buddy-a');
- assert.equal(document.querySelectorAll('#buddy-root .buddy-completed-sets .buddy-completed-set').length,2,'reviewing the second finished set still displays both completed sets');
+ await click('buddy-a');
+ assert.equal(document.querySelectorAll('.buddy-completed-set').length,0,'first set remains in review until Start set 2');
+ await click('buddy-review-next');
+ assert.equal(document.querySelectorAll('.buddy-completed-set').length,0,'active timed set uses anatomy rather than completed review rows');
+ await click('buddy-a');
+ assert.equal(document.querySelectorAll('#buddy-root .buddy-completed-sets .buddy-completed-set').length,1,'only the confirmed first set appears while reviewing set two');
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-review-next"] b')?.textContent,'Next exercise','end-of-exercise action stays at bottom');
  await click('buddy-review-next');
  assert.ok(document.querySelector('.buddy-picker-screen'),'after an exercise, the next-exercise picker is visible');
+ assert.equal(document.querySelector('#buddy-root [data-action=buddy-undo]'),null,'a completed exercise is the Undo boundary');
  const doneCard=document.querySelector('.buddy-completed-exercise-strip .buddy-exercise-done');
  assert.ok(doneCard,'completed exercises remain visible as cards');
  assert.ok(document.querySelector('.buddy-completed-exercise-strip .exercise-muscle-peek'),'completed cards show muscles used');
