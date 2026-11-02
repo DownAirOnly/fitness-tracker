@@ -28,6 +28,9 @@ const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('v99.7.15 — single-action Buddy CTA'),'single action style is present');
+assert.ok(stylesheet.includes('#buddy-root .buddy-notes-editor textarea[name="buddyNotes"]{'),'Buddy Notes has its own iOS anti-zoom rule');
+assert.ok(stylesheet.includes('font-size:18px!important;'),'Buddy Notes stays larger than Safari\'s 16px auto-zoom threshold');
+
 assert.ok((await readFile(new URL('app.js',root),'utf8')).includes('function buddyRestoreTouchOrigin()'),'touch origin reset is present');
 assert.ok(stylesheet.includes('/* No overlapping arms: padded and separated fixed anatomy columns. */'),'recovery figures occupy distinct columns');
 assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-value'),'Food page and full-log modal use shared value geometry');
@@ -760,6 +763,7 @@ try{
  noteField.value='Controlled reps';
  noteField.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
  await click('buddy-notes-toggle');
+ assert.notEqual(document.activeElement,noteField,'Done blurs the Notes textarea before its DOM is replaced');
  assert.ok(document.querySelector('#buddy-root .buddy-notes-toggle').textContent.includes('Notes saved'),'Notes persist after dismissal');
  assert.equal(document.querySelector('#buddy-root .buddy-screen').style.height,'','layout restores after Notes');
  firstSet=document.querySelector('[name=buddyWeight]');
