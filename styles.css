@@ -3089,7 +3089,7 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
    column and the quiet body muscles remain visible. */
 .buddy-exercise-view .buddy-muscle-stage{
  flex:1 1 auto;min-height:110px;max-height:42dvh;
- width:100%;max-width:none;
+ height:auto;width:100%;max-width:none;
  margin:10px auto 4px;padding:6px 16px 8px;
  display:flex;align-items:center;justify-content:center;
  border:0;border-radius:14px;background:transparent;
@@ -3127,3 +3127,6 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  .buddy-exercise-view .buddy-muscle-stage{min-height:75px;margin-top:4px}
  .buddy-exercise-view .buddy-set-toolbar{min-height:37px;margin-bottom:3px}
 }
+
+/* The active set's timer precedes, rather than pushes away, the diagram. */
+.buddy-set-active .buddy-exercise-view .buddy-running-clock{margin:9px 0 4px!important;flex:0 0 auto}
