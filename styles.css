@@ -3094,3 +3094,38 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  .buddy-set-active .buddy-exercise-view .buddy-muscle-stage{min-height:75px;margin-top:4px}
 }
 .buddy-set-active .buddy-exercise-view .buddy-running-clock{margin:9px 0 4px!important;flex:0 0 auto}
+
+
+/* v101 — bring back the original DM Sans action typography without
+   reinstating secondary captions. Keep the entire action at the bottom. */
+#buddy-root .buddy-exercise-view > .buddy-a{
+ display:flex;flex-direction:row;align-items:center;justify-content:center;
+ text-align:center;
+}
+#buddy-root .buddy-exercise-view > .buddy-a .buddy-action-label{
+ display:flex;flex:1 1 auto;min-width:0;align-items:center;
+ justify-content:center;text-align:center;opacity:1;
+}
+#buddy-root .buddy-exercise-view > .buddy-a .buddy-action-label > b,
+#buddy-root .buddy-set-active .buddy-exercise-view > .buddy-a > b{
+ display:block;margin:0;
+ font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+ font-size:clamp(24px,6vw,29px);
+ font-weight:700;line-height:1.12;letter-spacing:-.025em;
+ text-align:center;
+}
+#buddy-root .buddy-exercise-view > .buddy-a-with-rest{
+ justify-content:space-between;gap:14px;
+}
+#buddy-root .buddy-exercise-view > .buddy-a-with-rest .buddy-action-label{
+ align-self:stretch;
+}
+#buddy-root .buddy-exercise-view > .buddy-a-with-rest .buddy-rest-in-action{
+ opacity:1;
+}
+/* The two active-set bodies sit on the same baseline, not staggered.
+   Home's deliberately diagonal recovery visuals are unchanged. */
+#buddy-root .buddy-set-active .buddy-muscle-stage .muscle-recovery-view:first-child,
+#buddy-root .buddy-set-active .buddy-muscle-stage .muscle-recovery-view:last-child{
+ padding:0;
+}
