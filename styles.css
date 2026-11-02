@@ -3015,3 +3015,16 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .food-log-totals .nutrition-total-value .nutrition-total-unit{
  display:inline!important;white-space:nowrap;margin-bottom:0!important;
 }
+
+/* v99.7.15 — single-action Buddy CTA; keep graphical set progress. */
+.buddy-exercise-view .buddy-set-status-bars{
+ justify-content:flex-end;min-height:10px;margin:0 0 5px;
+}
+.buddy-exercise-view .buddy-set-status-bars .buddy-set-bars{flex:0 0 auto}
+.buddy-exercise-view .buddy-a .buddy-action-label{display:block;flex:1 1 auto;min-width:0}
+.buddy-exercise-view .buddy-a .buddy-action-label>b,
+.buddy-set-active .buddy-exercise-view .buddy-a>b{
+ display:block;margin:0;
+ font:750 clamp(24px,6vw,31px)/1.1 'Outfit',sans-serif;
+ letter-spacing:-.02em;
+}
