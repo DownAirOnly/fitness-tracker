@@ -2,6 +2,10 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
+## Current release — v101 (November 2, 2026)
+
+- **v101 — Workout Buddy iPhone feedback:** Keep Start set, Finish set and Next exercise as full-width bottom buttons; restore the original button text's DM Sans family, weight and size, and center labels horizontally/vertically. Do **not** restore the previously removed small explanatory action subtitles. For rest, center the action label within its left portion while keeping the rest countdown on the right, integrated into the same button. Fix COMPLETED SETS so the newly finished set remains listed while it is in review (including the final set). The exercise-specific full-size anatomy appears only while the set is active, and the two bodies are now level/aligned horizontally rather than diagonally staggered; keep Home's separate diagonal visual unchanged. Preserve the small blue-backed thumbnail before/between sets, Undo, notes focus, active session recovery, money/food and all persistent records. Automated tests, PR merge, Pages and real-iPhone visuals must be verified separately.
+
 ## Current release — v100 (November 2, 2026)
 
 - **Versioning rule:** v100 is the next whole-number release after v99.7.17. Every subsequent release increments by one (v101, v102, etc.), without decimal patches or forced multi-version cycles. Native iOS packaging is a separate future decision. This rule supersedes all older v99.8/v99.9 or native-v100 roadmaps below.
