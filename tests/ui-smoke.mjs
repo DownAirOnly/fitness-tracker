@@ -28,7 +28,8 @@ const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('v99.7.15 — single-action Buddy CTA'),'single action style is present');
-assert.ok(stylesheet.includes('v100 — restore the original ready/review layout'),'Buddy action + anatomy styling loaded');
+assert.ok(stylesheet.includes('v101 — bring back the original DM Sans action typography'),'Buddy bottom action typography loaded');
+ assert.ok(stylesheet.includes('padding:0;'),'active figures have matching vertical offsets');
 assert.ok(stylesheet.includes('.buddy-set-active .buddy-muscle-stage .muscle-recovery-view .muscle-region.quiet'),'inactive muscles remain drawn');
 
 assert.ok(stylesheet.includes('#buddy-root .buddy-notes-editor textarea[name="buddyNotes"]{'),'Buddy Notes has its own iOS anti-zoom rule');
@@ -784,6 +785,8 @@ try{
  document.querySelector('[name=buddyReps]').value='9';
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a [data-action="buddy-a"]'),null,'bottom CTA is itself the action');
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-a"] b')?.textContent,'Start set 1','ready action is the large bottom button');
+ assert.ok(stylesheet.includes("font-family:'DM Sans',system-ui,-apple-system,sans-serif"),'set action labels use the existing UI font');
+ assert.ok(stylesheet.includes('text-align:center;'),'set action text has centered alignment');
  assert.equal(document.querySelector('.buddy-exercise-view .buddy-top-set-action'),null,'no small top Start set button');
  assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'secondary set text removed');
  assert.equal(document.querySelectorAll('#buddy-root .buddy-set-status span').length,0,'progress bar replaces redundant set-count text');
@@ -792,6 +795,7 @@ try{
  assert.ok(document.querySelector('.buddy-set-active .buddy-muscle-stage .muscle-exercise-pair'),'large anatomy appears only while timing a set');
  assert.equal(document.querySelector('.buddy-set-active .buddy-muscle-mini'),null,'running screen omits small anatomy thumbnail');
  assert.ok(document.querySelector('.buddy-set-active .buddy-a'),'Finish set stays reachable at bottom during an active set');
+ assert.ok(stylesheet.includes('.buddy-set-active .buddy-muscle-stage .muscle-recovery-view:last-child'),'active anatomy has equal-height view alignment');
 
  assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set 1'));
  await click('buddy-a');
@@ -818,6 +822,8 @@ try{
  assert.equal(document.querySelector('[name=buddyWeight]').value,'120','undo start next set restores the edited first set');
  await click('buddy-review-next');
  await click('buddy-a');
+ assert.equal(document.querySelectorAll('#buddy-root .buddy-completed-sets .buddy-completed-set').length,2,'reviewing the second finished set still displays both completed sets');
+ assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-review-next"] b')?.textContent,'Next exercise','end-of-exercise action stays at bottom');
  await click('buddy-review-next');
  assert.ok(document.querySelector('.buddy-picker-screen'),'after an exercise, the next-exercise picker is visible');
  const doneCard=document.querySelector('.buddy-completed-exercise-strip .buddy-exercise-done');
