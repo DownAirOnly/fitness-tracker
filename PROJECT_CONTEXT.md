@@ -4,6 +4,9 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.16 Buddy Notes iPhone focus zoom (device verification pending):** Despite an earlier 16px Notes textarea rule, the iPhone sometimes auto-zooms while entering text. Explicitly set its computed font-size to 18px with text-size-adjust 100%, blur the textarea *before* dismissing/re-rendering with Done, then sync keyboard viewport and document scroll/touch origin on the next frame. Do not add `maximum-scale=1` or disable manual pinch zoom, and do not claim that JS can reliably reset Safari zoom. Keep observing intermittent tap-offset reports. No data model changes.
+
+
 - **v99.7.15 Buddy set action + touch-offset mitigation (real iPhone verification required):** Remove visible `Review set N`, `Set N of M` and `Set N in progress` from ready/review/running states; keep just large Start set N / Finish set N / Next exercise CTA, separate rest countdown and slim progress bars with aria-label count. Ticker no longer modifies removed status span. During Buddy, normalize document scroll origin when input blur ends, visual viewport shifts, app foregrounds or normal touch starts; do not interfere while editing or change the proven v99.7.7 global menu-viewport fix. Intermittent taps registering below the finger are not fully diagnosed or device-verified. No stored data changes.
 
 
