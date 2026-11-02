@@ -701,6 +701,11 @@ try{
  assert.ok(document.querySelector('form[data-form="lift"]'),'manual lifting opens the existing lift editor');
  await click('close');
  await click('buddy-launch');await click('buddy-start');await click('buddy-bike-done');
+ await click('buddy-exit');await click('home');
+ document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]').click();await tick();
+ assert.equal(document.querySelector('.home-add-trigger')?.textContent,'Resume','Home Workout action says Resume during an active workout');
+ await click('home-add-menu');
+ assert.ok(document.querySelector('#buddy-root .buddy-picker-screen'),'Home Resume reopens the same active session instead of starting a new one');
  await click('buddy-choose');
  assert.ok(document.querySelector('.buddy-muscle-stage .muscle-exercise-pair'),'Buddy uses Home anatomy wrapper with exercise muscle mapping');
  assert.equal(document.querySelectorAll('.buddy-muscle-stage .muscle-recovery-view').length,2,'both body views remain visible');
