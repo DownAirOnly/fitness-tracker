@@ -868,9 +868,9 @@ try{
  assert.ok(doneCard,'completed exercises remain visible as cards');
  assert.ok(document.querySelector('.buddy-completed-exercise-strip .exercise-muscle-peek'),'completed cards show muscles used');
  assert.ok(document.querySelector('.buddy-exercise-list [data-action="buddy-choose"]'),'remaining exercises stay selectable');
- const original=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
+ const original=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
  const existingLift=original.lifts.find(l=>l.buddySessionId===original.activeWorkout.id&&l.exercise===doneCard.querySelector('.exercise-name-row strong')?.textContent);
- assert.ok(existingLift,`completed exercise Buddy lift missing: ${JSON.stringify({activeId:original.activeWorkout?.id,cardTitle:doneCard.querySelector('.exercise-name-row strong')?.textContent,lastLifts:original.lifts.slice(-3).map(l=>({id:l.id,buddySessionId:l.buddySessionId,exercise:l.exercise}))})}`);
+ assert.ok(existingLift,'completed exercise already has a Buddy lift record');
  const liftId=existingLift.id,liftCount=original.lifts.length;
  doneCard.click();await tick();
  assert.ok(document.querySelector('.buddy-completed-editor'),'completed exercise card opens a full-screen editor');
@@ -897,7 +897,7 @@ try{
  document.querySelector('[name=buddyCompletedSetup]').value='Arms 2';
  await click('buddy-edit-completed-save');
  assert.ok(document.querySelector('.buddy-picker-screen'),'Save returns to the chooser');
- let saved=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
+ let saved=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
  let matched=saved.lifts.find(l=>l.id===liftId);
  assert.ok(matched,'original lift ID survives edits');
  assert.equal(saved.lifts.length,liftCount,'saving completed exercise creates no duplicate lift');
@@ -910,7 +910,7 @@ try{
  editedCard.click();await tick();
  document.querySelector('.buddy-completed-edit-set [name=buddyWeight]').value='999';
  await click('buddy-edit-completed-cancel');
- saved=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data;
+ saved=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
  matched=saved.lifts.find(l=>l.id===liftId);
  assert.equal(matched.sets[0].weight,72.5,'Cancel does not write uncommitted changes');
  const musclePeek=document.querySelector('.buddy-completed-exercise-strip .exercise-muscle-peek');
