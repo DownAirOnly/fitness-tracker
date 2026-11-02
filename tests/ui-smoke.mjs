@@ -27,6 +27,8 @@ assert.ok(initialGear.querySelector('circle[cx="12"][cy="12"][r="3.25"]'),'gear 
 const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
+assert.ok(stylesheet.includes('v99.7.15 — single-action Buddy CTA'),'single action style is present');
+assert.ok((await readFile(new URL('app.js',root),'utf8')).includes('function buddyRestoreTouchOrigin()'),'touch origin reset is present');
 assert.ok(stylesheet.includes('/* No overlapping arms: padded and separated fixed anatomy columns. */'),'recovery figures occupy distinct columns');
 assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-value'),'Food page and full-log modal use shared value geometry');
 assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-unit'),'protein unit has matching inline rules inside modal');
@@ -764,10 +766,16 @@ try{
 
  firstSet.value='110';
  document.querySelector('[name=buddyReps]').value='9';
+ assert.equal(document.querySelector('#buddy-root [data-action="buddy-a"] b')?.textContent,'Start set 1','ready button shows only action');
+ assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'secondary set text removed');
+ assert.equal(document.querySelectorAll('#buddy-root .buddy-set-status span').length,0,'progress bar replaces redundant set-count text');
  await click('buddy-a');
+ assert.equal(document.querySelector('#buddy-root [data-action="buddy-a"] b')?.textContent,'Finish set 1','active button shows only finish action');
  assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set 1'));
  await click('buddy-a');
  assert.ok(document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo finish set 1'));
+ assert.equal(document.querySelector('#buddy-root [data-action="buddy-review-next"] b')?.textContent,'Start set 2','review button only shows next set action');
+ assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'review has no extra action label');
  assert.ok(!document.querySelector('[data-action=buddy-undo]').textContent.includes('Undo start set'));
  if(document.querySelector('[data-action="buddy-toggle-history"]')){
   await click('buddy-toggle-history');
