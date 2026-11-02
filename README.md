@@ -2,6 +2,13 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.16 — prevent Workout Buddy Notes focus zoom
+
+- Set the editable **Notes** textarea to 18px on iPhone (above Safari's 16px focus auto-zoom threshold), retaining normal manual pinch-to-zoom and accessible text scaling.
+- On **Done**, blur the editor before it is replaced and then restore the Buddy keyboard viewport/touch origin. This avoids leaving a stale zoomed or keyboard-shifted coordinate system after writing notes.
+- The earlier 16px rule was present, so this is a prevention and cleanup pass for intermittent iOS behavior, not a guaranteed programmatic zoom reset. iPhone device verification needed.
+- No changes to saved notes, workout timers, logging, cloud synchronization or other views.
+
 ## v99.7.15 — compact Workout Buddy set actions and touch-origin mitigation
 
 - Remove redundant `Review set N`, `Set N of M`, and `Set N in progress` secondary copy. A bottom action displays only Start set N, Finish set N or Next exercise. Retain graphical set indicators, accessible count, rest countdown, Undo, and timer.
