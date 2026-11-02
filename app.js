@@ -73,7 +73,7 @@ let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?struct
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
-let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null;
+let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null,buddyCompletedEditor=null;
 const app=document.querySelector('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,'');
@@ -1474,10 +1474,36 @@ function buddyPreviousOrder(w){
  if(Array.isArray(previous.performedOrder)&&previous.performedOrder.length)return previous.performedOrder;
  return(previous.exercises||[]).map(e=>({key:buddyKey(e),when:e.sets?.[0]?.startedAt||e.selectedAt||''})).filter(x=>x.when).sort((a,b)=>Date.parse(a.when)-Date.parse(b.when)).map(x=>x.key);
 }
-function buddyJournalScreen(head,e){
+function buddyJournalScreen(head,e,backAction='buddy-journal-toggle'){
  const past=buddyHistory(e).slice(0,20);
  const rows=past.map(l=>'<article class="buddy-journal-row"><div><strong>'+esc(niceDate(l.date))+'</strong><small>'+esc((l.sets||[]).length+' sets')+'</small></div><p>'+esc(describeLift(l))+'</p>'+(l.notes?'<blockquote>'+esc(l.notes)+'</blockquote>':'')+'</article>').join('');
- return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-journal-view"><button class="buddy-back" data-action="buddy-journal-toggle">‹ Back to exercise</button><h1>'+esc(e.name)+'</h1><p class="body-copy">Dated sets, effort, and notes from previous sessions.</p>'+(e.notes?'<article class="buddy-journal-row"><strong>This session</strong><p>'+esc(e.notes)+'</p></article>':'')+(rows||'<p class="empty">No prior exercise logs yet.</p>')+'</main></div>';
+ return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-journal-view"><button class="buddy-back" data-action="'+backAction+'">‹ Back to exercise</button><h1>'+esc(e.name)+'</h1><p class="body-copy">Dated sets, effort, and notes from previous sessions.</p>'+(e.notes?'<article class="buddy-journal-row"><strong>This session</strong><p>'+esc(e.notes)+'</p></article>':'')+(rows||'<p class="empty">No prior exercise logs yet.</p>')+'</main></div>';
+}
+
+
+/* Editing a completed exercise uses a temporary draft, never a second lift.
+   Save updates the original session record and the same Buddy lift ID. */
+function buddyCompletedEditorRead(){
+ const state=buddyCompletedEditor,root=document.querySelector('#buddy-root .buddy-completed-editor');
+ if(!state||!root)return;
+ for(const row of root.querySelectorAll('.buddy-completed-edit-set')){
+  const i=Number(row.dataset.index),set=state.sets[i];if(!set)continue;
+  set.weight=Math.max(0,Number(row.querySelector('[name=buddyWeight]')?.value)||0);
+  set.reps=Math.max(1,Math.floor(Number(row.querySelector('[name=buddyReps]')?.value)||1));
+  const effort=Number(row.querySelector('[name=buddyDifficulty]')?.value)||0;
+  if(effort>=1&&effort<=7)set.difficulty=effort;else delete set.difficulty;
+ }
+ const note=root.querySelector('[name=buddyCompletedNotes]');
+ if(note)state.notes=note.value.slice(0,500);
+ const setup=root.querySelector('[name=buddyCompletedSetup]');
+ if(setup)state.setup=setup.value.slice(0,200);
+}
+function buddyCompletedEditorScreen(head,s){
+ const state=buddyCompletedEditor,e=s.exercises.find(x=>buddyKey(x)===state?.key&&x.status==='done');
+ if(!state||!e){buddyCompletedEditor=null;return '';}
+ if(state.journalOpen)return buddyJournalScreen(head,{...e,notes:state.notes},'buddy-completed-journal-back');
+ const sets=state.sets.map((set,i)=>'<section class="buddy-completed-edit-set" data-index="'+i+'"><div class="buddy-completed-edit-set-heading"><strong>Set '+(i+1)+'</strong><span>'+buddyClock(set.durationSeconds||0)+'</span></div>'+buddySetControlsMarkup(set)+'</section>').join('');
+ return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-exercise-view buddy-completed-editor"><button type="button" class="buddy-back" data-action="buddy-edit-completed-cancel">‹ Exercises</button><div class="buddy-exercise-title buddy-completed-edit-title">'+buddyExerciseHeading(e)+'</div><div class="buddy-completed-edit-body">'+sets+'<div class="buddy-completed-edit-meta"><label>SETUP<input name="buddyCompletedSetup" maxlength="200" value="'+esc(state.setup||'')+'" placeholder="Machine setting or setup"></label><div class="buddy-completed-edit-notes-top"><span>EXERCISE NOTES</span><button type="button" class="buddy-journal-chip" data-action="buddy-completed-journal">Journal ↗</button></div><textarea name="buddyCompletedNotes" maxlength="500" rows="3" placeholder="Form, setup, pain, or anything worth remembering">'+esc(state.notes||'')+'</textarea></div></div><button type="button" class="buddy-a" data-action="buddy-edit-completed-save"><b>Save changes</b></button></main></div>';
 }
 
 function buddyTargetSets(e){const sets=Number(e.targetSets);return Number.isInteger(sets)&&sets>=1&&sets<=10?sets:2;}
@@ -1556,11 +1582,12 @@ function buddyRender(){
  if(buddyMuscleView&&buddyMuscleGroupView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-group-back">‹ Back to muscles</button><h1>${esc(muscleGroupLabel(buddyMuscleGroupView))}</h1>${muscleGroupDetailsMarkup(buddyMuscleGroupView,muscleRelatedExercises(buddyMuscleGroupView))}</main></div>`;
  if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(buddyMuscleView)}</main></div>`;
  if(s.phase==='bike')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-bike"><div class="buddy-step"><span class="buddy-step-number">01</span><p class="eyebrow">WARM-UP</p><h1>Bike · 5 min</h1><p>Head to the bike. Use the bike's timer for five minutes, then continue when you're ready to lift.</p></div><button class="buddy-a" data-action="buddy-bike-done"><span>Bike finished</span><b>Continue</b></button></main></div>`;
+ if(buddyCompletedEditor?.key)return buddyCompletedEditorScreen(head,s);
  if(s.phase==='picker'){
   const remaining=s.exercises.filter(e=>e.status!=='done');
   const completed=s.exercises.filter(e=>e.status==='done').sort((a,b)=>(s.performedOrder||[]).indexOf(buddyKey(a))-(s.performedOrder||[]).indexOf(buddyKey(b)));
   const completedStrip=completed.length?'<section class="buddy-picker-completed" aria-label="Completed exercises"><div class="buddy-picker-completed-head"><strong>Completed exercises</strong><small>'+completed.length+' of '+total+'</small></div><div class="buddy-completed-exercise-strip">'+completed.map(e=>
-    exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'muscle-guide',attrs:'data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="View used muscles for '+esc(e.name)+'"',modifier:'buddy-exercise buddy-exercise-done',summary:e.sets.length+' completed set'+(e.sets.length===1?'':'s'),trailing:'✓'}))
+    exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-edit-completed',attrs:'data-key="'+esc(buddyKey(e))+'" aria-label="Edit completed '+esc(e.name)+' sets"',modifier:'buddy-exercise buddy-exercise-done',summary:e.sets.length+' completed set'+(e.sets.length===1?'':'s'),trailing:'✓'}))
    ).join('')+'</div></section>':'';
   return `<div class="buddy-screen">${head}<main class="buddy-main buddy-picker-screen"><div class="buddy-progress"><span>${done} of ${total} exercises</span><span>${total-done} remaining</span></div>${buddyUndoControl(s)}${completedStrip}<div class="buddy-picker-head"><p class="eyebrow">${done?'CHOOSE WHAT’S NEXT':'READY TO LIFT'}</p><h1>${done?'Next exercise':'Choose your first exercise'}</h1><p>Select what’s available. Timing starts when you start the set.</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;
  }
@@ -1612,7 +1639,7 @@ function buddyEnsureFieldVisible(field){
  const view=field.closest('.buddy-exercise-view');
  if(!view)return;
  const limits=view.getBoundingClientRect(),rect=field.getBoundingClientRect();
- const bottom=limits.bottom-14,top=limits.top+10;
+ const bottom=limits.bottom-22,top=limits.top+10;
  if(rect.bottom>bottom)view.scrollTop+=rect.bottom-bottom;
  else if(rect.top<top)view.scrollTop-=top-rect.top;
 }
@@ -1659,7 +1686,7 @@ document.querySelector('#buddy-root')?.addEventListener('touchstart',()=>{
  if(!buddyActiveField())buddyRestoreTouchOrigin();
 },{passive:true,capture:true});
 function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
-function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
+function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;buddyCompletedEditor=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){
  // Paint the state transition before waiting for Firebase/cloud persistence.
  // Existing local recovery and queue reconciliation remain in persist().
@@ -2602,6 +2629,29 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-resume-from-picker'){close(true);buddyOpen();return;}
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
   if(action==='buddy-bike-done'){const s=data.activeWorkout;if(!s||s.phase!=='bike')return;buddyCaptureUndo(s,'bike finished');s.phase='picker';s.bikeCompletedAt=isoNow();await buddyPersist();return;}
+  if(action==='buddy-edit-completed'){
+   const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);
+   if(!e||e.status!=='done')return;
+   buddyCompletedEditor={key:buddyKey(e),sets:structuredClone(e.sets),notes:e.notes||'',setup:e.setup||'',journalOpen:false};
+   buddyOpen();return;
+  }
+  if(action==='buddy-edit-completed-cancel'){buddyCompletedEditor=null;buddyOpen();return;}
+  if(action==='buddy-completed-journal'){buddyCompletedEditorRead();if(buddyCompletedEditor){buddyCompletedEditor.journalOpen=true;buddyOpen();}return;}
+  if(action==='buddy-completed-journal-back'){if(buddyCompletedEditor){buddyCompletedEditor.journalOpen=false;buddyOpen();}return;}
+  if(action==='buddy-edit-completed-save'){
+   const s=data.activeWorkout,edit=buddyCompletedEditor,e=s&&edit?s.exercises.find(x=>buddyKey(x)===edit.key&&x.status==='done'):null;
+   if(!e)return;
+   buddyCompletedEditorRead();
+   if(edit.sets.length!==e.sets.length)return; // Do not rewrite workout shape or timing.
+   e.sets=structuredClone(edit.sets);
+   e.notes=edit.notes;
+   const setup=String(edit.setup||'').trim().slice(0,200);
+   if(setup)e.setup=setup;else delete e.setup;
+   const def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);
+   if(def){if(setup)def.setup=setup;else delete def.setup;}
+   buddyUpsertLift(s,e); // Reuses the original session lift record ID.
+   buddyCompletedEditor=null;await buddyPersist();return;
+  }
   if(action==='buddy-choose'){const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);if(!e)return;buddyCaptureUndo(s,'start exercise');e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
   if(action==='buddy-setup-toggle'||action==='buddy-setup-save'||action==='buddy-journal-toggle'||action==='buddy-toggle-history'){
    buddyReadEditor();buddyReadNotes();
@@ -2635,8 +2685,8 @@ document.addEventListener('click',async event=>{
    await buddyPersist();return;
  }
   if(action==='buddy-review-next'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||!Number.isInteger(e.reviewSetIndex))return;const finished=e.sets.length>=buddyTargetSets(e);if(!finished)buddyCaptureUndo(s,'start next set');delete e.reviewSetIndex;if(finished){buddyCompleteExercise(s,e);s.undoStack=[];delete s.undo;}else{e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';}await buddyPersist();return;}
-  if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;if(el.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
-  if(action==='buddy-effort'){const root=el.closest('.buddy-exercise-view,.routine-history-editor'),input=root?.querySelector('[name=buddyDifficulty]');if(!input)return;input.value=el.dataset.value;root.querySelectorAll('.buddy-effort').forEach(btn=>{const selected=btn===el;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',selected?'true':'false');});if(root.matches('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}return;}
+  if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;if(el.closest('.routine-history-editor'))routineHistoryCaptureDraft();else if(!el.closest('.buddy-completed-editor')){buddyReadEditor();persist();}return;}
+  if(action==='buddy-effort'){const root=el.closest('.buddy-completed-edit-set,.buddy-exercise-view,.routine-history-editor'),input=root?.querySelector('[name=buddyDifficulty]');if(!input)return;input.value=el.dataset.value;root.querySelectorAll('.buddy-effort').forEach(btn=>{const selected=btn===el;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',selected?'true':'false');});if(root.matches('.routine-history-editor'))routineHistoryCaptureDraft();else if(!root.closest('.buddy-completed-editor')){buddyReadEditor();persist();}return;}
   if(action==='buddy-notes-toggle'){
    buddyReadNotes();
    const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;
@@ -3105,7 +3155,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=103',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=104',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3165,7 +3215,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=103');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=104');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

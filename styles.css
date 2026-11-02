@@ -3124,3 +3124,77 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 #buddy-root .buddy-set-active .buddy-muscle-stage .muscle-recovery-view:last-child{
  padding:0;
 }
+
+
+/* v104 — iOS keyboard: keep Notes and caret unobstructed. Hide only the
+   bottom action while typing; restore it on keyboard dismissal. */
+#buddy-root .buddy-screen.buddy-keyboard-editing .buddy-exercise-view{
+ overflow-y:auto!important;
+ overscroll-behavior-y:contain;
+ scroll-padding-bottom:28px;
+ padding-bottom:24px;
+}
+#buddy-root .buddy-screen.buddy-keyboard-editing .buddy-exercise-view > .buddy-a{
+ display:none!important;
+}
+#buddy-root .buddy-screen.buddy-keyboard-editing .buddy-notes-editor,
+#buddy-root .buddy-screen.buddy-keyboard-editing .buddy-completed-edit-meta{
+ scroll-margin-bottom:24px;
+}
+/* A completed card edits the existing Buddy exercise (two sets together).
+   The muscle preview remains an independent button. */
+#buddy-root .buddy-completed-editor{
+ overflow-y:auto!important;
+ overscroll-behavior-y:contain;
+ gap:10px;
+ scroll-padding-bottom:22px;
+}
+#buddy-root .buddy-completed-edit-title{
+ position:relative;
+ min-height:110px;
+ flex:0 0 auto;
+}
+#buddy-root .buddy-completed-edit-title .buddy-hero-copy{padding-right:102px}
+#buddy-root .buddy-completed-edit-title .buddy-muscle-mini{
+ position:absolute;right:0;top:0;
+ width:88px;height:94px;min-height:94px;
+}
+#buddy-root .buddy-completed-edit-body{display:grid;gap:14px;min-width:0}
+#buddy-root .buddy-completed-edit-set{
+ display:grid;gap:8px;padding:12px;
+ border:1px solid #405a48;border-radius:16px;
+ background:#18271e;
+}
+#buddy-root .buddy-completed-edit-set-heading{
+ display:flex;justify-content:space-between;align-items:center;
+ color:#dceade;font-weight:750;font-size:15px;
+}
+#buddy-root .buddy-completed-edit-set-heading span{font-size:12px;color:#9bb3a3}
+#buddy-root .buddy-completed-edit-set .buddy-set-editor{gap:8px}
+#buddy-root .buddy-completed-edit-set .buddy-effort-wrap{margin-top:2px}
+#buddy-root .buddy-completed-edit-set .buddy-effort{height:47px}
+#buddy-root .buddy-completed-edit-meta{display:grid;gap:9px;padding-bottom:4px}
+#buddy-root .buddy-completed-edit-meta label{
+ display:grid;gap:6px;color:#94aa9a;font-size:11px;font-weight:800;letter-spacing:.07em;
+}
+#buddy-root .buddy-completed-edit-meta input,
+#buddy-root .buddy-completed-edit-meta textarea{
+ width:100%;border-radius:12px;border:1px solid #425949;
+ background:#17261d;color:#e5eee7;
+ font:500 18px/1.35 'DM Sans',system-ui,sans-serif;
+ padding:12px;min-height:48px;
+}
+#buddy-root .buddy-completed-edit-meta textarea{min-height:92px;resize:vertical}
+#buddy-root .buddy-completed-edit-notes-top{
+ display:flex;justify-content:space-between;align-items:center;gap:10px;
+ color:#91a998;font-size:11px;font-weight:800;letter-spacing:.07em;
+}
+#buddy-root .buddy-completed-edit-notes-top .buddy-journal-chip{
+ margin:0;letter-spacing:normal;font-size:13px;
+}
+#buddy-root .buddy-completed-editor > .buddy-a{flex:0 0 auto;min-height:74px;margin-top:8px}
+@media(max-width:390px){
+ #buddy-root .buddy-completed-edit-set{padding:10px 8px}
+ #buddy-root .buddy-completed-edit-title .buddy-muscle-mini{width:72px;height:82px;min-height:82px}
+ #buddy-root .buddy-completed-edit-title .buddy-hero-copy{padding-right:85px}
+}
