@@ -4,6 +4,9 @@
 
 ## Current direction — November 1, 2026
 
+- **v99.7.15 Buddy set action + touch-offset mitigation (real iPhone verification required):** Remove visible `Review set N`, `Set N of M` and `Set N in progress` from ready/review/running states; keep just large Start set N / Finish set N / Next exercise CTA, separate rest countdown and slim progress bars with aria-label count. Ticker no longer modifies removed status span. During Buddy, normalize document scroll origin when input blur ends, visual viewport shifts, app foregrounds or normal touch starts; do not interfere while editing or change the proven v99.7.7 global menu-viewport fix. Intermittent taps registering below the finger are not fully diagnosed or device-verified. No stored data changes.
+
+
 - **v99.7.14 full food-log modal fix (iPhone sign-off pending):** The Food page's shared nutrition metric CSS previously excluded `.food-log-totals`, leaving its legacy small-label styles to turn current and goal protein `g` into separate lines and misalign its progress bar. Extend the shared metric and `scaleX` meter selectors to the All food entries modal, preserve page-specific colors and both inline units. No measurement or logging logic changes.
 
 

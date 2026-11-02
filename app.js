@@ -1515,11 +1515,12 @@ function buddyRender(){
  }
  if(s.phase==='complete')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-complete"><div><p class="eyebrow">CIRCUIT COMPLETE</p><h1>${esc(s.type)} finished</h1><p>${done} exercises · ${buddyClock(buddySeconds(s.startedAt,s.completedAt))} total</p></div>${buddyUndoControl(s)}<button class="buddy-a" data-action="buddy-confirm-finish"><span>Ready to wrap up?</span><b>Finish workout</b></button><button class="buddy-secondary" data-action="buddy-back-picker">Back to exercises</button></main></div>`;
  const e=buddyFind(s,s.selected);if(!e)return'';if(e.journalOpen)return buddyJournalScreen(head,e);const reviewing=Number.isInteger(e.reviewSetIndex),i=reviewing?e.reviewSetIndex:e.sets.length,target=buddyTargetSets(e),d=reviewing?e.sets[e.reviewSetIndex]:(e.draft||buddyDraft(e,i)),prior=buddyPrior(e),running=Boolean(e.activeSetStartedAt),resting=Boolean(e.restStartedAt&&!running),showRest=Boolean(e.restStartedAt&&!running)&&e.sets.length<target,left=showRest?Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt)):0,range=buddyRepRange(e);
- const state=reviewing?`Review set ${i+1}`:running?`Set ${i+1} in progress`:`Set ${i+1} of ${target}`,action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
- if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view"><div class="buddy-set-status"><span>SET ${i+1} OF ${target} · ACTIVE</span></div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><div class="buddy-action-tools">${buddyUndoControl(s)}</div><button class="buddy-a" data-action="buddy-a"><span>Set ${i+1} in progress</span><b>Finish set ${i+1}</b></button></main></div>`;
+ const action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
+ // Keep the count in the accessibility label, not as overlapping visible copy.
+ const setProgress=`<div class="buddy-set-status buddy-set-status-bars" role="status" aria-label="Set ${Math.min(i+1,target)} of ${target}"><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
+ if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view">${setProgress}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div><div class="buddy-action-tools">${buddyUndoControl(s)}</div><button class="buddy-a" data-action="buddy-a"><b>Finish set ${i+1}</b></button></main></div>`;
  const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;const completedSets=confirmedSets.length?`<div class="buddy-completed-sets"><span class="buddy-mini-label">COMPLETED SETS</span>${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span>${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps}</span><span>${set.difficulty?effortText(set.difficulty):'No effort'}</span><time>${buddyClock(set.durationSeconds||0)}</time></div>`).join('')}</div>`:'';
  const rest=showRest?`<span class="buddy-rest-in-action" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></span>`:'';
- const setProgress=`<div class="buddy-set-status"><span>SET ${Math.min(i+1,target)} OF ${target}</span><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
  const journalButton='<button type="button" class="buddy-journal-chip" data-action="buddy-journal-toggle">Journal ↗</button>';
  const notes=e.notesOpen?`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>${journalButton}</div><div class="buddy-notes-editor"><textarea name="buddyNotes" maxlength="500" rows="2" placeholder="Form, pain, setup, anything worth remembering">${esc(e.notes||'')}</textarea><button type="button" class="buddy-notes-done" data-action="buddy-notes-toggle">Done</button></div></div>`:`<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle ${e.notes?'has-note':''}" data-action="buddy-notes-toggle"><span><b>${e.notes?'Notes saved':'Add notes'}</b><small>${e.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering'}</small></span><strong aria-hidden="true">${e.notes?'✓':'＋'}</strong></button>${journalButton}</div></div>`;
  const recent=buddyHistory(e),lastSession=recent[0]||prior;
@@ -1528,7 +1529,7 @@ function buddyRender(){
 
  const undo='';
  const historyRest=history?'<div class="buddy-history-rest-row">'+history+'</div>':'';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span class="buddy-action-label"><span data-buddy-state>${state}</span><b>${action}</b></span>${rest}</button></main></div>`;
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${buddyUndoControl(s)}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${undo}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><span class="buddy-action-label"><b>${action}</b></span>${rest}</button></main></div>`;
 }
 let buddyTicker=null;
 // Set screens normally do not scroll. Allow a contained fallback if an unusually
@@ -1576,13 +1577,27 @@ function buddySyncInputViewport(){
 document.querySelector('#buddy-root')?.addEventListener('focusin',event=>{
  if(event.target.matches?.('input:not([type="hidden"]),textarea'))buddySyncInputViewport();
 });
+// Restore the hit-testing origin only after editing, not while typing.
+function buddyRestoreTouchOrigin(){
+ if(!document.documentElement.classList.contains('buddy-active')||buddyActiveField())return;
+ normalizeDocumentViewport();
+}
 document.querySelector('#buddy-root')?.addEventListener('focusout',()=>{
- requestAnimationFrame(buddySyncInputViewport);
+ requestAnimationFrame(()=>{buddySyncInputViewport();buddyRestoreTouchOrigin();});
 });
-window.addEventListener('resize',buddySyncInputViewport);
-window.visualViewport?.addEventListener('resize',buddySyncInputViewport);
-window.visualViewport?.addEventListener('scroll',buddySyncInputViewport);
-function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));const state=document.querySelector('[data-buddy-state]');if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));if(state&&!Number.isInteger(e.reviewSetIndex))state.textContent=left?`Rest · ${buddyClock(left)} remaining`:'Rest complete';const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
+window.addEventListener('resize',()=>{buddySyncInputViewport();buddyRestoreTouchOrigin();});
+window.visualViewport?.addEventListener('resize',()=>{buddySyncInputViewport();buddyRestoreTouchOrigin();});
+window.visualViewport?.addEventListener('scroll',()=>{buddySyncInputViewport();buddyRestoreTouchOrigin();});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible'&&document.documentElement.classList.contains('buddy-active')){
+  requestAnimationFrame(()=>{buddySyncInputViewport();buddyRestoreTouchOrigin();});
+ }
+});
+// Prepare the touch origin on direct taps without altering the native target.
+document.querySelector('#buddy-root')?.addEventListener('touchstart',()=>{
+ if(!buddyActiveField())buddyRestoreTouchOrigin();
+},{passive:true,capture:true});
+function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
 function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){
  // Paint the state transition before waiting for Firebase/cloud persistence.
@@ -3018,7 +3033,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.14',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=99.7.15',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3078,7 +3093,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=99.7.14');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=99.7.15');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
