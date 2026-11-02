@@ -28,7 +28,7 @@ const firstPaintGear=initialGear.innerHTML;
 assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('v99.7.15 — single-action Buddy CTA'),'single action style is present');
-assert.ok(stylesheet.includes('v101 — bring back the original DM Sans action typography'),'Buddy bottom action typography loaded');
+assert.ok(stylesheet.includes('v102 — match the v99.7.16 bottom CTA label exactly'),'Buddy bottom action typography loaded');
  assert.ok(stylesheet.includes('padding:0;'),'active figures have matching vertical offsets');
 assert.ok(stylesheet.includes('.buddy-set-active .buddy-muscle-stage .muscle-recovery-view .muscle-region.quiet'),'inactive muscles remain drawn');
 
@@ -785,8 +785,10 @@ try{
  document.querySelector('[name=buddyReps]').value='9';
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a [data-action="buddy-a"]'),null,'bottom CTA is itself the action');
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-a"] b')?.textContent,'Start set 1','ready action is the large bottom button');
- assert.ok(stylesheet.includes("font-family:'DM Sans',system-ui,-apple-system,sans-serif"),'set action labels use the existing UI font');
- assert.ok(stylesheet.includes('text-align:center;'),'set action text has centered alignment');
+ assert.ok(stylesheet.includes("font:750 clamp(24px,6vw,31px)/1.1 'Outfit',sans-serif;"),'action font exactly matches v99.7.16');
+ assert.ok(stylesheet.includes('text-align:center;color:#fff;opacity:1;'),'action label is centered and fully white');
+ assert.ok(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-a"] > b'),'ready label is a direct bold child, not a dimmed span');
+ assert.equal(document.querySelector('.buddy-exercise-view > .buddy-a .buddy-action-label'),null,'no legacy dimmed action-label wrapper remains');
  assert.equal(document.querySelector('.buddy-exercise-view .buddy-top-set-action'),null,'no small top Start set button');
  assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'secondary set text removed');
  assert.equal(document.querySelectorAll('#buddy-root .buddy-set-status span').length,0,'progress bar replaces redundant set-count text');
@@ -811,6 +813,8 @@ try{
   assert.ok(row,'history remains full-width during rest');
   assert.ok(row.querySelector('.buddy-compact-history'),'history expansion is contained');
   assert.ok(document.querySelector('.buddy-a-with-rest [data-buddy-rest]'),'rest countdown is integrated into the bottom action');
+  assert.ok(document.querySelector('.buddy-a-with-rest > b'),'resting action label is a direct child, next to the timer');
+  assert.equal(document.querySelector('.buddy-a-with-rest .buddy-action-label'),null,'rest action label is not dimmed by generic span opacity');
   assert.ok(!document.querySelector('.buddy-set-status [data-buddy-rest]'),'rest countdown does not move into the top progress row');
   await click('buddy-toggle-history');
  }
