@@ -1516,7 +1516,16 @@ function buddyUndo(s){
  if(!canUndoBuddyTransition(s))return;
  const steps=buddyUndoSteps(s),u=steps.at(-1);
  s.phase=u.phase;s.selected=u.selected;
+ // Undo workout progress, not independent notes, machine setup or UI drafts.
+ const existing=new Map(s.exercises.map(e=>[buddyKey(e),e]));
  s.exercises=structuredClone(u.exercises);
+ for(const e of s.exercises){
+  const live=existing.get(buddyKey(e));if(!live)continue;
+  for(const field of ['notes','notesOpen','setup','setupDraft','setupEditing','showRecent']){
+   if(Object.hasOwn(live,field))e[field]=structuredClone(live[field]);
+   else delete e[field];
+  }
+ }
  s.performedOrder=structuredClone(u.performedOrder||[]);
  if(u.completedAt)s.completedAt=u.completedAt;else delete s.completedAt;
  if(u.bikeCompletedAt)s.bikeCompletedAt=u.bikeCompletedAt;else delete s.bikeCompletedAt;
