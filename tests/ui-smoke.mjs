@@ -784,7 +784,7 @@ try{
 
  firstSet.value='110';
  document.querySelector('[name=buddyReps]').value='9';
- assert.equal(document.querySelector('#buddy-root [data-action="buddy-a"] b')?.textContent,'Start set 1','ready button shows only action');
+ assert.equal(document.querySelector('#buddy-root .buddy-set-toolbar [data-action="buddy-a"]')?.textContent,'Start set 1','ready button shows only action');
  assert.ok(document.querySelector('.buddy-set-toolbar [data-action="buddy-a"]'),'Start set 1 now sits in the top action row');
  assert.equal(document.querySelector('.buddy-exercise-view > .buddy-a'),null,'ready screen has no bottom CTA');
 
