@@ -3096,32 +3096,23 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .buddy-set-active .buddy-exercise-view .buddy-running-clock{margin:9px 0 4px!important;flex:0 0 auto}
 
 
-/* v101 — bring back the original DM Sans action typography without
-   reinstating secondary captions. Keep the entire action at the bottom. */
-#buddy-root .buddy-exercise-view > .buddy-a{
+/* v102 — match the v99.7.16 bottom CTA label exactly: Outfit 750,
+   24–31px and full white. The label is a direct <b> child so the legacy
+   .buddy-a span dimming rule cannot mute it. No secondary action copy. */
+#buddy-root .buddy-exercise-view > button.buddy-a{
  display:flex;flex-direction:row;align-items:center;justify-content:center;
  text-align:center;
 }
-#buddy-root .buddy-exercise-view > .buddy-a .buddy-action-label{
- display:flex;flex:1 1 auto;min-width:0;align-items:center;
- justify-content:center;text-align:center;opacity:1;
+#buddy-root .buddy-exercise-view > button.buddy-a > b{
+ flex:1 1 auto;min-width:0;display:block;margin:0;
+ font:750 clamp(24px,6vw,31px)/1.1 'Outfit',sans-serif;
+ letter-spacing:-.02em;text-align:center;color:#fff;opacity:1;
 }
-#buddy-root .buddy-exercise-view > .buddy-a .buddy-action-label > b,
-#buddy-root .buddy-set-active .buddy-exercise-view > .buddy-a > b{
- display:block;margin:0;
- font-family:'DM Sans',system-ui,-apple-system,sans-serif;
- font-size:clamp(24px,6vw,29px);
- font-weight:700;line-height:1.12;letter-spacing:-.025em;
- text-align:center;
-}
-#buddy-root .buddy-exercise-view > .buddy-a-with-rest{
+#buddy-root .buddy-exercise-view > button.buddy-a-with-rest{
  justify-content:space-between;gap:14px;
 }
-#buddy-root .buddy-exercise-view > .buddy-a-with-rest .buddy-action-label{
- align-self:stretch;
-}
-#buddy-root .buddy-exercise-view > .buddy-a-with-rest .buddy-rest-in-action{
- opacity:1;
+#buddy-root .buddy-exercise-view > button.buddy-a-with-rest > .buddy-rest-in-action{
+ flex:0 0 auto;opacity:1;
 }
 /* The two active-set bodies sit on the same baseline, not staggered.
    Home's deliberately diagonal recovery visuals are unchanged. */
