@@ -427,6 +427,15 @@ function selectHomeDashboard(next){
  }
  const title=shell.querySelector('[data-home-dashboard-title]');
  if(title)title.textContent=({finances:'Spend',lifting:'Workout',nutrition:'Eat'})[next];
+ // Switching the card does not rerender Home's surrounding controls; update
+ // the action too so active sessions always display Resume, not a stale '+'.
+ const add=shell.querySelector('.home-add-trigger');
+ if(add&&!add.disabled){
+  const resume=next==='lifting'&&Boolean(data.activeWorkout);
+  add.innerHTML=resume?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>';
+  add.classList.toggle('home-add-resume',resume);
+  add.setAttribute('aria-label',resume?'Resume workout':'Add to selected dashboard');
+ }
 }
 let homeSwipeStart=null;
 document.addEventListener('touchstart',event=>{
