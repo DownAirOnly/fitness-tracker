@@ -25,9 +25,10 @@ export function canUndoBuddyTransition(session){
  }
  if(label==='start exercise'){
   const before=(undo.exercises||[]).find(e=>keyFor(e)===key);
-  return phase==='exercise'&&undo.phase==='picker'&&current?.status==='active'&&
+  return phase==='exercise'&&current?.status==='active'&&
    !current.activeSetStartedAt&&!Number.isInteger(current.reviewSetIndex)&&
-   Boolean(before)&&current.sets.length===before.sets.length;
+   (undo.phase==='picker'&&Boolean(before)&&current.sets.length===before.sets.length||
+    !undo.phase&&current.sets.length===0); // Legacy single-step snapshots.
  }
  if(phase!=='exercise'||!current||undo.selected!==key)return false;
  const started=Boolean(current.activeSetStartedAt);
