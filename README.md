@@ -2,6 +2,13 @@
 
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
+## v99.7.15 — compact Workout Buddy set actions and touch-origin mitigation
+
+- Remove redundant `Review set N`, `Set N of M`, and `Set N in progress` secondary copy. A bottom action displays only Start set N, Finish set N or Next exercise. Retain graphical set indicators, accessible count, rest countdown, Undo, and timer.
+- Remove obsolete ticker updates for hidden status text.
+- Reset the document's touch/scroll origin after a Buddy editor blurs, viewport changes, app foreground return, and at a normal touch start; skip while text input is focused. This is a targeted **iPhone WebKit touch-offset mitigation, not yet confirmed fixed on a real device**.
+- No lifting data, records, timers, cloud sync, or global viewport layout changes.
+
 ## v99.7.14 — fix full food-log protein wrapping and progress alignment
 
 - The **All food entries** modal now uses the same shared Food nutrition metric styling as the Food tab and Home. Before this patch the v99.7.11 scoped typography and inline-`g` rules did not apply to the modal, causing both protein units to wrap beneath the numbers and dropping its progress bar.
