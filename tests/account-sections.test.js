@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {emptyData,normalizeData} from '../data.js';
 import {ACCOUNT_SECTIONS,exportSection,applySection,mergeSections,sectionPayloads,readSectionPayloads,SECTION_FORMAT} from '../account-sections.js';
-import {encodeState,decodeState,MAX_CLOUD_BYTES} from '../cloud-model.js';
+import {encodeState,decodeState,accountSectionUsage,MAX_CLOUD_BYTES} from '../cloud-model.js';
 
 function sample(){
  const d=emptyData();
@@ -47,23 +47,23 @@ test('never silently accept unversioned, wrong-section, partial or duplicate fil
  const bad=exportSection(d,'finances');bad.data.transactions[0].amountCents=-100;
  assert.throws(()=>applySection(d,bad),/invalid/i);
 });
-test('per-section limit permits whole accounts above 800 KB, but rejects an oversized section',()=>{
- const d=sample();
- // Many unique but valid transactions produce a large finance file; keep nutrition and lifting tiny.
- for(let i=0;i<3800;i++)d.transactions.push({
-  id:'trans-'+i,date:'2026-10-29',kind:'expense',amountCents:100,
-  description:'Food purchase unique '+i+' '+('x'.repeat(52)),category:'Groceries'
- });
- for(let i=0;i<3000;i++)d.foods.push({id:'food-'+i,name:'Food item sample '+i+' '+('z'.repeat(65)),calories:220,protein:20,kind:'food'});
- const parts=sectionPayloads(d);
- const sizes=Object.values(parts).map(x=>new TextEncoder().encode(x).length);
- assert.ok(sizes[2]<MAX_CLOUD_BYTES);
- assert.ok(sizes.reduce((a,b)=>a+b,0)>MAX_CLOUD_BYTES);
- assert.ok(typeof encodeState(d)==='string');
- const bigger=sample();
- bigger.transactions=Array.from({length:350},(_,i)=>({id:'large-'+i,date:'2026-10-29',kind:'expense',
-  amountCents:100,description:'Groceries',itemization:'x'.repeat(2700),category:'Groceries'}));
- assert.throws(()=>encodeState(bigger),/finances.*limit/);
+test('v112: total account can exceed 800 KB when safely split into months',()=>{
+ const data=sample();
+ for(let i=0;i<4800;i++){
+  const month=String(Math.floor(i/400)+1).padStart(2,'0');
+  data.transactions.push({id:'trans-'+i,date:'2026-'+month+'-10',
+   kind:'expense',amountCents:100,description:'Food purchase '+i+' '+('x'.repeat(110)),
+   category:'Groceries'});
+ }
+ const usage=accountSectionUsage(data);
+ assert.equal(usage.months.length,12);
+ assert.ok(usage.totalBytes>MAX_CLOUD_BYTES);
+ assert.ok(Object.values(usage.sections).every(x=>x.bytes<MAX_CLOUD_BYTES));
+ assert.ok(typeof encodeState(data)==='string');
+ const huge=sample();
+ huge.transactions=Array.from({length:350},(_,i)=>({id:'large-'+i,date:'2026-10-29',
+  kind:'expense',amountCents:100,description:'Groceries',itemization:'x'.repeat(2700),category:'Groceries'}));
+ assert.throws(()=>encodeState(huge),/month-2026-10.*800 KB/);
 });
 test('weight units are checked across separate Nutrition and Lifting files',()=>{
  const d=sample();
