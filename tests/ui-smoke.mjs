@@ -340,7 +340,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(financial.length,0,'confirmed deletion removes the transaction');
 
   await click('finance-csv-example');
-  assert.ok(document.querySelector('.finance-sample').value.includes('recordType,date,time,kind,amount'));
+  assert.ok(document.querySelector('.finance-sample').value.includes('recordType,date,kind,amount,description,category'),'receipt CSV example leads with purchase columns');
+  assert.ok(document.querySelector('.finance-sample').value.includes('receiptItem'),'mixed-merchant receipt format is documented');
+  assert.ok([...document.querySelectorAll('.finance-sample')].some(el=>el.value.includes('recordType,date,time,kind,amount')),'legacy transaction CSV example remains available');
   await click('finance-paste-csv');
   assert.ok(document.querySelector('form[data-form="import"]'),'prepared CSV uses the reviewed import form');
   const transactionCsv=[
