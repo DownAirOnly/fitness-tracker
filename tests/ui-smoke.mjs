@@ -603,7 +603,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(row.querySelector('.home-food-position').textContent,String(index+1),'number is assigned by selection order');
  }
  await click('home-food-customize-save');
- const orderedFoodIds=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).preferences.homeFoodIds;
+ const orderedFoodIds=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).preferences.homeFoodIds;
  assert.deepEqual(orderedFoodIds,[choices[2].dataset.id,choices[0].dataset.id,choices[1].dataset.id]);
  assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(el=>el.dataset.id),orderedFoodIds,'cards use fixed stored order');
  await click('home');
