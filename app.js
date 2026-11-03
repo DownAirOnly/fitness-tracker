@@ -1329,7 +1329,7 @@ function equipmentLabel(type){return ({machine:'Machine',cable:'Cable',dumbbell:
 function equipmentGlyph(type){
  const icons={
   dumbbell:'<svg viewBox="0 0 120 72" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M37 36h46"/><path d="M30 21v30M20 26v20M90 21v30M100 26v20"/></g></svg>',
-  cable:'<svg viewBox="0 0 120 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 10h72v18H24z"/><circle cx="60" cy="39" r="15"/><circle cx="60" cy="39" r="5"/><path d="M45 39H32v42M75 39h13v42M32 81l-7 8m7-8 7 8M88 81l-7 8m7-8 7 8"/></g></svg>',
+  cable:'<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><circle cx="47" cy="42" r="30"/><circle cx="47" cy="42" r="21" stroke-width="3" opacity=".6"/><circle cx="47" cy="42" r="5" fill="currentColor" stroke="none"/><path d="M77 42v41m0 0c0 8-10 9-13 3" stroke-width="5"/></g></svg>',
   machine:'<svg viewBox="0 0 120 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M25 89V15h66v74"/><rect x="31" y="28" width="13" height="47" rx="3"/><path d="M66 30v24M53 54h31M57 54v28M80 54v28M51 82h35"/></g></svg>',
   bench:'<svg viewBox="0 0 120 72" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"><path d="M24 37h72M35 37l-8 25M85 37l8 25"/></g></svg>',
   calisthenics:'<svg viewBox="0 0 120 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"><circle cx="60" cy="18" r="8"/><path d="M60 27v27M60 36L37 48M60 36l23 12M60 54L43 78M60 54l17 24"/></g></svg>',
@@ -1606,37 +1606,33 @@ function buddyExerciseMuscleStage(e){
  // warm-primary / cool-secondary anatomy mapping rather than recent workload.
  return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e.name)+'</button>';
 }
-// Bike clock previews use transient UI state only; no saved workout fields.
+// v108 — single analog clock, fully transient. Continue alone saves warm-up.
 let buddyBikeUi=null;
 function buddyBikeUiFor(s){
- if(!buddyBikeUi||buddyBikeUi.sessionId!==s.id)buddyBikeUi={sessionId:s.id,selected:'ring',remaining:300,startedAt:0,running:false,everStarted:false};
+ if(!buddyBikeUi||buddyBikeUi.sessionId!==s.id)buddyBikeUi={sessionId:s.id,remaining:300,startedAt:0,running:false,everStarted:false};
  return buddyBikeUi;
 }
 function buddyBikeSecondsLeft(ui){
- return ui.running?Math.max(0,ui.remaining-Math.floor((Date.now()-ui.startedAt)/1000)):ui.remaining;
+ return ui.running?Math.max(0,ui.remaining-(Date.now()-ui.startedAt)/1000):ui.remaining;
 }
-function buddyBikeFormat(sec){return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}
+function buddyBikeFormat(seconds){const total=Math.ceil(Math.max(0,seconds));return Math.floor(total/60)+':'+String(total%60).padStart(2,'0');}
 function buddyBikeRefresh(){
  const ui=buddyBikeUi;if(!ui)return;
  const left=buddyBikeSecondsLeft(ui);
- if(left===0&&ui.running){ui.running=false;ui.remaining=0;}
+ if(left<=0&&ui.running){ui.running=false;ui.remaining=0;}
  const root=document.querySelector('#buddy-root .buddy-bike');if(!root)return;
- for(const face of root.querySelectorAll('[data-bike-time]'))face.textContent=buddyBikeFormat(left);
- root.style.setProperty('--bike-progress',String((300-left)/300));
+ const display=root.querySelector('[data-bike-time]');if(display)display.textContent=buddyBikeFormat(left);
+ const hand=root.querySelector('.bike-dial-second-hand');
+ // A full 360 degrees every 60 seconds, using elapsed wall-clock time.
+ if(hand)hand.style.transform='rotate('+((300-left)*6)+'deg)';
  root.classList.toggle('bike-ui-running',ui.running);
  const start=root.querySelector('[data-action="buddy-bike-start"]');
- if(start)start.textContent=ui.running?'Pause':left===0?'Restart':!ui.everStarted?'Start':'Resume';
+ if(start)start.textContent=ui.running?'Pause':left<=0?'Restart':!ui.everStarted?'Start':'Resume';
 }
 function buddyBikeClockMarkup(head,s){
  const ui=buddyBikeUiFor(s);
- const choices=[
-  ['ring','Ring','<span class="bike-clock-ring"><i></i></span>'],
-  ['orbit','Orbit','<span class="bike-clock-orbit"><i></i></span>'],
-  ['digital','Digital','<span class="bike-clock-digital"><i></i><i></i><i></i></span>'],
-  ['dial','Dial','<span class="bike-clock-dial"><i></i><b></b></span>']
- ];
- const clocks=choices.map(([id,label,art])=>'<button type="button" class="bike-clock-option bike-style-'+id+(ui.selected===id?' is-selected':'')+'" data-action="buddy-bike-select" data-clock="'+id+'" aria-pressed="'+(ui.selected===id)+'"><span class="bike-clock-art" aria-hidden="true">'+art+'</span><strong data-bike-time>'+buddyBikeFormat(buddyBikeSecondsLeft(ui))+'</strong><small>'+label+'</small></button>').join('');
- return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-bike"><div class="buddy-bike-content"><h1>Bike · 5 min</h1><div class="bike-clock-grid" role="group" aria-label="Choose an animated clock style">'+clocks+'</div><button type="button" class="bike-clock-start" data-action="buddy-bike-start">'+(ui.running?'Pause':ui.remaining===0?'Restart':!ui.everStarted?'Start':'Resume')+'</button></div><button type="button" class="buddy-a" data-action="buddy-bike-done"><b>Continue</b></button></main></div>';
+ const ticks=Array.from({length:12},(_,i)=>'<i style="--mark:'+i+'"></i>').join('');
+ return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-bike"><div class="buddy-bike-content"><h1>Bike · 5 min</h1><div class="bike-dial-large" role="img" aria-label="Warm-up clock. Second hand makes one turn every minute"><div class="bike-dial-ticks" aria-hidden="true">'+ticks+'</div><span class="bike-dial-second-hand" aria-hidden="true"></span><span class="bike-dial-hub" aria-hidden="true"></span></div><strong class="bike-dial-readout" data-bike-time>'+buddyBikeFormat(buddyBikeSecondsLeft(ui))+'</strong><button type="button" class="bike-clock-start" data-action="buddy-bike-start">'+(ui.running?'Pause':ui.remaining<=0?'Restart':!ui.everStarted?'Start':'Resume')+'</button></div><button type="button" class="buddy-a" data-action="buddy-bike-done"><b>Continue</b></button></main></div>';
 }
 
 function buddyRender(){
@@ -1748,7 +1744,7 @@ document.addEventListener('visibilitychange',()=>{
 document.querySelector('#buddy-root')?.addEventListener('touchstart',()=>{
  if(!buddyActiveField())buddyRestoreTouchOrigin();
 },{passive:true,capture:true});
-function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();if(data.activeWorkout?.phase==='bike')buddyBikeRefresh();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='bike')buddyBikeRefresh();if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
+function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();if(data.activeWorkout?.phase==='bike')buddyBikeRefresh();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='bike')buddyBikeRefresh();if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},s.phase==='bike'?200:1000);}
 function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;buddyCompletedEditor=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){
  // Paint the state transition before waiting for Firebase/cloud persistence.
@@ -2691,11 +2687,6 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}buddyRoutinePicker();return;}
   if(action==='buddy-resume-from-picker'){close(true);buddyOpen();return;}
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
-  if(action==='buddy-bike-select'){
-   const s=data.activeWorkout;if(s?.phase!=='bike')return;
-   const selected=el.dataset.clock;if(!['ring','orbit','digital','dial'].includes(selected))return;
-   buddyBikeUiFor(s).selected=selected;buddyOpen();return;
-  }
   if(action==='buddy-bike-start'){
    const s=data.activeWorkout;if(s?.phase!=='bike')return;
    const ui=buddyBikeUiFor(s);
