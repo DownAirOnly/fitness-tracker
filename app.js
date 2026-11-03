@@ -889,21 +889,25 @@ async function budgetCommit(plan){
  data=normalized;
  await persist();
 }
-function budgetScheduleForm(rule=null){
- const r=rule||{id:'',name:'',kind:'expense',amountCents:0,frequency:'monthly',startDate:localDate(),occurrences:{}};
- modal(rule?'Edit scheduled item':'Schedule a bill or payday','<form class="form" data-form="budget-schedule">'+
+function budgetScheduleForm(rule=null,preset=''){
+ const payday=!rule&&preset==='payday';
+ const r=rule||{id:'',name:payday?'Paycheck':'',kind:payday?'income':'expense',amountCents:0,
+  frequency:payday?'weekly':'monthly',startDate:localDate(),occurrences:{}};
+ modal(rule?'Edit scheduled item':payday?'Set up your payday':preset==='bill'?'Add recurring bill':'Schedule a bill or payday',
+  '<form class="form" data-form="budget-schedule">'+
+  (payday?'<p class="body-copy">Enter your expected take-home pay and the date of a paycheck. Choose how often it repeats. Income is only marked received when you confirm the deposit.</p>':'')+
   '<input type="hidden" name="budgetId" value="'+esc(r.id)+'">'+
   input('Name','budgetName',r.name,'text','maxlength="120" required placeholder="Car payment"')+
   '<label class="field"><span>Type</span><select name="budgetKind"><option value="expense"'+(r.kind==='expense'?' selected':'')+'>Payment / expense</option>'+
    '<option value="income"'+(r.kind==='income'?' selected':'')+'>Paycheck / incoming money</option></select></label>'+
   input('Amount (USD)','budgetAmount',budgetValue(r.amountCents),'text','required inputmode="decimal" placeholder="366.00"')+
-  input('First due date','budgetStartDate',r.startDate,'date','required')+
+  input(payday?'Payday date':'First due date','budgetStartDate',r.startDate,'date','required')+
   '<label class="field"><span>Repeat</span><select name="budgetFrequency">'+
    [['once','One time'],['weekly','Weekly'],['biweekly','Every two weeks'],['monthly','Monthly']].map(([value,label])=>
    '<option value="'+value+'"'+(r.frequency===value?' selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
   '<details class="finance-more"><summary>Optional ending date</summary>'+input('Stop repeating after','budgetEndDate',r.endDate||'','date','')+'</details>'+ 
-  '<p class="hint">Monthly repeats use the same date, or the last day of shorter months. Editing a rule keeps existing markers; review them when dates change.</p>'+
-  '<button type="submit" class="primary">Save schedule</button></form>');
+  '<p class="hint">'+(payday?'Use a recent or upcoming payday to anchor the pay periods. The date and amount can be changed later.':'Monthly repeats use the same date, or the last day of shorter months. Editing a rule keeps existing markers; review them when dates change.')+'</p>'+
+  '<button type="submit" class="primary">'+(payday?'Save payday':'Save schedule')+'</button></form>');
 }
 // Dates/statuses remain sourced from budget-model.js: manual, never bank-confirmed.
 const budgetDate=date=>new Date(date+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
@@ -1009,7 +1013,7 @@ function financeNav(selected){
  return '<nav class="finance-section-nav" aria-label="Finance sections">'+sections.map(([key,label,action])=>
   button(label,action,'finance-section-link'+(selected===key?' selected':''),selected===key?'aria-current="page"':'')).join('')+'</nav>';
 }
-function paycheckCard(p,index){
+function paycheckCard(p,index,hasBillSchedules=true){
  const current=index===0;
  const paychecks=p.paycheckEvents.map(e=>{
   const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
@@ -1045,6 +1049,7 @@ function paycheckCard(p,index){
    (purchases||'<p class="hint">No purchases assigned to this period.</p>')+'</details>'+
   '<div class="money-ledger-total"><span>= Left from this check</span><strong class="'+(p.leftCents<0?'budget-negative':'')+'">'+
    budgetMoney(p.leftCents)+'</strong></div>'+
+  (!hasBillSchedules?'<p class="money-expected-note" role="status">No recurring bills are set up yet. This remainder is incomplete and should not be treated as spendable money.</p>':'')+
   (!p.received?'<p class="money-expected-note">Provisional: this check has not been marked received. Expected income is not confirmed cash.</p>':'')+
   (current?'<form class="money-what-if" data-form="money-scenario"><label class="field"><span>If I spend…</span>'+
    '<input type="text" name="amount" inputmode="decimal" placeholder="18.00" required></label>'+
@@ -1067,15 +1072,21 @@ function moneyCaps(){
 }
 function finances(){
  const view=paycheckWindows(data.budgetPlan,data.transactions||[],localDate(),moneyWeeks);
- const plan=data.budgetPlan;
+ const plan=data.budgetPlan,hasBills=plan.schedules.some(rule=>rule.kind==='expense');
+ const incomeRules=plan.schedules.filter(rule=>rule.kind==='income');
+ const weekly=incomeRules.length===0||incomeRules.every(rule=>rule.frequency==='weekly');
  return '<div class="money-top-control"><strong>This paycheck</strong><div class="money-week-switch" role="group" aria-label="Paycheck view">'+
-  button('1 week','money-weeks',moneyWeeks===1?'selected':'outline','data-weeks="1"')+
-  button('2 weeks','money-weeks',moneyWeeks===2?'selected':'outline','data-weeks="2"')+'</div></div>'+
-  (view.configured?view.periods.map(paycheckCard).join('')+
+  button(weekly?'1 week':'1 check','money-weeks',moneyWeeks===1?'selected':'outline','data-weeks="1"')+
+  button(weekly?'2 weeks':'2 checks','money-weeks',moneyWeeks===2?'selected':'outline','data-weeks="2"')+'</div></div>'+
+  (view.configured?view.periods.map((period,index)=>paycheckCard(period,index,hasBills)).join('')+
+   (!hasBills?'<section class="panel money-setup money-setup-bills"><h2>Next: Add your regular bills</h2>'+
+    '<p class="body-copy">Enter your recurring payments so Everyday can subtract them from the correct paycheck. Until then, the amount above excludes your regular bills.</p>'+
+    button('+ Add a bill','money-setup-bill','primary')+'</section>':'')+
    (view.heldBackCents!==null?'<section class="panel money-held-back"><span>Held back from previous check · estimated</span><strong>'+
     budgetMoney(view.heldBackCents)+'</strong><small>Not added to this paycheck. Period starting '+esc(budgetDateLong(view.heldBackPeriod))+'.</small></section>':''):
-   '<section class="panel money-setup"><h2>Set your payday</h2><p>Add a recurring paycheck and its expected amount to see this week’s remainder. A bank balance is optional.</p>'+
-   button('Add payday','budget-schedule-new','primary')+'</section>')+
+   '<section class="panel money-setup"><h2>First: Set up your paycheck</h2>'+
+   '<p class="body-copy">Add your next or most recent payday, expected deposit and pay frequency. Then add regular bills. Your bank balance is optional.</p>'+
+   button('Set up payday','money-setup-payday','primary')+'</section>')+
   '<div class="money-primary-actions">'+button('+ Purchase','home-log-finance','primary')+
    button('Paste receipt CSV','finance-paste-csv','outline')+'</div>'+
   financeRecent(true)+moneyCaps()+
@@ -2872,6 +2883,8 @@ document.addEventListener('click',async event=>{
     button('Edit schedule','budget-schedule-edit','outline','data-id="'+esc(rule.id)+'"')+
     button('Cancel','close','text-btn')+'</div>');return;
   }
+  if(action==='money-setup-payday'){budgetScheduleForm(null,'payday');return;}
+  if(action==='money-setup-bill'){budgetScheduleForm(null,'bill');return;}
   if(action==='budget-schedule-new'){budgetScheduleForm();return;}
   if(action==='budget-schedule-edit'){budgetScheduleForm(data.budgetPlan.schedules.find(x=>x.id===el.dataset.id));return;}
   if(action==='budget-schedule-delete'){
@@ -3669,7 +3682,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=113',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=114',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3767,7 +3780,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=113');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=114');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
