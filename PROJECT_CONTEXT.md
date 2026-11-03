@@ -2,6 +2,12 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
+## Current release — v106 (November 2, 2026)
+
+- **v106 — Workout Buddy picker card art and bike clock previews:** Reserve a square just to the **left** of each blue anatomy tile for the faded equipment SVG; neither artwork overlaps the other. Replace cable handle equipment SVG with a pulley-wheel design. Completed-exercise cards replace generic "2 completed sets" copy with stacked per-set weight × reps · effort, keeping the whole card as the completed-set editor action and the anatomy button independently tappable.
+- **Bike warm-up screen (visual-only):** Remove step number, WARM-UP label, instructional paragraph, and "Bike finished" subtitle. Keep "Bike · 5 min" and the original Continue action. Display four selectable **animated** clock styles (Ring, Orbit, Digital, Dial) in a 2×2 grid with Start/Pause/Resume cosmetic countdown; no additional saved fields, timers, workout transitions, cloud sync changes or new navigation. The pre-existing Continue action still persists the warm-up transition exactly as before. Animations support reduced-motion settings. This pass does not finalize a clock style; user can compare four variants on iPhone.
+- Increment whole-number version to v106, update asset and service-worker cache references and focused UI smoke tests. CI, merge, Pages and real-iPhone approval remain distinct milestones.
+
 ## Current release — v105 (November 2, 2026)
 
 - **v105 — Workout Buddy layout consolidation.** Picker uses a single `0/6 exercises` (counting up) at top left, no redundant remaining count, no ready-to-lift/choose/description titles, and only short labels **COMPLETED EXERCISES** and **REMAINING EXERCISES** to separate the two sets of cards. The completed section has no second x-of-y count. The exercise review's confirmed-set rows no longer show a redundant COMPLETED SETS title and display weight/reps, effort, and duration as one natural line after Set N, without separate right-justified columns. Review confirmation timing remains unchanged.
