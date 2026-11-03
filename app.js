@@ -2293,27 +2293,41 @@ function dataDiagnostics(){
 }
 
 function googleSyncUsagePanel(){
- const d=dataDiagnostics(),sections=d.usage.sections;
- const status=demoMode?'Demo records: not synced':offlineWorkspace?'Offline workspace: not synced':account?(cloudPending||cloudBusy?'Connected; some changes may still be pending':'Connected; estimated section payloads'):'Device-only: estimated payloads if synced';
- const labels={nutrition:'Nutrition',lifting:'Lifting',finances:'Finances'};
- const rows=ACCOUNT_SECTIONS.map(section=>{
-  const entry=sections[section]||{bytes:0,percent:0};
-  const pct=entry.percent,usedKiB=entry.bytes/1024;
-  return '<div class="storage-meter"><p><strong>'+labels[section]+' · '+usedKiB.toFixed(1)+' KiB</strong> / '+(MAX_CLOUD_BYTES/1024).toFixed(1)+' KiB</p>'+
-   '<div role="progressbar" aria-label="'+labels[section]+' cloud payload usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.min(100,pct).toFixed(1)+'"><span style="width:'+Math.min(100,pct).toFixed(1)+'%"></span></div></div>';
+ const usage=accountSectionUsage(data),sections=usage.sections;
+ const status=demoMode?'Demo records: not synced':offlineWorkspace?'Offline workspace: not synced':
+  account?(cloudPending||cloudBusy?'Connected; changes may still be pending':'Connected; account storage estimates'):
+   'Device-only: estimated payload sizes if synced';
+ const names={settings:'Account settings',catalog:'Food catalog',routines:'Workout definitions',
+  financeConfig:'Money configuration'};
+ const keys=Object.keys(sections),staticKeys=['settings','catalog','routines','financeConfig'],
+  monthly=keys.filter(name=>name.startsWith('month-')).sort().reverse(),
+  displayed=[...staticKeys,...monthly.slice(0,12)];
+ const rows=displayed.map(key=>{
+  const entry=sections[key]||{bytes:0,percent:0},
+   label=names[key]||key.replace('month-','Month '),
+   pct=entry.percent,usedKiB=entry.bytes/1024;
+  return '<div class="storage-meter"><p><strong>'+esc(label)+' · '+
+   usedKiB.toFixed(1)+' KiB</strong> / '+(MAX_CLOUD_BYTES/1024).toFixed(1)+' KiB</p>'+
+   '<div role="progressbar" aria-label="'+esc(label)+' cloud payload usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+
+   Math.min(100,pct).toFixed(1)+'"><span style="width:'+Math.min(100,pct).toFixed(1)+'%"></span></div></div>';
  }).join('');
- return '<section class="panel spaced google-sync-usage"><div class="section-head"><div><h2>Cloud section sizes</h2></div><span class="version-badge">3 files</span></div>'+
- rows+'<p class="hint">'+esc(status)+'. Each file has its own 800,000-byte safety limit; these are actual UTF-8 JSON sizes, not a shared account cap or browser quota.</p></section>';
+ return '<section class="panel spaced google-sync-usage"><div class="section-head"><h2>Cloud file sizes</h2>'+
+  '<span class="version-badge">'+monthly.length+' months</span></div>'+
+  rows+(monthly.length>12?'<p class="hint">Showing the 12 most recent monthly files. '+(monthly.length-12)+' older monthly files are still stored and included in exports.</p>':'')+
+  '<p class="hint">'+esc(status)+'. '+staticKeys.length+' account files + '+monthly.length+
+  ' month files. Each file has its own 800,000-byte safety limit. Full-history JSON exports combine the files without a combined 800 KB limit.</p></section>';
 }
-
 function dataHealthPanel(){
  const d=dataDiagnostics(),status=d.issues.length?'Needs attention':d.warnings.length?'Review suggested':'Looks healthy',tone=d.issues.length?'bad':d.warnings.length?'warn':'good';
  return '<section class="panel spaced data-health-panel"><div class="section-head"><div><h2>Diagnostics</h2></div><span class="health-status '+tone+'">'+status+'</span></div><div class="diagnostic-counts"><span><strong>'+d.counts.foodEntries+'</strong><small>food logs</small></span><span><strong>'+d.counts.lifts+'</strong><small>lift logs</small></span><span><strong>'+d.counts.weights+'</strong><small>weights</small></span><span><strong>'+d.counts.bodyFat+'</strong><small>body fat</small></span></div>'+button('View diagnostic details','data-health-details','outline small')+'<p class="hint">Diagnostics are read-only. Nothing is repaired, deleted, or merged automatically.</p></section>';
 }
 function dataHealthDetails(){
  const d=dataDiagnostics();
- const sizes=ACCOUNT_SECTIONS.map(section=>[section[0].toUpperCase()+section.slice(1)+' cloud JSON',((d.usage.sections[section]?.bytes||0)/1024).toFixed(1)+' KiB / '+(MAX_CLOUD_BYTES/1024).toFixed(1)+' KiB']);
- const rows=[...sizes,['Total cloud section JSON',(d.usage.totalBytes/1024).toFixed(1)+' KiB (no combined cap)'],['Saved foods',d.counts.foods],['Food entries',d.counts.foodEntries],['Exercise definitions',d.counts.exerciseDefinitions],['Workout templates',d.counts.workoutTemplates],['Workout exercise references',d.counts.workoutRefs],['Lift entries',d.counts.lifts],['Weight entries',d.counts.weights],['Body-fat entries',d.counts.bodyFat],['Financial transactions',d.counts.transactions],['Workout Buddy history',d.counts.workoutHistory]];
+ const sizes=Object.entries(d.usage.sections).map(([section,entry])=>[
+  section.replace('month-','Month ')+' cloud JSON',
+  (entry.bytes/1024).toFixed(1)+' KiB / '+(MAX_CLOUD_BYTES/1024).toFixed(1)+' KiB'
+ ]);
+ const rows=[...sizes,['Total account JSON',(d.usage.totalBytes/1024).toFixed(1)+' KiB (no combined cap)'],['Saved foods',d.counts.foods],['Food entries',d.counts.foodEntries],['Exercise definitions',d.counts.exerciseDefinitions],['Workout templates',d.counts.workoutTemplates],['Workout exercise references',d.counts.workoutRefs],['Lift entries',d.counts.lifts],['Weight entries',d.counts.weights],['Body-fat entries',d.counts.bodyFat],['Financial transactions',d.counts.transactions],['Workout Buddy history',d.counts.workoutHistory]];
  modal('Data diagnostics','<div class="diagnostic-details"><div class="diagnostic-table">'+rows.map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div><section><h3>Errors</h3>'+(d.issues.length?'<ul>'+d.issues.map(x=>'<li>'+esc(x)+'</li>').join(''):'<p class="empty">No structural errors found.</p>')+'</section><section><h3>Things to review</h3>'+(d.warnings.length?'<ul>'+d.warnings.map(x=>'<li>'+esc(x)+'</li>').join(''):'<p class="empty">No duplicate definitions detected.</p>')+'</section></div>');
 }
 
