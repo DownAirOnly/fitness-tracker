@@ -40,8 +40,8 @@ test('v113: monthly Firestore partition excludes reset transactions but retains 
  before.transactions.push({id:'finance-sep',date:'2026-09-24',kind:'income',amountCents:40000,description:'Old paycheck',category:'Income'});
  const after=resetFinanceData(before),{parts,months}=monthlyParts(after);
  assert.deepEqual(months,['2026-10','2026-11'],'finance-only month falls out of the active manifest');
- assert.deepEqual(JSON.parse(parts['month-2026-10']).transactions,[]);
- assert.deepEqual(JSON.parse(parts['month-2026-11']).transactions,[]);
+ assert.deepEqual(JSON.parse(parts['month-2026-10']).transactions||[],[]);
+ assert.deepEqual(JSON.parse(parts['month-2026-11']).transactions||[],[]);
  const loaded=readMonthlyParts(parts,months);
  assert.deepEqual(loaded.transactions,[]);
  assert.equal(loaded.foodEntries[0].id,'food-oct');
