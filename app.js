@@ -1582,7 +1582,7 @@ function buddyExerciseMuscleStage(e){
 // Bike clock previews use transient UI state only; no saved workout fields.
 let buddyBikeUi=null;
 function buddyBikeUiFor(s){
- if(!buddyBikeUi||buddyBikeUi.sessionId!==s.id)buddyBikeUi={sessionId:s.id,selected:'ring',remaining:300,startedAt:0,running:false};
+ if(!buddyBikeUi||buddyBikeUi.sessionId!==s.id)buddyBikeUi={sessionId:s.id,selected:'ring',remaining:300,startedAt:0,running:false,everStarted:false};
  return buddyBikeUi;
 }
 function buddyBikeSecondsLeft(ui){
@@ -1598,7 +1598,7 @@ function buddyBikeRefresh(){
  root.style.setProperty('--bike-progress',String((300-left)/300));
  root.classList.toggle('bike-ui-running',ui.running);
  const start=root.querySelector('[data-action="buddy-bike-start"]');
- if(start)start.textContent=ui.running?'Pause':left===0?'Restart':ui.remaining===300?'Start':'Resume';
+ if(start)start.textContent=ui.running?'Pause':left===0?'Restart':!ui.everStarted?'Start':'Resume';
 }
 function buddyBikeClockMarkup(head,s){
  const ui=buddyBikeUiFor(s);
@@ -1609,7 +1609,7 @@ function buddyBikeClockMarkup(head,s){
   ['dial','Dial','<span class="bike-clock-dial"><i></i><b></b></span>']
  ];
  const clocks=choices.map(([id,label,art])=>'<button type="button" class="bike-clock-option bike-style-'+id+(ui.selected===id?' is-selected':'')+'" data-action="buddy-bike-select" data-clock="'+id+'" aria-pressed="'+(ui.selected===id)+'"><span class="bike-clock-art" aria-hidden="true">'+art+'</span><strong data-bike-time>'+buddyBikeFormat(buddyBikeSecondsLeft(ui))+'</strong><small>'+label+'</small></button>').join('');
- return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-bike"><div class="buddy-bike-content"><h1>Bike · 5 min</h1><div class="bike-clock-grid" role="group" aria-label="Choose an animated clock style">'+clocks+'</div><button type="button" class="bike-clock-start" data-action="buddy-bike-start">'+(ui.running?'Pause':ui.remaining===300?'Start':'Resume')+'</button></div><button type="button" class="buddy-a" data-action="buddy-bike-done"><b>Continue</b></button></main></div>';
+ return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-bike"><div class="buddy-bike-content"><h1>Bike · 5 min</h1><div class="bike-clock-grid" role="group" aria-label="Choose an animated clock style">'+clocks+'</div><button type="button" class="bike-clock-start" data-action="buddy-bike-start">'+(ui.running?'Pause':ui.remaining===0?'Restart':!ui.everStarted?'Start':'Resume')+'</button></div><button type="button" class="buddy-a" data-action="buddy-bike-done"><b>Continue</b></button></main></div>';
 }
 
 function buddyRender(){
@@ -2673,7 +2673,7 @@ document.addEventListener('click',async event=>{
    const s=data.activeWorkout;if(s?.phase!=='bike')return;
    const ui=buddyBikeUiFor(s);
    if(ui.running){ui.remaining=buddyBikeSecondsLeft(ui);ui.running=false;}
-   else{if(ui.remaining<=0)ui.remaining=300;ui.startedAt=Date.now();ui.running=true;}
+   else{if(ui.remaining<=0)ui.remaining=300;ui.startedAt=Date.now();ui.running=true;ui.everStarted=true;}
    buddyBikeRefresh();return;
   }
   if(action==='buddy-bike-done'){const s=data.activeWorkout;if(!s||s.phase!=='bike')return;buddyCaptureUndo(s,'bike finished');s.phase='picker';s.bikeCompletedAt=isoNow();await buddyPersist();return;}
