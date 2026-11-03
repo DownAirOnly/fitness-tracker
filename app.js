@@ -62,14 +62,35 @@ function downloadJsonBackup(filename,markWorkspace=false,sourceData=data){
 }
 
 
+// Synchronous, read-only boot snapshot. The authenticated UID is confirmed
+// before the user can edit; cloud loading later reconciles recovery/revisions.
+const STARTUP_ACCOUNT_KEY='everyday-last-account-v1';
+function readStartupAccountCache(){
+ try{
+  let uid=localStorage.getItem(STARTUP_ACCOUNT_KEY);
+  if(!uid){
+   const matches=[];
+   for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i)||'';
+    if(key.startsWith('everyday-cloud-confirmed-v1:'))matches.push(key.slice('everyday-cloud-confirmed-v1:'.length));
+   }
+   if(matches.length===1)uid=matches[0];
+  }
+  if(!uid)return null;
+  const record=readCloudRecovery(uid)||readCloudConfirmed(uid);
+  return record?{uid,record}:null;
+ }catch{return null;}
+}
+
 let deviceData=load(),offlineWorkspace=readOfflineWorkspace(),existingDemo=offlineWorkspace?null:readDemoWorkspace(),demoMode=Boolean(existingDemo);
+let startupAccountCache=offlineWorkspace||demoMode?null:readStartupAccountCache();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud saving paused':'Connecting account service…', cloudReady=false, authChecked=false;
 let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null;
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
-let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
+let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
@@ -251,7 +272,8 @@ function render() {
   modalBack=null;pendingImport=null;importReadToken++;
   if(isLoading()){
     // Recovery controls must not become flex siblings of the compact Home.
-    shell(page==='home'?home(true):'<section class="panel" role="status"><h2>Loading</h2></section>');
+    // Device-backed data is already hydrated. Do not replace it with a loading panel.
+    shell(home(false));
     if(account&&!cloudBusy){
       modal('Account unavailable','<p class="body-copy">'+esc(cloudMessage)+'</p>'+
        button('Retry','cloud-load','primary')+
@@ -3244,7 +3266,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=107',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=108',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3304,16 +3326,24 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=107');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=108');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
       cloudConfirmed=null;cloudRecovery=null;cloudRecoveryConflict=null;
+      // Never carry another account's snapshot into the new session.
+      const cached=user?(readCloudRecovery(user.uid)||readCloudConfirmed(user.uid)):null;
+      if(user){
+       try{localStorage.setItem(STARTUP_ACCOUNT_KEY,user.uid);}catch{}
+       cloudRecovery=readCloudRecovery(user.uid);
+       cloudConfirmed=readCloudConfirmed(user.uid);
+      }else{try{localStorage.removeItem(STARTUP_ACCOUNT_KEY);}catch{}}
+      startupAccountCache=cached?{uid:user.uid,record:cached}:null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
       if(offlineWorkspace){data=structuredClone(offlineWorkspace.data);cloudMessage='Offline JSON workspace · cloud saving paused';render();promptWeight();return;}
       if(demoMode&&user){demoMode=false;try{localStorage.removeItem(DEMO_WORKSPACE_KEY);}catch{}}
       if(demoMode&&!user){cloudMessage='Demo mode · saved separately on this device';render();return;}
-      data=user?emptyData():structuredClone(deviceData);
+      data=user?(cached?structuredClone(cached.data):emptyData()):structuredClone(deviceData);
       if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';render();promptWeight();}
     });
     cloudReady=true;render();if(!offlineWorkspace&&!demoMode)void syncHealth();
