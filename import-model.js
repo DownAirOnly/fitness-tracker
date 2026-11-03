@@ -17,7 +17,7 @@ const csvTypeAliases=new Map([
  ['lift','lift'],['lifting','lift'],['liftset','lift'],
  ['weight','weight'],['weighin','weight'],['bodyweight','weight'],
  ['bodyfat','bodyFat'],['bodyfatpercentage','bodyFat'],['fatpercentage','bodyFat'],
-  ['transaction','transaction'],['finance','transaction'],['expense','transaction'],['income','transaction'],['transfer','transaction'],
+  ['transaction','transaction'],['purchase','transaction'],['receipt','transaction'],['receiptitem','receiptItem'],['finance','transaction'],['expense','transaction'],['income','transaction'],['transfer','transaction'],
 ]);
 const csvBool=value=>['1','true','yes','y','on','favorite','pinned'].includes(String(value||'').trim().toLowerCase());
 const csvOptionalBool=(value,label='value',fallback=true)=>{
@@ -47,7 +47,7 @@ function parseUniversalCSV(text,current){
  const legacy=!index.has('recordtype')&&['date','name','calories','protein'].every(x=>index.has(x));
  if(!legacy&&!index.has('recordtype'))throw Error('Universal CSV needs a recordType column. Legacy food CSVs are still accepted.');
  const raw=emptyData();raw.foods=[];raw.foodEntries=[];raw.lifts=[];raw.weights=[];raw.bodyFat=[];raw.transactions=[];raw.exerciseDefinitions=[];raw.workoutTemplates=[];
- const errors=[],warnings=[],workouts=new Map(),liftGroups=new Map(),transactionOccurrences=new Map();
+ const errors=[],warnings=[],workouts=new Map(),liftGroups=new Map(),transactionOccurrences=new Map(),receiptLines=[];
  const currentExercises=new Map((current.exerciseDefinitions||[]).map(e=>[(e.name.trim().toLowerCase()+'|'+(e.equipment||'other')),e]));
  const importedExercises=new Map();
  const getFrom=(row,...names)=>{for(const name of names){const i=index.get(name.toLowerCase());if(i!=null)return String(row[i]??'').trim();}return '';};
@@ -100,7 +100,12 @@ function parseUniversalCSV(text,current){
     const date=get('date'),value=csvNumber(get('bodyFatPercent','bodyFat','value'),'bodyFatPercent',{min:0.000001,max:100});
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
     raw.bodyFat.push({id:get('id')||id(),date,value});
-   }else if(type==='transaction'){
+    }else if(type==='receiptItem'){
+     const purchaseId=get('purchaseId'),name=get('itemName','name'),category=get('itemCategory','category')||'Uncategorized',
+      amountCents=parseFinanceAmount(get('itemAmount','amount'));
+     if(!purchaseId||!name||name.length>120||category.length>80)throw Error('Receipt items need purchaseId, itemName, and itemCategory.');
+     receiptLines.push({purchaseId,item:{name,category,amountCents},line});
+    }else if(type==='transaction'){
     const date=get('date'),description=get('description','name'),kind=(get('kind')||(FINANCE_KINDS.includes(requested)?requested:'')).toLowerCase();
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
     if(!FINANCE_KINDS.includes(kind))throw Error('kind must be expense, income, or transfer.');
@@ -112,12 +117,15 @@ function parseUniversalCSV(text,current){
     if(get('currency')&&get('currency').toUpperCase()!=='USD')throw Error('Only USD transactions are supported.');
     const transaction={date,kind,amountCents,description,category:get('category')||'Uncategorized',
       currency:'USD',source:'import',__sourceRow:line};
-    for(const field of ['time','merchant','note','externalId']){
+    for(const field of ['time','merchant','note','externalId','accountLabel','purchaseDate','paycheckDate','subcategory','itemization']){
       const value=get(field,field==='note'?'notes':field);
       if(value)transaction[field]=value;
     }
     if(transaction.time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(transaction.time))
       throw Error('Transaction time must be HH:MM (24-hour clock).');
+    if(transaction.purchaseDate&&!validDate(transaction.purchaseDate))throw Error('Invalid purchaseDate.');
+    if(transaction.paycheckDate&&!validDate(transaction.paycheckDate))throw Error('Invalid paycheckDate.');
+    if(get('purchaseId'))transaction.__purchaseId=get('purchaseId');
     const base=financeCsvId(transaction),occurrence=(transactionOccurrences.get(base)||0)+1;
     transactionOccurrences.set(base,occurrence);
     transaction.id=get('id')||financeCsvId(transaction,occurrence);
@@ -127,6 +135,26 @@ function parseUniversalCSV(text,current){
    }
   }catch(error){errors.push('Row '+line+': '+error.message);}
  });
+ const byPurchaseId=new Map();
+ for(const transaction of raw.transactions){
+  if(transaction.__purchaseId){
+   if(byPurchaseId.has(transaction.__purchaseId))errors.push('purchaseId '+transaction.__purchaseId+' appears in more than one purchase.');
+   else byPurchaseId.set(transaction.__purchaseId,transaction);
+   delete transaction.__purchaseId;
+  }
+ }
+ for(const entry of receiptLines){
+  const transaction=byPurchaseId.get(entry.purchaseId);
+  if(!transaction){errors.push('Row '+entry.line+': receiptItem purchaseId does not match a purchase row.');continue;}
+  if(transaction.kind!=='expense'){errors.push('Row '+entry.line+': receipt items require an expense.');continue;}
+  (transaction.items??=[]).push(entry.item);
+ }
+ for(const transaction of raw.transactions){
+  if(transaction.items?.length){
+   const total=transaction.items.reduce((sum,item)=>sum+item.amountCents,0);
+   if(total!==transaction.amountCents)errors.push('Receipt '+transaction.description+': item amounts must total '+transaction.amountCents+' cents; got '+total+'.');
+  }
+ }
  for(const bucket of workouts.values())raw.workoutTemplates.push({id:bucket.id,name:bucket.name,exercises:bucket.items.sort((a,b)=>a.order-b.order).map(({order,...item})=>item)});
  for(const lift of liftGroups.values())raw.lifts.push({id:lift.id,date:lift.date,exercise:lift.exercise,equipment:lift.equipment,sets:lift.sets.sort((a,b)=>a.order-b.order).map(x=>x.set),notes:lift.notes||''});
  const count=raw.foods.length+raw.foodEntries.length+raw.exerciseDefinitions.length+raw.workoutTemplates.length+raw.lifts.length+raw.weights.length+raw.bodyFat.length+raw.transactions.length;
