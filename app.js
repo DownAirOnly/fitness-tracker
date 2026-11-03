@@ -2003,7 +2003,7 @@ function workoutTimingPanel(){
  const sessions=(data.workoutHistory||[]).map(workoutTiming).filter(Boolean).sort((a,b)=>Date.parse(b.session.completedAt||b.session.endedAt)-Date.parse(a.session.completedAt||a.session.endedAt));
  if(!sessions.length)return `<section class="panel progress-details timing-panel"><div class="section-head"><div><h2>Workout timing</h2></div></div>${empty('Finish a Workout Buddy session to start building timing statistics.')}</section>`;
  const allRests=sessions.flatMap(x=>x.rests),allTransitions=sessions.flatMap(x=>x.transitions),latest=sessions[0],recent=sessions.slice(0,5);
- return `<section class="panel progress-details timing-panel"><div class="section-head"><div><h2>Workout timing</h2></div><span class="progress-count">${sessions.length} session${sessions.length===1?'':'s'}</span></div><div class="timing-summary"><div><small>Latest workout</small><strong>${timingText(latest.duration)}</strong></div><div><small>Average workout</small><strong>${timingText(timingAverage(sessions.map(x=>x.duration)))}</strong></div><div><small>Average rest</small><strong>${timingText(timingAverage(allRests))}</strong></div><div><small>Average transition</small><strong>${timingText(timingAverage(allTransitions))}</strong></div></div><p class="hint">Rest is measured from one finished set to the next set start in the same exercise. Transition is measured from the last set of one exercise to the first set of the next exercise actually performed.</p><div class="timing-history">${recent.map(x=>`<div class="timing-row"><span><strong>${esc(x.session.type||'Workout')}</strong><small>${niceDate(x.session.date)} · ${x.exerciseCount} exercise${x.exerciseCount===1?'':'s'}${x.session.savedEarly?' · Saved early':''}</small></span><span><b>${timingText(x.duration)}</b><small>rest ${timingText(timingAverage(x.rests))} · move ${timingText(timingAverage(x.transitions))}</small></span></div>`).join('')}</div></section>`;
+ return `<section class="panel progress-details timing-panel"><div class="section-head"><div><h2>Workout timing</h2></div><span class="progress-count">${sessions.length} session${sessions.length===1?'':'s'}</span></div><div class="timing-summary"><div><small>Latest workout</small><strong>${timingText(latest.duration)}</strong></div><div><small>Average workout</small><strong>${timingText(timingAverage(sessions.map(x=>x.duration)))}</strong></div><div><small>Average rest</small><strong>${timingText(timingAverage(allRests))}</strong></div><div><small>Average transition</small><strong>${timingText(timingAverage(allTransitions))}</strong></div></div><div class="timing-history">${recent.map(x=>`<div class="timing-row"><span><strong>${esc(x.session.type||'Workout')}</strong><small>${niceDate(x.session.date)} · ${x.exerciseCount} exercise${x.exerciseCount===1?'':'s'}${x.session.savedEarly?' · Saved early':''}</small></span><span><b>${timingText(x.duration)}</b><small>rest ${timingText(timingAverage(x.rests))} · move ${timingText(timingAverage(x.transitions))}</small></span></div>`).join('')}</div></section>`;
 }
 function weightSmoothPath(points){
  if(!points.length)return'';
@@ -2017,17 +2017,19 @@ function weightSmoothPath(points){
  }
  return path;
 }
-function weightTrendSeries(points){
- return points.map((point,index)=>{
-  const firstDay=shiftDate(point.date,-6),slice=points.slice(0,index+1).filter(item=>item.date>=firstDay);
+function weightTrendSeries(points,history=points){
+ return points.map(point=>{
+  const firstDay=shiftDate(point.date,-6),slice=history.filter(item=>item.date>=firstDay&&item.date<=point.date);
   const value=slice.reduce((sum,item)=>sum+item.value,0)/slice.length;
   return{...point,trend:value};
  });
 }
-function weightProgressChart(weights){
+function weightProgressChart(weights,allWeights=weights){
  const points=[...weights].sort((a,b)=>a.date.localeCompare(b.date)).map(item=>({date:item.date,value:Number(item.value)})).filter(item=>Number.isFinite(item.value));
  if(!points.length)return'';
- const trend=weightTrendSeries(points),values=points.map(x=>x.value),trendValues=trend.map(x=>x.trend),all=[...values,...trendValues];
+ // The first visible point still uses up to seven days of prior readings.
+ const history=[...allWeights].sort((a,b)=>a.date.localeCompare(b.date)).map(item=>({date:item.date,value:Number(item.value)})).filter(item=>Number.isFinite(item.value));
+ const trend=weightTrendSeries(points,history),values=points.map(x=>x.value),trendValues=trend.map(x=>x.trend),all=[...values,...trendValues];
  const minValue=Math.min(...all),maxValue=Math.max(...all),spread=Math.max(data.settings.unit==='kg'?.45:1,maxValue-minValue),padY=Math.max(data.settings.unit==='kg'?.25:.5,spread*.16);
  const yMin=minValue-padY,yMax=maxValue+padY,yRange=Math.max(.001,yMax-yMin),w=320,h=132,pX=13,pY=14;
  const firstTime=Date.parse(points[0].date+'T12:00:00'),lastTime=Date.parse(points.at(-1).date+'T12:00:00'),timeRange=Math.max(1,lastTime-firstTime);
@@ -2040,7 +2042,7 @@ function weightProgressChart(weights){
  const changeText=change==null?'First weigh-in':change===0?'No net change':(change>0?'+':'')+fmt(change)+' '+data.settings.unit+' since '+niceDate(points[0].date);
  const trendLabel=points.length>=3?fmt(latestTrend.trend)+' '+data.settings.unit:'Building trend';
  const trendPath=points.length>=2?'<path class="weight-trend-line" d="'+weightSmoothPath(trendCoords)+'"></path>':'';
- return '<div class="weight-progress-chart"><div class="weight-chart-head"><span><small>LATEST</small><strong>'+fmt(latest.value)+' '+esc(data.settings.unit)+'</strong></span><span><small>7-DAY AVERAGE</small><strong>'+trendLabel+'</strong></span></div><div class="weight-chart-legend"><span class="weight-chart-key actual"><i></i><b>Actual weigh-ins</b></span><span class="weight-chart-key trend"><i></i><b>7-day average</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Individual weight history with seven-day average">'+trendPath+(actualCoords.length>1?'<polyline class="weight-actual-line" points="'+actualLine+'"></polyline>':'')+actualCoords.map(pt=>'<circle class="weight-actual-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3.6"><title>'+niceDate(pt.date)+' · '+fmt(pt.value)+' '+esc(data.settings.unit)+'</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+esc(changeText)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div></div>';
+ return '<div class="weight-progress-chart"><div class="weight-chart-head"><span><small>LATEST</small><strong>'+fmt(latest.value)+' '+esc(data.settings.unit)+'</strong></span><span><small>7-DAY AVERAGE</small><strong>'+trendLabel+'</strong></span></div><div class="weight-chart-legend"><span class="weight-chart-key actual"><i></i><b>Actual weigh-ins</b></span><span class="weight-chart-key trend"><i></i><b>7-day average</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Individual weight history with seven-day average">'+trendPath+(actualCoords.length>1?'<polyline class="weight-actual-line" points="'+actualLine+'"></polyline>':'')+actualCoords.map(pt=>'<circle class="weight-actual-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="'+(points.length>60?'2.25':'3.6')+'"><title>'+niceDate(pt.date)+' · '+fmt(pt.value)+' '+esc(data.settings.unit)+'</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+esc(changeText)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="weight-all">Edit weigh-ins</button></div></div>';
 }
 function bodyFatProgressChart(entries){
  const points=[...entries].filter(b=>Number.isFinite(b.value)).sort((a,b)=>a.date.localeCompare(b.date)).map(b=>({date:b.date,value:Number(b.value)}));
@@ -2048,7 +2050,7 @@ function bodyFatProgressChart(entries){
  const values=points.map(p=>p.value),min=Math.min(...values),max=Math.max(...values),spread=Math.max(1,max-min),pad=Math.max(.5,spread*.18),yMin=min-pad,yMax=max+pad,w=320,h=92,pX=13,pY=12;
  const first=Date.parse(points[0].date+'T12:00:00'),last=Date.parse(points.at(-1).date+'T12:00:00'),range=Math.max(1,last-first),x=date=>points.length===1?w/2:pX+(Date.parse(date+'T12:00:00')-first)/range*(w-2*pX),y=value=>h-pY-(value-yMin)/(yMax-yMin)*(h-2*pY);
  const coords=points.map(p=>({x:x(p.date),y:y(p.value),...p})),line=coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
- return '<div class="bodyfat-progress-chart"><div class="weight-chart-head"><span><small>BODY FAT</small><strong>'+fmt(points.at(-1).value)+'%</strong></span><span><small>READINGS</small><strong>'+points.length+'</strong></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Body fat percentage history">'+(coords.length>1?'<polyline class="bodyfat-line" points="'+line+'"></polyline>':'')+coords.map(p=>'<circle class="bodyfat-dot" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3.4"><title>'+niceDate(p.date)+' · '+fmt(p.value)+'% body fat</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div></div>';
+ return '<div class="bodyfat-progress-chart"><div class="weight-chart-head"><span><small>BODY FAT</small><strong>'+fmt(points.at(-1).value)+'%</strong></span><span><small>READINGS</small><strong>'+points.length+'</strong></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Body fat percentage history">'+(coords.length>1?'<polyline class="bodyfat-line" points="'+line+'"></polyline>':'')+coords.map(p=>'<circle class="bodyfat-dot" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(points.length>60?'2.15':'3.4')+'"><title>'+niceDate(p.date)+' · '+fmt(p.value)+'% body fat</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="body-fat">+ Body fat</button><button type="button" class="text-btn" data-action="bodyfat-all">Edit readings</button></div></div>';
 }
 
 function shiftDate(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return localDate(d);}
@@ -2122,17 +2124,29 @@ function weightHistoryAll(){
  const weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date));
  modal('All weigh-ins','<div class="weight-all-list">'+(weights.length?weights.map(w=>'<div class="list-row"><span><strong>'+fmt(w.value)+' '+esc(data.settings.unit)+'</strong><small>'+niceDate(w.date)+' · '+w.date.slice(0,4)+' · BMI '+bmi(w.value,data.settings.heightInches,data.settings.unit)+'</small></span>'+button('Edit','edit-weight','text-btn','data-id="'+esc(w.id)+'"')+'</div>').join(''):empty('No weigh-ins yet.'))+'</div>');
 }
-function progress() {
-
-  const weeks=weeklyWeights(data.weights,data.settings.heightInches,data.settings.unit,FIXED_WEEK_START), visibleWeeks=weeks.slice(0,6), weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date)), recentWeights=weights.slice(0,5), bodyFat=[...(data.bodyFat||[])].sort((a,b)=>b.date.localeCompare(a.date)), recentBodyFat=bodyFat.slice(0,5);
-  const currentWeek=startOfWeek(currentTrackingDate(),FIXED_WEEK_START), latest=weeks[0], previous=weeks[1];
-  const change=previous?round(latest.average-previous.average):null;
-  const days=[...new Set(data.foodEntries.map(currentFoodTrackingDate))].sort().reverse().slice(0,7),foodWindow=foodProgressWindow();
-  const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
-  const chartStart=visibleWeeks.at(-1)?.week||weights.at(-1)?.date,chartEnd=visibleWeeks[0]?endOfWeek(visibleWeeks[0].week):weights[0]?.date;
-  const chartWeights=chartStart&&chartEnd?weights.filter(w=>w.date>=chartStart&&w.date<=chartEnd):weights,chartBodyFat=chartStart&&chartEnd?bodyFat.filter(b=>b.date>=chartStart&&b.date<=chartEnd):bodyFat;
-  return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latest?`<div class="trend-highlight"><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>${chartWeights.length?weightProgressChart(chartWeights):''}${chartBodyFat.length?bodyFatProgressChart(chartBodyFat):''}<div class="week-list">${visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')}</div>`:empty('Add a weigh-in to see weekly average weight and BMI.')}</section><section class="panel progress-details weight-progress-panel"><div class="section-head"><h2>Individual weigh-ins</h2><div class="progress-head-actions"><span class="progress-count">${Math.min(5,weights.length)} shown${weights.length>5?' · '+weights.length+' total':''}</span>${weights.length>5?button('See all','weight-all','text-btn'):''}</div></div>${recentWeights.length?recentWeights.map(w=>`<div class="list-row"><span><strong>${fmt(w.value)} ${data.settings.unit}</strong><small>${niceDate(w.date)} · ${w.date.slice(0,4)} · BMI ${bmi(w.value,data.settings.heightInches,data.settings.unit)}</small></span>${button('Edit','edit-weight','text-btn',`data-id="${esc(w.id)}"`)}</div>`).join(''):empty('No weigh-ins yet.')}</section><section class="panel progress-details bodyfat-progress-panel"><div class="section-head"><div><h2>Body fat</h2></div>${button('+ Body fat','body-fat','outline small')}</div>${recentBodyFat.length?recentBodyFat.map(b=>`<div class="list-row"><span><strong>${fmt(b.value)}%</strong><small>${niceDate(b.date)} · ${b.date.slice(0,4)}</small></span>${button('Edit','edit-body-fat','text-btn',`data-id="${esc(b.id)}"`)}</div>`).join(''):empty('No body-fat readings yet.')}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
+function bodyFatHistoryAll(){
+ const entries=[...(data.bodyFat||[])].sort((a,b)=>b.date.localeCompare(a.date));
+ modal('All body fat readings','<div class="bodyfat-all-list">'+(entries.length?entries.map(b=>'<div class="list-row"><span><strong>'+fmt(b.value)+'%</strong><small>'+niceDate(b.date)+'</small></span>'+button('Edit','edit-body-fat','text-btn','data-id="'+esc(b.id)+'"')+'</div>').join(''):empty('No body fat readings yet.'))+'</div>');
 }
+function progress() {
+ const weeks=weeklyWeights(data.weights,data.settings.heightInches,data.settings.unit,FIXED_WEEK_START);
+ const visibleWeeks=weeks.slice(0,6);
+ const weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date));
+ const bodyFat=[...(data.bodyFat||[])].sort((a,b)=>b.date.localeCompare(a.date));
+ // These are last 90 RECORDS, not 90 days or six weeks; each chart has its
+ // own window independent of the weekly weight-summary list.
+ const chartWeights=weights.slice(0,90),chartBodyFat=bodyFat.slice(0,90);
+ const currentWeek=startOfWeek(currentTrackingDate(),FIXED_WEEK_START),latest=weeks[0],previous=weeks[1];
+ const change=previous?round(latest.average-previous.average):null;
+ const days=[...new Set(data.foodEntries.map(currentFoodTrackingDate))].sort().reverse().slice(0,7),foodWindow=foodProgressWindow();
+ const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
+ const latestCard=latest?`<div class="trend-highlight"><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>`:empty('Add a weigh-in to see weekly average weight and BMI.');
+ const weekly=visibleWeeks.length?'<div class="week-list">'+visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')+'</div>':'';
+ const weightChart=chartWeights.length?weightProgressChart(chartWeights,weights):'';
+ const bodyFatChart=chartBodyFat.length?bodyFatProgressChart(chartBodyFat):'<div class="measurement-chart-actions measurement-chart-empty">'+button('+ Body fat','body-fat','outline small')+'</div>';
+ return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${weightChart}${bodyFatChart}${weekly}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
+}
+
 function history() {
   const nonFoodDates=[...data.lifts,...data.weights,...(data.bodyFat||[])];
   const dates=[...new Set([...nonFoodDates.map(x=>x.date),...data.foodEntries.map(currentFoodTrackingDate)])].sort().reverse();
@@ -2231,7 +2245,32 @@ function settings() {
   const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
 }
-function normalizeDocumentViewport(){const root=document.scrollingElement;if(root&&root.scrollTop!==0)root.scrollTop=0;if(window.scrollY!==0)window.scrollTo(0,0);}
+function normalizeDocumentViewport(){
+ // The app shell scrolls its own main content. The document itself must remain
+ // at (0,0), including when iOS restores a standalone PWA after backgrounding.
+ const root=document.scrollingElement;
+ if(root&&root.scrollTop!==0)root.scrollTop=0;
+ if(document.documentElement.scrollTop!==0)document.documentElement.scrollTop=0;
+ if(document.body.scrollTop!==0)document.body.scrollTop=0;
+ if(window.scrollY!==0)window.scrollTo(0,0);
+}
+function recoverStandaloneViewport(){
+ if(document.visibilityState==='hidden'||document.documentElement.classList.contains('buddy-active'))return;
+ // Don't disturb an in-progress keyboard edit or its visual-viewport position.
+ if(document.activeElement?.matches?.('input,select,textarea,[contenteditable="true"]'))return;
+ normalizeDocumentViewport();
+ // Force WebKit to reconcile the current shell/nav geometry without
+ // re-rendering, losing internal page scroll or resetting workout state.
+ document.querySelector('#app')?.getBoundingClientRect();
+}
+function scheduleStandaloneViewportRecovery(){
+ requestAnimationFrame(()=>{
+  recoverStandaloneViewport();
+  requestAnimationFrame(recoverStandaloneViewport);
+ });
+ // Standalone iOS sometimes reports the old viewport for its first frame.
+ setTimeout(recoverStandaloneViewport,180);
+}
 document.addEventListener('focusout',event=>{
  // iOS can leave the document's visual origin displaced after native select menus.
  // Only reset document scrolling; never replace the active screen or modal contents.
@@ -2833,6 +2872,7 @@ document.addEventListener('click',async event=>{
   if(action==='food-progress-nav'){foodProgressOffset=Math.min(0,foodProgressOffset+Number(el.dataset.delta||0));render();return;}
   if(action==='food-progress-current'){foodProgressOffset=0;render();return;}
   if(action==='weight-all'){weightHistoryAll();return;}
+  if(action==='bodyfat-all'){bodyFatHistoryAll();return;}
   if(action==='weight'){weightForm();return;}
   if(action==='body-fat'){bodyFatForm();return;}
   if(action==='later'){markWeightPromptSeen(currentTrackingDate());close(true);return;}
@@ -3273,7 +3313,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=109',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=110',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3333,7 +3373,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=109');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=110');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -3554,7 +3594,11 @@ document.addEventListener('input',event=>{
    else{buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}
  }
 });
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
-window.addEventListener('pageshow',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
-window.addEventListener('focus',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{scheduleStandaloneViewportRecovery();resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
+window.addEventListener('pageshow',()=>{scheduleStandaloneViewportRecovery();resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
+window.addEventListener('focus',()=>{scheduleStandaloneViewportRecovery();resumePendingCloudSave();void checkLatestRelease();void syncHealth();});
+// Correct document-level shifts after rotation without changing the active
+// page or its internal scroll offset.
+window.addEventListener('orientationchange',scheduleStandaloneViewportRecovery);
+window.addEventListener('resize',()=>{if(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)scheduleStandaloneViewportRecovery();});
 void checkLatestRelease();

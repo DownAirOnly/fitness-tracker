@@ -3647,3 +3647,15 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
   right:84px;width:62px;height:65px;
  }
 }
+
+
+/* v110 — measurement history stays available from its corresponding graph;
+   the duplicate full-page lists have been removed. */
+.measurement-chart-actions{
+ display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;
+ gap:4px 12px;margin-top:1px;
+}
+.measurement-chart-actions .text-btn{
+ min-height:30px;padding:4px 2px;font-size:11px;
+}
+.measurement-chart-empty{justify-content:flex-start;margin:8px 0 12px}
