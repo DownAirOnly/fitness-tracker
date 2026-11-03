@@ -71,7 +71,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|calendar-ui|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(data|calendar-ui|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
@@ -175,9 +175,10 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   await click('settings');
   assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
   const usageMeters=[...document.querySelectorAll('.google-sync-usage [role="progressbar"]')];
-  assert.equal(usageMeters.length,3,'cloud storage shows independent Nutrition/Lifting/Finances meters');
+  assert.equal(usageMeters.length,4,'settings and three catalogs have their own files even without history');
   assert.deepEqual(usageMeters.map(node=>node.getAttribute('aria-label')),
-   ['Nutrition cloud payload usage','Lifting cloud payload usage','Finances cloud payload usage']);
+   ['Account settings cloud payload usage','Food catalog cloud payload usage',
+    'Workout definitions cloud payload usage','Money configuration cloud payload usage']);
   assert.ok(document.querySelector('.google-sync-usage').textContent.includes('Each file has its own 800,000-byte safety limit'));
   assert.ok(!document.querySelector('.google-sync-usage').textContent.includes('Cloud data limit'),'no outdated combined-size meter');
 
@@ -252,7 +253,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(document.querySelector('.buddy-start-list'),'Lifting Add opens the routine chooser');
   assert.ok(!document.querySelector('#buddy-root .buddy-screen'),'Lifting Add does not immediately start a workout');
   await click('close');
-  assert.equal(localStorage.getItem('everyday-home-dashboard-v1'),'lifting','dashboard choice is saved locally');
+  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).preferences.homeDashboard,'lifting','dashboard choice is saved in canonical preferences');
   document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]').click();await tick();
   assert.ok(document.querySelector('.home-dash-nutrition'),'nutrition dashboard is available');
   assert.ok(document.querySelector('.home-food-footer [data-action="home-food-plan"]'),'Home quick-food Plan control');
@@ -602,7 +603,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(row.querySelector('.home-food-position').textContent,String(index+1),'number is assigned by selection order');
  }
  await click('home-food-customize-save');
- const orderedFoodIds=JSON.parse(localStorage.getItem('everyday-home-food-ids-v1'));
+ const orderedFoodIds=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).preferences.homeFoodIds;
  assert.deepEqual(orderedFoodIds,[choices[2].dataset.id,choices[0].dataset.id,choices[1].dataset.id]);
  assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(el=>el.dataset.id),orderedFoodIds,'cards use fixed stored order');
  await click('home');
@@ -1106,7 +1107,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('sign-out');state.user='bob';await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'account separation');
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
- assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');assert.equal(state.records.has('bob'),false);
+ assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');
+ assert.equal(JSON.parse(state.records.get('bob')?.payload||'{"foodEntries":[]}').foodEntries.length,0,
+  'the failed purchase was not written to the other signed-in account');
  assert.ok(localStorage.getItem('everyday-cloud-recovery-v1:bob'),'failed cloud save leaves an account-scoped device recovery copy');
  await click('home');
  assert.ok(document.querySelector('.home-sync-warning'),'unsynced cloud work is still visibly flagged on Home');
@@ -1275,7 +1278,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.bodyfat-progress-chart [data-action="bodyfat-all"]'),'body fat graph preserves entry editing');
  assert.ok(document.querySelectorAll('.weight-actual-dot').length<=90,'weight chart renders no more than 90 measured values');
  assert.ok(document.querySelectorAll('.bodyfat-dot').length<=90,'body fat chart renders no more than 90 measured values');
- await click('bodyfat-all');assert.ok(document.querySelector('.bodyfat-all-list [data-action="edit-body-fat"]'),'body fat history modal still permits editing');await click('close');
+ await click('bodyfat-all');assert.ok(document.querySelector('.measurement-history-list [data-action="edit-measurement"]'),'body fat history opens combined dated measurements');await click('close');
  assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
  const progressExercise=document.querySelector('.exercise-progress-panel .progress-exercise-card');if(progressExercise){
   assert.ok(progressExercise.classList.contains('exercise'),'Progress uses shared Lifting exercise card');
@@ -1292,7 +1295,11 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  document.querySelector('[data-action="food-progress-nav"][data-delta="1"]').click();await tick();assert.ok(!document.querySelector('[data-action="food-progress-current"]'),'forward scrub returns to current period');
  for(const [date,value] of [['2026-09-22','177.8'],['2026-09-23','177.6'],['2026-09-24','177.4'],['2026-09-25','177.2']]){await click('weight');await submit('weight',{value,date});}
  assert.ok(document.querySelector('[data-action="weight-all"]'),'individual weigh-ins exposes See all after five');
- await click('weight-all');assert.ok(document.querySelectorAll('.weight-all-list .list-row').length>=6,'all weigh-ins modal shows complete list');await click('close');
+ await click('weight-all');assert.ok(document.querySelectorAll('.measurement-history-list .list-row').length>=6,'all measurements modal shows combined date rows');
+  await click('edit-measurement');
+  assert.ok(document.querySelector('form[data-form="measurement-pair"] [name="weightValue"]'),'dated editor has weight');
+  assert.ok(document.querySelector('form[data-form="measurement-pair"] [name="bodyFatValue"]'),'dated editor has optional body fat');
+  await click('close');
  const expectedCurrent=startOfWeek(localDate(),5);
  for(const row of document.querySelectorAll('[data-week]'))assert.equal(row.textContent.includes('Current week'),row.dataset.week===expectedCurrent);
  await click('settings');

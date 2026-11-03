@@ -1,6 +1,6 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=108';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=112';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
-import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=111';
+import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=112';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -50,7 +50,8 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,color:['#69B98A','#AC8ED9','#C58B58'][index]||'#69B98A',exercises:structuredClone(exercises)}));
-export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+export const defaultPreferences=()=>({homeDashboard:'nutrition',homeFoodIds:null,theme:'system',legacyImported:false});
+export const emptyData = () => ({version: 1, preferences:defaultPreferences(), settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
@@ -176,6 +177,16 @@ export function normalizeData(input) {
   if(!input || input.version!==1 || !Array.isArray(input.foods)||!Array.isArray(input.foodEntries)||!Array.isArray(input.lifts)||!Array.isArray(input.weights)||!input.settings || typeof input.settings!=='object') throw new Error('This is not an Everyday backup.');
   const data=emptyData();
   data.settings={...data.settings,...input.settings};
+  const prefs=input.preferences??defaultPreferences();
+  if(!prefs||typeof prefs!=='object'||Array.isArray(prefs))throw Error('Invalid account preferences.');
+  const homeDashboard=['nutrition','lifting','finances'].includes(prefs.homeDashboard)?prefs.homeDashboard:'nutrition';
+  if(prefs.homeDashboard!=null&&!['nutrition','lifting','finances'].includes(prefs.homeDashboard))throw Error('Invalid Home dashboard preference.');
+  if(prefs.theme!=null&&!['system','light','dark'].includes(prefs.theme))throw Error('Invalid account theme preference.');
+  if(prefs.homeFoodIds!=null&&(!Array.isArray(prefs.homeFoodIds)||prefs.homeFoodIds.length>250||
+     prefs.homeFoodIds.some(x=>typeof x!=='string'||!x||x.length>160)))throw Error('Invalid favorite Home food IDs.');
+  if(prefs.legacyImported!=null&&typeof prefs.legacyImported!=='boolean')throw Error('Invalid preference migration marker.');
+  data.preferences={homeDashboard,homeFoodIds:prefs.homeFoodIds==null?null:[...new Set(prefs.homeFoodIds)],
+   theme:prefs.theme||'system',legacyImported:prefs.legacyImported===true};
   if(![data.settings.calories,data.settings.protein,data.settings.heightInches].every(x=>Number.isFinite(Number(x)) && Number(x)>0) || !['lb','kg'].includes(data.settings.unit)) throw new Error('Backup settings are invalid.');
   if(input.settings.weekStart!=null&&(!Number.isInteger(input.settings.weekStart)||input.settings.weekStart<0||input.settings.weekStart>6)) throw new Error('Backup week start is invalid.');
   data.settings.weekStart=5;

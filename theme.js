@@ -1,8 +1,8 @@
 (() => {
   const system = window.matchMedia('(prefers-color-scheme: dark)');
+  // v112: account/document settings own theme. There is no separate local
+  // preference key that could override the signed-in profile.
   let preference = 'system';
-  try { preference = localStorage.getItem('everyday-theme') || 'system'; } catch {}
-  if (!['light', 'dark', 'system'].includes(preference)) preference = 'system';
   function apply() {
     const dark = preference === 'dark' || (preference === 'system' && system.matches);
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
@@ -13,7 +13,6 @@
     set(value) {
       if (!['light', 'dark', 'system'].includes(value)) return;
       preference = value;
-      try { localStorage.setItem('everyday-theme', value); } catch {}
       apply();
     }
   };

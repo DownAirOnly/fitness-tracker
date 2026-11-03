@@ -54,10 +54,46 @@ service cloud.firestore {
           && request.resource.data.revision >= 1
           && request.resource.data.updatedAt == request.time;
       }
-      allow get: if owner() && section in ['nutrition','lifting','finances','manifest'];
-      allow create: if owner() && (validSection() || validManifest());
-      allow update: if owner() && (validSection() || validManifest())
-        && request.resource.data.revision == resource.data.revision + 1;
+      // v112: four private account files and one dated history document per month.
+      function monthlyName() {
+        return section.matches('^month-[0-9]{4}-(0[1-9]|1[0-2])$');
+      }
+      function v3DataName() {
+        return section in ['settings','catalog','routines','financeConfig'] || monthlyName();
+      }
+      function validV3Data() {
+        return v3DataName()
+          && request.resource.data.keys().hasAll(['schemaVersion','revision','payload','updatedAt'])
+          && request.resource.data.keys().hasOnly(['schemaVersion','revision','payload','updatedAt'])
+          && request.resource.data.schemaVersion == 3
+          && request.resource.data.revision is int
+          && request.resource.data.revision >= 1
+          && request.resource.data.payload is string
+          && request.resource.data.payload.toUtf8().size() <= 800000
+          && request.resource.data.updatedAt == request.time;
+      }
+      function validV3Manifest() {
+        return section == 'manifest'
+          && request.resource.data.keys().hasAll(['schemaVersion','revision','months','partVersions','updatedAt'])
+          && request.resource.data.keys().hasOnly(['schemaVersion','revision','months','partVersions','updatedAt'])
+          && request.resource.data.schemaVersion == 3
+          && request.resource.data.revision is int
+          && request.resource.data.revision >= 1
+          && request.resource.data.months is list
+          && request.resource.data.months.size() <= 350
+          && request.resource.data.partVersions is map
+          && request.resource.data.partVersions.size() <= 354
+          && request.resource.data.updatedAt == request.time;
+      }
+      allow get: if owner() &&
+        (section in ['nutrition','lifting','finances','manifest','settings','catalog','routines','financeConfig']
+          || monthlyName());
+      allow create: if owner() && (validSection() || validManifest() || validV3Data() || validV3Manifest());
+      allow update: if owner() &&
+        ((validSection() && request.resource.data.revision == resource.data.revision + 1)
+         || (validManifest() && request.resource.data.revision == resource.data.revision + 1)
+         || (validV3Manifest() && request.resource.data.revision == resource.data.revision + 1)
+         || (validV3Data() && request.resource.data.revision > resource.data.revision));
       // Listing and deletion are prohibited. Existing state/main keeps its
       // original legacy rule, not the split-document validation.
     }

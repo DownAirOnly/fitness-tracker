@@ -36,11 +36,13 @@ test('legacy main is read without migration until successful transactional write
  const split=await readAccountServer(f.sdk,null,uid);
  assert.equal(split.revision,5);assert.equal(split.split,true);
  assert.deepEqual(split.data,decodeState(old).data);
- for(const section of ['nutrition','lifting','finances']){
-  const doc=f.docs.get(refs.sections[section]);
+ assert.equal(f.docs.get(refs.manifest).schemaVersion,3);
+ for(const part of ['settings','catalog','routines','financeConfig','month-2026-10']){
+  const doc=f.docs.get(refs.part(part));
   assert.equal(doc.revision,5);
-  assert.equal(JSON.parse(doc.payload).section,section);
+  assert.equal(doc.schemaVersion,3);
  }
+ assert.deepEqual(f.docs.get(refs.manifest).months,['2026-10']);
 });
 test('atomic shared revision rejects stale writers and missing or mismatched section documents',async()=>{
  const f=fake(),refs=sectionRefs(f.sdk,null,uid),d=emptyData();
@@ -49,9 +51,9 @@ test('atomic shared revision rejects stale writers and missing or mismatched sec
  await write(f,1,stale);
  await assert.rejects(write(f,1,d),error=>error?.code==='conflict');
  assert.equal((await readAccountServer(f.sdk,null,uid)).data.transactions.length,1);
- f.docs.delete(refs.sections.lifting);
- await assert.rejects(readAccountServer(f.sdk,null,uid),/missing|differs/i);
- await assert.rejects(write(f,2,d),/missing|differs/i);
+ f.docs.delete(refs.part('routines'));
+ await assert.rejects(readAccountServer(f.sdk,null,uid),/incomplete|missing|changed/i);
+ await assert.rejects(write(f,2,d),/incomplete|missing|changed/i);
 });
 test('account documents remain isolated to the requested uid',()=>{
  const f=fake();const alice=sectionRefs(f.sdk,null,'alice'),bob=sectionRefs(f.sdk,null,'bob');
