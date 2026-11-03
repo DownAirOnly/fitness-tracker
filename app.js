@@ -2580,6 +2580,52 @@ document.addEventListener('click',async event=>{
    const plan=prepareRuleReview(data,proposals);if(!plan.candidate)return alert('Cannot preview suggestions.');
    pendingImport=plan;plan.filename='Saved merchant rules';showImportReview(plan);return;
   }
+  if(action==='money-weeks'){moneyWeeks=el.dataset.weeks==='2'?2:1;render();return;}
+  if(action==='money-review-unresolved'){pendingImport=prepareSavedBankReview(data);bankCandidateSearch='';bankCandidateSort='amount';showImportReview(pendingImport);return;}
+  if(action==='bank-choice-new'||action==='bank-choice-defer'){
+   if(pendingImport?.kind!=='bank')return;
+   try{bankChoose(pendingImport,data,el.dataset.id,action==='bank-choice-new'?'new':'defer');showImportReview(pendingImport);}catch(error){alert(error.message);}return;
+  }
+  if(action==='bank-match-select'){
+   if(pendingImport?.kind!=='bank')return;
+   const bank=pendingImport.bankRecords.find(row=>row.id===el.dataset.id),receipt=data.transactions.find(tx=>tx.id===el.dataset.receipt);
+   if(!bank||!receipt)return;
+   const diff=bank.amountCents-receipt.amountCents;
+   if(!diff){try{bankChoose(pendingImport,data,bank.id,'match',receipt.id);showImportReview(pendingImport);}catch(error){alert(error.message);}return;}
+   modal('Review bank difference','<form class="form" data-form="bank-match-confirm">'+
+    '<input type="hidden" name="bankId" value="'+esc(bank.id)+'"><input type="hidden" name="receiptId" value="'+esc(receipt.id)+'">'+
+    '<p class="body-copy">Receipt '+budgetMoney(receipt.amountCents)+' · Bank '+budgetMoney(bank.amountCents)+
+    ' · Difference '+(diff>0?'+':'−')+budgetMoney(Math.abs(diff))+'. Confirm one purchase.</p>'+
+    '<label class="field"><span>Category for difference</span><select name="adjustmentCategory">'+
+    FINANCE_CATEGORIES.filter(x=>!['Income','Transfers'].includes(x)).map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+
+    '</select></label><label class="field"><span>Explanation (optional)</span>'+
+    '<input type="text" name="adjustmentNote" maxlength="500" placeholder="Leave unknown if uncertain"></label>'+
+    '<p class="hint">No cause is assumed. Receipt items remain unchanged; the bank amount becomes final.</p>'+
+    '<button type="submit" class="primary">Confirm match</button></form>');return;
+  }
+  if(action==='money-paycheck-received'){
+   const rule=data.budgetPlan.schedules.find(x=>x.id===el.dataset.id),date=el.dataset.date;
+   if(!rule||rule.kind!=='income')return;
+   const amount=data.budgetPlan.paycheckAmounts?.[rule.id+'|'+date]??rule.amountCents;
+   modal('Record actual paycheck','<form class="form" data-form="money-paycheck-received">'+
+    '<input type="hidden" name="ruleId" value="'+esc(rule.id)+'"><input type="hidden" name="date" value="'+esc(date)+'">'+
+    '<p class="body-copy">'+esc(rule.name)+' · '+esc(budgetDateLong(date))+'</p>'+
+    input('Actual deposit (USD)','actualAmount',(amount/100).toFixed(2),'text','required inputmode="decimal"')+
+    '<p class="hint">This check only; future scheduled amounts stay unchanged. No extra income ledger entry.</p>'+
+    '<button type="submit" class="primary">Mark received</button></form>');return;
+  }
+  if(action==='money-move-bill'){
+   const key=el.dataset.id+'|'+el.dataset.date,view=paycheckWindows(data.budgetPlan,data.transactions||[],localDate(),2);
+   modal('Assign bill to paycheck','<p class="body-copy">Due '+esc(budgetDateLong(el.dataset.date))+'</p><div class="form-actions">'+
+    view.periods.map((p,i)=>button(i===0?'This check':'Next check','money-bill-assign','outline',
+     'data-key="'+esc(key)+'" data-start="'+esc(p.start)+'"')).join('')+
+    button('Use due date','money-bill-default','outline','data-key="'+esc(key)+'"')+'</div>');return;
+  }
+  if(action==='money-bill-assign'||action==='money-bill-default'){
+   try{const plan=structuredClone(data.budgetPlan),key=el.dataset.key;
+    if(action==='money-bill-default')delete plan.billAssignments[key];else plan.billAssignments[key]=el.dataset.start;
+    await budgetCommit(plan);close(true);render();}catch(error){alert(error.message);}return;
+  }
   if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='home-log-finance'){financeQuickModal();return;}
