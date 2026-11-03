@@ -2,6 +2,12 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
+## Current release — v105 (November 2, 2026)
+
+- **v105 — Workout Buddy layout consolidation.** Picker uses a single `0/6 exercises` (counting up) at top left, no redundant remaining count, no ready-to-lift/choose/description titles, and only short labels **COMPLETED EXERCISES** and **REMAINING EXERCISES** to separate the two sets of cards. The completed section has no second x-of-y count. The exercise review's confirmed-set rows no longer show a redundant COMPLETED SETS title and display weight/reps, effort, and duration as one natural line after Set N, without separate right-justified columns. Review confirmation timing remains unchanged.
+- **Completed exercise editor:** Reuses the *main Buddy exercise* header, rep-range chip, setup chip, notes toggle/editor and Journal, with both original shared weight/reps/effort controls and compact layout; Setup and Notes expand only as needed, keeping normal two-set editing fitted in one iPhone viewport when space permits with safe overflow fallback for smaller/accessibility displays. The anatomy thumbnail remains an independent action. Edit drafts are saved explicitly, preserving existing Buddy lift IDs and backup/sync compatibility. The bottom action style, undo behavior, money and nutrition are unchanged.
+- Update versions and precache in `version.json`, `index.html`, `app.js`, `sw.js`; UI smoke assertions cover picker labels, confirmed row and completed editor. CI, merge, deployment and iPhone review remain separate milestones.
+
 ## Current release — v104 (November 2, 2026)
 
 - **v104 — Workout Buddy Notes iPhone keyboard and completed-card editing.** When the iOS keyboard opens in Workout Buddy, hide the bottom set/Next exercise button temporarily and allow scrolling to the active field; restore it when dismissed. Do not change normal workout-button styling or position.
