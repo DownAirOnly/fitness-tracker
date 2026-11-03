@@ -43,17 +43,34 @@ export function paycheckWindows(input,transactions,today,count=1){
    const assigned=plan.billAssignments[billKey(e)];
    return assigned?assigned===start:e.date>=start&&e.date<end;
   }).map(e=>({...e,key:billKey(e)}));
-  const chargedBills=bills.filter(e=>e.status!=='skipped');
-  const billedKeys=new Set(chargedBills.map(e=>e.key));
+  const chargedBills=bills.filter(e=>e.status!=='skipped').map(e=>{
+   const linked=transactions.filter(tx=>tx.kind==='expense'&&tx.billKey===e.key);
+   // An explicitly linked posted charge supersedes that occurrence's expected
+   // amount, without changing future recurring bills. Keep the due-date
+   // paycheck, even if the bank posts in a later period.
+   return {...e,status:linked.length?'paid':e.status,
+    scheduledAmountCents:e.amountCents,
+    amountCents:linked.length===1?linked[0].amountCents:e.amountCents,
+    bankLinked:linked.length===1};
+  });
+  const allChargedBillKeys=new Set(
+   budgetOccurrences(plan,shiftPayday(start,-90),shiftPayday(end,90))
+    .filter(e=>e.kind==='expense'&&e.status!=='skipped').map(billKey)
+  );
   const spend=transactions.filter(tx=>{
    if(tx.kind!=='expense')return false;
+   // A bank charge linked to a scheduled bill belongs to the bill's allocated
+   // paycheck, never the posting week's discretionary spending.
+   if(tx.billKey&&allChargedBillKeys.has(tx.billKey))return false;
    const purchase=tx.paycheckDate||effectiveDate(tx);
-   return purchase>=start&&purchase<end&&(!tx.billKey||!billedKeys.has(tx.billKey));
+   return purchase>=start&&purchase<end;
   });
   const billCents=sum(chargedBills,e=>e.amountCents);
   const otherCents=sum(spend,tx=>tx.amountCents);
+  const billedAmounts=new Map(chargedBills.map(e=>[e.key,e]));
+  const displayedBills=bills.map(e=>billedAmounts.get(e.key)||{...e,amountCents:0,scheduledAmountCents:e.amountCents});
   return {start,end,endInclusive:shiftPayday(end,-1),paycheckEvents,
-   expectedCents,incomeCents,received,bills,spending:spend,billCents,
+   expectedCents,incomeCents,received,bills:displayedBills,spending:spend,billCents,
    otherCents,leftCents:incomeCents-billCents-otherCents,
    future:start>today};
  };
