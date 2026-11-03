@@ -65,6 +65,20 @@ test('v111: paid status and a linked posted bill never deduct the same payment t
  assert.equal(p.otherCents,2000);
 });
 
+test('v111: a bill posted across payday stays in its assigned week at the actual posted amount',()=>{
+ const d=baseline();
+ d.transactions.push(expense('late-car','2026-11-07',10450,{
+  billKey:'car|2026-11-05',bankDescription:'AUTO LOAN',bankDirection:'debit',
+  postedDate:'2026-11-07',accountLabel:'BofA Checking'
+ }));
+ const periods=paycheckWindows(d.budgetPlan,d.transactions,'2026-11-03',2).periods;
+ assert.equal(periods[0].billCents,10450);
+ assert.equal(periods[0].leftCents,47550);
+ assert.equal(periods[0].bills[0].bankLinked,true);
+ assert.equal(periods[0].bills[0].status,'paid');
+ assert.equal(periods[1].otherCents,0,'a late-posted bill does not become next week discretionary spending');
+});
+
 test('v111: receipt itemization is one purchase and category caps split by items',()=>{
  const receipt=[
  'recordType,date,kind,amount,description,category,merchant,accountLabel,purchaseId,itemName,itemCategory,itemAmount',
