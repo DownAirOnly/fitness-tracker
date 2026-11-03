@@ -1,6 +1,6 @@
 import {decodeStoredData,encodeStoredData} from './storage-model.js?v=108';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
-import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=111';
+import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=112';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
