@@ -3509,6 +3509,43 @@ function expandImportGroup(el){
   if(next===rows.length)el.remove();else{el.dataset.shown=next;el.textContent='Show next '+Math.min(50,rows.length-next)+' ('+next+' of '+rows.length+' shown)';}
 }
 
+function bankPreviewRecord(row,group){
+ const bank=row.record,selected=group==='matched'?row.receipt:null;
+ const candidates=bankReceiptCandidates(bank,data.transactions,bankCandidateSort,bankCandidateSearch).slice(0,30);
+ const candidatesHtml=candidates.length?candidates.map(c=>
+  '<div class="bank-candidate"><span><strong>'+esc(c.tx.merchant||c.tx.description)+'</strong>'+
+  '<small>Account '+esc(c.tx.accountLabel||'unspecified')+' · Purchased '+esc(budgetDateLong(c.tx.purchaseDate||c.tx.date))+
+  (c.tx.postedDate?' · Posted '+esc(budgetDateLong(c.tx.postedDate)):' · Not posted')+'</small>'+
+  '<small>Receipt '+budgetMoney(c.tx.amountCents)+' · Difference '+(c.differenceCents>=0?'+':'−')+
+   budgetMoney(Math.abs(c.differenceCents))+' · '+c.days+' day'+(c.days===1?'':'s')+' apart</small></span>'+
+  button('Match','bank-match-select','outline small','data-id="'+esc(bank.id)+'" data-receipt="'+esc(c.tx.id)+'"')+'</div>').join(''):
+  '<p class="hint">No matching search results. Try another merchant search or clear the filter.</p>';
+ return '<div class="bank-review-row"><div class="bank-review-bank"><strong>'+esc(bank.bankDescription)+'</strong>'+
+  '<small>Bank · '+esc(bank.accountLabel)+' · Posted '+esc(budgetDateLong(bank.date))+'</small>'+
+  '<b>'+budgetMoney(bank.amountCents)+'</b></div>'+
+  (selected?'<div class="bank-review-receipt"><strong>Matched to '+esc(selected.merchant||selected.description)+'</strong>'+
+  '<small>Account '+esc(selected.accountLabel||'unspecified')+' · Purchased '+esc(budgetDateLong(selected.purchaseDate||selected.date))+
+  ' · Posted '+esc(budgetDateLong(bank.date))+'</small><b>Receipt '+budgetMoney(selected.amountCents)+
+  ' · Difference '+(row.differenceCents>=0?'+':'−')+budgetMoney(Math.abs(row.differenceCents))+'</b>'+
+  (row.automatic?'<small>Suggested exact match · check before confirming</small>':'')+'</div>':'')+
+  '<div class="bank-review-actions">'+button('Import separately','bank-choice-new','outline small','data-id="'+esc(bank.id)+'"')+
+  button('Leave unresolved','bank-choice-defer','outline small','data-id="'+esc(bank.id)+'"')+'</div>'+
+  '<details class="bank-candidate-details"><summary>Choose a receipt / change match</summary>'+
+   '<div class="bank-candidate-list">'+candidatesHtml+'</div></details></div>';
+}
+function bankReviewMarkup(plan){
+ const review=plan.bankReview||{matched:[],needsReview:[],newRows:[]};
+ const group=(name,rows,key)=>'<details class="import-group bank-review-group" open><summary>'+name+' ('+rows.length+')</summary>'+
+  (rows.length?rows.map(row=>bankPreviewRecord(row,key)).join(''):'<p class="hint">None</p>')+'</details>';
+ return '<section class="bank-review-controls"><label class="field"><span>Sort receipts</span><select data-bank-sort>'+
+  '<option value="amount"'+(bankCandidateSort==='amount'?' selected':'')+'>Closest amount</option>'+
+  '<option value="date"'+(bankCandidateSort==='date'?' selected':'')+'>Closest date</option></select></label>'+
+  '<label class="field"><span>Search receipt merchants</span><input type="search" data-bank-search value="'+esc(bankCandidateSearch)+
+  '" placeholder="Walmart, restaurant…"></label></section>'+
+  group('Matched',review.matched,'matched')+group('Needs review',review.needsReview,'review')+
+  group('New',review.newRows,'new')+
+  '<p class="hint">Matched charges update their original receipt, not create a second purchase. Unresolved rows are saved for later review. Check automatic matches before confirming.</p>';
+}
 function showImportReview(plan,saveError=''){
   const json=plan.kind==='json',incomingCount=json?plan.groups.reduce((n,g)=>n+g.total,0):(plan.display?.count??plan.changeCount);
   const bankInfo=plan.kind==='bank'&&plan.bankDetails?
@@ -3523,7 +3560,7 @@ function showImportReview(plan,saveError=''){
   const otherChanges=plan.otherChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(change.label)+'</strong><small>'+esc(change.detail||change.from+' → '+change.to)+'</small><span class="import-badge attention">Changes</span></div></div>').join('');
   if(plan.kind==='enrichment'&&!plan.selectedIds)
     plan.selectedIds=new Set(plan.groups.flatMap(g=>g.rows.map(row=>row.record.id)));
-  const changedGroups=plan.kind==='enrichment'?
+  const changedGroups=plan.kind==='bank'?bankReviewMarkup(plan):plan.kind==='enrichment'?
     '<section class="finance-batch-select"><p>'+plan.selectedIds.size+' of '+
     plan.groups.reduce((n,g)=>n+g.rows.length,0)+' proposed changes selected</p>'+
     button('Select all','classification-select-all','outline small')+
