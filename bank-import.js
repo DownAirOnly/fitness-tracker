@@ -1,7 +1,7 @@
 // v84: browser-only Bank of America CSV reader and ID-anchored ChatGPT enrichment.
 // Statement identity does not contain the statement label so overlapping exports deduplicate.
 // Bank amounts and bank descriptions stay immutable when enrichment CSV is applied.
-import {parseCSV,validDate,normalizeData,emptyData} from './data.js?v=111';
+import {parseCSV,validDate,normalizeData,emptyData} from './data.js?v=112';
 import {parseFinanceAmount,formatFinanceAmount,financeDuplicateKey} from './finance-model.js?v=83';
 
 const headerKey=value=>String(value||'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
