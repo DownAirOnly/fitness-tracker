@@ -1003,6 +1003,7 @@ function paycheckCard(p,index){
    '<strong>−'+budgetMoney(e.amountCents)+'</strong>'+
    (e.bankLinked?'<small>Matched</small>':e.status==='paid'?button('Undo','budget-mark-pending','outline small',attrs):
     button('Paid','budget-mark-paid','outline small',attrs))+
+   (e.status!=='skipped'&&!e.bankLinked?button('Link charge','money-link-bill','text-btn small',attrs):'')+
    button('Move','money-move-bill','text-btn small',attrs)+'</div>';
  }).join('');
  const purchases=p.spending.map(tx=>'<div class="money-detail-line"><span>'+esc(tx.merchant||tx.description)+
@@ -2643,7 +2644,40 @@ document.addEventListener('click',async event=>{
     '<p class="hint">This check only; future scheduled amounts stay unchanged. No extra income ledger entry.</p>'+
     '<button type="submit" class="primary">Mark received</button></form>');return;
   }
-  if(action==='money-move-bill'){
+  if(action==='money-link-bill'){
+   const rule=data.budgetPlan.schedules.find(e=>e.id===el.dataset.id);
+   if(!rule||rule.kind!=='expense')return;
+   const due=el.dataset.date,dayMs=Date.parse(due+'T00:00:00Z');
+   const near=data.transactions.filter(tx=>tx.kind==='expense'&&tx.bankDescription&&!tx.billKey)
+    .map(tx=>({tx,days:Math.abs(Date.parse((tx.postedDate||tx.date)+'T00:00:00Z')-dayMs)/86400000,
+     difference:tx.amountCents-rule.amountCents}))
+    .filter(row=>row.days<=21).sort((a,b)=>a.days-b.days||Math.abs(a.difference)-Math.abs(b.difference)).slice(0,40);
+   modal('Link posted bill charge','<p class="body-copy">'+esc(rule.name)+' · Due '+esc(budgetDateLong(due))+
+    ' · Expected '+budgetMoney(rule.amountCents)+'. Choose a bank charge only when it represents this bill. The actual posted amount will replace the expected bill amount for this occurrence.</p>'+
+    (near.length?near.map(row=>'<div class="bank-candidate"><span><strong>'+esc(row.tx.merchant||row.tx.description)+
+     '</strong><small>'+esc(row.tx.accountLabel||'unspecified')+' · Posted '+esc(budgetDateLong(row.tx.postedDate||row.tx.date))+
+     '</small><small>'+budgetMoney(row.tx.amountCents)+' · Difference '+(row.difference>=0?'+':'−')+
+      budgetMoney(Math.abs(row.difference))+'</small></span>'+
+     button('Link','money-link-charge-confirm','outline small','data-id="'+esc(rule.id)+'" data-date="'+esc(due)+
+     '" data-txid="'+esc(row.tx.id)+'"')+'</div>').join(''):
+    '<p class="hint">No unlinked posted bank charges within 21 days of this bill. Import your bank statement or use transaction history to locate it.</p>')+
+    '<div class="form-actions">'+button('Cancel','close','outline')+'</div>');return;
+  }
+  if(action==='money-link-charge-confirm'){
+   try{
+    const rule=data.budgetPlan.schedules.find(e=>e.id===el.dataset.id);
+    const tx=data.transactions.find(t=>t.id===el.dataset.txid);
+    if(!rule||rule.kind!=='expense'||!tx||!tx.bankDescription||tx.kind!=='expense'||tx.billKey)
+     throw Error('This bank charge is no longer eligible for linking.');
+    const candidate=structuredClone(data);
+    candidate.transactions.find(t=>t.id===tx.id).billKey=rule.id+'|'+el.dataset.date;
+    const checked=normalizeData(candidate);
+    if(account&&!offlineWorkspace)encodeState(checked);
+    data=checked;close(true);render();
+    void persist().catch(error=>{financeNotice='Bill link is saved locally; review cloud sync before leaving.';refreshSyncIndicators();});
+   }catch(error){alert(error.message);}return;
+  }
+    if(action==='money-move-bill'){
    const key=el.dataset.id+'|'+el.dataset.date,view=paycheckWindows(data.budgetPlan,data.transactions||[],localDate(),2);
    modal('Assign bill to paycheck','<p class="body-copy">Due '+esc(budgetDateLong(el.dataset.date))+'</p><div class="form-actions">'+
     view.periods.map((p,i)=>button(i===0?'This check':'Next check','money-bill-assign','outline',
