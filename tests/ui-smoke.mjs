@@ -546,6 +546,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('home');
  document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]').click();await tick();
  assert.equal(document.querySelectorAll('.home-recent-routines .buddy-routine-choice').length,3,'Home uses the shared colored routine cards');
+ assert.ok(stylesheet.includes('.home-recent-routines.buddy-start-list > .buddy-routine-choice'),'Home retains independent compact card sizing');
+ assert.ok(stylesheet.includes('.home-recent-routines .buddy-routine-choice .routine-choice-main strong'),'Home has a scoped title size instead of chooser size');
+ assert.ok([...document.querySelectorAll('.home-recent-routines .routine-choice-main strong')].every(el=>el.textContent.trim()),'Home still displays shared routine names');
  await click('home-add-menu');
  assert.ok(document.querySelector('.modal .buddy-start-list .buddy-routine-choice'),'Workout Buddy picker uses the same routine-card renderer');
  const chooserCards=[...document.querySelectorAll('.modal .buddy-start-list .buddy-routine-choice')];
@@ -944,6 +947,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(stylesheet.includes('right:94px;top:50%;width:70px;height:72px'),'equipment art has reserved space left of anatomy thumbnail');
  assert.ok(stylesheet.includes('.exercise-muscle-wrapper > .exercise-muscle-peek'),'anatomy thumbnail has the shared fixed square');
  assert.ok(document.querySelector('.buddy-exercise-list .equipment-cable .equipment-art svg circle'),'cable equipment art uses a pulley wheel');
+ assert.ok(document.querySelector('.buddy-exercise-list .equipment-cable .equipment-art svg path[d*="M38 26L44 15"]'),'pulley wheel has tapered overhead hanger');
+ assert.ok(document.querySelector('.buddy-exercise-list .equipment-cable .equipment-art svg path[d*="M24 52L14 108M76 52V108"]'),'cable angles outward on left and drops straight on right');
  assert.ok(document.querySelector('.buddy-exercise-list [data-action="buddy-choose"]'),'remaining exercises stay selectable');
  const original=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
  const existingLift=original.lifts.find(l=>l.buddySessionId===original.activeWorkout.id&&l.exercise===doneCard.querySelector('.exercise-name-row strong')?.textContent);
@@ -1238,6 +1243,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  const {weeklyWeights,startOfWeek,localDate}=await import(new URL('data.js',root));
  const visibleWeeks=weeklyWeights(savedCalendar.weights,68,'lb',5).slice(0,6);
  assert.deepEqual([...document.querySelectorAll('[data-week]')].map(e=>e.dataset.week),visibleWeeks.map(w=>w.week));
+ assert.ok([...document.querySelectorAll('.week-row small')].every(el=>!/(?:19|20)\\d{2}/.test(el.textContent)),'weekly cards do not repeat the year');
+ assert.ok(!document.querySelector('.progress-trend')?.textContent.includes('Showing up to the last 6'),'redundant weekly explanation is gone');
  assert.ok(document.querySelector('.progress-trend .weight-progress-chart'),'weight graph lives in Weekly trend');
   assert.ok(!document.querySelector('.progress-head h1'),'Progress title removed');
  assert.ok(!document.querySelector('.weight-progress-panel .weight-progress-chart'),'individual weigh-ins is list-only');
@@ -1249,7 +1256,14 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  
  assert.ok(document.querySelectorAll('.weight-progress-panel .list-row').length<=5);
  assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
- const progressExercise=document.querySelector('.exercise-progress-panel .progress-exercise-card');if(progressExercise){assert.ok(progressExercise.classList.contains('exercise'),'progress uses Lifting exercise card shell');assert.ok(progressExercise.querySelector('.equipment-art'),'progress exercise includes equipment art');assert.ok(progressExercise.className.includes('equipment-'),'progress exercise includes equipment color class');}
+ const progressExercise=document.querySelector('.exercise-progress-panel .progress-exercise-card');if(progressExercise){
+  assert.ok(progressExercise.classList.contains('exercise'),'Progress uses shared Lifting exercise card');
+  assert.ok(progressExercise.querySelector('.equipment-art'),'Progress reuses equipment SVG artwork');
+  assert.ok(progressExercise.className.includes('equipment-'),'Progress uses shared equipment color');
+  assert.ok(progressExercise.closest('.exercise-muscle-wrapper')?.querySelector('.exercise-muscle-peek .muscle-mini-pair'),'Progress reuses separate muscle preview tile');
+  assert.ok(progressExercise.querySelector('.progress-exercise-best'),'latest top set remains visible in the shared card');
+  assert.ok(!progressExercise.querySelector('.progress-exercise-value'),'top set no longer overlaps equipment artwork');
+ }
  assert.ok(document.querySelector('.food-progress-chart'),'nutrition graph renders');
  assert.equal(document.querySelectorAll('.food-period-tabs [data-action="food-progress-period"]').length,4,'week/month/quarter/year controls render');
  const monthTab=document.querySelector('[data-action="food-progress-period"][data-period="month"]');monthTab.click();await tick();assert.equal(document.querySelector('.food-period-tabs .active')?.dataset.period,'month');
