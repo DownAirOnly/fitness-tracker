@@ -574,6 +574,10 @@ const financeKindLabels={expense:'Expense',income:'Income',transfer:'Transfer'};
 const FINANCE_CSV_SAMPLE='recordType,date,time,kind,amount,description,category,merchant,note,externalId\n'+
  'transaction,2026-10-27,14:15,expense,7.19,Water cases,Household Supplies,Wawa,,\n'+
  'transaction,2026-10-27,,income,100.00,Paycheck,Income,,,';
+const RECEIPT_CSV_SAMPLE='recordType,date,kind,amount,description,category,merchant,accountLabel,purchaseId,itemName,itemCategory,itemAmount\\n'+
+ 'purchase,2026-11-03,expense,30.00,Walmart visit,Uncategorized,Walmart,BofA Checking,walmart-1103,,,\\n'+
+ 'receiptItem,,,,,,,,walmart-1103,Groceries,Groceries,18.00\\n'+
+ 'receiptItem,,,,,,,,walmart-1103,Paper towels,Household Supplies,12.00';
 function financeFields(tx=null,scope='quick'){
  const isBank=Boolean(tx?.bankDescription),catId='finance-category-'+scope;
  const categoryOptions='<datalist id="'+catId+'">'+FINANCE_CATEGORIES.map(c=>'<option value="'+esc(c)+'"></option>').join('')+'</datalist>';
@@ -1107,10 +1111,11 @@ function financeEditForm(tx){
   button('Delete','finance-delete','danger','data-id="'+esc(tx.id)+'"')+'</div></form>');
 }
 function financeCsvExample(){
- modal('Everyday transaction CSV','<p class="body-copy">This is the format ChatGPT can prepare from your bank screenshots or statement. Amount is positive; kind says expense, income or transfer.</p>'+
-  '<label class="field"><span>Example</span><textarea class="finance-sample" rows="5" readonly spellcheck="false">'+esc(FINANCE_CSV_SAMPLE)+'</textarea></label>'+
-  '<p class="hint">Dates: YYYY-MM-DD. Optional times: HH:MM. An externalId can identify a unique bank transaction. Check uncertain values before importing.</p>'+
-  '<div class="form-actions">'+button('Paste prepared CSV','finance-paste-csv','primary')+button('Close','close','outline')+'</div>');
+ modal('Everyday purchase CSV','<p class="body-copy">One purchase row logs one charge. For mixed receipts, add receiptItem rows with the same purchaseId. Item amounts must total the original receipt. Account labels help later bank matching.</p>'+
+  '<label class="field"><span>Itemized receipt example</span><textarea class="finance-sample" rows="7" readonly spellcheck="false">'+esc(RECEIPT_CSV_SAMPLE)+'</textarea></label>'+
+  '<details><summary>Legacy transaction CSV</summary><textarea class="finance-sample" rows="5" readonly spellcheck="false">'+esc(FINANCE_CSV_SAMPLE)+'</textarea></details>'+
+  '<p class="hint">Dates use YYYY-MM-DD. Exact cents are required. The photo can be processed in ChatGPT, then pasted here.</p>'+
+  '<div class="form-actions">'+button('Paste CSV','finance-paste-csv','primary')+button('Close','close','outline')+'</div>');
 }
 function financeBankModal(){
  pendingImport=null;importReadToken++;
@@ -1170,8 +1175,8 @@ function financeCsvPaste(){
  if(title)title.textContent='Paste prepared transactions';
  const form=dialog?.querySelector('form[data-form="import"]');
  if(!form)return;
- form.querySelector('textarea[name="text"]').placeholder=FINANCE_CSV_SAMPLE;
- form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste prepared transaction CSV from ChatGPT, preview the rows, then confirm. Screenshots are processed in ChatGPT, not uploaded to Everyday.</p>');
+ form.querySelector('textarea[name="text"]').placeholder=RECEIPT_CSV_SAMPLE;
+ form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste one purchase or a mixed receipt with purchase and receiptItem rows from ChatGPT. Preview before confirming. Screenshots are processed in ChatGPT, not uploaded to Everyday.</p>');
 }
 
 // Home and Food render the same nutrition label, number and meter geometry.
