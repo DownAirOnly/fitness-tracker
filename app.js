@@ -2469,7 +2469,13 @@ app.addEventListener('change',event=>{
  if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
 app.addEventListener('change',event=>{
- if(event.target.matches('[data-budget-month]')){budgetMonth=event.target.value;render();return;}
+ if(event.target.matches('[data-bank-sort]')&&pendingImport?.kind==='bank'){
+   bankCandidateSort=event.target.value;showImportReview(pendingImport);return;
+  }
+  if(event.target.matches('[data-bank-search]')&&pendingImport?.kind==='bank'){
+   bankCandidateSearch=event.target.value;showImportReview(pendingImport);return;
+  }
+  if(event.target.matches('[data-budget-month]')){budgetMonth=event.target.value;render();return;}
  if(event.target.dataset.financeInsightPeriod){financeInsightPeriod=event.target.value;render();return;}
  if(event.target.dataset.financeHistoryFilter){
   const field=event.target.dataset.financeHistoryFilter,value=event.target.value;
