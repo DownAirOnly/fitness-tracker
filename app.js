@@ -597,7 +597,7 @@ function financeFields(tx=null,scope='quick'){
   '<label class="field"><span>Category</span><input name="category" list="'+catId+'" maxlength="80" value="'+esc(tx?.category||'Uncategorized')+'" autocomplete="off"></label>'+categoryOptions+
   input('Subcategory','subcategory',tx?.subcategory||'','text','maxlength="80" placeholder="e.g. Energy drinks"')+
   input('Merchant (optional)','merchant',tx?.merchant||'','text','maxlength="160" placeholder="Store or payee"')+
-  input('Payment account','accountLabel',tx?.accountLabel||'','text','maxlength="120" placeholder="BofA Checking (optional)"')+
+  (isBank?'':input('Payment account','accountLabel',tx?.accountLabel||'','text','maxlength="120" placeholder="BofA Checking (optional)"'))+
   (tx?'<label class="field"><span>Scheduled bill covered by purchase</span><select name="billKey">'+
    '<option value="">Not a scheduled bill</option>'+
    budgetOccurrences(data.budgetPlan,budgetDateShift(tx.purchaseDate||tx.date,-45),budgetDateShift(tx.purchaseDate||tx.date,45))
