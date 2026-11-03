@@ -3580,3 +3580,70 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  border:1px solid #58725e;border-radius:12px;padding:4px;
  background:transparent;cursor:pointer;
 }
+
+
+/* v109 — Home uses the shared routine metadata, tones and renderer, but keeps
+   its original compact three-card column beside the two muscle silhouettes.
+   Explicit specificity wins over the large chooser-card styles above. */
+.home-recent-routines.buddy-start-list{
+ min-width:0;min-height:0;grid-template-rows:repeat(3,minmax(0,1fr));gap:5px;
+}
+.home-recent-routines.buddy-start-list > .buddy-routine-choice{
+ display:flex;align-items:center;min-width:0;min-height:0;height:100%;
+ padding:6px 8px!important;border-radius:9px;gap:4px;overflow:hidden;
+}
+.home-recent-routines .buddy-routine-choice .routine-choice-main{
+ display:grid;align-content:center;gap:2px;min-width:0;flex:1 1 auto;
+}
+.home-recent-routines .buddy-routine-choice .routine-choice-main strong{
+ display:block;font:750 13px/1.16 'DM Sans',sans-serif;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;
+}
+.home-recent-routines .buddy-routine-choice .routine-choice-main small{
+ display:block;font:500 9px/1.2 'DM Sans',sans-serif;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.home-recent-routines .buddy-routine-choice .routine-choice-side{
+ display:flex;align-items:center;justify-content:center;flex:0 0 12px;
+ min-width:12px;gap:0;
+}
+.home-recent-routines .buddy-routine-choice .routine-choice-side > b{
+ font-size:16px;line-height:1;opacity:.8;
+}
+@media(max-height:740px){
+ .home-recent-routines.buddy-start-list > .buddy-routine-choice{padding:4px 7px!important}
+ .home-recent-routines .buddy-routine-choice .routine-choice-main strong{font-size:12px}
+ .home-recent-routines .buddy-routine-choice .routine-choice-main small{font-size:8px}
+}
+
+/* Progress reuses the same equipment art and separate blue anatomy-preview
+   tile as Lifting/Workout Buddy instead of overlaying numbers on the art. */
+.exercise-progress-list > .exercise-muscle-wrapper,
+.exercise-progress-all-list > .exercise-muscle-wrapper{min-width:0}
+.exercise-muscle-wrapper > .exercise-card.exercise-progress-link{
+ min-height:105px;padding:11px 95px 11px 13px!important;align-items:center;
+}
+.exercise-progress-list .exercise-muscle-wrapper .equipment-art,
+.exercise-progress-all-list .exercise-muscle-wrapper .equipment-art{
+ right:94px;top:50%;width:70px;height:72px;
+}
+.exercise-muscle-wrapper .progress-exercise-card .exercise-card-summary{
+ display:grid;gap:3px;min-width:0;line-height:1.2;
+}
+.progress-exercise-recent{
+ display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.progress-exercise-best{
+ display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 7px;
+}
+.progress-exercise-best b{font-size:12px;font-weight:800;color:inherit}
+.progress-exercise-best small{font-size:9px;opacity:.77}
+@media(max-width:380px){
+ .exercise-muscle-wrapper > .exercise-card.exercise-progress-link{
+  padding-right:84px!important;
+ }
+ .exercise-progress-list .exercise-muscle-wrapper .equipment-art,
+ .exercise-progress-all-list .exercise-muscle-wrapper .equipment-art{
+  right:84px;width:62px;height:65px;
+ }
+}
