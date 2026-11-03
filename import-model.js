@@ -1,6 +1,7 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=108';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=111';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
-import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=108';
+import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=111';
+import {prepareReconciliation} from './bank-reconcile.js?v=111';
 import {applyClassificationRuleProposals} from './classification-model.js?v=96';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
@@ -17,7 +18,7 @@ const csvTypeAliases=new Map([
  ['lift','lift'],['lifting','lift'],['liftset','lift'],
  ['weight','weight'],['weighin','weight'],['bodyweight','weight'],
  ['bodyfat','bodyFat'],['bodyfatpercentage','bodyFat'],['fatpercentage','bodyFat'],
-  ['transaction','transaction'],['finance','transaction'],['expense','transaction'],['income','transaction'],['transfer','transaction'],
+  ['transaction','transaction'],['purchase','transaction'],['receipt','transaction'],['receiptitem','receiptItem'],['finance','transaction'],['expense','transaction'],['income','transaction'],['transfer','transaction'],
 ]);
 const csvBool=value=>['1','true','yes','y','on','favorite','pinned'].includes(String(value||'').trim().toLowerCase());
 const csvOptionalBool=(value,label='value',fallback=true)=>{
@@ -47,7 +48,7 @@ function parseUniversalCSV(text,current){
  const legacy=!index.has('recordtype')&&['date','name','calories','protein'].every(x=>index.has(x));
  if(!legacy&&!index.has('recordtype'))throw Error('Universal CSV needs a recordType column. Legacy food CSVs are still accepted.');
  const raw=emptyData();raw.foods=[];raw.foodEntries=[];raw.lifts=[];raw.weights=[];raw.bodyFat=[];raw.transactions=[];raw.exerciseDefinitions=[];raw.workoutTemplates=[];
- const errors=[],warnings=[],workouts=new Map(),liftGroups=new Map(),transactionOccurrences=new Map();
+ const errors=[],warnings=[],workouts=new Map(),liftGroups=new Map(),transactionOccurrences=new Map(),receiptLines=[];
  const currentExercises=new Map((current.exerciseDefinitions||[]).map(e=>[(e.name.trim().toLowerCase()+'|'+(e.equipment||'other')),e]));
  const importedExercises=new Map();
  const getFrom=(row,...names)=>{for(const name of names){const i=index.get(name.toLowerCase());if(i!=null)return String(row[i]??'').trim();}return '';};
@@ -100,7 +101,12 @@ function parseUniversalCSV(text,current){
     const date=get('date'),value=csvNumber(get('bodyFatPercent','bodyFat','value'),'bodyFatPercent',{min:0.000001,max:100});
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
     raw.bodyFat.push({id:get('id')||id(),date,value});
-   }else if(type==='transaction'){
+    }else if(type==='receiptItem'){
+     const purchaseId=get('purchaseId'),name=get('itemName','name'),category=get('itemCategory','category')||'Uncategorized',
+      amountCents=parseFinanceAmount(get('itemAmount','amount'));
+     if(!purchaseId||!name||name.length>120||category.length>80)throw Error('Receipt items need purchaseId, itemName, and itemCategory.');
+     receiptLines.push({purchaseId,item:{name,category,amountCents},line});
+    }else if(type==='transaction'){
     const date=get('date'),description=get('description','name'),kind=(get('kind')||(FINANCE_KINDS.includes(requested)?requested:'')).toLowerCase();
     if(!validDate(date))throw Error('date must be YYYY-MM-DD.');
     if(!FINANCE_KINDS.includes(kind))throw Error('kind must be expense, income, or transfer.');
@@ -112,12 +118,15 @@ function parseUniversalCSV(text,current){
     if(get('currency')&&get('currency').toUpperCase()!=='USD')throw Error('Only USD transactions are supported.');
     const transaction={date,kind,amountCents,description,category:get('category')||'Uncategorized',
       currency:'USD',source:'import',__sourceRow:line};
-    for(const field of ['time','merchant','note','externalId']){
+    for(const field of ['time','merchant','note','externalId','accountLabel','purchaseDate','paycheckDate','subcategory','itemization']){
       const value=get(field,field==='note'?'notes':field);
       if(value)transaction[field]=value;
     }
     if(transaction.time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(transaction.time))
       throw Error('Transaction time must be HH:MM (24-hour clock).');
+    if(transaction.purchaseDate&&!validDate(transaction.purchaseDate))throw Error('Invalid purchaseDate.');
+    if(transaction.paycheckDate&&!validDate(transaction.paycheckDate))throw Error('Invalid paycheckDate.');
+    if(get('purchaseId'))transaction.__purchaseId=get('purchaseId');
     const base=financeCsvId(transaction),occurrence=(transactionOccurrences.get(base)||0)+1;
     transactionOccurrences.set(base,occurrence);
     transaction.id=get('id')||financeCsvId(transaction,occurrence);
@@ -127,6 +136,26 @@ function parseUniversalCSV(text,current){
    }
   }catch(error){errors.push('Row '+line+': '+error.message);}
  });
+ const byPurchaseId=new Map();
+ for(const transaction of raw.transactions){
+  if(transaction.__purchaseId){
+   if(byPurchaseId.has(transaction.__purchaseId))errors.push('purchaseId '+transaction.__purchaseId+' appears in more than one purchase.');
+   else byPurchaseId.set(transaction.__purchaseId,transaction);
+   delete transaction.__purchaseId;
+  }
+ }
+ for(const entry of receiptLines){
+  const transaction=byPurchaseId.get(entry.purchaseId);
+  if(!transaction){errors.push('Row '+entry.line+': receiptItem purchaseId does not match a purchase row.');continue;}
+  if(transaction.kind!=='expense'){errors.push('Row '+entry.line+': receipt items require an expense.');continue;}
+  (transaction.items??=[]).push(entry.item);
+ }
+ for(const transaction of raw.transactions){
+  if(transaction.items?.length){
+   const total=transaction.items.reduce((sum,item)=>sum+item.amountCents,0);
+   if(total!==transaction.amountCents)errors.push('Receipt '+transaction.description+': item amounts must total '+transaction.amountCents+' cents; got '+total+'.');
+  }
+ }
  for(const bucket of workouts.values())raw.workoutTemplates.push({id:bucket.id,name:bucket.name,exercises:bucket.items.sort((a,b)=>a.order-b.order).map(({order,...item})=>item)});
  for(const lift of liftGroups.values())raw.lifts.push({id:lift.id,date:lift.date,exercise:lift.exercise,equipment:lift.equipment,sets:lift.sets.sort((a,b)=>a.order-b.order).map(x=>x.set),notes:lift.notes||''});
  const count=raw.foods.length+raw.foodEntries.length+raw.exerciseDefinitions.length+raw.workoutTemplates.length+raw.lifts.length+raw.weights.length+raw.bodyFat.length+raw.transactions.length;
@@ -257,50 +286,16 @@ function financeOnlyPlan(kind,current,rows,errors=[],warnings=[],counts={}){
  };
 }
 export function prepareBankImport(text,current,options){
- const parsed=readBofaCSV(text,options),errors=[...parsed.errors],warnings=[...parsed.warnings],rows=[];
- const existing=new Map((current.transactions||[]).map(tx=>[tx.id,tx]));
- let unchanged=0,duplicates=0,crossLabelMatches=0,otherSimilarMatches=0;
- for(const item of parsed.records){
-  const {__sourceRow,...record}=item,old=existing.get(record.id);
-  if(old){
-   if(old.date!==record.date||
-       old.amountCents!==record.amountCents||old.bankDescription!==record.bankDescription||
-       old.accountLabel!==record.accountLabel||
-       (old.bankDirection&&old.bankDirection!==record.bankDirection)){
-     errors.push('Row '+__sourceRow+': bank identity matches an existing transaction but original values differ. Nothing will be imported.');
-   }else unchanged++;
-   continue;
-  }
-  // Do not rely on the editable kind: a previously corrected expense/transfer
-  // should still be recognized as similar to the original bank debit.
-  // Account labels are display metadata, not trustworthy account identifiers.
-  const similar=current.transactions.filter(tx=>{
-   if(tx.date!==record.date||tx.amountCents!==record.amountCents)return false;
-   if((tx.bankDescription||tx.description).trim().toLowerCase()!==record.bankDescription.trim().toLowerCase())return false;
-   const direction=tx.bankDirection||(tx.kind==='income'?'credit':tx.kind==='expense'?'debit':null);
-   return !direction||direction===record.bankDirection;
-  });
-  const badges=['Adds bank record'];
-  if(similar.length){
-   badges.push('Possible duplicate');duplicates++;
-   const differentLabel=similar.some(tx=>tx.bankDescription&&
-    (tx.accountLabel||'').trim().toLowerCase()!==record.accountLabel.trim().toLowerCase());
-   if(differentLabel){badges.push('Different account label');crossLabelMatches++;}
-   else otherSimilarMatches++;
-  }
-  rows.push({record,badges,sourceRow:__sourceRow});
-  existing.set(record.id,record);
- }
- if(crossLabelMatches)warnings.push(crossLabelMatches+
-  ' bank row'+(crossLabelMatches===1?' resembles':'s resemble')+
-  ' an imported transaction under a different account label. These rows are flagged but NOT automatically merged: different real accounts may contain identical purchases. Use the same account label for repeat exports of one account.');
- if(otherSimilarMatches)warnings.push(otherSimilarMatches+
-  ' row'+(otherSimilarMatches===1?' is':'s are')+
-  ' similar to an already logged transaction. Review highlighted rows before importing; similar transactions are not merged automatically.');
- const plan=financeOnlyPlan('bank',current,rows,errors,warnings,
-  {added:rows.length,unchanged,duplicates});
- plan.bankDetails=parsed.details;
- return plan;
+ const parsed=readBofaCSV(text,options);
+ return prepareReconciliation(parsed.records,current,{
+  errors:parsed.errors,warnings:parsed.warnings,details:parsed.details
+ });
+}
+export function prepareSavedBankReview(current){
+ return prepareReconciliation(current.budgetPlan?.unresolvedBankRows||[],current,{
+  warnings:['Unresolved bank rows remain stored until you match them or choose New.'],
+  filename:'Saved unresolved bank charges'
+ });
 }
 export function prepareRuleReview(current,proposals){
  const safe=proposals.filter(p=>!p.conflicts.length&&Object.keys(p.changes).length);

@@ -7,7 +7,8 @@ const iso=x=>new Date(x*DAY).toISOString().slice(0,10);
 const money=x=>Number.isSafeInteger(x)&&x>=0&&x<=10_000_000_000;
 const signedBalance=x=>Number.isSafeInteger(x)&&Math.abs(x)<=10_000_000_000;
 const sameMonth=(x,m)=>x.slice(0,7)===m;
-export const emptyBudgetPlan=()=>({balanceCents:null,balanceAsOf:'',categoryLimits:[],schedules:[]});
+export const emptyBudgetPlan=()=>({balanceCents:null,balanceAsOf:'',categoryLimits:[],schedules:[],
+ paycheckAmounts:{},billAssignments:{},unresolvedBankRows:[]});
 export function normalizeBudgetPlan(input){
  if(input==null)return emptyBudgetPlan();
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Invalid budget plan.');
@@ -17,6 +18,25 @@ export function normalizeBudgetPlan(input){
     (balanceCents===null&&balanceAsOf)||(balanceCents!==null&&!dateOK(balanceAsOf)))throw Error('Invalid manual balance date or amount.');
  if(!Array.isArray(input.categoryLimits)||input.categoryLimits.length>60||
     !Array.isArray(input.schedules)||input.schedules.length>250)throw Error('Budget plan is too large.');
+ const paycheckAmounts=input.paycheckAmounts??{},billAssignments=input.billAssignments??{},
+  unresolvedBankRows=input.unresolvedBankRows??[];
+ const validEntries=value=>value&&typeof value==='object'&&!Array.isArray(value)&&
+  Object.keys(value).length<=1500&&Object.keys(value).every(k=>k.length<=180&&k.includes('|')&&dateOK(k.split('|').at(-1)));
+ if(!validEntries(paycheckAmounts)||Object.values(paycheckAmounts).some(n=>!money(n)||n===0)||
+    !validEntries(billAssignments)||Object.values(billAssignments).some(d=>!dateOK(d))||
+    !Array.isArray(unresolvedBankRows)||unresolvedBankRows.length>500)
+  throw Error('Invalid paycheck allocations or unresolved bank records.');
+ const bankIds=new Set();
+ for(const row of unresolvedBankRows){
+  if(!row||typeof row!=='object'||Array.isArray(row)||typeof row.id!=='string'||!row.id.startsWith('bofa-')||
+   bankIds.has(row.id)||!dateOK(row.date)||!money(row.amountCents)||row.amountCents===0||
+   !['expense','income','transfer'].includes(row.kind)||!['debit','credit'].includes(row.bankDirection)||
+   typeof row.bankDescription!=='string'||!row.bankDescription.trim()||row.bankDescription.length>240||
+   typeof row.accountLabel!=='string'||!row.accountLabel.trim()||row.accountLabel.length>120||
+   typeof row.statementLabel!=='string'||row.statementLabel.length>160)
+   throw Error('Invalid unresolved bank record.');
+  bankIds.add(row.id);
+ }
  const names=new Set(),ids=new Set();
  const categoryLimits=input.categoryLimits.map(r=>{
   if(!r||typeof r.category!=='string'||!r.category.trim()||r.category.length>80||
@@ -41,7 +61,9 @@ export function normalizeBudgetPlan(input){
    startDate:r.startDate,frequency:r.frequency,
    ...(r.endDate?{endDate:r.endDate}:{}),occurrences:Object.fromEntries(statuses)};
  });
- return{balanceCents,balanceAsOf,categoryLimits,schedules};
+ return{balanceCents,balanceAsOf,categoryLimits,schedules,
+  paycheckAmounts:{...paycheckAmounts},billAssignments:{...billAssignments},
+  unresolvedBankRows:structuredClone(unresolvedBankRows)};
 }
 function occursOn(r,d){
  if(d<r.startDate||r.endDate&&d>r.endDate)return false;
@@ -64,7 +86,8 @@ export function budgetOccurrences(plan,start,end){
  for(let d=day(start);d<=day(end);d++){
   const date=iso(d);
   for(const r of p.schedules)if(occursOn(r,date))
-   events.push({id:r.id,date,name:r.name,kind:r.kind,amountCents:r.amountCents,
+   events.push({id:r.id,date,name:r.name,kind:r.kind,
+    amountCents:r.kind==='income'?(p.paycheckAmounts[r.id+'|'+date]??r.amountCents):r.amountCents,
     status:r.occurrences[date]||'pending'});
  }
  return events.sort((a,b)=>a.date.localeCompare(b.date)||a.name.localeCompare(b.name));
@@ -103,10 +126,23 @@ export function budgetForecast(plan,today,horizon=35){
 export function budgetMonthSpending(plan,transactions,month){
  const p=normalizeBudgetPlan(plan);
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw Error('Invalid budget month.');
- const expenses=transactions.filter(tx=>tx.kind==='expense'&&sameMonth(tx.date,month));
+ const expenses=transactions.filter(tx=>tx.kind==='expense'&&sameMonth(tx.purchaseDate||tx.date,month));
  return p.categoryLimits.map(limit=>{
-  const actualCents=expenses.filter(tx=>String(tx.category||'').trim().toLocaleLowerCase()===limit.category.toLocaleLowerCase())
-   .reduce((sum,tx)=>sum+tx.amountCents,0);
+  const category=limit.category.toLocaleLowerCase();
+  const actualCents=expenses.reduce((sum,tx)=>{
+   if(Array.isArray(tx.items)&&tx.items.length){
+    const itemTotal=tx.items.reduce((n,item)=>n+item.amountCents,0);
+    const itemSpend=tx.items.filter(item=>item.category.toLocaleLowerCase()===category)
+     .reduce((n,item)=>n+item.amountCents,0);
+    const remainder=tx.amountCents-itemTotal;
+    return sum+itemSpend+((tx.adjustmentCategory||'Uncategorized').toLocaleLowerCase()===category?remainder:0);
+   }
+   const receiptBase=tx.receiptAmountCents??tx.amountCents;
+   const baseCategory=String(tx.category||'').trim().toLocaleLowerCase();
+   const adjustmentCategory=(tx.adjustmentCategory||'Uncategorized').toLocaleLowerCase();
+   const difference=tx.amountCents-receiptBase;
+   return sum+(baseCategory===category?receiptBase:0)+(adjustmentCategory===category?difference:0);
+  },0);
   return{category:limit.category,limitCents:limit.amountCents,actualCents,
    remainingCents:limit.amountCents-actualCents,percent:100*actualCents/limit.amountCents};
  }).sort((a,b)=>b.percent-a.percent||a.category.localeCompare(b.category));

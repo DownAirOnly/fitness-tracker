@@ -3659,3 +3659,83 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  min-height:30px;padding:4px 2px;font-size:11px;
 }
 .measurement-chart-empty{justify-content:flex-start;margin:8px 0 12px}
+
+
+/* v111 — paycheck-first Money overview, compact enough for narrow iPhones. */
+.money-top-control{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 12px;min-width:0}
+.money-top-control>strong{font:750 clamp(20px,5.5vw,28px)/1.1 'Outfit',sans-serif;letter-spacing:-.6px}
+.money-week-switch{display:flex;gap:4px;flex-shrink:0;border-radius:13px;padding:3px;border:1px solid #45604d}
+.money-week-switch button{border:0;border-radius:10px;font-size:11px;min-height:34px;padding:6px 12px;font-weight:800}
+.money-week-switch .selected{background:#173b2b;color:#fff}
+.money-paycheck-card{padding:18px 16px!important;margin-bottom:12px}
+.money-period-label{display:flex;justify-content:space-between;align-items:start;gap:8px;padding-bottom:15px;border-bottom:1px solid #dce7dc}
+.money-period-label strong{font:750 19px 'Outfit',sans-serif}
+.money-period-label span{font-size:11px;color:#687f70;max-width:155px;text-align:right;line-height:1.4}
+.money-ledger-line{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:15px 0 5px;font-size:13px;font-weight:700}
+.money-ledger-line strong{font:750 21px 'Outfit',sans-serif;white-space:nowrap;font-variant-numeric:tabular-nums}
+.money-ledger-details{margin:0 0 3px;padding-bottom:9px;border-bottom:1px solid #dce7dc}
+.money-ledger-details>summary{font-size:11px;color:#6b8572;cursor:pointer;padding:5px 0;list-style-position:inside}
+.money-detail-line{display:flex;align-items:center;gap:6px;justify-content:space-between;padding:9px 0;border-top:1px solid #dae4d9}
+.money-detail-line>span{flex:1 1 auto;min-width:0;font-size:12px;font-weight:750;overflow-wrap:anywhere}
+.money-detail-line small{display:block;font-weight:500;font-size:10px;color:#76917c;line-height:1.4;margin-top:3px}
+.money-detail-line>strong{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.money-detail-line button{flex:0 0 auto;padding:6px;font-size:10px}
+.money-ledger-total{margin-top:12px;background:#e5efe2;border-radius:18px;padding:18px 16px;display:flex;flex-direction:column;gap:5px}
+.money-ledger-total span{font-weight:800;font-size:12px}
+.money-ledger-total strong{font:800 clamp(34px,10vw,50px)/1.12 'Outfit',sans-serif;letter-spacing:-1.4px;font-variant-numeric:tabular-nums}
+.money-ledger-total .budget-negative{color:#b43f31}
+.money-expected-note{font-size:10px;color:#8b7550;line-height:1.5;margin:10px 2px}
+.money-what-if{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;margin-top:16px}
+.money-what-if button{min-height:44px}
+.money-held-back{display:flex;flex-direction:column;gap:6px;padding:14px 18px!important;margin-bottom:12px}
+.money-held-back span{font-size:11px;font-weight:800}
+.money-held-back strong{font:750 26px 'Outfit',sans-serif}
+.money-held-back small,.money-account small{display:block;font-size:10px;line-height:1.5;color:#708473}
+.money-primary-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.money-primary-actions button{min-width:0}
+.money-caps .field{margin-bottom:12px}
+.money-cap-row{padding:12px 0;border-bottom:1px solid #dce7dc}
+.money-cap-row>div:first-child{display:flex;justify-content:space-between;gap:9px;align-items:baseline;font-size:12px}
+.money-cap-row strong{min-width:0;overflow-wrap:anywhere}
+.money-cap-row span{white-space:nowrap;font-weight:800}
+.money-cap-row .finance-insight-meter{margin:8px 0 4px}
+.money-cap-row>small{font-size:10px;color:#728673}
+.money-account>strong{font:750 25px 'Outfit',sans-serif;display:block;margin:8px 0}
+.money-tools-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.money-tools-grid button{min-width:0;padding:12px 7px;font-size:11px}
+.money-unresolved{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.money-unresolved strong{font-size:12px}
+.bank-review-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 16px}
+.bank-review-row{padding:13px 0;border-bottom:1px solid #dce7dc;display:grid;gap:10px}
+.bank-review-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:stretch}
+.bank-review-pair>:only-child{grid-column:span 2}
+.bank-review-pair :is(.bank-review-bank,.bank-review-receipt){min-width:0;padding:10px 8px;overflow-wrap:anywhere}
+.bank-review-pair :is(.bank-review-bank,.bank-review-receipt) button{font-size:10px;white-space:normal;padding:7px}
+
+.bank-review-bank,.bank-review-receipt{display:grid;gap:4px;min-width:0;background:#eff3eb;padding:12px;border-radius:12px}
+.bank-review-bank strong,.bank-review-receipt strong{font-size:12px;overflow-wrap:anywhere}
+.bank-review-bank small,.bank-review-receipt small{font-size:10px;line-height:1.45;color:#65776a}
+.bank-review-bank b,.bank-review-receipt b{font-size:14px}
+.bank-review-receipt{border:1px solid #98b98a;background:#e8f4e2}
+.bank-review-actions{display:flex;gap:8px;flex-wrap:wrap}
+.bank-candidate-details>summary{font-size:12px;font-weight:800;cursor:pointer;padding:8px 0}
+.bank-candidate{display:flex;align-items:center;gap:10px;border-top:1px solid #c9d7c7;padding:11px 0}
+.bank-candidate>span{flex:1 1 auto;min-width:0;display:grid;gap:3px}
+.bank-candidate strong{font-size:12px;overflow-wrap:anywhere}
+.bank-candidate small{font-size:10px;line-height:1.45;color:#738976}
+.bank-candidate button{flex-shrink:0}
+[data-theme="dark"] .money-week-switch .selected{background:#b5d58d;color:#172c23}
+[data-theme="dark"] :is(.money-period-label,.money-ledger-details,.money-detail-line,.money-cap-row,.bank-review-row){border-color:#374d3b}
+[data-theme="dark"] .money-ledger-total{background:#2b4432}
+[data-theme="dark"] .money-ledger-total .budget-negative{color:#ffa79e}
+[data-theme="dark"] :is(.money-period-label span,.money-detail-line small,.money-held-back small,.money-account small,.money-cap-row>small,.bank-candidate small,.bank-review-bank small,.bank-review-receipt small){color:#a7bca9}
+[data-theme="dark"] .money-expected-note{color:#e5c38e}
+[data-theme="dark"] .bank-review-bank{background:#26392b}
+[data-theme="dark"] .bank-review-receipt{background:#294b34;border-color:#6a966e}
+@media(max-width:375px){
+ .money-top-control>strong{font-size:19px}
+ .money-week-switch button{padding:6px 8px}
+ .money-detail-line{flex-wrap:wrap}
+ .money-detail-line>span{flex-basis:100%}
+ .bank-review-controls{grid-template-columns:1fr}
+}

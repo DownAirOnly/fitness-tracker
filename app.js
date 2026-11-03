@@ -1,19 +1,21 @@
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=108';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=111';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
-import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=108';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=108';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=111';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=111';
+import {paycheckWindows,paycheckWhatIf} from './paycheck-model.js?v=111';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=111';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=108';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=99';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=111';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=111';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=111';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=111';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=103';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=108';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=108';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=108';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=111';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=111';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=111';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -92,7 +94,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
-let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
+let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='',moneyWeeks=1,bankCandidateSort='amount',bankCandidateSearch='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null,buddyCompletedEditor=null;
 const app=document.querySelector('#app');
@@ -572,12 +574,16 @@ const financeKindLabels={expense:'Expense',income:'Income',transfer:'Transfer'};
 const FINANCE_CSV_SAMPLE='recordType,date,time,kind,amount,description,category,merchant,note,externalId\n'+
  'transaction,2026-10-27,14:15,expense,7.19,Water cases,Household Supplies,Wawa,,\n'+
  'transaction,2026-10-27,,income,100.00,Paycheck,Income,,,';
+const RECEIPT_CSV_SAMPLE='recordType,date,kind,amount,description,category,merchant,accountLabel,purchaseId,itemName,itemCategory,itemAmount\n'+
+ 'purchase,2026-11-03,expense,30.00,Walmart visit,Uncategorized,Walmart,BofA Checking,walmart-1103,,,\n'+
+ 'receiptItem,,,,,,,,walmart-1103,Groceries,Groceries,18.00\n'+
+ 'receiptItem,,,,,,,,walmart-1103,Paper towels,Household Supplies,12.00';
 function financeFields(tx=null,scope='quick'){
  const isBank=Boolean(tx?.bankDescription),catId='finance-category-'+scope;
  const categoryOptions='<datalist id="'+catId+'">'+FINANCE_CATEGORIES.map(c=>'<option value="'+esc(c)+'"></option>').join('')+'</datalist>';
  const amount=tx?formatFinanceAmount(tx.amountCents).slice(1):'',kind=tx?.kind||'expense';
  const bankFacts=isBank?'<section class="finance-bank-facts"><strong>Original bank record · locked</strong><p>'+esc(tx.bankDescription)+'</p>'+
-   '<small>'+esc(tx.accountLabel||'Bank of America')+' · Posted '+esc(tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(tx.statementLabel||'')+'</small></section>'+
+   '<small>'+esc(tx.accountLabel||'Bank of America')+' · Posted '+esc(tx.postedDate||tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(tx.statementLabel||'')+'</small></section>'+
    '<input type="hidden" name="amount" value="'+esc(amount)+'"><input type="hidden" name="date" value="'+esc(tx.date)+'">':'';
  const amountInput=isBank?'':'<label class="field"><span>Amount (USD)</span><span class="finance-money-input"><strong aria-hidden="true">$</strong><input type="text" name="amount" inputmode="decimal" autocomplete="off" maxlength="20" required value="'+esc(amount)+'" placeholder="0.00" aria-label="Amount in US dollars"></span></label>';
  const kindInput='<label class="field finance-kind-field"><span>Type</span><select name="kind" aria-label="Transaction type">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+({expense:'Expense',income:'Income',transfer:'Transfer'}[k])+'</option>').join('')+'</select></label>';
@@ -591,6 +597,13 @@ function financeFields(tx=null,scope='quick'){
   '<label class="field"><span>Category</span><input name="category" list="'+catId+'" maxlength="80" value="'+esc(tx?.category||'Uncategorized')+'" autocomplete="off"></label>'+categoryOptions+
   input('Subcategory','subcategory',tx?.subcategory||'','text','maxlength="80" placeholder="e.g. Energy drinks"')+
   input('Merchant (optional)','merchant',tx?.merchant||'','text','maxlength="160" placeholder="Store or payee"')+
+  (isBank?'':input('Payment account','accountLabel',tx?.accountLabel||'','text','maxlength="120" placeholder="BofA Checking (optional)"'))+
+  (tx?'<label class="field"><span>Scheduled bill covered by purchase</span><select name="billKey">'+
+   '<option value="">Not a scheduled bill</option>'+
+   budgetOccurrences(data.budgetPlan,budgetDateShift(tx.purchaseDate||tx.date,-45),budgetDateShift(tx.purchaseDate||tx.date,45))
+    .filter(e=>e.kind==='expense').map(e=>'<option value="'+esc(e.id+'|'+e.date)+'"'+
+     (tx.billKey===e.id+'|'+e.date?' selected':'')+'>'+esc(e.name)+' · '+esc(budgetDate(e.date))+
+     ' · '+budgetMoney(e.amountCents)+'</option>').join('')+'</select></label>':'')+
   '<label class="field finance-note"><span>Note (optional)</span><textarea name="note" rows="2" maxlength="500" placeholder="Anything useful to remember">'+esc(tx?.note||'')+'</textarea></label>'+
   '<label class="field finance-note"><span>Receipt itemization</span><textarea name="itemization" rows="3" maxlength="3000" placeholder="Example: 2 × water cases — $14.38; snack — $2.49">'+esc(tx?.itemization||'')+'</textarea></label>'+
   '</div></details>';
@@ -600,26 +613,36 @@ function financeRecordFromForm(v,existing=null){
   amountCents:parseFinanceAmount(v.amount),description:String(v.description||'').trim(),
   category:String(v.category||'').trim()||'Uncategorized',currency:'USD',source:existing?.source||'manual'};
  if(existing){
-  for(const key of ['externalId','bankDescription','accountLabel','statementLabel','bankDirection'])if(existing[key])next[key]=existing[key];
+  for(const key of ['externalId','bankDescription','accountLabel','statementLabel','bankDirection',
+   'matchedBankId','postedDate','receiptAmountCents','items','paycheckDate','adjustmentCategory','bankDifferenceNote']){
+   if(existing[key]!=null)next[key]=structuredClone(existing[key]);
+  }
   if(existing.bankDescription){
    next.date=existing.date;next.amountCents=existing.amountCents;
   }
  }
- for(const key of ['time','merchant','note','purchaseDate','subcategory','itemization']){
+ for(const key of ['time','merchant','note','purchaseDate','subcategory','itemization','accountLabel']){
+  if(key==='accountLabel'&&existing?.bankDescription)continue;
   const val=String(v[key]||'').trim();if(val)next[key]=val;
  }
+ if(existing&&v.billKey!==undefined){if(String(v.billKey).trim())next.billKey=String(v.billKey).trim();else delete next.billKey;}
+ else if(existing?.billKey)next.billKey=existing.billKey;
  if(!next.description)throw Error('Describe the transaction before saving.');
  return normalizeData({...emptyData(),transactions:[next]}).transactions[0];
 }
 // Reuse the same compact, source-preserving transaction row in Recent and History.
 function financeRow(tx,showReview=false){
- const displayDate=new Date(tx.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+ const displayDate=new Date((tx.purchaseDate||tx.date)+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
  const raw=tx.bankDescription&&tx.bankDescription.trim()!==tx.description.trim()?
   '<span class="finance-raw-description">'+esc(tx.bankDescription)+'</span>':'';
  const category=tx.category&&tx.category.toLowerCase()!=='uncategorized'?
   '<span class="finance-row-category">'+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+'</span>':'';
- const details=raw||category?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+'</small>':'';
- const itemized=tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
+ const postedDate=tx.postedDate||(tx.bankDescription&&tx.purchaseDate&&tx.purchaseDate!==tx.date?tx.date:null);
+ const posted=postedDate?'<span class="finance-row-category">Posted '+esc(budgetDateLong(postedDate))+'</span>':'';
+ const details=raw||category||posted?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+
+  (posted?' · '+posted:'')+'</small>':'';
+ const itemized=tx.items?.length?'<small class="finance-itemized">'+tx.items.map(item=>esc(item.name)+' · '+esc(item.category)+' '+budgetMoney(item.amountCents)).join(' · ')+'</small>':
+  tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
  const review=showReview?financeReviewFlags(tx).map(flag=>'<small class="finance-review-flag">'+(flag==='uncategorized'?'Category needed':'Check possible transfer')+'</small>').join(''):'';
  return '<div class="finance-row"><div class="finance-row-main"><small class="finance-row-date">'+esc(displayDate)+(tx.time?' · '+esc(tx.time):'')+'</small>'+
   '<strong>'+esc(tx.description)+'</strong>'+details+itemized+review+'</div>'+
@@ -630,9 +653,10 @@ function financeRow(tx,showReview=false){
 function financeNewestFirst(transactions){
  return [...transactions].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00'))||a.id.localeCompare(b.id));
 }
-function financeRecent(){
- const all=financeNewestFirst(data.transactions||[]),needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
- return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><h2>Recent</h2></div>'+
+function financeRecent(purchasesOnly=false){
+ const all=financeNewestFirst(purchasesOnly?(data.transactions||[]).filter(tx=>tx.kind==='expense'):(data.transactions||[])),
+  needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
+ return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><h2>'+(purchasesOnly?'Recent purchases':'Recent')+'</h2></div>'+
   button('Search all','finance-history-open','outline small finance-history-open')+'</div>'+
   (needReview?'<div class="finance-review-callout"><span><strong>'+needReview+' to review</strong><small>Missing categories or possible transfers</small></span>'+
    button('Review','finance-review-open','outline small')+'</div>':'')+
@@ -966,45 +990,94 @@ function financeNav(selected){
  return '<nav class="finance-section-nav" aria-label="Finance sections">'+sections.map(([key,label,action])=>
   button(label,action,'finance-section-link'+(selected===key?' selected':''),selected===key?'aria-current="page"':'')).join('')+'</nav>';
 }
+function paycheckCard(p,index){
+ const current=index===0;
+ const paychecks=p.paycheckEvents.map(e=>{
+  const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
+  return '<div class="money-detail-line"><span>'+esc(e.name)+'<small>'+esc(budgetDate(e.date))+
+   ' · '+(e.status==='paid'?'Received':'Expected')+'</small></span><strong>'+
+   budgetMoney(e.amountCents)+'</strong>'+button(e.status==='paid'?'Edit deposit':'Mark received','money-paycheck-received','outline small',attrs)+'</div>';
+ }).join('');
+ const bills=p.bills.map(e=>{
+  const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
+  return '<div class="money-detail-line"><span>'+esc(e.name)+'<small>Due '+esc(budgetDate(e.date))+
+   ' · '+(e.bankLinked?'Bank posted':e.status==='paid'?'Paid':e.status==='skipped'?'Skipped':'Upcoming')+'</small></span>'+
+   '<strong>−'+budgetMoney(e.amountCents)+'</strong>'+
+   (e.bankLinked?'<small>Matched</small>':e.status==='paid'?button('Undo','budget-mark-pending','outline small',attrs):
+    button('Paid','budget-mark-paid','outline small',attrs))+
+   (e.status!=='skipped'&&!e.bankLinked?button('Link charge','money-link-bill','text-btn small',attrs):'')+
+   button('Move','money-move-bill','text-btn small',attrs)+'</div>';
+ }).join('');
+ const purchases=p.spending.map(tx=>'<div class="money-detail-line"><span>'+esc(tx.merchant||tx.description)+
+  '<small>'+esc(budgetDate(tx.purchaseDate||tx.date))+(tx.postedDate?' · Posted '+esc(budgetDate(tx.postedDate)):'')+
+  '</small></span><strong>−'+budgetMoney(tx.amountCents)+'</strong>'+
+  button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div>').join('');
+ return '<section class="panel money-paycheck-card'+(current?' money-current':'')+'">'+
+  '<div class="money-period-label"><strong>'+(p.future?'Upcoming check':current?'This paycheck':'Next paycheck')+
+  '</strong><span>'+esc(budgetDateLong(p.start))+' – '+esc(budgetDateLong(p.endInclusive))+'</span></div>'+
+  '<div class="money-ledger-line"><span>Paycheck'+(p.received?' · received':' · expected')+'</span><strong>'+
+   budgetMoney(p.incomeCents)+'</strong></div>'+
+  '<details class="money-ledger-details"><summary>Paycheck details</summary>'+paychecks+'</details>'+
+  '<div class="money-ledger-line"><span>− Bills from this check</span><strong>−'+budgetMoney(p.billCents)+'</strong></div>'+
+  '<details class="money-ledger-details" open><summary>'+p.bills.length+' scheduled bill'+(p.bills.length===1?'':'s')+'</summary>'+
+   (bills||'<p class="hint">No bills assigned. Add recurring bills in Planning.</p>')+'</details>'+
+  '<div class="money-ledger-line"><span>− Other spending</span><strong>−'+budgetMoney(p.otherCents)+'</strong></div>'+
+  '<details class="money-ledger-details"><summary>'+p.spending.length+' purchase'+(p.spending.length===1?'':'s')+'</summary>'+
+   (purchases||'<p class="hint">No purchases assigned to this period.</p>')+'</details>'+
+  '<div class="money-ledger-total"><span>= Left from this check</span><strong class="'+(p.leftCents<0?'budget-negative':'')+'">'+
+   budgetMoney(p.leftCents)+'</strong></div>'+
+  (!p.received?'<p class="money-expected-note">Provisional: this check has not been marked received. Expected income is not confirmed cash.</p>':'')+
+  (current?'<form class="money-what-if" data-form="money-scenario"><label class="field"><span>If I spend…</span>'+
+   '<input type="text" name="amount" inputmode="decimal" placeholder="18.00" required></label>'+
+   '<button type="submit" class="outline">Calculate</button></form>':'')+
+  '</section>';
+}
+function moneyCaps(){
+ const month=budgetMonth,rows=budgetMonthSpending(data.budgetPlan,data.transactions||[],month);
+ const monthText=new Date(month+'-01T12:00:00Z').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+ return '<section class="panel money-caps"><div class="section-head"><h2>Monthly category caps</h2>'+
+  button('Manage','budget-open','outline small')+'</div>'+
+  '<label class="field"><span>'+esc(monthText)+'</span><input type="month" data-budget-month value="'+esc(month)+'"></label>'+
+  (rows.length?rows.map(row=>{
+   const pct=Math.max(0,Math.min(100,row.percent));
+   return '<div class="money-cap-row"><div><strong>'+esc(row.category)+'</strong><span>'+
+    budgetMoney(row.remainingCents)+' left</span></div><div class="finance-insight-meter"><span style="width:'+pct+'%"></span></div>'+
+    '<small>'+budgetMoney(row.actualCents)+' / '+budgetMoney(row.limitCents)+'</small></div>';
+  }).join(''):'<p class="hint">Add category caps in Planning to see remaining limits here.</p>')+
+  '</section>';
+}
 function finances(){
- const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate()),paycheck=snapshot.nextPaycheck;
- const upcoming=snapshot.upcoming;
- const cash=snapshot.balanceCents===null?'Not entered':budgetMoney(snapshot.balanceCents);
- const source=snapshot.balanceCents===null?'Set a balance to see available cash.':
-  'Manually entered · '+esc(snapshot.balanceAsOf)+'. Not bank-synced.';
- const outlook=snapshot.balanceCents===null?'Enter an available balance to start a cautious spending estimate.':
-  !snapshot.balanceCurrent?'Your entered balance is not from today. Update it before using an estimate.':
-  !snapshot.hasBills?'No bills are scheduled. Add your known bills before relying on an estimate.':
-  'Subtracts '+budgetMoney(snapshot.billsBeforeIncomeCents)+' of planned bills through '+esc(snapshot.estimateThrough)+'. Future paychecks are not counted.';
- return financeNav('overview')+
-  '<section class="panel finance-cash-hero" aria-label="Available cash">'+
-   '<div class="finance-cash-top"><div><p class="finance-outlook-label">Available balance</p><strong class="finance-cash-value">'+cash+'</strong></div>'+
-   button(snapshot.balanceCents===null?'Set balance':'Update','budget-balance','outline small')+'</div>'+
-   '<p class="finance-source">'+source+'</p></section>'+
-  '<div class="finance-glance-cards" aria-label="Upcoming money">'+
-   '<section class="panel finance-glance-card"><small>Next expected paycheck</small><strong>'+
-    (paycheck?budgetMoney(paycheck.amountCents):'Not scheduled')+'</strong><span>'+
-    (paycheck?esc(paycheck.date)+' · expected, not received':'No income scheduled within 60 days')+'</span></section>'+
-   '<section class="panel finance-glance-card"><small>Planned bills · next 14 days</small><strong>'+
-    budgetMoney(snapshot.billsSoonCents)+'</strong><span>'+snapshot.billsSoon.length+
-    ' payment'+(snapshot.billsSoon.length===1?'':'s')+' · not bank verified</span></section></div>'+
-  '<section class="panel finance-spend-outlook" aria-label="Spending outlook">'+
-   '<p class="finance-outlook-label">Spending estimate</p><h2>'+
-    (snapshot.spendingEstimateCents===null?'Not enough information':budgetMoney(snapshot.spendingEstimateCents))+'</h2>'+
-   '<p>'+outlook+'</p>'+
-   (snapshot.spendingEstimateCents!==null&&snapshot.spendingEstimateCents<0?
-    '<p class="budget-warning" role="status">Planned bills exceed entered cash before the next expected paycheck. Review your obligations.</p>':'')+
-   '<p class="hint">Estimate uses only your listed bills.</p>'+
-   button('Review the plan','budget-open','outline')+'</section>'+
-  '<section class="panel finance-next-activity"><div class="section-head"><div><h2>Upcoming</h2></div>'+
-   button('Edit schedules','budget-open','text-btn')+'</div>'+
-   (upcoming.length?'<div class="finance-activity-list">'+upcoming.map(event=>
-    '<div class="finance-activity-row"><div><strong>'+esc(event.name)+'</strong><small>'+esc(event.date)+' · '+
-    (event.kind==='income'?'Expected income':'Planned bill')+'</small></div>'+
-    '<b class="'+esc(event.kind)+'">'+(event.kind==='income'?'+':'−')+formatFinanceAmount(event.amountCents)+'</b></div>').join('')+'</div>':
-    empty('Nothing scheduled yet. Add bills and paydays in Planning.'))+'</section>'+
-  '<div class="finance-overview-actions">'+button('Log spending','finance-transactions-open','primary')+
-   button('All transactions','finance-history-open','outline')+'</div>';
+ const view=paycheckWindows(data.budgetPlan,data.transactions||[],localDate(),moneyWeeks);
+ const plan=data.budgetPlan;
+ return '<div class="money-top-control"><strong>This paycheck</strong><div class="money-week-switch" role="group" aria-label="Paycheck view">'+
+  button('1 week','money-weeks',moneyWeeks===1?'selected':'outline','data-weeks="1"')+
+  button('2 weeks','money-weeks',moneyWeeks===2?'selected':'outline','data-weeks="2"')+'</div></div>'+
+  (view.configured?view.periods.map(paycheckCard).join('')+
+   (view.heldBackCents!==null?'<section class="panel money-held-back"><span>Held back from previous check · estimated</span><strong>'+
+    budgetMoney(view.heldBackCents)+'</strong><small>Not added to this paycheck. Period starting '+esc(budgetDateLong(view.heldBackPeriod))+'.</small></section>':''):
+   '<section class="panel money-setup"><h2>Set your payday</h2><p>Add a recurring paycheck and its expected amount to see this week’s remainder. A bank balance is optional.</p>'+
+   button('Add payday','budget-schedule-new','primary')+'</section>')+
+  '<div class="money-primary-actions">'+button('+ Purchase','home-log-finance','primary')+
+   button('Paste receipt CSV','finance-paste-csv','outline')+'</div>'+
+  financeRecent(true)+moneyCaps()+
+  (plan.unresolvedBankRows?.length?'<section class="panel money-unresolved"><strong>'+plan.unresolvedBankRows.length+
+   ' unmatched bank charge'+(plan.unresolvedBankRows.length===1?'':'s')+'</strong>'+
+   button('Review bank charges','money-review-unresolved','outline')+'</section>':'')+
+  '<section class="panel money-account"><div class="section-head"><h2>Account balance</h2>'+
+   button('Update','budget-balance','outline small')+'</div><strong>'+
+   (plan.balanceCents===null?'Not entered':budgetMoney(plan.balanceCents))+'</strong><small>'+
+   (plan.balanceAsOf?'Last updated '+esc(budgetDateLong(plan.balanceAsOf)):'Optional manual reference; not connected to your bank')+'</small></section>'+
+  '<section class="panel money-tools"><div class="section-head"><h2>More money tools</h2></div>'+
+   '<div class="money-tools-grid">'+button('Planning · bills and paydays','budget-open','outline')+
+   button('All transactions','finance-history-open','outline')+
+   button('Spending insights','finance-insights-open','outline')+
+   button('Import Bank of America','finance-bofa-import','outline')+
+   button('Transaction entry & CSV tools','finance-transactions-open','outline')+
+   button('Receipt CSV format','finance-csv-example','outline')+
+   button('ChatGPT export','finance-export-enrichment','outline')+
+   button('Paste clarifications','finance-enrichment-paste','outline')+
+   button('Merchant rules','classification-rules-open','outline')+
+   button('Classification review','classification-review-open','outline')+'</div></section>';
 }
 function financeTransactions(){
  return '<div class="page-head finances-page-head finance-transactions-head"><h1>Transactions<span class="accent">.</span></h1>'+
@@ -1043,10 +1116,11 @@ function financeEditForm(tx){
   button('Delete','finance-delete','danger','data-id="'+esc(tx.id)+'"')+'</div></form>');
 }
 function financeCsvExample(){
- modal('Everyday transaction CSV','<p class="body-copy">This is the format ChatGPT can prepare from your bank screenshots or statement. Amount is positive; kind says expense, income or transfer.</p>'+
-  '<label class="field"><span>Example</span><textarea class="finance-sample" rows="5" readonly spellcheck="false">'+esc(FINANCE_CSV_SAMPLE)+'</textarea></label>'+
-  '<p class="hint">Dates: YYYY-MM-DD. Optional times: HH:MM. An externalId can identify a unique bank transaction. Check uncertain values before importing.</p>'+
-  '<div class="form-actions">'+button('Paste prepared CSV','finance-paste-csv','primary')+button('Close','close','outline')+'</div>');
+ modal('Everyday purchase CSV','<p class="body-copy">One purchase row logs one charge. For mixed receipts, add receiptItem rows with the same purchaseId. Item amounts must total the original receipt. Account labels help later bank matching.</p>'+
+  '<label class="field"><span>Itemized receipt example</span><textarea class="finance-sample" rows="7" readonly spellcheck="false">'+esc(RECEIPT_CSV_SAMPLE)+'</textarea></label>'+
+  '<details><summary>Legacy transaction CSV</summary><textarea class="finance-sample" rows="5" readonly spellcheck="false">'+esc(FINANCE_CSV_SAMPLE)+'</textarea></details>'+
+  '<p class="hint">Dates use YYYY-MM-DD. Exact cents are required. The photo can be processed in ChatGPT, then pasted here.</p>'+
+  '<div class="form-actions">'+button('Paste CSV','finance-paste-csv','primary')+button('Close','close','outline')+'</div>');
 }
 function financeBankModal(){
  pendingImport=null;importReadToken++;
@@ -1106,8 +1180,8 @@ function financeCsvPaste(){
  if(title)title.textContent='Paste prepared transactions';
  const form=dialog?.querySelector('form[data-form="import"]');
  if(!form)return;
- form.querySelector('textarea[name="text"]').placeholder=FINANCE_CSV_SAMPLE;
- form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste prepared transaction CSV from ChatGPT, preview the rows, then confirm. Screenshots are processed in ChatGPT, not uploaded to Everyday.</p>');
+ form.querySelector('textarea[name="text"]').placeholder=RECEIPT_CSV_SAMPLE;
+ form.insertAdjacentHTML('afterbegin','<p class="body-copy">Paste one purchase or a mixed receipt with purchase and receiptItem rows from ChatGPT. Preview before confirming. Screenshots are processed in ChatGPT, not uploaded to Everyday.</p>');
 }
 
 // Home and Food render the same nutrition label, number and meter geometry.
@@ -2421,7 +2495,13 @@ app.addEventListener('change',event=>{
  if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
 app.addEventListener('change',event=>{
- if(event.target.matches('[data-budget-month]')){budgetMonth=event.target.value;render();return;}
+ if(event.target.matches('[data-bank-sort]')&&pendingImport?.kind==='bank'){
+   bankCandidateSort=event.target.value;showImportReview(pendingImport);return;
+  }
+  if(event.target.matches('[data-bank-search]')&&pendingImport?.kind==='bank'){
+   bankCandidateSearch=event.target.value;showImportReview(pendingImport);return;
+  }
+  if(event.target.matches('[data-budget-month]')){budgetMonth=event.target.value;render();return;}
  if(event.target.dataset.financeInsightPeriod){financeInsightPeriod=event.target.value;render();return;}
  if(event.target.dataset.financeHistoryFilter){
   const field=event.target.dataset.financeHistoryFilter,value=event.target.value;
@@ -2532,6 +2612,85 @@ document.addEventListener('click',async event=>{
    const plan=prepareRuleReview(data,proposals);if(!plan.candidate)return alert('Cannot preview suggestions.');
    pendingImport=plan;plan.filename='Saved merchant rules';showImportReview(plan);return;
   }
+  if(action==='money-weeks'){moneyWeeks=el.dataset.weeks==='2'?2:1;render();return;}
+  if(action==='money-review-unresolved'){pendingImport=prepareSavedBankReview(data);bankCandidateSearch='';bankCandidateSort='amount';showImportReview(pendingImport);return;}
+  if(action==='bank-choice-new'||action==='bank-choice-defer'){
+   if(pendingImport?.kind!=='bank')return;
+   try{bankChoose(pendingImport,data,el.dataset.id,action==='bank-choice-new'?'new':'defer');showImportReview(pendingImport);}catch(error){alert(error.message);}return;
+  }
+  if(action==='bank-match-select'){
+   if(pendingImport?.kind!=='bank')return;
+   const bank=pendingImport.bankRecords.find(row=>row.id===el.dataset.id),receipt=data.transactions.find(tx=>tx.id===el.dataset.receipt);
+   if(!bank||!receipt)return;
+   const diff=bank.amountCents-receipt.amountCents;
+   if(!diff){try{bankChoose(pendingImport,data,bank.id,'match',receipt.id);showImportReview(pendingImport);}catch(error){alert(error.message);}return;}
+   modal('Review bank difference','<form class="form" data-form="bank-match-confirm">'+
+    '<input type="hidden" name="bankId" value="'+esc(bank.id)+'"><input type="hidden" name="receiptId" value="'+esc(receipt.id)+'">'+
+    '<p class="body-copy">Receipt '+budgetMoney(receipt.amountCents)+' · Bank '+budgetMoney(bank.amountCents)+
+    ' · Difference '+(diff>0?'+':'−')+budgetMoney(Math.abs(diff))+'. Confirm one purchase.</p>'+
+    '<label class="field"><span>Category for difference</span><select name="adjustmentCategory">'+
+    FINANCE_CATEGORIES.filter(x=>!['Income','Transfers'].includes(x)).map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+
+    '</select></label><label class="field"><span>Explanation (optional)</span>'+
+    '<input type="text" name="adjustmentNote" maxlength="500" placeholder="Leave unknown if uncertain"></label>'+
+    '<p class="hint">No cause is assumed. Receipt items remain unchanged; the bank amount becomes final.</p>'+
+    '<button type="submit" class="primary">Confirm match</button></form>');return;
+  }
+  if(action==='money-paycheck-received'){
+   const rule=data.budgetPlan.schedules.find(x=>x.id===el.dataset.id),date=el.dataset.date;
+   if(!rule||rule.kind!=='income')return;
+   const amount=data.budgetPlan.paycheckAmounts?.[rule.id+'|'+date]??rule.amountCents;
+   modal('Record actual paycheck','<form class="form" data-form="money-paycheck-received">'+
+    '<input type="hidden" name="ruleId" value="'+esc(rule.id)+'"><input type="hidden" name="date" value="'+esc(date)+'">'+
+    '<p class="body-copy">'+esc(rule.name)+' · '+esc(budgetDateLong(date))+'</p>'+
+    input('Actual deposit (USD)','actualAmount',(amount/100).toFixed(2),'text','required inputmode="decimal"')+
+    '<p class="hint">This check only; future scheduled amounts stay unchanged. No extra income ledger entry.</p>'+
+    '<button type="submit" class="primary">Mark received</button></form>');return;
+  }
+  if(action==='money-link-bill'){
+   const rule=data.budgetPlan.schedules.find(e=>e.id===el.dataset.id);
+   if(!rule||rule.kind!=='expense')return;
+   const due=el.dataset.date,dayMs=Date.parse(due+'T00:00:00Z');
+   const near=data.transactions.filter(tx=>tx.kind==='expense'&&tx.bankDescription&&!tx.billKey)
+    .map(tx=>({tx,days:Math.abs(Date.parse((tx.postedDate||tx.date)+'T00:00:00Z')-dayMs)/86400000,
+     difference:tx.amountCents-rule.amountCents}))
+    .filter(row=>row.days<=21).sort((a,b)=>a.days-b.days||Math.abs(a.difference)-Math.abs(b.difference)).slice(0,40);
+   modal('Link posted bill charge','<p class="body-copy">'+esc(rule.name)+' · Due '+esc(budgetDateLong(due))+
+    ' · Expected '+budgetMoney(rule.amountCents)+'. Choose a bank charge only when it represents this bill. The actual posted amount will replace the expected bill amount for this occurrence.</p>'+
+    (near.length?near.map(row=>'<div class="bank-candidate"><span><strong>'+esc(row.tx.merchant||row.tx.description)+
+     '</strong><small>'+esc(row.tx.accountLabel||'unspecified')+' · Posted '+esc(budgetDateLong(row.tx.postedDate||row.tx.date))+
+     '</small><small>'+budgetMoney(row.tx.amountCents)+' · Difference '+(row.difference>=0?'+':'−')+
+      budgetMoney(Math.abs(row.difference))+'</small></span>'+
+     button('Link','money-link-charge-confirm','outline small','data-id="'+esc(rule.id)+'" data-date="'+esc(due)+
+     '" data-txid="'+esc(row.tx.id)+'"')+'</div>').join(''):
+    '<p class="hint">No unlinked posted bank charges within 21 days of this bill. Import your bank statement or use transaction history to locate it.</p>')+
+    '<div class="form-actions">'+button('Cancel','close','outline')+'</div>');return;
+  }
+  if(action==='money-link-charge-confirm'){
+   try{
+    const rule=data.budgetPlan.schedules.find(e=>e.id===el.dataset.id);
+    const tx=data.transactions.find(t=>t.id===el.dataset.txid);
+    if(!rule||rule.kind!=='expense'||!tx||!tx.bankDescription||tx.kind!=='expense'||tx.billKey)
+     throw Error('This bank charge is no longer eligible for linking.');
+    const candidate=structuredClone(data);
+    candidate.transactions.find(t=>t.id===tx.id).billKey=rule.id+'|'+el.dataset.date;
+    const checked=normalizeData(candidate);
+    if(account&&!offlineWorkspace)encodeState(checked);
+    data=checked;close(true);render();
+    void persist().catch(error=>{financeNotice='Bill link is saved locally; review cloud sync before leaving.';refreshSyncIndicators();});
+   }catch(error){alert(error.message);}return;
+  }
+    if(action==='money-move-bill'){
+   const key=el.dataset.id+'|'+el.dataset.date,view=paycheckWindows(data.budgetPlan,data.transactions||[],localDate(),2);
+   modal('Assign bill to paycheck','<p class="body-copy">Due '+esc(budgetDateLong(el.dataset.date))+'</p><div class="form-actions">'+
+    view.periods.map((p,i)=>button(i===0?'This check':'Next check','money-bill-assign','outline',
+     'data-key="'+esc(key)+'" data-start="'+esc(p.start)+'"')).join('')+
+    button('Use due date','money-bill-default','outline','data-key="'+esc(key)+'"')+'</div>');return;
+  }
+  if(action==='money-bill-assign'||action==='money-bill-default'){
+   try{const plan=structuredClone(data.budgetPlan),key=el.dataset.key;
+    if(action==='money-bill-default')delete plan.billAssignments[key];else plan.billAssignments[key]=el.dataset.start;
+    await budgetCommit(plan);close(true);render();}catch(error){alert(error.message);}return;
+  }
   if(action==='budget-open'){budgetFeedback='';page='financeBudget';render();return;}
    if(action==='finance-transactions-open'){page='financeTransactions';render();return;}
   if(action==='home-log-finance'){financeQuickModal();return;}
@@ -2584,7 +2743,8 @@ document.addEventListener('click',async event=>{
   if(['budget-mark-paid','budget-mark-skipped','budget-mark-pending'].includes(action)){
    try{const plan=structuredClone(data.budgetPlan),rule=plan.schedules.find(x=>x.id===el.dataset.id);
     if(!rule)return;const status=action.slice('budget-mark-'.length);
-    if(status==='pending')delete rule.occurrences[el.dataset.date];else rule.occurrences[el.dataset.date]=status;
+    if(status==='pending'){delete rule.occurrences[el.dataset.date];if(rule.kind==='income')delete plan.paycheckAmounts[rule.id+'|'+el.dataset.date];}
+     else rule.occurrences[el.dataset.date]=status;
     await budgetCommit(plan);
     budgetFeedback=status==='pending'?'Returned to unmarked.':status==='skipped'?'Skipped this date only.':
       (rule.kind==='income'?'Marked received.':'Marked paid.')+' This does not change the bank ledger.';
@@ -3076,6 +3236,28 @@ app.addEventListener('submit',async event=>{
    }catch(error){if(token===importReadToken&&form.isConnected&&preview){preview.textContent=error.message;preview.setAttribute('role','alert');}}
    return;
   }
+  if(form.dataset.form==='bank-match-confirm'){
+   if(pendingImport?.kind!=='bank')return;
+   try{bankChoose(pendingImport,data,v.bankId,'match',v.receiptId,v.adjustmentCategory,v.adjustmentNote);
+    showImportReview(pendingImport);}catch(error){alert(error.message);}return;
+  }
+  if(form.dataset.form==='money-paycheck-received'){
+   try{const plan=structuredClone(data.budgetPlan),rule=plan.schedules.find(x=>x.id===v.ruleId);
+    if(!rule||rule.kind!=='income')throw Error('Paycheck schedule no longer exists.');
+    plan.paycheckAmounts[rule.id+'|'+v.date]=parseFinanceAmount(v.actualAmount);
+    rule.occurrences[v.date]='paid';
+    await budgetCommit(plan);close(true);render();}catch(error){alert(error.message);}return;
+  }
+  if(form.dataset.form==='money-scenario'){
+   try{const period=paycheckWindows(data.budgetPlan,data.transactions,localDate(),1).periods[0];
+    if(!period)throw Error('Set up a payday first.');
+    const amount=parseFinanceAmount(v.amount),after=paycheckWhatIf(period,amount);
+    modal('What-if purchase','<p class="body-copy">Spend '+budgetMoney(amount)+' now → '+budgetMoney(after)+
+     ' left from this check.</p><p class="hint">'+(period.received?'Based on recorded check and spending.':
+     'Provisional: this check is not marked received.')+
+     ' Not a live bank balance. No purchase saved.</p>'+button('Close','close','outline'));
+   }catch(error){alert(error.message);}return;
+  }
   if(form.dataset.form==='finance-bank-import'){
     const file=form.querySelector('[name=file]')?.files?.[0],preview=form.parentElement.querySelector('#preview');
     if(!file)return;
@@ -3313,7 +3495,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=110',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=111',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3373,7 +3555,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=110');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=111');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -3461,6 +3643,53 @@ function expandImportGroup(el){
   if(next===rows.length)el.remove();else{el.dataset.shown=next;el.textContent='Show next '+Math.min(50,rows.length-next)+' ('+next+' of '+rows.length+' shown)';}
 }
 
+function bankPreviewRecord(row,group){
+ const bank=row.record,selected=group==='matched'?row.receipt:null;
+ const candidates=(bank.kind==='expense'&&bank.bankDirection==='debit'?bankReceiptCandidates(bank,data.transactions,bankCandidateSort,bankCandidateSearch):[]).slice(0,30);
+ const suggested=group==='review'?candidates[0]?.tx:null,compared=selected||suggested;
+ const difference=compared?bank.amountCents-compared.amountCents:0;
+ const candidatesHtml=candidates.length?candidates.map(c=>
+  '<div class="bank-candidate"><span><strong>'+esc(c.tx.merchant||c.tx.description)+'</strong>'+
+  '<small>Account '+esc(c.tx.accountLabel||'unspecified')+' · Purchased '+esc(budgetDateLong(c.tx.purchaseDate||c.tx.date))+
+  (c.tx.postedDate?' · Posted '+esc(budgetDateLong(c.tx.postedDate)):' · Not posted')+'</small>'+
+  '<small>Receipt '+budgetMoney(c.tx.amountCents)+' · Difference '+(c.differenceCents>=0?'+':'−')+
+   budgetMoney(Math.abs(c.differenceCents))+' · '+c.days+' day'+(c.days===1?'':'s')+' apart</small></span>'+
+  button('Match','bank-match-select','outline small','data-id="'+esc(bank.id)+'" data-receipt="'+esc(c.tx.id)+'"')+'</div>').join(''):
+  '<p class="hint">No matching search results. Try another merchant search or clear the filter.</p>';
+ return '<div class="bank-review-row">'+
+  '<div class="bank-review-pair"><div class="bank-review-bank"><small>Bank charge</small><strong>'+
+  esc(bank.bankDescription)+'</strong><small>Account '+esc(bank.accountLabel)+' · Posted '+
+  esc(budgetDateLong(bank.date))+'</small><b>'+budgetMoney(bank.amountCents)+'</b>'+
+  (row.badges?.length?'<small>'+esc(row.badges.join(' · '))+'</small>':'')+'</div>'+
+  (compared?'<div class="bank-review-receipt"><small>'+(selected?'Matched receipt':'Possible receipt · not yet linked')+
+   '</small><strong>'+esc(compared.merchant||compared.description)+'</strong>'+
+   '<small>Account '+esc(compared.accountLabel||'unspecified')+' · Purchased '+
+   esc(budgetDateLong(compared.purchaseDate||compared.date))+
+   (compared.postedDate?' · Posted '+esc(budgetDateLong(compared.postedDate)):' · Not posted')+'</small>'+
+   '<b>Receipt '+budgetMoney(compared.amountCents)+'</b>'+
+   '<small>Difference '+(difference>=0?'+':'−')+budgetMoney(Math.abs(difference))+'</small>'+
+   (selected&&row.automatic?'<small>Automatic suggestion · verify before confirming</small>':'')+
+   (suggested?button('Match this receipt','bank-match-select','outline small',
+    'data-id="'+esc(bank.id)+'" data-receipt="'+esc(suggested.id)+'"'):'')+'</div>':'')+
+   '</div>'+
+   '<div class="bank-review-actions">'+button('Import separately','bank-choice-new','outline small','data-id="'+esc(bank.id)+'"')+
+   button('Leave unresolved','bank-choice-defer','outline small','data-id="'+esc(bank.id)+'"')+'</div>'+
+   '<details class="bank-candidate-details"><summary>All candidates · choose or override</summary>'+
+   '<div class="bank-candidate-list">'+candidatesHtml+'</div></details></div>';
+}
+function bankReviewMarkup(plan){
+ const review=plan.bankReview||{matched:[],needsReview:[],newRows:[]};
+ const group=(name,rows,key)=>'<details class="import-group bank-review-group" open><summary>'+name+' ('+rows.length+')</summary>'+
+  (rows.length?rows.map(row=>bankPreviewRecord(row,key)).join(''):'<p class="hint">None</p>')+'</details>';
+ return '<section class="bank-review-controls"><label class="field"><span>Sort receipts</span><select data-bank-sort>'+
+  '<option value="amount"'+(bankCandidateSort==='amount'?' selected':'')+'>Closest amount</option>'+
+  '<option value="date"'+(bankCandidateSort==='date'?' selected':'')+'>Closest date</option></select></label>'+
+  '<label class="field"><span>Search receipt merchants</span><input type="search" data-bank-search value="'+esc(bankCandidateSearch)+
+  '" placeholder="Walmart, restaurant…"></label></section>'+
+  group('Matched',review.matched,'matched')+group('Needs review',review.needsReview,'review')+
+  group('New',review.newRows,'new')+
+  '<p class="hint">Matched charges update their original receipt, not create a second purchase. Unresolved rows are saved for later review. Check automatic matches before confirming.</p>';
+}
 function showImportReview(plan,saveError=''){
   const json=plan.kind==='json',incomingCount=json?plan.groups.reduce((n,g)=>n+g.total,0):(plan.display?.count??plan.changeCount);
   const bankInfo=plan.kind==='bank'&&plan.bankDetails?
@@ -3475,7 +3704,7 @@ function showImportReview(plan,saveError=''){
   const otherChanges=plan.otherChanges.map(change=>'<div class="list-row import-record"><div><strong>'+esc(change.label)+'</strong><small>'+esc(change.detail||change.from+' → '+change.to)+'</small><span class="import-badge attention">Changes</span></div></div>').join('');
   if(plan.kind==='enrichment'&&!plan.selectedIds)
     plan.selectedIds=new Set(plan.groups.flatMap(g=>g.rows.map(row=>row.record.id)));
-  const changedGroups=plan.kind==='enrichment'?
+  const changedGroups=plan.kind==='bank'?bankReviewMarkup(plan):plan.kind==='enrichment'?
     '<section class="finance-batch-select"><p>'+plan.selectedIds.size+' of '+
     plan.groups.reduce((n,g)=>n+g.rows.length,0)+' proposed changes selected</p>'+
     button('Select all','classification-select-all','outline small')+

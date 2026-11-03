@@ -177,9 +177,11 @@ test('v84: manually logged duplicates are warned about, never silently overwritt
  const plan=prepareBankImport(statement,current,options);
  assert.equal(plan.errors.length,0);
  assert.match(plan.warnings.join(' '),/similar to an already logged transaction/);
- assert.ok(plan.groups[0].rows.some(r=>r.badges.includes('Possible duplicate')));
+ assert.equal(plan.bankReview.needsReview.length,1,'unlabelled manual overlap is kept for review');
+ assert.ok(plan.bankReview.needsReview[0].badges.includes('Possible duplicate'));
  assert.equal(current.transactions.length,1);
- assert.equal(plan.candidate.transactions.length,5);
+ assert.equal(plan.candidate.transactions.length,4,'overlapping bank charge is not counted until reviewed');
+ assert.equal(plan.candidate.budgetPlan.unresolvedBankRows.length,1);
 });
 
 

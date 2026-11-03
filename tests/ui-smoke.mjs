@@ -71,7 +71,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|calendar-ui|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(data|calendar-ui|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
@@ -140,11 +140,13 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(document.querySelectorAll('nav.nav [data-action="settings"]').length,0,'no Settings bottom tab');
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('finances');
-  assert.equal(document.querySelectorAll('.finance-section-link').length,3,'Finances offers Overview, Transactions, Planning');
-  assert.ok(!document.querySelector('.finances-page-head h1'),'Finance title removed');
-  assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('Not entered'),'no imaginary balance on Overview');
-  assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('Not enough information'),'no invented spending allowance');
-  assert.ok(document.querySelector('.finance-glance-card').textContent.includes('Not scheduled'),'future income is not assumed');
+  assert.ok(document.querySelector('.money-top-control'),'Money opens with paycheck controls');
+  assert.equal(document.querySelectorAll('.money-week-switch button').length,2,'Money offers one and two paycheck views');
+  assert.ok(document.querySelector('.money-setup'),'no paycheck figures invented without a payday schedule');
+  assert.ok(document.querySelector('.money-account')?.textContent.includes('Not entered'),'manual cash balance stays optional below paycheck');
+  assert.ok(document.querySelector('.money-caps'),'monthly category caps are visible on Money');
+  assert.ok(document.querySelector('[data-action="finance-transactions-open"]'),'legacy Transactions workflow stays accessible');
+  assert.ok(!document.querySelector('.finances-page-head h1'),'Money does not reintroduce its old title');
   await click('finance-transactions-open');
   assert.ok(document.querySelector('form[data-form="finance"]'),'Transactions keeps quick logging');
   assert.ok(document.querySelector('.finance-quick-kind [name="kind"]'),'Expense/Income/Transfer is immediately accessible');
@@ -338,7 +340,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(financial.length,0,'confirmed deletion removes the transaction');
 
   await click('finance-csv-example');
-  assert.ok(document.querySelector('.finance-sample').value.includes('recordType,date,time,kind,amount'));
+  assert.ok(document.querySelector('.finance-sample').value.includes('recordType,date,kind,amount,description,category'),'receipt CSV example leads with purchase columns');
+  assert.ok(document.querySelector('.finance-sample').value.includes('receiptItem'),'mixed-merchant receipt format is documented');
+  assert.ok([...document.querySelectorAll('.finance-sample')].some(el=>el.value.includes('recordType,date,time,kind,amount')),'legacy transaction CSV example remains available');
   await click('finance-paste-csv');
   assert.ok(document.querySelector('form[data-form="import"]'),'prepared CSV uses the reviewed import form');
   const transactionCsv=[
@@ -386,8 +390,10 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(bankForm.querySelector('[data-bank-label-status]').textContent.includes('Suggested from'),'inferred label explained in UI');
   bankForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
   assert.ok(document.querySelector('.finance-bank-review'),'Bank import opens reviewed preview');
-  assert.equal(document.querySelectorAll('.import-group-transactions .import-record').length,2);
-  assert.ok(document.querySelector('.import-group-transactions').textContent.includes('365 MARKET 10994'));
+  assert.equal(document.querySelectorAll('.bank-review-group').length,3,'bank review is split into matched, needs review, and new');
+  assert.equal(document.querySelectorAll('.bank-review-row').length,2,'both new bank records are shown before confirmation');
+  assert.ok(document.querySelector('.bank-review-group').parentElement.textContent.includes('365 MARKET 10994'));
+  assert.ok(document.querySelector('.bank-review-controls'),'bank candidate sorting and searching remain available');
   assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'preview cannot save bank entries');
   await click('commit-import');
   let ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
@@ -485,7 +491,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   const personalizedRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('Energy drink and protein snack'));
   assert.ok(personalizedRow.querySelector('.finance-raw-description'),'original bank name remains when personal name differs');
   assert.ok(personalizedRow.querySelector('.finance-row-details').textContent.includes('365 MARKET 10994 · Convenience Food / Work snacks'));
-  assert.ok(personalizedRow.querySelector('.finance-row-date').textContent.includes('Oct 24, 2026'));
+  assert.ok(personalizedRow.querySelector('.finance-row-date').textContent.includes('Oct 23, 2026'),'purchase date leads the transaction');
+  assert.ok(personalizedRow.querySelector('.finance-row-details').textContent.includes('Posted Oct 24, 2026'),'original bank posting date remains visible');
   assert.ok(!personalizedRow.textContent.includes('Bank:'),'no verbose Bank prefix');
 
   // Resubmitting the statement under a different batch name must not undo edits.
@@ -673,9 +680,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.budget-cash-glance').textContent.includes('$366.00'),'near-term planned bills summarized');
  assert.ok(document.querySelector('.budget-manage-rules').textContent.includes('Car payment'),'recurring schedule shown separately');
  await click('finances');
- assert.ok(document.querySelector('.finance-cash-hero').textContent.includes('$148.14'),'only entered cash appears as available');
- assert.ok(document.querySelector('.finance-glance-cards').textContent.includes('$366.00'),'planned bills shown on Overview');
- assert.ok(document.querySelector('.finance-spend-outlook').textContent.includes('−$217.86'),'shortfall does not count expected income');
+ assert.ok(document.querySelector('.money-account').textContent.includes('$148.14'),'manual cash remains visible independently of the paycheck');
+ assert.ok(document.querySelector('.money-setup'),'no paycheck summary is invented before an income rule exists');
+ assert.ok(document.querySelector('.money-caps'),'category caps remain available on Money');
  await click('budget-open');
  await click('budget-mark-paid');
  savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;

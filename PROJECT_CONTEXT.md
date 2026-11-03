@@ -2,7 +2,26 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v110 (November 2, 2026)
+## Current release — v111 (November 3, 2026)
+
+- **Money overview redesigned around a paycheck, not an inferred bank balance.** Scrollable Money begins with 1 week / 2 weeks views anchored to existing weekly/biweekly payday schedules. Displays expected/received check, expanded individual scheduled bills, receipt-first purchases, prominent signed remainder, optional paycheck-based what-if, next check kept separate, and previous period's unrolled remainder as **held back**, never added to the new income amount. The view works without setting a manual bank balance.
+- **Paycheck overrides and bill allocations:** `budgetPlan.paycheckAmounts` stores actual income in integer cents by stable schedule ID and occurrence date, preserving future expected paychecks. `budgetPlan.billAssignments` optionally moves a particular bill occurrence to a different pay period without moving the due date. Paid status doesn't remove the bill from that paycheck's budget. A transaction manually linked via `billKey` supersedes that bill's expected amount and does not double count, even when its bank posting occurs after the next payday.
+- **Receipts and categorization:** `recordType=purchase` and `recordType=receiptItem` extend existing mixed Everyday CSV with optional receipt `purchaseId`, merchant, account label and itemized name/category/amount; a receipt creates exactly one transaction and up to 100 structured items. Item totals must match the purchase amount in exact cents; each item's category contributes independently to monthly caps. Existing plain `transaction` CSV, free-text `itemization`, merchant rules, classifications, historic IDs and backup formats remain supported. A matched bank amount discrepancy is kept separately using original `receiptAmountCents` and a reviewable `adjustmentCategory`/note; no tip or reason is inferred.
+- **Bank statement review:** `bank-reconcile.js` gives Matched, Needs review, and New preview groups, with amount/date-sortable and merchant-searchable receipt candidates. Automatic merge requires unique exact cents, matching account labels, recognizable merchant, and dates within seven days. Ambiguous candidates and plausible mismatched amounts defer by default; manual actions can select **any** existing unmatched receipt, import separately, or leave an unresolved bank row in `budgetPlan.unresolvedBankRows`. Defer does not block saving accepted imports. The original receipt transaction ID and purchase date persist after matching, bank posted date and immutable bank wording are retained, and repeated bank identity is idempotent. Unresolved rows can be reopened from Money without the original CSV.
+- **Existing tools retained:** Recent purchases and monthly category caps follow the paycheck cards; manual balance and its as-of date are lower down; legacy Planning, Transactions, spending insights, classification queue, merchant rules, CSV import, ChatGPT enrichment, bank importer, and settings backups remain accessible.
+- **Receipt CSV for ChatGPT (paste into Money → Paste receipt CSV):**
+
+```csv
+recordType,date,kind,amount,description,category,merchant,accountLabel,purchaseId,itemName,itemCategory,itemAmount
+purchase,2026-11-03,expense,30.00,Walmart visit,Uncategorized,Walmart,BofA Checking,walmart-1103,,,
+receiptItem,,,,,,,,walmart-1103,Groceries,Groceries,18.00
+receiptItem,,,,,,,,walmart-1103,Paper towels,Household Supplies,12.00
+```
+
+  For a simple single-row purchase, omit the `receiptItem` rows and leave `purchaseId` blank. Receipt item amounts must sum to the receipt's original total. The bank can later post a different total, which requires manual review. Purchase date must reflect the purchase, not delayed bank posting; the posted date is separately retained on matched records.
+- **Release integrity:** Versions and offline precache updated for v111, with focused tests of rollover, actual-income overrides, posted bills, mixed category totals, original receipt amount differences, duplicate identities, and deferred match decisions. Passing GitHub checks and real iPhone review are separate milestones; do not claim real device verification until the user confirms it. Existing viewport resume mitigation is unchanged.
+
+## Previous release — v110 (November 2, 2026)
 
 - **Progress cleanup:** Remove the duplicate full-page Individual weigh-ins and Body fat list sections; remove Workout timing's long explanatory paragraph. Do not delete measurement history. Keep compact Edit weigh-ins, Add body fat and Edit readings controls inside the existing chart cards; body-fat edit opens a complete readings modal, with the existing edit form.
 - **Last 90 measurements:** Each chart independently uses the 90 most recent logged readings, not a shared six-week date window. Weekly summary rows remain six weeks. The seven-day rolling weight average uses all stored weights, including older points just outside the displayed window, to avoid a left-edge calculation error. Tighter dot radii on dense charts.
