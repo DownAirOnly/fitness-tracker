@@ -95,6 +95,7 @@ let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, o
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='',moneyWeeks=1,bankCandidateSort='amount',bankCandidateSearch='';
+window.everydayTheme?.set(data.preferences?.theme||'system');
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null,buddyCompletedEditor=null;
 const app=document.querySelector('#app');
@@ -418,17 +419,16 @@ function workoutCalendar(){
    footerAction:'workout-schedule-open',footerLabel:'Schedule'})+
   recentRoutineRecoveryPanel()+'</article>';
 }
-const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1';
+const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1'; // legacy migration only
+const HOME_FOOD_IDS_KEY='everyday-home-food-ids-v1'; // legacy migration only
 const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
 function readHomeDashboard(){
- try{const saved=localStorage.getItem(HOME_DASHBOARD_KEY);return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'nutrition';}
- catch{return 'nutrition';}
+ const saved=data.preferences?.homeDashboard;
+ return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'nutrition';
 }
-const HOME_FOOD_IDS_KEY='everyday-home-food-ids-v1';
 function readHomeFoodIds(){
- try{const raw=localStorage.getItem(HOME_FOOD_IDS_KEY);if(raw===null)return null;
-  const ids=JSON.parse(raw);return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'&&x.length<=160))]:null;
- }catch{return null;}
+ const ids=data.preferences?.homeFoodIds;
+ return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'))]:null;
 }
 function defaultHomeFoodIds(){
  const all=sortFoods(data.foods||[],'recent');
@@ -437,7 +437,7 @@ function defaultHomeFoodIds(){
 function homeFoodPicks(){
  const all=data.foods||[];let ids=readHomeFoodIds();
  // Persist the first selected order. Logging a food must not move its Home card.
- if(ids===null){ids=defaultHomeFoodIds();try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(ids));}catch{}}
+ if(ids===null)ids=defaultHomeFoodIds();
  return ids.map(foodId=>all.find(f=>f.id===foodId)).filter(Boolean);
 }
 let homeFoodDraft=[];
@@ -465,7 +465,7 @@ let homeDashboardView=readHomeDashboard();
 function selectHomeDashboard(next){
  if(!HOME_DASHBOARD_VIEWS.includes(next))return;
  homeDashboardView=next;
- try{localStorage.setItem(HOME_DASHBOARD_KEY,next);}catch{}
+ if(data.preferences?.homeDashboard!==next){data.preferences.homeDashboard=next;void persist();}
  const shell=document.querySelector('.home-command-center');
  if(!shell)return;
  const body=shell.querySelector('.home-dashboard-stage');
@@ -2512,7 +2512,10 @@ app.addEventListener('change',event=>{
   else if(field==='sort')financeHistorySort=value;
   financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
- if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){window.everydayTheme?.set(event.target.value);return;}if(event.target.name==='date' && event.target.closest('.food-log-date')){if(event.target.value){chosenDate=event.target.value;render();foodLog();}return;}
+ if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){
+  data.preferences.theme=event.target.value;window.everydayTheme?.set(event.target.value);
+  void persist();return;
+ }if(event.target.name==='date' && event.target.closest('.food-log-date')){if(event.target.value){chosenDate=event.target.value;render();foodLog();}return;}
  if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('input',event=>{
  if(event.target.name==='foodPlanSearch'){foodPlanSearch=event.target.value;refreshFoodPlanSearch();return;}
@@ -2708,12 +2711,12 @@ document.addEventListener('click',async event=>{
     updateHomeFoodNumbers();return;
    }
    if(action==='home-food-customize-reset'){
-    try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(defaultHomeFoodIds()));}catch{alert('Could not save Home food layout.');return;}
+    data.preferences.homeFoodIds=defaultHomeFoodIds();void persist();
     homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');return;
    }
    if(action==='home-food-customize-save'){
     if(!homeFoodDraft.length){alert('Choose at least one Home food.');return;}
-    try{localStorage.setItem(HOME_FOOD_IDS_KEY,JSON.stringify(homeFoodDraft));}catch{alert('Could not save Home food layout.');return;}
+    data.preferences.homeFoodIds=[...homeFoodDraft];void persist();
     homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');return;
    }
    if(action==='budget-back'){page='finances';render();return;}
@@ -3589,7 +3592,7 @@ window.addEventListener('online',()=>{void checkLatestRelease();resumePendingClo
 
 function appearancePanel(){
   const selected=window.everydayTheme?.preference || 'system';
-  return `<section class="panel"><h2>Appearance</h2><label class="field spaced"><span>Theme</span><select name="appearance">${[['system','System — follow device'],['dark','Dark'],['light','Light']].map(([value,label])=>`<option value="${value}" ${selected===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="hint">Saved on this device. System follows your phone’s light or dark appearance.</p></section>`;
+  return `<section class="panel"><h2>Appearance</h2><label class="field spaced"><span>Theme</span><select name="appearance">${[['system','System — follow device'],['dark','Dark'],['light','Light']].map(([value,label])=>`<option value="${value}" ${selected===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="hint">Synced with your signed-in account. System follows your phone’s appearance. The offline workspace or guest notebook keeps its own copy.</p></section>`;
 }
 
 function dateHeader(label,accessibleLabel=label){
