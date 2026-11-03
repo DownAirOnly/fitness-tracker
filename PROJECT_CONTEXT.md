@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v113 (November 3, 2026)
+## Current release — v114 (November 3, 2026)
+
+- **Paycheck-first Money setup:** Fresh Finance accounts see a clear first step to add a payday, expected take-home amount and frequency. The setup button opens the existing reusable budget schedule form preselected to **income / Paycheck / weekly**, not the old generic expense / monthly defaults. Users can choose a different frequency and anchor date; a saved schedule is not automatically marked received.
+- **Recurring-bill next step:** Once a payday exists but there are no recurring bills, Money shows an explicit `Add a bill` action that opens the existing expense schedule editor, and states that the calculated remainder is incomplete until obligations have been entered. No existing account data or schedule is replaced.
+- **Honest period controls:** Weekly paycheck schedules retain `1 week / 2 weeks`. Other pay schedules show `1 check / 2 checks`, matching the actual paycheck-window calculation instead of incorrectly implying calendar weeks.
+- **Contained release:** This is a first-run UI improvement using existing `budgetPlan` data, with no Firestore schema/rule changes, new onboarding flags or automatic Finance reset. Existing transaction, budget, bank and import logic is preserved.
+- **Verification:** Updated Money smoke coverage checks the paycheck-first form defaults and cancellation. Standard model, UI and Firestore rules checks apply.
+
+## Previous release — v113 (November 3, 2026)
 
 - **Finance-only account reset in Settings:** `Reset Finance data` offers an explicit red `Delete all Finance data` action with a disabled three-second countdown and Cancel option. The user must click again after the countdown. The app never resets anything automatically on update.
 - **Precise reset scope:** `resetFinanceData` clears `transactions`, `classificationRules`, and the entire `budgetPlan` (balances, category limits, paydays, bills, per-occurrence statuses, unresolved imported bank rows). Food, Lifting, Progress, saved foods, measurement history, account settings and Apple Health integration are untouched.
