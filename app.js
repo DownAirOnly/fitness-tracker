@@ -2678,7 +2678,8 @@ document.addEventListener('click',async event=>{
   if(['budget-mark-paid','budget-mark-skipped','budget-mark-pending'].includes(action)){
    try{const plan=structuredClone(data.budgetPlan),rule=plan.schedules.find(x=>x.id===el.dataset.id);
     if(!rule)return;const status=action.slice('budget-mark-'.length);
-    if(status==='pending')delete rule.occurrences[el.dataset.date];else rule.occurrences[el.dataset.date]=status;
+    if(status==='pending'){delete rule.occurrences[el.dataset.date];if(rule.kind==='income')delete plan.paycheckAmounts[rule.id+'|'+el.dataset.date];}
+     else rule.occurrences[el.dataset.date]=status;
     await budgetCommit(plan);
     budgetFeedback=status==='pending'?'Returned to unmarked.':status==='skipped'?'Skipped this date only.':
       (rule.kind==='income'?'Marked received.':'Marked paid.')+' This does not change the bank ledger.';
@@ -3169,6 +3170,28 @@ app.addEventListener('submit',async event=>{
     pendingImport=plan;showImportReview(plan);
    }catch(error){if(token===importReadToken&&form.isConnected&&preview){preview.textContent=error.message;preview.setAttribute('role','alert');}}
    return;
+  }
+  if(form.dataset.form==='bank-match-confirm'){
+   if(pendingImport?.kind!=='bank')return;
+   try{bankChoose(pendingImport,data,v.bankId,'match',v.receiptId,v.adjustmentCategory,v.adjustmentNote);
+    showImportReview(pendingImport);}catch(error){alert(error.message);}return;
+  }
+  if(form.dataset.form==='money-paycheck-received'){
+   try{const plan=structuredClone(data.budgetPlan),rule=plan.schedules.find(x=>x.id===v.ruleId);
+    if(!rule||rule.kind!=='income')throw Error('Paycheck schedule no longer exists.');
+    plan.paycheckAmounts[rule.id+'|'+v.date]=parseFinanceAmount(v.actualAmount);
+    rule.occurrences[v.date]='paid';
+    await budgetCommit(plan);close(true);render();}catch(error){alert(error.message);}return;
+  }
+  if(form.dataset.form==='money-scenario'){
+   try{const period=paycheckWindows(data.budgetPlan,data.transactions,localDate(),1).periods[0];
+    if(!period)throw Error('Set up a payday first.');
+    const amount=parseFinanceAmount(v.amount),after=paycheckWhatIf(period,amount);
+    modal('What-if purchase','<p class="body-copy">Spend '+budgetMoney(amount)+' now → '+budgetMoney(after)+
+     ' left from this check.</p><p class="hint">'+(period.received?'Based on recorded check and spending.':
+     'Provisional: this check is not marked received.')+
+     ' Not a live bank balance. No purchase saved.</p>'+button('Close','close','outline'));
+   }catch(error){alert(error.message);}return;
   }
   if(form.dataset.form==='finance-bank-import'){
     const file=form.querySelector('[name=file]')?.files?.[0],preview=form.parentElement.querySelector('#preview');
