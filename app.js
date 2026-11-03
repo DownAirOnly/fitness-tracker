@@ -2245,7 +2245,32 @@ function settings() {
   const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
   return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
 }
-function normalizeDocumentViewport(){const root=document.scrollingElement;if(root&&root.scrollTop!==0)root.scrollTop=0;if(window.scrollY!==0)window.scrollTo(0,0);}
+function normalizeDocumentViewport(){
+ // The app shell scrolls its own main content. The document itself must remain
+ // at (0,0), including when iOS restores a standalone PWA after backgrounding.
+ const root=document.scrollingElement;
+ if(root&&root.scrollTop!==0)root.scrollTop=0;
+ if(document.documentElement.scrollTop!==0)document.documentElement.scrollTop=0;
+ if(document.body.scrollTop!==0)document.body.scrollTop=0;
+ if(window.scrollY!==0)window.scrollTo(0,0);
+}
+function recoverStandaloneViewport(){
+ if(document.visibilityState==='hidden'||document.documentElement.classList.contains('buddy-active'))return;
+ // Don't disturb an in-progress keyboard edit or its visual-viewport position.
+ if(document.activeElement?.matches?.('input,select,textarea,[contenteditable="true"]'))return;
+ normalizeDocumentViewport();
+ // Force WebKit to reconcile the current shell/nav geometry without
+ // re-rendering, losing internal page scroll or resetting workout state.
+ document.querySelector('#app')?.getBoundingClientRect();
+}
+function scheduleStandaloneViewportRecovery(){
+ requestAnimationFrame(()=>{
+  recoverStandaloneViewport();
+  requestAnimationFrame(recoverStandaloneViewport);
+ });
+ // Standalone iOS sometimes reports the old viewport for its first frame.
+ setTimeout(recoverStandaloneViewport,180);
+}
 document.addEventListener('focusout',event=>{
  // iOS can leave the document's visual origin displaced after native select menus.
  // Only reset document scrolling; never replace the active screen or modal contents.
@@ -3569,7 +3594,11 @@ document.addEventListener('input',event=>{
    else{buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}
  }
 });
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
-window.addEventListener('pageshow',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
-window.addEventListener('focus',()=>{resumePendingCloudSave();void checkLatestRelease();void syncHealth();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')captureCriticalLocalState();else{scheduleStandaloneViewportRecovery();resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);}});
+window.addEventListener('pageshow',()=>{scheduleStandaloneViewportRecovery();resumePendingCloudSave();void checkLatestRelease();void syncHealth();void refreshStorageProtection(false);});
+window.addEventListener('focus',()=>{scheduleStandaloneViewportRecovery();resumePendingCloudSave();void checkLatestRelease();void syncHealth();});
+// Correct document-level shifts after rotation without changing the active
+// page or its internal scroll offset.
+window.addEventListener('orientationchange',scheduleStandaloneViewportRecovery);
+window.addEventListener('resize',()=>{if(window.matchMedia?.('(display-mode: standalone)')?.matches||navigator.standalone===true)scheduleStandaloneViewportRecovery();});
 void checkLatestRelease();
