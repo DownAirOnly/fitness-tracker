@@ -1,11 +1,11 @@
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=108';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=111';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=111';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=111';
 import {paycheckWindows,paycheckWhatIf} from './paycheck-model.js?v=111';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=108';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=111';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
 import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=108';
@@ -574,9 +574,9 @@ const financeKindLabels={expense:'Expense',income:'Income',transfer:'Transfer'};
 const FINANCE_CSV_SAMPLE='recordType,date,time,kind,amount,description,category,merchant,note,externalId\n'+
  'transaction,2026-10-27,14:15,expense,7.19,Water cases,Household Supplies,Wawa,,\n'+
  'transaction,2026-10-27,,income,100.00,Paycheck,Income,,,';
-const RECEIPT_CSV_SAMPLE='recordType,date,kind,amount,description,category,merchant,accountLabel,purchaseId,itemName,itemCategory,itemAmount\\n'+
- 'purchase,2026-11-03,expense,30.00,Walmart visit,Uncategorized,Walmart,BofA Checking,walmart-1103,,,\\n'+
- 'receiptItem,,,,,,,,walmart-1103,Groceries,Groceries,18.00\\n'+
+const RECEIPT_CSV_SAMPLE='recordType,date,kind,amount,description,category,merchant,accountLabel,purchaseId,itemName,itemCategory,itemAmount\n'+
+ 'purchase,2026-11-03,expense,30.00,Walmart visit,Uncategorized,Walmart,BofA Checking,walmart-1103,,,\n'+
+ 'receiptItem,,,,,,,,walmart-1103,Groceries,Groceries,18.00\n'+
  'receiptItem,,,,,,,,walmart-1103,Paper towels,Household Supplies,12.00';
 function financeFields(tx=null,scope='quick'){
  const isBank=Boolean(tx?.bankDescription),catId='finance-category-'+scope;
@@ -3457,7 +3457,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=110',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=111',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3517,7 +3517,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=110');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=111');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
