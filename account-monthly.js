@@ -7,7 +7,10 @@ export const STATIC_PARTS=['settings','catalog','routines','financeConfig'];
 export const MONTH_FORMAT='everyday-month-v1';
 const monthOK=m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(m);
 const orderedKeys=()=>Object.fromEntries(MONTHLY_KEYS.map(key=>[key,[]]));
-const recordMonth=record=>{
+const recordMonth=(record,key)=>{
+ // Use the actual purchase month for receipts; delayed bank posting remains
+ // separately preserved on the transaction and must not move the purchase.
+ if(key==='transactions'&&validDate(record?.purchaseDate))return record.purchaseDate.slice(0,7);
  const date=validDate(record?.date)?record.date:
   typeof record?.startedAt==='string'&&validDate(record.startedAt.slice(0,10))?record.startedAt.slice(0,10):'';
  return date?date.slice(0,7):null;
@@ -16,7 +19,7 @@ export function monthlyParts(input){
  const data=normalizeData(input),buckets=new Map(),undated=[];
  for(const key of MONTHLY_KEYS){
   for(const record of data[key]||[]){
-   const month=recordMonth(record);
+   const month=recordMonth(record,key);
    if(!month){
     if(key==='workoutHistory'){undated.push(structuredClone(record));continue;}
     throw Error('A dated '+key+' record is missing a valid date.');
@@ -66,7 +69,7 @@ export function readMonthlyParts(parts,months){
    const entries=block.records[key];
    if(!Array.isArray(entries))throw Error('Month '+month+' is missing '+key+'.');
    for(const record of entries){
-    if(recordMonth(record)!==month||typeof record?.id!=='string'||seenIds[key].has(record.id))
+    if(recordMonth(record,key)!==month||typeof record?.id!=='string'||seenIds[key].has(record.id))
      throw Error('Month '+month+' has an invalid or duplicate '+key+' record.');
     seenIds[key].add(record.id);
     raw[key].push(record);
@@ -91,7 +94,7 @@ export function importMonth(current,backup){
  const data=normalizeData(current),month=backup.month;
  for(const key of MONTHLY_KEYS){
   if(!Array.isArray(backup.records[key]))throw Error('Invalid monthly '+key+' records.');
-  data[key]=data[key].filter(item=>recordMonth(item)!==month)
+  data[key]=data[key].filter(item=>recordMonth(item,key)!==month)
    .concat(structuredClone(backup.records[key]));
  }
  // Validation also catches a wrong-month entry and any broken cross-record ID.
