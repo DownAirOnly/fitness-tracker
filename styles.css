@@ -266,16 +266,16 @@ body.buddy-active{overflow:hidden}.buddy-active #app{visibility:hidden;pointer-e
 @media(max-height:650px){.buddy-main{padding-top:12px}.buddy-exercise-title{margin:2px 0 10px}.buddy-exercise-title h1{font-size:30px}.buddy-set-dots{margin:10px 0}.buddy-a{min-height:70px}.buddy-step-number{margin-bottom:10px}}
 
 /* Workout circuit colors + Buddy exit controls */
-.buddy-start-list button:nth-child(1),.workout-tabs button:nth-child(1){background:#dcefe5;border-color:#b8d8c5;color:#173e2e}
-.buddy-start-list button:nth-child(2),.workout-tabs button:nth-child(2){background:#e8e1f5;border-color:#cbbde5;color:#3b2d59}
-.buddy-start-list button:nth-child(3),.workout-tabs button:nth-child(3){background:#f4e4d4;border-color:#dfc2a4;color:#593d29}
+.workout-tabs button:nth-child(1){background:#dcefe5;border-color:#b8d8c5;color:#173e2e}
+.workout-tabs button:nth-child(2){background:#e8e1f5;border-color:#cbbde5;color:#3b2d59}
+.workout-tabs button:nth-child(3){background:#f4e4d4;border-color:#dfc2a4;color:#593d29}
 .workout-tabs button.selected{box-shadow:inset 0 0 0 2px currentColor;font-weight:800}
 .buddy-head-actions{display:flex;align-items:center;gap:12px}
 .buddy-exit{border:1px solid #ccd8cf;background:transparent;color:inherit;border-radius:10px;padding:7px 10px;font:inherit;font-size:12px;font-weight:800}
 .buddy-entry-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
-[data-theme="dark"] .buddy-start-list button:nth-child(1),[data-theme="dark"] .workout-tabs button:nth-child(1){background:#1d392b;border-color:#355a46;color:#dcefe5}
-[data-theme="dark"] .buddy-start-list button:nth-child(2),[data-theme="dark"] .workout-tabs button:nth-child(2){background:#302642;border-color:#514167;color:#eee5ff}
-[data-theme="dark"] .buddy-start-list button:nth-child(3),[data-theme="dark"] .workout-tabs button:nth-child(3){background:#3d2d20;border-color:#654a35;color:#f6e6d7}
+[data-theme="dark"] .workout-tabs button:nth-child(1){background:#1d392b;border-color:#355a46;color:#dcefe5}
+[data-theme="dark"] .workout-tabs button:nth-child(2){background:#302642;border-color:#514167;color:#eee5ff}
+[data-theme="dark"] .workout-tabs button:nth-child(3){background:#3d2d20;border-color:#654a35;color:#f6e6d7}
 [data-theme="dark"] .buddy-exit{border-color:#405349}
 @media(max-width:380px){.buddy-entry{align-items:flex-start}.buddy-entry-actions{flex-direction:column;align-items:stretch}.buddy-entry-actions button{width:100%}}
 
@@ -3272,16 +3272,16 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 }
 
 
-/* v106 — keep the equipment symbol in its own square immediately left
-   of the blue anatomy tile, never underneath that interactive thumbnail. */
-#buddy-root .buddy-picker-screen .exercise-muscle-wrapper > .exercise-card .equipment-art{
+/* v107 — one shared Lifting/Workout Buddy card shell reserves square space
+   left of the independently tappable anatomy tile. */
+.exercise-muscle-wrapper > .exercise-card .equipment-art{
  right:94px;top:50%;width:70px;height:72px;
  transform:translateY(-50%);z-index:0;opacity:.16;
 }
-#buddy-root .buddy-picker-screen .exercise-muscle-wrapper > .exercise-card .equipment-art svg{
+.exercise-muscle-wrapper > .exercise-card .equipment-art svg{
  width:100%;height:100%;
 }
-#buddy-root .buddy-picker-screen .exercise-muscle-peek{
+.exercise-muscle-wrapper > .exercise-muscle-peek{
  right:7px;width:78px;height:78px;
 }
 #buddy-root .buddy-completed-exercise-strip .exercise-card{
@@ -3299,10 +3299,10 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  color:#b6cbb9;
 }
 @media(max-width:380px){
- #buddy-root .buddy-picker-screen .exercise-muscle-wrapper > .exercise-card .equipment-art{
+ .exercise-muscle-wrapper > .exercise-card .equipment-art{
   right:84px;width:62px;height:65px;
  }
- #buddy-root .buddy-picker-screen .exercise-muscle-peek{width:70px;height:70px}
+ .exercise-muscle-wrapper > .exercise-muscle-peek{width:70px;height:70px}
 }
 /* Four clock treatments share one transient countdown. They are previews,
    not workout history fields or new navigation destinations. */
@@ -3419,4 +3419,84 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 @media(prefers-reduced-motion:reduce){
  #buddy-root .bike-ui-running .bike-clock-art *,
  #buddy-root .bike-ui-running .bike-clock-art{animation:none!important}
+}
+
+
+/* v107 — identical colored routine card component for Workout Buddy's
+   routine chooser, Lifting recent routines, and Home's compact cards.
+   Colors follow the routine's identity, not its position in a list. */
+.buddy-routine-choice{
+ display:flex;align-items:center;justify-content:space-between;
+ width:100%;min-width:0;min-height:78px;gap:12px;
+ padding:15px 18px;border:1px solid #d1ded2;border-radius:17px;
+ background:#f1f6f1;color:#233e2e;text-align:left;
+}
+.buddy-routine-choice .routine-choice-main{
+ display:grid;gap:2px;min-width:0;flex:1 1 auto;
+}
+.buddy-routine-choice .routine-choice-main strong{
+ font:750 clamp(20px,5.5vw,24px)/1.15 'DM Sans',sans-serif;
+ overflow-wrap:anywhere;
+}
+.buddy-routine-choice .routine-choice-main small{
+ font-size:11px;line-height:1.2;min-width:0;
+}
+.buddy-routine-choice .routine-choice-side{
+ display:flex;align-items:center;justify-content:flex-end;
+ flex:0 0 auto;gap:12px;min-width:0;
+}
+.buddy-routine-choice .routine-choice-side time{
+ font:650 12px/1.2 'DM Sans',sans-serif;
+ white-space:nowrap;color:inherit;opacity:.76;
+}
+.buddy-routine-choice .routine-choice-side > b{
+ font-size:19px;font-weight:750;line-height:1;opacity:.85;
+}
+.buddy-routine-choice.routine-tone-upper{
+ background:#dcefe5;border-color:#b8d8c5;color:#173e2e;
+}
+.buddy-routine-choice.routine-tone-lower{
+ background:#e8e1f5;border-color:#cbbde5;color:#3b2d59;
+}
+.buddy-routine-choice.routine-tone-full{
+ background:#f4e4d4;border-color:#dfc2a4;color:#593d29;
+}
+[data-theme="dark"] .buddy-routine-choice{
+ background:#203028;border-color:#425c49;color:#e3efe6;
+}
+[data-theme="dark"] .buddy-routine-choice.routine-tone-upper{
+ background:#1d392b;border-color:#355a46;color:#dcefe5;
+}
+[data-theme="dark"] .buddy-routine-choice.routine-tone-lower{
+ background:#302642;border-color:#514167;color:#eee5ff;
+}
+[data-theme="dark"] .buddy-routine-choice.routine-tone-full{
+ background:#3d2d20;border-color:#654a35;color:#f6e6d7;
+}
+.buddy-start-list .buddy-routine-choice{
+ min-height:82px;padding:16px 18px;
+}
+.buddy-start-list .buddy-routine-choice .routine-choice-main{
+ display:grid;
+}
+.buddy-start-list .buddy-routine-choice .routine-choice-side{
+ display:flex;
+}
+.routine-history-list .buddy-routine-choice,
+.routine-history-all .buddy-routine-choice{
+ min-height:84px;padding:15px 18px;
+}
+.routine-history-list .buddy-routine-choice .routine-choice-side time,
+.routine-history-all .buddy-routine-choice .routine-choice-side time{
+ text-align:right;
+}
+.routine-history-list,.routine-history-all{
+ display:grid;gap:10px;
+}
+@media(max-width:380px){
+ .routine-history-list .buddy-routine-choice,
+ .routine-history-all .buddy-routine-choice{padding:13px 11px}
+ .buddy-routine-choice .routine-choice-side{gap:7px}
+ .buddy-routine-choice .routine-choice-side time{font-size:11px}
+ .buddy-routine-choice .routine-choice-main strong{font-size:20px}
 }

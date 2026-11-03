@@ -2,6 +2,12 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
+## Current release — v107 (November 2, 2026)
+
+- **v107 — shared Lifting and Workout Buddy exercise cards:** v106's correct equipment SVG positioning beside the independent blue anatomy preview was accidentally scoped to `#buddy-root .buddy-picker-screen`. Generalize those same positioning and sizing rules to the shared `.exercise-muscle-wrapper` card shell so the regular Lifting exercise list is fixed too. Keep existing exercise card action semantics: Lifting opens a new manual lift; Workout Buddy selects/edits an exercise; the blue anatomy tile independently opens muscles. The pulley SVG remains shared for cables.
+- **Shared colored routine cards:** `routineChoiceCard()` now renders the Workout Buddy "Choose a routine" modal, Lifting "Recent routines" and existing Home recent routines from one reusable renderer. Upper = green, Lower = purple, Full body = brown, based on routine name rather than list index. Modal choices display only larger routine names with an arrow; remove all "6 exercises" and "Bike warm-up first" subtitles. Lifting recent routine cards display larger routine name on the left and date on the **right**, without duplicate count subtitles; retaining existing `routine-history-detail` action and history IDs. Home's compact variant remains intact. Existing complete workout records, cloud recovery, money and nutrition untouched.
+- `version.json`, `index.html`, `app.js`, `sw.js`, CI smoke assertions and this context synchronized for v107. Merged code, passing CI, Pages and iPhone visual approval are separate milestones.
+
 ## Current release — v106 (November 2, 2026)
 
 - **v106 — Workout Buddy picker card art and bike clock previews:** Reserve a square just to the **left** of each blue anatomy tile for the faded equipment SVG; neither artwork overlaps the other. Replace cable handle equipment SVG with a pulley-wheel design. Completed-exercise cards replace generic "2 completed sets" copy with stacked per-set weight × reps · effort, keeping the whole card as the completed-set editor action and the anatomy button independently tappable.
