@@ -1303,7 +1303,7 @@ function equipmentLabel(type){return ({machine:'Machine',cable:'Cable',dumbbell:
 function equipmentGlyph(type){
  const icons={
   dumbbell:'<svg viewBox="0 0 120 72" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M37 36h46"/><path d="M30 21v30M20 26v20M90 21v30M100 26v20"/></g></svg>',
-  cable:'<svg viewBox="0 0 120 72" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 47L34 36H86L103 47"/><path d="M34 36L43 30M86 36L77 30"/></g></svg>',
+  cable:'<svg viewBox="0 0 120 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 10h72v18H24z"/><circle cx="60" cy="39" r="15"/><circle cx="60" cy="39" r="5"/><path d="M45 39H32v42M75 39h13v42M32 81l-7 8m7-8 7 8M88 81l-7 8m7-8 7 8"/></g></svg>',
   machine:'<svg viewBox="0 0 120 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M25 89V15h66v74"/><rect x="31" y="28" width="13" height="47" rx="3"/><path d="M66 30v24M53 54h31M57 54v28M80 54v28M51 82h35"/></g></svg>',
   bench:'<svg viewBox="0 0 120 72" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"><path d="M24 37h72M35 37l-8 25M85 37l8 25"/></g></svg>',
   calisthenics:'<svg viewBox="0 0 120 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"><circle cx="60" cy="18" r="8"/><path d="M60 27v27M60 36L37 48M60 36l23 12M60 54L43 78M60 54l17 24"/></g></svg>',
@@ -1568,7 +1568,7 @@ function buddyUndo(s){
 }
 function buddyUndoControl(s){return canUndoBuddyTransition(s)?'<button type="button" class="buddy-undo" data-action="buddy-undo" aria-label="Undo last step">↶ Undo</button>':'';}
 function buddyDraft(e,index){return nextBuddySetDraft(e,index,buddyPrior(e));}
-function buddyStart(type){const w=workoutByName(type);if(!w)return;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
+function buddyStart(type){const w=workoutByName(type);if(!w)return;buddyBikeUi=null;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
 function buddyExerciseHeading(e,showMini=true){
  return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div>'+
@@ -1579,18 +1579,51 @@ function buddyExerciseMuscleStage(e){
  // warm-primary / cool-secondary anatomy mapping rather than recent workload.
  return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e.name)+'</button>';
 }
+// Bike clock previews use transient UI state only; no saved workout fields.
+let buddyBikeUi=null;
+function buddyBikeUiFor(s){
+ if(!buddyBikeUi||buddyBikeUi.sessionId!==s.id)buddyBikeUi={sessionId:s.id,selected:'ring',remaining:300,startedAt:0,running:false};
+ return buddyBikeUi;
+}
+function buddyBikeSecondsLeft(ui){
+ return ui.running?Math.max(0,ui.remaining-Math.floor((Date.now()-ui.startedAt)/1000)):ui.remaining;
+}
+function buddyBikeFormat(sec){return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}
+function buddyBikeRefresh(){
+ const ui=buddyBikeUi;if(!ui)return;
+ const left=buddyBikeSecondsLeft(ui);
+ if(left===0&&ui.running){ui.running=false;ui.remaining=0;}
+ const root=document.querySelector('#buddy-root .buddy-bike');if(!root)return;
+ for(const face of root.querySelectorAll('[data-bike-time]'))face.textContent=buddyBikeFormat(left);
+ root.style.setProperty('--bike-progress',String((300-left)/300));
+ root.classList.toggle('bike-ui-running',ui.running);
+ const start=root.querySelector('[data-action="buddy-bike-start"]');
+ if(start)start.textContent=ui.running?'Pause':left===0?'Restart':ui.remaining===300?'Start':'Resume';
+}
+function buddyBikeClockMarkup(head,s){
+ const ui=buddyBikeUiFor(s);
+ const choices=[
+  ['ring','Ring','<span class="bike-clock-ring"><i></i></span>'],
+  ['orbit','Orbit','<span class="bike-clock-orbit"><i></i></span>'],
+  ['digital','Digital','<span class="bike-clock-digital"><i></i><i></i><i></i></span>'],
+  ['dial','Dial','<span class="bike-clock-dial"><i></i><b></b></span>']
+ ];
+ const clocks=choices.map(([id,label,art])=>'<button type="button" class="bike-clock-option bike-style-'+id+(ui.selected===id?' is-selected':'')+'" data-action="buddy-bike-select" data-clock="'+id+'" aria-pressed="'+(ui.selected===id)+'"><span class="bike-clock-art" aria-hidden="true">'+art+'</span><strong data-bike-time>'+buddyBikeFormat(buddyBikeSecondsLeft(ui))+'</strong><small>'+label+'</small></button>').join('');
+ return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-bike"><div class="buddy-bike-content"><h1>Bike · 5 min</h1><div class="bike-clock-grid" role="group" aria-label="Choose an animated clock style">'+clocks+'</div><button type="button" class="bike-clock-start" data-action="buddy-bike-start">'+(ui.running?'Pause':ui.remaining===300?'Start':'Resume')+'</button></div><button type="button" class="buddy-a" data-action="buddy-bike-done"><b>Continue</b></button></main></div>';
+}
+
 function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
  const head=`<header class="buddy-head"><span><small>${esc(s.type.toUpperCase())}</small><strong>Workout Buddy</strong></span><span class="buddy-head-actions"><span class="buddy-elapsed" data-buddy-elapsed>${buddyClock(buddySeconds(s.startedAt))}</span><button type="button" class="buddy-exit" data-action="buddy-exit">Exit</button></span></header>`;
  if(buddyMuscleView&&buddyMuscleGroupView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-group-back">‹ Back to muscles</button><h1>${esc(muscleGroupLabel(buddyMuscleGroupView))}</h1>${muscleGroupDetailsMarkup(buddyMuscleGroupView,muscleRelatedExercises(buddyMuscleGroupView))}</main></div>`;
  if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(buddyMuscleView)}</main></div>`;
- if(s.phase==='bike')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-bike"><div class="buddy-step"><span class="buddy-step-number">01</span><p class="eyebrow">WARM-UP</p><h1>Bike · 5 min</h1><p>Head to the bike. Use the bike's timer for five minutes, then continue when you're ready to lift.</p></div><button class="buddy-a" data-action="buddy-bike-done"><span>Bike finished</span><b>Continue</b></button></main></div>`;
+ if(s.phase==='bike')return buddyBikeClockMarkup(head,s);
  if(buddyCompletedEditor?.key)return buddyCompletedEditorScreen(head,s);
  if(s.phase==='picker'){
   const remaining=s.exercises.filter(e=>e.status!=='done');
   const completed=s.exercises.filter(e=>e.status==='done').sort((a,b)=>(s.performedOrder||[]).indexOf(buddyKey(a))-(s.performedOrder||[]).indexOf(buddyKey(b)));
   const completedStrip=completed.length?'<section class="buddy-picker-completed" aria-label="Completed exercises"><div class="buddy-picker-completed-head"><strong>Completed exercises</strong></div><div class="buddy-completed-exercise-strip">'+completed.map(e=>
-    exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-edit-completed',attrs:'data-key="'+esc(buddyKey(e))+'" aria-label="Edit completed '+esc(e.name)+' sets"',modifier:'buddy-exercise buddy-exercise-done',summary:e.sets.length+' completed set'+(e.sets.length===1?'':'s'),trailing:'✓'}))
+    exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-edit-completed',attrs:'data-key="'+esc(buddyKey(e))+'" aria-label="Edit completed '+esc(e.name)+' sets"',modifier:'buddy-exercise buddy-exercise-done',summary:'<span class="buddy-card-set-summaries">'+e.sets.map((set,i)=>'<span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+' · '+(set.difficulty?effortText(set.difficulty):'No effort')+'</span>').join('')+'</span>',trailing:'✓'}))
    ).join('')+'</div></section>':'';
   return `<div class="buddy-screen">${head}<main class="buddy-main buddy-picker-screen"><div class="buddy-progress"><span>${done}/${total} exercises</span></div>${buddyUndoControl(s)}${completedStrip}<div class="buddy-picker-head"><p class="eyebrow">REMAINING EXERCISES</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;
  }
@@ -1688,7 +1721,7 @@ document.addEventListener('visibilitychange',()=>{
 document.querySelector('#buddy-root')?.addEventListener('touchstart',()=>{
  if(!buddyActiveField())buddyRestoreTouchOrigin();
 },{passive:true,capture:true});
-function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
+function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='bike')buddyBikeRefresh();if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
 function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;buddyCompletedEditor=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){
  // Paint the state transition before waiting for Firebase/cloud persistence.
@@ -2631,6 +2664,18 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}buddyRoutinePicker();return;}
   if(action==='buddy-resume-from-picker'){close(true);buddyOpen();return;}
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
+  if(action==='buddy-bike-select'){
+   const s=data.activeWorkout;if(s?.phase!=='bike')return;
+   const selected=el.dataset.clock;if(!['ring','orbit','digital','dial'].includes(selected))return;
+   buddyBikeUiFor(s).selected=selected;buddyOpen();return;
+  }
+  if(action==='buddy-bike-start'){
+   const s=data.activeWorkout;if(s?.phase!=='bike')return;
+   const ui=buddyBikeUiFor(s);
+   if(ui.running){ui.remaining=buddyBikeSecondsLeft(ui);ui.running=false;}
+   else{if(ui.remaining<=0)ui.remaining=300;ui.startedAt=Date.now();ui.running=true;}
+   buddyBikeRefresh();return;
+  }
   if(action==='buddy-bike-done'){const s=data.activeWorkout;if(!s||s.phase!=='bike')return;buddyCaptureUndo(s,'bike finished');s.phase='picker';s.bikeCompletedAt=isoNow();await buddyPersist();return;}
   if(action==='buddy-edit-completed'){
    const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);
@@ -3176,7 +3221,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=105',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=106',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3236,7 +3281,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=105');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=106');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
