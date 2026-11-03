@@ -2,6 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
+## Current release — v109 (November 2, 2026)
+
+- **Progress weekly summaries:** Remove the redundant six-week/BMI explanation beneath the weekly rows and omit repeated year labels from each week-count subtitle. Preserve the week range, weigh-in count, current-week marker, average weight, and BMI.
+- **Home routines:** Continue resolving historical routine titles, colors, and identity through the shared routine renderer from v108, but constrain Home's three cards with explicitly scoped compact title/summary/padding/arrow CSS. Avoid inheriting the large Workout Buddy chooser card dimensions or disturbing the side-by-side anatomy layout.
+- **Progress exercise cards:** Reuse the shared `exerciseCardMarkup()` plus independent `exerciseCardWithMuscles()` equipment/anatomy treatment already used by Lifting and Workout Buddy, including both the compact Progress list and View all. Keep latest top-set information in the summary away from the equipment image; do not duplicate SVGs or change history data.
+- **Cable icon:** Redraw the shared pulley SVG with a narrow hanging taper over the wheel, a rope that angles outward on the left, and a rope extending straight down on the right.
+- **Release:** v109 references in index.html, app.js service worker registration, sw.js precache, and version.json; focused UI smoke coverage added. Merge/Pages/iPhone appearance require independent verification.
+
 ## Current release — v108 (November 2, 2026)
 
 - **Workout Buddy warm-up:** The bottom-right Dial was selected from v106's four clock previews. v108 removes the other previews and renders one large analog dial centered above the Start/Pause/Resume control. A wall-clock-driven second hand rotates six degrees per second (one complete rotation each minute), with a 5-minute countdown; the normal Continue transition still saves exactly as before, and the visual timer writes no workout fields. The shared cable-equipment SVG is simplified to a prominent wheel, groove/hub and short rope/hook, rather than the whole pulley machine.
