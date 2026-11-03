@@ -491,7 +491,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   const personalizedRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('Energy drink and protein snack'));
   assert.ok(personalizedRow.querySelector('.finance-raw-description'),'original bank name remains when personal name differs');
   assert.ok(personalizedRow.querySelector('.finance-row-details').textContent.includes('365 MARKET 10994 · Convenience Food / Work snacks'));
-  assert.ok(personalizedRow.querySelector('.finance-row-date').textContent.includes('Oct 24, 2026'));
+  assert.ok(personalizedRow.querySelector('.finance-row-date').textContent.includes('Oct 23, 2026'),'purchase date leads the transaction');
+  assert.ok(personalizedRow.querySelector('.finance-row-details').textContent.includes('Posted Oct 24, 2026'),'original bank posting date remains visible');
   assert.ok(!personalizedRow.textContent.includes('Bank:'),'no verbose Bank prefix');
 
   // Resubmitting the statement under a different batch name must not undo edits.
