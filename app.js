@@ -2315,7 +2315,7 @@ function googleSyncUsagePanel(){
   '<span class="version-badge">'+monthly.length+' months</span></div>'+
   rows+(monthly.length>12?'<p class="hint">Showing the 12 most recent monthly files. '+(monthly.length-12)+' older monthly files are still stored and included in exports.</p>':'')+
   '<p class="hint">'+esc(status)+'. '+staticKeys.length+' account files + '+monthly.length+
-  ' month files. Each file has its own 800,000-byte safety limit. Full-history JSON exports combine the files without a combined 800 KB limit.</p></section>';
+  ' month files. Each file has its own 800,000-byte safety limit; these Firebase limits are separate from your browser quota. Full-history JSON exports combine the files without a combined 800 KB limit.</p></section>';
 }
 function dataHealthPanel(){
  const d=dataDiagnostics(),status=d.issues.length?'Needs attention':d.warnings.length?'Review suggested':'Looks healthy',tone=d.issues.length?'bad':d.warnings.length?'warn':'good';
