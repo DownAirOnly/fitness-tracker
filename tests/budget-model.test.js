@@ -12,7 +12,7 @@ test('legacy notebooks default safely and v98 compact backup preserves the full 
  assert.deepEqual(normalizeData(before).budgetPlan,emptyBudgetPlan());
  const current=normalizeData({...emptyData(),budgetPlan:plan()});
  const restored=normalizeData(encodeData(current));
- assert.deepEqual(restored.budgetPlan,plan());
+ assert.deepEqual(restored.budgetPlan,normalizeBudgetPlan(plan()));
  assert.deepEqual(restored.transactions,[]);
 });
 test('monthly end-of-month dates are clamped, weekly/payday occurrences never multiply',()=>{
