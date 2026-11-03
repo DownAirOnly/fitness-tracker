@@ -137,7 +137,11 @@ export function budgetMonthSpending(plan,transactions,month){
     const remainder=tx.amountCents-itemTotal;
     return sum+itemSpend+((tx.adjustmentCategory||'Uncategorized').toLocaleLowerCase()===category?remainder:0);
    }
-   return sum+(String(tx.category||'').trim().toLocaleLowerCase()===category?tx.amountCents:0);
+   const receiptBase=tx.receiptAmountCents??tx.amountCents;
+   const baseCategory=String(tx.category||'').trim().toLocaleLowerCase();
+   const adjustmentCategory=(tx.adjustmentCategory||'Uncategorized').toLocaleLowerCase();
+   const difference=tx.amountCents-receiptBase;
+   return sum+(baseCategory===category?receiptBase:0)+(adjustmentCategory===category?difference:0);
   },0);
   return{category:limit.category,limitCents:limit.amountCents,actualCents,
    remainingCents:limit.amountCents-actualCents,percent:100*actualCents/limit.amountCents};
