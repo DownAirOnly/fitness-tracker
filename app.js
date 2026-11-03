@@ -3528,7 +3528,36 @@ function accountPanel(){
   let migrated=false;try{migrated=localStorage.getItem('everyday-migrated:'+account?.uid)==='yes';}catch{}
   return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasDeviceMigrationContent(deviceData)?`<p class="body-copy">${migrated?'Original device data was copied before. Review again to find routines or Workout Buddy sessions older migrations may have missed.':'Original device notebook found. Review additions before copying logs, routines and Workout Buddy sessions into this account. The device notebook remains separate.'}</p>${button(migrated?'Review original device notebook':'Review & copy device notebook','migrate-device',migrated?'outline':'primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p>${!account?button('Load demo data','demo-start','outline'):''}</section>`;
 }
+function adoptLegacyDevicePreferences(){
+ if(data.preferences?.legacyImported===true)return false;
+ const prefs={...data.preferences};
+ try{
+  const dash=localStorage.getItem(HOME_DASHBOARD_KEY);
+  if(HOME_DASHBOARD_VIEWS.includes(dash))prefs.homeDashboard=dash;
+  const raw=localStorage.getItem(HOME_FOOD_IDS_KEY);
+  if(raw!==null){
+   const ids=JSON.parse(raw);
+   if(Array.isArray(ids)&&ids.length<=250&&ids.every(v=>typeof v==='string'&&v.length<=160))
+    prefs.homeFoodIds=[...new Set(ids)];
+  }
+  const theme=localStorage.getItem('everyday-theme');
+  if(['system','light','dark'].includes(theme))prefs.theme=theme;
+ }catch{}
+ prefs.legacyImported=true;
+ data.preferences=prefs;
+ return true;
+}
+function clearLegacyPreferenceKeys(){
+ for(const key of [HOME_DASHBOARD_KEY,HOME_FOOD_IDS_KEY,'everyday-theme']){
+  try{localStorage.removeItem(key);}catch{}
+ }
+}
+function applyCurrentAccountPreferences(){
+ homeDashboardView=readHomeDashboard();
+ window.everydayTheme?.set(data.preferences?.theme||'system');
+}
 async function loadAccount(){
+  let migratePreferences=false;
   if(offlineWorkspace||demoMode)return;const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
   try{
     const loaded=await active.load();if(session!==active)return;
@@ -3543,17 +3572,26 @@ async function loadAccount(){
     }else{
       data=loaded;cloudPending=false;cloudMessage='Loaded from your account';
     }
+    if(!cloudRecoveryConflict)migratePreferences=adoptLegacyDevicePreferences();
+    applyCurrentAccountPreferences();
     chosenDate=currentTrackingDate();
   }
   catch(error){
     if(session===active){
       const recovery=readCloudRecovery(active.uid),confirmed=readCloudConfirmed(active.uid),fallback=recovery||confirmed;
       cloudRecovery=recovery;cloudConfirmed=confirmed;cloudRecoveryConflict=null;
-      if(fallback){data=structuredClone(fallback.data);chosenDate=currentTrackingDate();cloudPending=Boolean(recovery);cloudMessage=recovery?'Cloud unavailable · recovered unsaved device changes':'Cloud unavailable · using last confirmed device copy';}
+      if(fallback){data=structuredClone(fallback.data);applyCurrentAccountPreferences();chosenDate=currentTrackingDate();cloudPending=Boolean(recovery);cloudMessage=recovery?'Cloud unavailable · recovered unsaved device changes':'Cloud unavailable · using last confirmed device copy';}
       else cloudMessage=describeCloudError(error);
     }
   }
-  finally{if(session===active){cloudBusy=false;render();if(active.ready){void syncHealth();promptWeight();}else if(hasLocalCloudFallback())promptWeight();}}
+  finally{if(session===active){
+   cloudBusy=false;render();
+   if(migratePreferences&&active.ready&&!cloudRecoveryConflict){
+    void persist().then(saved=>{if(saved&&!cloudPending)clearLegacyPreferenceKeys();});
+   }
+   if(active.ready){void syncHealth();promptWeight();}
+   else if(hasLocalCloudFallback())promptWeight();
+  }}
 }
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
@@ -3576,6 +3614,7 @@ async function startCloud(){
       if(demoMode&&user){demoMode=false;try{localStorage.removeItem(DEMO_WORKSPACE_KEY);}catch{}}
       if(demoMode&&!user){cloudMessage='Demo mode · saved separately on this device';render();return;}
       data=user?(cached?structuredClone(cached.data):emptyData()):structuredClone(deviceData);
+      applyCurrentAccountPreferences();
       if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';render();promptWeight();}
     });
     cloudReady=true;render();if(!offlineWorkspace&&!demoMode)void syncHealth();
