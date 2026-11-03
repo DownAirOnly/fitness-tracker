@@ -48,6 +48,27 @@ test('v112: calendar month partition preserves stable IDs, categories, and accou
  assert.deepEqual(imported.transactions,data.transactions,'selected month restore does not change unrelated months');
  assert.equal(imported.bodyFat[0].id,'bf-nov');
 });
+test('v112: bank posting after month-end leaves a receipt in the original purchase month',()=>{
+ const input=fixture();
+ input.transactions.push({
+  id:'delayed-receipt',date:'2026-11-02',purchaseDate:'2026-10-31',
+  postedDate:'2026-11-02',kind:'expense',amountCents:2400,
+  description:'Restaurant charge',merchant:'Restaurant',category:'Restaurants',
+  currency:'USD',bankDescription:'RESTAURANT',accountLabel:'BofA Checking',
+  bankDirection:'debit'
+ });
+ const {parts,months}=monthlyParts(input);
+ assert.deepEqual(months,['2026-10','2026-11']);
+ const october=JSON.parse(parts['month-2026-10']).records.transactions;
+ const november=JSON.parse(parts['month-2026-11']).records.transactions;
+ assert.equal(october.some(tx=>tx.id==='delayed-receipt'),true);
+ assert.equal(november.some(tx=>tx.id==='delayed-receipt'),false);
+ const restored=readMonthlyParts(parts,months);
+ const receipt=restored.transactions.find(tx=>tx.id==='delayed-receipt');
+ assert.equal(receipt.purchaseDate,'2026-10-31');
+ assert.equal(receipt.postedDate,'2026-11-02');
+ assert.equal(receipt.amountCents,2400);
+});
 test('v112: first signed-in save atomically migrates v2 files and retains rollback documents',async()=>{
  const {docs,sdk,transaction}=harness(),refs=sectionRefs(sdk,{},'alice'),data=fixture(),legacyParts=sectionPayloads(data);
  docs.set(refs.manifest,{schemaVersion:2,revision:7,updatedAt:'old'});
