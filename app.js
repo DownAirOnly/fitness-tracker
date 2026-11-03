@@ -652,9 +652,10 @@ function financeRow(tx,showReview=false){
 function financeNewestFirst(transactions){
  return [...transactions].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00'))||a.id.localeCompare(b.id));
 }
-function financeRecent(){
- const all=financeNewestFirst((data.transactions||[]).filter(tx=>tx.kind==='expense')),needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
- return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><h2>Recent purchases</h2></div>'+
+function financeRecent(purchasesOnly=false){
+ const all=financeNewestFirst(purchasesOnly?(data.transactions||[]).filter(tx=>tx.kind==='expense'):(data.transactions||[])),
+  needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
+ return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><h2>'+(purchasesOnly?'Recent purchases':'Recent')+'</h2></div>'+
   button('Search all','finance-history-open','outline small finance-history-open')+'</div>'+
   (needReview?'<div class="finance-review-callout"><span><strong>'+needReview+' to review</strong><small>Missing categories or possible transfers</small></span>'+
    button('Review','finance-review-open','outline small')+'</div>':'')+
@@ -1057,7 +1058,7 @@ function finances(){
    button('Add payday','budget-schedule-new','primary')+'</section>')+
   '<div class="money-primary-actions">'+button('+ Purchase','home-log-finance','primary')+
    button('Paste receipt CSV','finance-paste-csv','outline')+'</div>'+
-  financeRecent()+moneyCaps()+
+  financeRecent(true)+moneyCaps()+
   (plan.unresolvedBankRows?.length?'<section class="panel money-unresolved"><strong>'+plan.unresolvedBankRows.length+
    ' unmatched bank charge'+(plan.unresolvedBankRows.length===1?'':'s')+'</strong>'+
    button('Review bank charges','money-review-unresolved','outline')+'</section>':'')+
