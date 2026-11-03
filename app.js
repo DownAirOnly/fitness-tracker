@@ -3643,7 +3643,7 @@ function expandImportGroup(el){
 
 function bankPreviewRecord(row,group){
  const bank=row.record,selected=group==='matched'?row.receipt:null;
- const candidates=bankReceiptCandidates(bank,data.transactions,bankCandidateSort,bankCandidateSearch).slice(0,30);
+ const candidates=(bank.kind==='expense'&&bank.bankDirection==='debit'?bankReceiptCandidates(bank,data.transactions,bankCandidateSort,bankCandidateSearch):[]).slice(0,30);
  const suggested=group==='review'?candidates[0]?.tx:null,compared=selected||suggested;
  const difference=compared?bank.amountCents-compared.amountCents:0;
  const candidatesHtml=candidates.length?candidates.map(c=>
