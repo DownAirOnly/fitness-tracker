@@ -2,6 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
+## Current release — v110 (November 2, 2026)
+
+- **Progress cleanup:** Remove the duplicate full-page Individual weigh-ins and Body fat list sections; remove Workout timing's long explanatory paragraph. Do not delete measurement history. Keep compact Edit weigh-ins, Add body fat and Edit readings controls inside the existing chart cards; body-fat edit opens a complete readings modal, with the existing edit form.
+- **Last 90 measurements:** Each chart independently uses the 90 most recent logged readings, not a shared six-week date window. Weekly summary rows remain six weeks. The seven-day rolling weight average uses all stored weights, including older points just outside the displayed window, to avoid a left-edge calculation error. Tighter dot radii on dense charts.
+- **iPhone PWA resume/rotation:** Restore document scroll origin on pageshow, foreground return, window focus, and after rotation, retrying once after WebKit geometry settles without re-rendering, interrupting a focused input, or changing nested page scroll. Request portrait-primary in the web-app manifest as a **best-effort preference** (iOS may ignore it), and align the launch background with the dark shell. This is a mitigation for intermittent iOS standalone viewport shifts, not a proven engine fix.
+- Bump version, app/index/SW/cache URLs and focused UI test coverage. CI, merge, Pages availability and actual iPhone verification are separate milestones.
+
 ## Current release — v109 (November 2, 2026)
 
 - **Progress weekly summaries:** Remove the redundant six-week/BMI explanation beneath the weekly rows and omit repeated year labels from each week-count subtitle. Preserve the week range, weigh-in count, current-week marker, average weight, and BMI.
