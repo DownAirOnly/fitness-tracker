@@ -1243,7 +1243,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  const {weeklyWeights,startOfWeek,localDate}=await import(new URL('data.js',root));
  const visibleWeeks=weeklyWeights(savedCalendar.weights,68,'lb',5).slice(0,6);
  assert.deepEqual([...document.querySelectorAll('[data-week]')].map(e=>e.dataset.week),visibleWeeks.map(w=>w.week));
- assert.ok([...document.querySelectorAll('.week-row small')].every(el=>!/(?:19|20)\\d{2}/.test(el.textContent)),'weekly cards do not repeat the year');
+ assert.ok([...document.querySelectorAll('.week-row small')].every(el=>!/(?:19|20)\d{2}/.test(el.textContent)),'weekly cards do not repeat the year');
  assert.ok(!document.querySelector('.progress-trend')?.textContent.includes('Showing up to the last 6'),'redundant weekly explanation is gone');
  assert.ok(document.querySelector('.progress-trend .weight-progress-chart'),'weight graph lives in Weekly trend');
   assert.ok(!document.querySelector('.progress-head h1'),'Progress title removed');
