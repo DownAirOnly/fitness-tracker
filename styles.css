@@ -3198,3 +3198,75 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  #buddy-root .buddy-completed-edit-title .buddy-muscle-mini{width:72px;height:82px;min-height:82px}
  #buddy-root .buddy-completed-edit-title .buddy-hero-copy{padding-right:85px}
 }
+
+
+/* v105 — succinct picker, single-line confirmed set summaries and a
+   compact completed editor built from the normal Buddy controls. */
+#buddy-root .buddy-picker-screen .buddy-progress{margin-bottom:8px}
+#buddy-root .buddy-picker-screen .buddy-picker-head{margin:4px 0 7px}
+#buddy-root .buddy-picker-screen .buddy-picker-head .eyebrow{
+ margin:0;color:#9dbf9e;letter-spacing:.11em;font-size:11px;
+}
+#buddy-root .buddy-picker-screen .buddy-completed-exercise-strip{padding-bottom:6px}
+#buddy-root .buddy-picker-screen .buddy-picker-completed{margin-bottom:6px}
+#buddy-root .buddy-exercise-view .buddy-completed-sets{margin:3px 0 7px}
+#buddy-root .buddy-exercise-view .buddy-completed-set{
+ display:flex;align-items:center;justify-content:flex-start;
+ gap:8px;min-height:27px;padding:4px 8px;
+ font-size:11px;line-height:1.2;white-space:nowrap;
+}
+#buddy-root .buddy-completed-set > b{flex:0 0 auto;font-size:11px}
+#buddy-root .buddy-completed-summary{
+ min-width:0;display:block;white-space:nowrap;overflow:hidden;
+ text-overflow:ellipsis;font:inherit;
+}
+#buddy-root .buddy-completed-summary time{font:inherit;color:inherit}
+/* Match the ready/review exercise screen hierarchy instead of stacking
+   two large independent cards and permanently open setup/notes forms. */
+#buddy-root .buddy-completed-editor{
+ gap:5px;overflow-y:hidden!important;overscroll-behavior:none;
+}
+#buddy-root .buddy-completed-editor.buddy-needs-scroll{
+ overflow-y:auto!important;overscroll-behavior-y:contain;
+}
+#buddy-root .buddy-completed-editor .buddy-back{padding-bottom:4px}
+#buddy-root .buddy-completed-edit-title{
+ min-height:104px;margin:0 0 3px;flex-shrink:0;
+}
+#buddy-root .buddy-completed-edit-title .buddy-meta-row{margin-top:3px}
+#buddy-root .buddy-completed-edit-body{display:grid;gap:8px;min-height:0}
+#buddy-root .buddy-completed-edit-set{
+ display:grid;gap:4px;padding:5px 0 6px;
+ border:0;border-bottom:1px solid #3d5144;border-radius:0;
+ background:transparent;min-width:0;
+}
+#buddy-root .buddy-completed-edit-set-heading{
+ font-size:12px;line-height:1.2;color:#b9d4bf;
+}
+#buddy-root .buddy-completed-edit-set-heading span{font-size:11px}
+#buddy-root .buddy-completed-edit-set .buddy-set-editor{gap:8px}
+#buddy-root .buddy-completed-edit-set .buddy-number-field{gap:3px}
+#buddy-root .buddy-completed-edit-set .buddy-stepper button{height:30px}
+#buddy-root .buddy-completed-edit-set .buddy-number-field input{height:43px}
+#buddy-root .buddy-completed-edit-set .buddy-effort-wrap{margin-top:2px;gap:3px}
+#buddy-root .buddy-completed-edit-set .buddy-effort{height:42px}
+#buddy-root .buddy-completed-editor .buddy-notes-wrap{
+ flex:0 0 auto;margin:5px 0 4px;
+}
+#buddy-root .buddy-completed-editor > .buddy-a{
+ flex:0 0 auto;min-height:70px;margin-top:auto;padding:10px 18px;
+}
+#buddy-root .buddy-completed-editor .buddy-setup-editor{
+ margin:4px 0;flex-shrink:0;
+}
+#buddy-root .buddy-completed-editor .buddy-setup-editor input{font-size:18px}
+#buddy-root .buddy-screen.buddy-keyboard-editing .buddy-completed-editor{
+ overflow-y:auto!important;
+}
+@media(max-height:780px){
+ #buddy-root .buddy-completed-edit-title{min-height:90px}
+ #buddy-root .buddy-completed-edit-body{gap:5px}
+ #buddy-root .buddy-completed-edit-set .buddy-effort{height:38px}
+ #buddy-root .buddy-completed-edit-set .buddy-number-field input{height:40px}
+ #buddy-root .buddy-completed-editor > .buddy-a{min-height:64px}
+}
