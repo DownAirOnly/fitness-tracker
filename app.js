@@ -2142,7 +2142,7 @@ function bodyFatProgressChart(entries){
  const values=points.map(p=>p.value),min=Math.min(...values),max=Math.max(...values),spread=Math.max(1,max-min),pad=Math.max(.5,spread*.18),yMin=min-pad,yMax=max+pad,w=320,h=92,pX=13,pY=12;
  const first=Date.parse(points[0].date+'T12:00:00'),last=Date.parse(points.at(-1).date+'T12:00:00'),range=Math.max(1,last-first),x=date=>points.length===1?w/2:pX+(Date.parse(date+'T12:00:00')-first)/range*(w-2*pX),y=value=>h-pY-(value-yMin)/(yMax-yMin)*(h-2*pY);
  const coords=points.map(p=>({x:x(p.date),y:y(p.value),...p})),line=coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
- return '<div class="bodyfat-progress-chart"><div class="weight-chart-head"><span><small>BODY FAT</small><strong>'+fmt(points.at(-1).value)+'%</strong></span><span><small>READINGS</small><strong>'+points.length+'</strong></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Body fat percentage history">'+(coords.length>1?'<polyline class="bodyfat-line" points="'+line+'"></polyline>':'')+coords.map(p=>'<circle class="bodyfat-dot" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(points.length>60?'2.15':'3.4')+'"><title>'+niceDate(p.date)+' · '+fmt(p.value)+'% body fat</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="body-fat">+ Body fat</button><button type="button" class="text-btn" data-action="bodyfat-all">Edit readings</button></div></div>';
+ return '<div class="bodyfat-progress-chart"><div class="weight-chart-head"><span><small>BODY FAT</small><strong>'+fmt(points.at(-1).value)+'%</strong></span><span><small>READINGS</small><strong>'+points.length+'</strong></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Body fat percentage history">'+(coords.length>1?'<polyline class="bodyfat-line" points="'+line+'"></polyline>':'')+coords.map(p=>'<circle class="bodyfat-dot" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(points.length>60?'2.15':'3.4')+'"><title>'+niceDate(p.date)+' · '+fmt(p.value)+'% body fat</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="body-fat">+ Body fat</button><button type="button" class="text-btn" data-action="bodyfat-all">Edit dated entries</button></div></div>';
 }
 
 function shiftDate(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return localDate(d);}
@@ -2212,13 +2212,38 @@ function foodProgressControls(window){
  const periods=[['week','Week'],['month','Month'],['quarter','Quarter'],['year','Year']];
  return '<div class="food-period-controls"><div class="food-period-tabs" role="group" aria-label="Nutrition chart period">'+periods.map(([value,label])=>'<button type="button" data-action="food-progress-period" data-period="'+value+'" class="'+(foodProgressPeriod===value?'active':'')+'" aria-pressed="'+(foodProgressPeriod===value)+'">'+label+'</button>').join('')+'</div><div class="food-period-nav"><button type="button" data-action="food-progress-nav" data-delta="-1" aria-label="Previous '+esc(foodProgressPeriod)+'">‹</button><strong>'+esc(window.label)+'</strong><button type="button" data-action="food-progress-nav" data-delta="1" aria-label="Next '+esc(foodProgressPeriod)+'" '+(foodProgressOffset>=0?'disabled':'')+'>›</button></div>'+(foodProgressOffset!==0?'<button type="button" class="text-btn food-period-current" data-action="food-progress-current">Current '+esc(foodProgressPeriod)+'</button>':'')+'</div>';
 }
-function weightHistoryAll(){
- const weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date));
- modal('All weigh-ins','<div class="weight-all-list">'+(weights.length?weights.map(w=>'<div class="list-row"><span><strong>'+fmt(w.value)+' '+esc(data.settings.unit)+'</strong><small>'+niceDate(w.date)+' · '+w.date.slice(0,4)+' · BMI '+bmi(w.value,data.settings.heightInches,data.settings.unit)+'</small></span>'+button('Edit','edit-weight','text-btn','data-id="'+esc(w.id)+'"')+'</div>').join(''):empty('No weigh-ins yet.'))+'</div>');
+function measurementHistoryAll(){
+ const dates=[...new Set([...data.weights,...(data.bodyFat||[])].map(entry=>entry.date))].sort().reverse();
+ const rows=dates.map(date=>{
+  const weights=data.weights.filter(item=>item.date===date),
+   bodyFat=(data.bodyFat||[]).filter(item=>item.date===date);
+  const weight=weights[0],fat=bodyFat[0],extras=weights.length+bodyFat.length>2;
+  return '<div class="list-row measurement-history-row"><span><strong>'+esc(niceDate(date))+
+   '</strong><small>'+esc(date)+'</small>'+
+   '<small>Weight: '+(weight?fmt(weight.value)+' '+esc(data.settings.unit):'—')+
+   ' · Body fat: '+(fat?fmt(fat.value)+'%':'—')+'</small>'+
+   (extras?'<small>Additional same-day readings are preserved.</small>':'')+'</span>'+
+   button('Edit','edit-measurement','text-btn','data-date="'+esc(date)+'"')+'</div>';
+ }).join('');
+ modal('All measurements','<div class="measurement-history-list">'+
+  (rows||empty('No weight or body-fat measurements yet.'))+'</div>'+
+  '<div class="form-actions">'+button('+ Measurement','weight','outline')+
+   button('Close','close','outline')+'</div>');
 }
-function bodyFatHistoryAll(){
- const entries=[...(data.bodyFat||[])].sort((a,b)=>b.date.localeCompare(a.date));
- modal('All body fat readings','<div class="bodyfat-all-list">'+(entries.length?entries.map(b=>'<div class="list-row"><span><strong>'+fmt(b.value)+'%</strong><small>'+niceDate(b.date)+'</small></span>'+button('Edit','edit-body-fat','text-btn','data-id="'+esc(b.id)+'"')+'</div>').join(''):empty('No body fat readings yet.'))+'</div>');
+function weightHistoryAll(){measurementHistoryAll();}
+function bodyFatHistoryAll(){measurementHistoryAll();}
+function measurementEditForm(date){
+ const w=data.weights.find(item=>item.date===date),b=(data.bodyFat||[]).find(item=>item.date===date);
+ modal('Edit dated measurements','<form class="form" data-form="measurement-pair">'+
+  '<input type="hidden" name="originalDate" value="'+esc(date)+'">'+
+  '<div class="measurement-fields">'+
+   input('Weight ('+esc(data.settings.unit)+')','weightValue',w?.value??'','number','min="0.1" step="0.1" inputmode="decimal"')+
+   input('Body fat %','bodyFatValue',b?.value??'','number','min="0.1" max="100" step="0.1" inputmode="decimal"')+
+  '</div>'+input('Date','date',date,'date','required')+
+  '<p class="hint">Weight and body-fat remain independently recorded. Clear one field to remove only that measurement. Unchanged readings retain their original IDs and Health source details.</p>'+
+  '<div class="form-actions"><button type="submit" class="primary">Save dated entry</button>'+
+   button('Delete date','delete-measurement','danger','data-date="'+esc(date)+'"')+
+   button('Cancel','close','outline')+'</div></form>');
 }
 function progress() {
  const weeks=weeklyWeights(data.weights,data.settings.heightInches,data.settings.unit,FIXED_WEEK_START);
@@ -2232,8 +2257,8 @@ function progress() {
  const change=previous?round(latest.average-previous.average):null;
  const days=[...new Set(data.foodEntries.map(currentFoodTrackingDate))].sort().reverse().slice(0,7),foodWindow=foodProgressWindow();
  const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
- const latestCard=latest?`<div class="trend-highlight"><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div><div><strong>${latest.bmi??'—'}</strong><small>Average BMI</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>`:empty('Add a weigh-in to see weekly average weight and BMI.');
- const weekly=visibleWeeks.length?'<div class="week-list">'+visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong><small>BMI ${w.bmi??'—'}</small></span></div>`).join('')+'</div>':'';
+ const latestCard=latest?`<div class="trend-highlight"><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>`:empty('Add a weigh-in to see weekly average weight.');
+ const weekly=visibleWeeks.length?'<div class="week-list">'+visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong></span></div>`).join('')+'</div>':'';
  const weightChart=chartWeights.length?weightProgressChart(chartWeights,weights):'';
  const bodyFatChart=chartBodyFat.length?bodyFatProgressChart(chartBodyFat):'<div class="measurement-chart-actions measurement-chart-empty">'+button('+ Body fat','body-fat','outline small')+'</div>';
  return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${weightChart}${bodyFatChart}${weekly}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
@@ -3057,8 +3082,15 @@ document.addEventListener('click',async event=>{
   if(action==='weight'){weightForm();return;}
   if(action==='body-fat'){bodyFatForm();return;}
   if(action==='later'){markWeightPromptSeen(currentTrackingDate());close(true);return;}
-  if(action==='edit-weight'){weightForm(data.weights.find(x=>x.id===el.dataset.id));return;}
-  if(action==='edit-body-fat'){bodyFatForm((data.bodyFat||[]).find(x=>x.id===el.dataset.id));return;}
+  if(action==='edit-measurement'){measurementEditForm(el.dataset.date);return;}
+  if(action==='edit-weight'){const entry=data.weights.find(x=>x.id===el.dataset.id);if(entry)measurementEditForm(entry.date);return;}
+  if(action==='edit-body-fat'){const entry=(data.bodyFat||[]).find(x=>x.id===el.dataset.id);if(entry)measurementEditForm(entry.date);return;}
+  if(action==='delete-measurement'){
+   if(!confirm('Delete all saved weight and body-fat readings on '+el.dataset.date+'? This cannot be undone.'))return;
+   data.weights=data.weights.filter(x=>x.date!==el.dataset.date);
+   data.bodyFat=(data.bodyFat||[]).filter(x=>x.date!==el.dataset.date);
+   close(true);render();void persist();return;
+  }
   if(action==='food-log'){foodLog();return;}
   if(action==='food-log-today'){chosenDate=currentTrackingDate();render();foodLog();return;}
   if(action==='food-library'){foodLibrary();return;}
@@ -3485,6 +3517,28 @@ app.addEventListener('submit',async event=>{
     return;
   }
   if(form.dataset.form==='lift') {const rows=[...form.querySelectorAll('.set-row')],sets=rows.map(r=>{const difficulty=Number(r.querySelector('[name=difficulty]').value);const set={weight:Number(r.querySelector('[name=weight]').value),reps:Number(r.querySelector('[name=reps]').value)};if(Number.isInteger(difficulty)&&difficulty>=1&&difficulty<=7)set.difficulty=difficulty;return set;});if(!v.exercise.trim()||!v.date||!sets.length||sets.some(s=>!Number.isFinite(s.weight)||s.weight<0||!Number.isInteger(s.reps)||s.reps<1))return alert('Check the exercise, date, and sets.');const item=data.lifts.find(x=>x.id===v.liftId);const record={exercise:v.exercise.trim(),equipment:v.equipment||'other',date:v.date,sets,notes:v.notes.trim()};if(item){Object.assign(item,record);delete item.difficulty;}else data.lifts.push({id:id(),...record});chosenDate=v.date;close(true);render();void persist();return;}
+  if(form.dataset.form==='measurement-pair'){
+   const oldDate=v.originalDate,newDate=v.date;
+   const weightRaw=String(v.weightValue??'').trim(),fatRaw=String(v.bodyFatValue??'').trim();
+   if(!newDate||(!weightRaw&&!fatRaw))return alert('Enter at least one measurement or use Delete date.');
+   const weightValue=weightRaw?Number(weightRaw):null,fatValue=fatRaw?Number(fatRaw):null;
+   if(weightValue!==null&&(!Number.isFinite(weightValue)||weightValue<=0))return alert('Enter a positive weight.');
+   if(fatValue!==null&&(!Number.isFinite(fatValue)||fatValue<0.1||fatValue>100))return alert('Enter a body-fat percentage from 0.1 to 100.');
+   if(newDate!==oldDate&&[...data.weights,...(data.bodyFat||[])].some(entry=>entry.date===newDate))
+    return alert('Measurements already exist on the new date. Edit that date separately to avoid overwriting readings.');
+   const candidate=structuredClone(data);
+   for(const [key,value]of [['weights',weightValue],['bodyFat',fatValue]]){
+    const entries=candidate[key],item=entries.find(x=>x.date===oldDate);
+    if(value===null){if(item)entries.splice(entries.indexOf(item),1);continue;}
+    if(item){
+     if(item.value!==value||item.date!==newDate){
+      item.value=value;item.date=newDate;delete item.source;delete item.recordedAt;
+     }
+    }else entries.push({id:id(),date:newDate,value});
+   }
+   try{data=normalizeData(candidate);}catch(error){return alert(error.message);}
+   close(true);render();void persist();return;
+  }
   if(form.dataset.form==='weight') {
   const value=Number(v.value),bodyFatRaw=String(v.bodyFatValue??'').trim();
   const bodyFatValue=bodyFatRaw===''?null:Number(bodyFatRaw);
