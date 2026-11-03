@@ -1,6 +1,7 @@
 import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=108';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
 import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=108';
+import {prepareReconciliation} from './bank-reconcile.js?v=111';
 import {applyClassificationRuleProposals} from './classification-model.js?v=96';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
@@ -285,50 +286,16 @@ function financeOnlyPlan(kind,current,rows,errors=[],warnings=[],counts={}){
  };
 }
 export function prepareBankImport(text,current,options){
- const parsed=readBofaCSV(text,options),errors=[...parsed.errors],warnings=[...parsed.warnings],rows=[];
- const existing=new Map((current.transactions||[]).map(tx=>[tx.id,tx]));
- let unchanged=0,duplicates=0,crossLabelMatches=0,otherSimilarMatches=0;
- for(const item of parsed.records){
-  const {__sourceRow,...record}=item,old=existing.get(record.id);
-  if(old){
-   if(old.date!==record.date||
-       old.amountCents!==record.amountCents||old.bankDescription!==record.bankDescription||
-       old.accountLabel!==record.accountLabel||
-       (old.bankDirection&&old.bankDirection!==record.bankDirection)){
-     errors.push('Row '+__sourceRow+': bank identity matches an existing transaction but original values differ. Nothing will be imported.');
-   }else unchanged++;
-   continue;
-  }
-  // Do not rely on the editable kind: a previously corrected expense/transfer
-  // should still be recognized as similar to the original bank debit.
-  // Account labels are display metadata, not trustworthy account identifiers.
-  const similar=current.transactions.filter(tx=>{
-   if(tx.date!==record.date||tx.amountCents!==record.amountCents)return false;
-   if((tx.bankDescription||tx.description).trim().toLowerCase()!==record.bankDescription.trim().toLowerCase())return false;
-   const direction=tx.bankDirection||(tx.kind==='income'?'credit':tx.kind==='expense'?'debit':null);
-   return !direction||direction===record.bankDirection;
-  });
-  const badges=['Adds bank record'];
-  if(similar.length){
-   badges.push('Possible duplicate');duplicates++;
-   const differentLabel=similar.some(tx=>tx.bankDescription&&
-    (tx.accountLabel||'').trim().toLowerCase()!==record.accountLabel.trim().toLowerCase());
-   if(differentLabel){badges.push('Different account label');crossLabelMatches++;}
-   else otherSimilarMatches++;
-  }
-  rows.push({record,badges,sourceRow:__sourceRow});
-  existing.set(record.id,record);
- }
- if(crossLabelMatches)warnings.push(crossLabelMatches+
-  ' bank row'+(crossLabelMatches===1?' resembles':'s resemble')+
-  ' an imported transaction under a different account label. These rows are flagged but NOT automatically merged: different real accounts may contain identical purchases. Use the same account label for repeat exports of one account.');
- if(otherSimilarMatches)warnings.push(otherSimilarMatches+
-  ' row'+(otherSimilarMatches===1?' is':'s are')+
-  ' similar to an already logged transaction. Review highlighted rows before importing; similar transactions are not merged automatically.');
- const plan=financeOnlyPlan('bank',current,rows,errors,warnings,
-  {added:rows.length,unchanged,duplicates});
- plan.bankDetails=parsed.details;
- return plan;
+ const parsed=readBofaCSV(text,options);
+ return prepareReconciliation(parsed.records,current,{
+  errors:parsed.errors,warnings:parsed.warnings,details:parsed.details
+ });
+}
+export function prepareSavedBankReview(current){
+ return prepareReconciliation(current.budgetPlan?.unresolvedBankRows||[],current,{
+  warnings:['Unresolved bank rows remain stored until you match them or choose New.'],
+  filename:'Saved unresolved bank charges'
+ });
 }
 export function prepareRuleReview(current,proposals){
  const safe=proposals.filter(p=>!p.conflicts.length&&Object.keys(p.changes).length);
