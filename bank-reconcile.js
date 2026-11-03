@@ -105,13 +105,16 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
   active.push(record);
  }
  const priorUnresolved=new Set((current.budgetPlan?.unresolvedBankRows||[]).map(row=>row.id));
- const decisions={};
+ const decisions={},claimedAutoReceipts=new Set();
  for(const record of active){
   const candidates=bankReceiptCandidates(record,current.transactions);
   const strong=candidates.filter(c=>c.auto);
   if(priorUnresolved.has(record.id))decisions[record.id]={action:'defer'};
-  else if(strong.length===1)decisions[record.id]={action:'match',receiptId:strong[0].tx.id,automatic:true};
-  else if(candidates.some(c=>c.account&&c.merchant&&c.days<=10&&Math.abs(c.differenceCents)<=2000))
+  else if(strong.length===1&&!claimedAutoReceipts.has(strong[0].tx.id)){
+   claimedAutoReceipts.add(strong[0].tx.id);
+   decisions[record.id]={action:'match',receiptId:strong[0].tx.id,automatic:true};
+  }
+  else if(strong.length||candidates.some(c=>c.account&&c.merchant&&c.days<=10&&Math.abs(c.differenceCents)<=2000))
    decisions[record.id]={action:'defer'};
   else decisions[record.id]={action:'new'};
  }
