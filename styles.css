@@ -3270,3 +3270,153 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  #buddy-root .buddy-completed-edit-set .buddy-number-field input{height:40px}
  #buddy-root .buddy-completed-editor > .buddy-a{min-height:64px}
 }
+
+
+/* v106 — keep the equipment symbol in its own square immediately left
+   of the blue anatomy tile, never underneath that interactive thumbnail. */
+#buddy-root .buddy-picker-screen .exercise-muscle-wrapper > .exercise-card .equipment-art{
+ right:94px;top:50%;width:70px;height:72px;
+ transform:translateY(-50%);z-index:0;opacity:.16;
+}
+#buddy-root .buddy-picker-screen .exercise-muscle-wrapper > .exercise-card .equipment-art svg{
+ width:100%;height:100%;
+}
+#buddy-root .buddy-picker-screen .exercise-muscle-peek{
+ right:7px;width:78px;height:78px;
+}
+#buddy-root .buddy-completed-exercise-strip .exercise-card{
+ min-height:114px;
+}
+#buddy-root .buddy-completed-exercise-strip .exercise-card-summary{
+ display:block;margin-top:5px;max-width:100%;
+}
+#buddy-root .buddy-card-set-summaries{
+ display:grid;gap:3px;min-width:0;
+}
+#buddy-root .buddy-card-set-summaries > span{
+ display:block;white-space:nowrap;overflow:hidden;
+ text-overflow:ellipsis;font:600 10px/1.2 'DM Sans',sans-serif;
+ color:#b6cbb9;
+}
+@media(max-width:380px){
+ #buddy-root .buddy-picker-screen .exercise-muscle-wrapper > .exercise-card .equipment-art{
+  right:84px;width:62px;height:65px;
+ }
+ #buddy-root .buddy-picker-screen .exercise-muscle-peek{width:70px;height:70px}
+}
+/* Four clock treatments share one transient countdown. They are previews,
+   not workout history fields or new navigation destinations. */
+#buddy-root .buddy-bike{
+ display:flex;flex-direction:column;justify-content:space-between;
+ overflow:hidden;
+}
+#buddy-root .buddy-bike-content{
+ display:flex;flex-direction:column;gap:16px;
+ margin:auto 0;min-height:0;flex:0 1 auto;
+}
+#buddy-root .buddy-bike-content h1{
+ font:750 clamp(28px,7.8vw,40px)/1.08 'Outfit',sans-serif;
+ color:#e1ece4;letter-spacing:-.025em;margin:0;
+}
+#buddy-root .bike-clock-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:12px;min-height:0;
+}
+#buddy-root .bike-clock-option{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ min-width:0;min-height:141px;gap:5px;
+ border:1px solid #3a5849;border-radius:19px;
+ padding:12px 8px;background:#182b23;color:#dfede3;
+ font:inherit;cursor:pointer;
+}
+#buddy-root .bike-clock-option.is-selected{
+ background:#224234;border-color:#a5d3b5;box-shadow:inset 0 0 0 2px #a5d3b5;
+}
+#buddy-root .bike-clock-option > strong{
+ font:750 clamp(22px,6vw,29px)/1.05 'DM Sans',sans-serif;
+ font-variant-numeric:tabular-nums;
+}
+#buddy-root .bike-clock-option > small{
+ font:650 11px/1.2 'DM Sans',sans-serif;color:#9fbaa9;
+}
+#buddy-root .bike-clock-art{
+ width:58px;height:58px;position:relative;display:grid;place-items:center;
+}
+#buddy-root .bike-clock-ring{
+ position:relative;width:53px;height:53px;border-radius:50%;
+ background:conic-gradient(#8fe4b3 0deg,#366854 90deg,#203b30 90deg 360deg);
+ display:block;
+}
+#buddy-root .bike-clock-ring::after{
+ content:'';position:absolute;inset:7px;border-radius:50%;background:#172e24;
+}
+#buddy-root .bike-clock-ring i{
+ position:absolute;width:8px;height:8px;top:1px;left:calc(50% - 4px);
+ background:#e1ffeb;border-radius:50%;z-index:1;
+}
+#buddy-root .bike-clock-orbit{
+ position:relative;width:51px;height:51px;border:2px dashed #5e957a;
+ border-radius:50%;display:block;
+}
+#buddy-root .bike-clock-orbit i{
+ position:absolute;inset:-5px;border-radius:50%;
+}
+#buddy-root .bike-clock-orbit i::after{
+ content:'';position:absolute;top:-4px;left:calc(50% - 6px);
+ width:12px;height:12px;background:#9ce5bc;border-radius:50%;
+ box-shadow:0 0 12px #83d5a4;
+}
+#buddy-root .bike-clock-digital{
+ display:flex;align-items:flex-end;gap:6px;height:43px;
+}
+#buddy-root .bike-clock-digital i{
+ display:block;width:12px;height:22px;border-radius:4px;
+ background:#83cca0;
+}
+#buddy-root .bike-clock-digital i:nth-child(2){height:40px;background:#b6e4c1}
+#buddy-root .bike-clock-digital i:nth-child(3){height:29px;background:#51ac86}
+#buddy-root .bike-clock-dial{
+ position:relative;width:53px;height:53px;
+ border:2px solid #92c7a8;border-radius:50%;display:block;
+ background:repeating-conic-gradient(#739f87 0deg 2deg,transparent 2deg 30deg);
+}
+#buddy-root .bike-clock-dial::after{
+ content:'';position:absolute;inset:5px;border-radius:50%;background:#172d24;
+}
+#buddy-root .bike-clock-dial i{
+ position:absolute;z-index:1;left:calc(50% - 1.5px);bottom:50%;
+ height:19px;width:3px;border-radius:3px;background:#d8fae1;
+ transform-origin:50% 100%;
+}
+#buddy-root .bike-clock-dial b{
+ position:absolute;z-index:2;top:calc(50% - 4px);left:calc(50% - 4px);
+ width:8px;height:8px;background:#a3dcb4;border-radius:50%;
+}
+#buddy-root .bike-ui-running .bike-clock-ring{animation:bike-ring-spin 4s linear infinite}
+#buddy-root .bike-ui-running .bike-clock-orbit i{animation:bike-orbit 3s linear infinite}
+#buddy-root .bike-ui-running .bike-clock-digital i{animation:bike-digital-pulse 1s ease-in-out infinite alternate}
+#buddy-root .bike-ui-running .bike-clock-digital i:nth-child(2){animation-delay:.3s}
+#buddy-root .bike-ui-running .bike-clock-digital i:nth-child(3){animation-delay:.6s}
+#buddy-root .bike-ui-running .bike-clock-dial i{animation:bike-dial-sweep 5s linear infinite}
+@keyframes bike-ring-spin{to{transform:rotate(360deg)}}
+@keyframes bike-orbit{to{transform:rotate(360deg)}}
+@keyframes bike-digital-pulse{to{transform:scaleY(.45);opacity:.65}}
+@keyframes bike-dial-sweep{to{transform:rotate(360deg)}}
+#buddy-root .bike-clock-start{
+ width:100%;min-height:53px;border-radius:15px;border:1px solid #75ab8c;
+ background:#274e3a;color:#e9f8ed;
+ font:750 20px/1.1 'DM Sans',sans-serif;
+}
+#buddy-root .buddy-bike > .buddy-a{flex:0 0 auto;min-height:84px}
+@media(max-height:740px){
+ #buddy-root .buddy-bike-content{gap:10px}
+ #buddy-root .bike-clock-grid{gap:8px}
+ #buddy-root .bike-clock-option{min-height:113px;padding:6px}
+ #buddy-root .bike-clock-art{transform:scale(.82);margin:-5px 0}
+ #buddy-root .bike-clock-start{min-height:48px}
+ #buddy-root .buddy-bike > .buddy-a{min-height:74px}
+}
+@media(prefers-reduced-motion:reduce){
+ #buddy-root .bike-ui-running .bike-clock-art *,
+ #buddy-root .bike-ui-running .bike-clock-art{animation:none!important}
+}
