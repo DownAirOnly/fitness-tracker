@@ -1,6 +1,6 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=108';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=111';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
-import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=108';
+import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=111';
 import {prepareReconciliation} from './bank-reconcile.js?v=111';
 import {applyClassificationRuleProposals} from './classification-model.js?v=96';
 
