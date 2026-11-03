@@ -83,10 +83,15 @@ export function rebuildBankReconciliation(plan,current){
  candidate.budgetPlan.unresolvedBankRows=[...activeUnresolved.values()];
  let normalized=null;
  if(!errors.length)try{normalized=normalizeData(candidate);}catch(error){errors.push(error.message);}
- plan.bankReview={matched,needsReview,newRows};
+ const similar=new Map(plan.similarBankRows||[]);
+ for(const row of [...matched,...needsReview,...newRows]){
+  const match=similar.get(row.record.id);
+  if(match)row.badges=['Possible duplicate',...(match.differentLabel?['Different account label']:[])];
+ }
+  plan.bankReview={matched,needsReview,newRows};
  plan.groups=[{key:'transactions',label:'Bank transactions',
-  rows:[...matched.map(row=>({record:row.changed,previous:row.receipt,badges:['Matched existing purchase']})),
-   ...newRows.map(row=>({record:row.record,badges:['New bank record']}))],
+  rows:[...matched.map(row=>({record:row.changed,previous:row.receipt,badges:['Matched existing purchase',...(row.badges||[])]})),
+   ...newRows.map(row=>({record:row.record,badges:['New bank record',...(row.badges||[])]}))],
   removedRows:[],total:matched.length+newRows.length,unchangedCount:unchanged}];
  plan.errors=errors;
  plan.candidate=errors.length?null:normalized;
@@ -106,7 +111,23 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
   if(prior){existingBank(prior,record);bankUnchanged.push(record.id);continue;}
   active.push(record);
  }
- const priorUnresolved=new Set((current.budgetPlan?.unresolvedBankRows||[]).map(row=>row.id));
+ const similarBankRows=new Map();
+ for(const record of active){
+  const similar=current.transactions.filter(tx=>{
+   if((tx.postedDate||tx.date)!==record.date||tx.amountCents!==record.amountCents)return false;
+   if(clean(tx.bankDescription||tx.description)!==clean(record.bankDescription))return false;
+   const direction=tx.bankDirection||(tx.kind==='income'?'credit':tx.kind==='expense'?'debit':null);
+   return !direction||direction===record.bankDirection;
+  });
+  if(similar.length)similarBankRows.set(record.id,{
+   differentLabel:similar.some(tx=>Boolean(tx.bankDescription)&&clean(tx.accountLabel)!==clean(record.accountLabel))
+  });
+ }
+ const crossLabel=[...similarBankRows.values()].filter(r=>r.differentLabel).length;
+ const others=similarBankRows.size-crossLabel;
+ if(crossLabel)warnings.push(crossLabel+' bank row(s) resemble a transaction under a different account label. Confirm account identity; never merge automatically.');
+ if(others)warnings.push(others+' bank row(s) are similar to an already logged transaction. Review before importing.');
+  const priorUnresolved=new Set((current.budgetPlan?.unresolvedBankRows||[]).map(row=>row.id));
  const decisions={},claimedAutoReceipts=new Set();
  for(const record of active){
   const candidates=bankReceiptCandidates(record,current.transactions);
@@ -126,7 +147,7 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
   filename,source:'bank',settingChanges:[],otherChanges:[],promptChanged:false,
   promptDate:current.promptDate||'',currentPromptDate:current.promptDate||'',
   settings:structuredClone(current.settings),currentSettings:structuredClone(current.settings),
-  duplicates:0,removed:0};
+  duplicates:similarBankRows.size,similarBankRows:[...similarBankRows.entries()],removed:0};
  return rebuildBankReconciliation(plan,current);
 }
 export function bankChoose(plan,current,id,action,receiptId='',adjustmentCategory='',adjustmentNote=''){
