@@ -18,7 +18,9 @@ export function bankReceiptCandidates(bank,transactions,sort='amount',search='')
    const differenceCents=bank.amountCents-tx.amountCents;
    const account=Boolean(tx.accountLabel)&&clean(tx.accountLabel)===clean(bank.accountLabel);
    const merchant=merchantMatch(bank,tx);
-   return{tx,differenceCents,days,account,merchant,
+   const receiptMerchant=clean(tx.merchant||tx.description),bankMerchant=clean(bank.bankDescription);
+   const plausibleMerchant=merchant||(receiptMerchant.length>=4&&bankMerchant.includes(receiptMerchant));
+   return{tx,differenceCents,days,account,merchant,plausibleMerchant,
     auto:account&&merchant&&days<=7&&Math.abs(differenceCents)===0&&tx.kind==='expense'};
   }).sort((a,b)=>sort==='date'?
     a.days-b.days||Math.abs(a.differenceCents)-Math.abs(b.differenceCents):
@@ -114,7 +116,7 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
    claimedAutoReceipts.add(strong[0].tx.id);
    decisions[record.id]={action:'match',receiptId:strong[0].tx.id,automatic:true};
   }
-  else if(strong.length||candidates.some(c=>c.account&&c.merchant&&c.days<=10&&Math.abs(c.differenceCents)<=2000))
+  else if(strong.length||candidates.some(c=>c.account&&c.plausibleMerchant&&c.days<=10&&Math.abs(c.differenceCents)<=2000))
    decisions[record.id]={action:'defer'};
   else decisions[record.id]={action:'new'};
  }
