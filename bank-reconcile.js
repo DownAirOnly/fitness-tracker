@@ -116,7 +116,8 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
    claimedAutoReceipts.add(strong[0].tx.id);
    decisions[record.id]={action:'match',receiptId:strong[0].tx.id,automatic:true};
   }
-  else if(strong.length||candidates.some(c=>c.account&&c.plausibleMerchant&&c.days<=10&&Math.abs(c.differenceCents)<=2000))
+  else if(strong.length||candidates.some(c=>((c.plausibleMerchant&&c.days<=10&&Math.abs(c.differenceCents)<=2000)||
+    (c.days<=3&&c.differenceCents===0&&(!c.tx.accountLabel||c.account)))))
    decisions[record.id]={action:'defer'};
   else decisions[record.id]={action:'new'};
  }
