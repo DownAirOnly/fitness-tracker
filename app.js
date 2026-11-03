@@ -637,7 +637,8 @@ function financeRow(tx,showReview=false){
   '<span class="finance-raw-description">'+esc(tx.bankDescription)+'</span>':'';
  const category=tx.category&&tx.category.toLowerCase()!=='uncategorized'?
   '<span class="finance-row-category">'+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+'</span>':'';
- const posted=tx.postedDate?'<span class="finance-row-category">Posted '+esc(budgetDateLong(tx.postedDate))+'</span>':'';
+ const postedDate=tx.postedDate||(tx.bankDescription&&tx.purchaseDate&&tx.purchaseDate!==tx.date?tx.date:null);
+ const posted=postedDate?'<span class="finance-row-category">Posted '+esc(budgetDateLong(postedDate))+'</span>':'';
  const details=raw||category||posted?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+
   (posted?' · '+posted:'')+'</small>':'';
  const itemized=tx.items?.length?'<small class="finance-itemized">'+tx.items.map(item=>esc(item.name)+' · '+esc(item.category)+' '+budgetMoney(item.amountCents)).join(' · ')+'</small>':
