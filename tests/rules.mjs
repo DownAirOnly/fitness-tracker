@@ -47,6 +47,29 @@ try {
  await assertFails(setDoc(doc(alice,root+'manifest'),{...manifest,revision:2,extra:true}));
  await assertSucceeds(setDoc(doc(alice,root+'finances'),{...part,revision:2}));
 
+ // v112 private settings and monthly files, plus manifest migration from v2.
+ const v3Manifest={schemaVersion:3,revision:2,months:['2026-10'],
+  partVersions:{settings:2,catalog:2,routines:2,financeConfig:2,'month-2026-10':2},
+  updatedAt:serverTimestamp()};
+ await assertSucceeds(setDoc(doc(alice,root+'manifest'),v3Manifest));
+ const v3Part={schemaVersion:3,revision:2,payload:'{}',updatedAt:serverTimestamp()};
+ for(const name of ['settings','catalog','routines','financeConfig','month-2026-10'])
+  await assertSucceeds(setDoc(doc(alice,root+name),v3Part));
+ await assertFails(getDoc(doc(bob,root+'settings')));
+ await assertFails(getDoc(doc(anon,root+'month-2026-10')));
+ await assertFails(getDocs(collection(alice,'users/alice/state')));
+ await assertFails(setDoc(doc(bob,root+'month-2026-11'),v3Part));
+ await assertFails(setDoc(doc(alice,root+'month-2026-13'),v3Part));
+ await assertFails(setDoc(doc(alice,root+'other'),v3Part));
+ await assertFails(setDoc(doc(alice,root+'month-2026-10'),{...v3Part,revision:2}));
+ await assertFails(setDoc(doc(alice,root+'month-2026-10'),{...v3Part,revision:3,payload:'é'.repeat(400001)}));
+ await assertSucceeds(setDoc(doc(alice,root+'month-2026-10'),{...v3Part,revision:3}));
+ await assertFails(setDoc(doc(alice,root+'manifest'),{...v3Manifest,revision:4}));
+ await assertFails(setDoc(doc(alice,root+'manifest'),{...v3Manifest,revision:3,extra:'no'}));
+ await assertSucceeds(setDoc(doc(alice,root+'manifest'),{...v3Manifest,revision:3,
+  partVersions:{...v3Manifest.partVersions,'month-2026-10':3}}));
+ await assertFails(deleteDoc(doc(alice,root+'settings')));
+
  const token='a'.repeat(64), inbox='weightBridges/'+token;
  const sample={value:188.3,unit:'lb',date:'2026-09-25',recordedAt:'2026-09-25T00:00:00-04:00',bodyFatPercent:22.4,bodyFatDate:'2026-09-25',bodyFatRecordedAt:'2026-09-25T00:00:05-04:00'};
  await assertSucceeds(setDoc(doc(alice,inbox),{uid:'alice',sample:null}));
