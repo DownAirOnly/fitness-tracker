@@ -8,7 +8,8 @@ import {paycheckWindows,paycheckWhatIf} from './paycheck-model.js?v=111';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=111';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=111';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=111';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=112';
+import {availableMonths,exportMonth} from './account-monthly.js?v=112';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=111';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=111';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=103';
@@ -46,6 +47,23 @@ function downloadSectionBackup(section){
  const link=document.createElement('a');link.href=URL.createObjectURL(blob);
  link.download='everyday-'+section+'-'+localDate()+'.json';link.click();
  setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+}
+function downloadMonthBackup(month){
+ const file=exportMonth(data,month);
+ const blob=new Blob([JSON.stringify(file,null,2)],{type:'application/json'});
+ const link=document.createElement('a');link.href=URL.createObjectURL(blob);
+ link.download='everyday-month-'+month+'.json';link.click();
+ setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+}
+function monthExportPanel(){
+ const months=availableMonths(data).reverse();
+ return '<section class="panel spaced monthly-export-panel"><h2>Monthly backups</h2>'+
+  '<p class="body-copy">Export one calendar month of food logs, workouts, weigh-ins, body fat and purchases. Your full JSON backup still combines every month and your account settings.</p>'+
+  (months.length?'<label class="field"><span>Month</span><select data-month-export>'+
+   months.map(month=>'<option value="'+esc(month)+'">'+esc(month)+'</option>').join('')+
+   '</select></label>'+button('Export selected month','export-month','outline'):
+   '<p class="hint">No dated records yet.</p>')+
+  button('Export everything JSON','export','primary')+'</section>';
 }
 function sectionImportModal(){
  pendingImport=null;importReadToken++;
@@ -2317,7 +2335,7 @@ function storageProtectionPanel(){
 }
 function settings() {
   const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
-  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts save Nutrition, Lifting and Finances separately, each with an 800 KB limit. Keep a full backup for recovery.</p></section>`;
+  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${monthExportPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts store preferences, saved definitions and financial rules separately from dated monthly history. Each Firebase file has an 800 KB limit. Older Firestore section documents remain as migration rollback references. Keep a complete JSON backup for independent recovery.</p></section>`;
 }
 function normalizeDocumentViewport(){
  // The app shell scrolls its own main content. The document itself must remain
@@ -3170,6 +3188,11 @@ document.addEventListener('click',async event=>{
   if(action==='paste-csv'){importModal('csv','paste');return;}
   if(action==='restore'){importModal('json','file');return;}
   if(action==='paste-json'){importModal('json','paste');return;}
+  if(action==='export-month'){
+   const month=document.querySelector('[data-month-export]')?.value;
+   if(month)try{downloadMonthBackup(month);}catch(error){alert(error.message);}
+   return;
+  }
   if(action==='section-export'){if(ACCOUNT_SECTIONS.includes(el.dataset.section))downloadSectionBackup(el.dataset.section);return;}
   if(action==='section-import-open'){sectionImportModal();return;}
   if(action==='export'){downloadJsonBackup(offlineWorkspace?offlineOutputName():`everyday-backup-${localDate()}.json`,Boolean(offlineWorkspace));return;}
