@@ -579,7 +579,7 @@ function financeFields(tx=null,scope='quick'){
  const categoryOptions='<datalist id="'+catId+'">'+FINANCE_CATEGORIES.map(c=>'<option value="'+esc(c)+'"></option>').join('')+'</datalist>';
  const amount=tx?formatFinanceAmount(tx.amountCents).slice(1):'',kind=tx?.kind||'expense';
  const bankFacts=isBank?'<section class="finance-bank-facts"><strong>Original bank record · locked</strong><p>'+esc(tx.bankDescription)+'</p>'+
-   '<small>'+esc(tx.accountLabel||'Bank of America')+' · Posted '+esc(tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(tx.statementLabel||'')+'</small></section>'+
+   '<small>'+esc(tx.accountLabel||'Bank of America')+' · Posted '+esc(tx.postedDate||tx.date)+' · '+formatFinanceAmount(tx.amountCents)+' · '+esc(tx.statementLabel||'')+'</small></section>'+
    '<input type="hidden" name="amount" value="'+esc(amount)+'"><input type="hidden" name="date" value="'+esc(tx.date)+'">':'';
  const amountInput=isBank?'':'<label class="field"><span>Amount (USD)</span><span class="finance-money-input"><strong aria-hidden="true">$</strong><input type="text" name="amount" inputmode="decimal" autocomplete="off" maxlength="20" required value="'+esc(amount)+'" placeholder="0.00" aria-label="Amount in US dollars"></span></label>';
  const kindInput='<label class="field finance-kind-field"><span>Type</span><select name="kind" aria-label="Transaction type">'+FINANCE_KINDS.map(k=>'<option value="'+k+'" '+(kind===k?'selected':'')+'>'+({expense:'Expense',income:'Income',transfer:'Transfer'}[k])+'</option>').join('')+'</select></label>';
@@ -593,6 +593,13 @@ function financeFields(tx=null,scope='quick'){
   '<label class="field"><span>Category</span><input name="category" list="'+catId+'" maxlength="80" value="'+esc(tx?.category||'Uncategorized')+'" autocomplete="off"></label>'+categoryOptions+
   input('Subcategory','subcategory',tx?.subcategory||'','text','maxlength="80" placeholder="e.g. Energy drinks"')+
   input('Merchant (optional)','merchant',tx?.merchant||'','text','maxlength="160" placeholder="Store or payee"')+
+  input('Payment account','accountLabel',tx?.accountLabel||'','text','maxlength="120" placeholder="BofA Checking (optional)"')+
+  (tx?'<label class="field"><span>Scheduled bill covered by purchase</span><select name="billKey">'+
+   '<option value="">Not a scheduled bill</option>'+
+   budgetOccurrences(data.budgetPlan,budgetDateShift(tx.purchaseDate||tx.date,-45),budgetDateShift(tx.purchaseDate||tx.date,45))
+    .filter(e=>e.kind==='expense').map(e=>'<option value="'+esc(e.id+'|'+e.date)+'"'+
+     (tx.billKey===e.id+'|'+e.date?' selected':'')+'>'+esc(e.name)+' · '+esc(budgetDate(e.date))+
+     ' · '+budgetMoney(e.amountCents)+'</option>').join('')+'</select></label>':'')+
   '<label class="field finance-note"><span>Note (optional)</span><textarea name="note" rows="2" maxlength="500" placeholder="Anything useful to remember">'+esc(tx?.note||'')+'</textarea></label>'+
   '<label class="field finance-note"><span>Receipt itemization</span><textarea name="itemization" rows="3" maxlength="3000" placeholder="Example: 2 × water cases — $14.38; snack — $2.49">'+esc(tx?.itemization||'')+'</textarea></label>'+
   '</div></details>';
@@ -602,26 +609,35 @@ function financeRecordFromForm(v,existing=null){
   amountCents:parseFinanceAmount(v.amount),description:String(v.description||'').trim(),
   category:String(v.category||'').trim()||'Uncategorized',currency:'USD',source:existing?.source||'manual'};
  if(existing){
-  for(const key of ['externalId','bankDescription','accountLabel','statementLabel','bankDirection'])if(existing[key])next[key]=existing[key];
+  for(const key of ['externalId','bankDescription','accountLabel','statementLabel','bankDirection',
+   'matchedBankId','postedDate','receiptAmountCents','items','paycheckDate','adjustmentCategory','bankDifferenceNote']){
+   if(existing[key]!=null)next[key]=structuredClone(existing[key]);
+  }
   if(existing.bankDescription){
    next.date=existing.date;next.amountCents=existing.amountCents;
   }
  }
- for(const key of ['time','merchant','note','purchaseDate','subcategory','itemization']){
+ for(const key of ['time','merchant','note','purchaseDate','subcategory','itemization','accountLabel']){
+  if(key==='accountLabel'&&existing?.bankDescription)continue;
   const val=String(v[key]||'').trim();if(val)next[key]=val;
  }
+ if(existing&&v.billKey!==undefined){if(String(v.billKey).trim())next.billKey=String(v.billKey).trim();else delete next.billKey;}
+ else if(existing?.billKey)next.billKey=existing.billKey;
  if(!next.description)throw Error('Describe the transaction before saving.');
  return normalizeData({...emptyData(),transactions:[next]}).transactions[0];
 }
 // Reuse the same compact, source-preserving transaction row in Recent and History.
 function financeRow(tx,showReview=false){
- const displayDate=new Date(tx.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+ const displayDate=new Date((tx.purchaseDate||tx.date)+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
  const raw=tx.bankDescription&&tx.bankDescription.trim()!==tx.description.trim()?
   '<span class="finance-raw-description">'+esc(tx.bankDescription)+'</span>':'';
  const category=tx.category&&tx.category.toLowerCase()!=='uncategorized'?
   '<span class="finance-row-category">'+esc(tx.category)+(tx.subcategory?' / '+esc(tx.subcategory):'')+'</span>':'';
- const details=raw||category?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+'</small>':'';
- const itemized=tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
+ const posted=tx.postedDate?'<span class="finance-row-category">Posted '+esc(budgetDateLong(tx.postedDate))+'</span>':'';
+ const details=raw||category||posted?'<small class="finance-row-details">'+raw+(raw&&category?' · ':'')+category+
+  (posted?' · '+posted:'')+'</small>':'';
+ const itemized=tx.items?.length?'<small class="finance-itemized">'+tx.items.map(item=>esc(item.name)+' · '+esc(item.category)+' '+budgetMoney(item.amountCents)).join(' · ')+'</small>':
+  tx.itemization?'<small class="finance-itemized">'+esc(tx.itemization)+'</small>':'';
  const review=showReview?financeReviewFlags(tx).map(flag=>'<small class="finance-review-flag">'+(flag==='uncategorized'?'Category needed':'Check possible transfer')+'</small>').join(''):'';
  return '<div class="finance-row"><div class="finance-row-main"><small class="finance-row-date">'+esc(displayDate)+(tx.time?' · '+esc(tx.time):'')+'</small>'+
   '<strong>'+esc(tx.description)+'</strong>'+details+itemized+review+'</div>'+
@@ -633,8 +649,8 @@ function financeNewestFirst(transactions){
  return [...transactions].sort((a,b)=>(b.date+'T'+(b.time||'00:00')).localeCompare(a.date+'T'+(a.time||'00:00'))||a.id.localeCompare(b.id));
 }
 function financeRecent(){
- const all=financeNewestFirst(data.transactions||[]),needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
- return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><h2>Recent</h2></div>'+
+ const all=financeNewestFirst((data.transactions||[]).filter(tx=>tx.kind==='expense')),needReview=all.filter(tx=>financeReviewFlags(tx).length).length;
+ return '<section class="panel finance-recent"><div class="section-head finance-activity-title"><div><h2>Recent purchases</h2></div>'+
   button('Search all','finance-history-open','outline small finance-history-open')+'</div>'+
   (needReview?'<div class="finance-review-callout"><span><strong>'+needReview+' to review</strong><small>Missing categories or possible transfers</small></span>'+
    button('Review','finance-review-open','outline small')+'</div>':'')+
