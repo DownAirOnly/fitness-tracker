@@ -1,5 +1,5 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=99.7.4';
-import {sectionPayloads} from './account-sections.js?v=99.7.4';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=108';
+import {sectionPayloads} from './account-sections.js?v=108';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
