@@ -1,5 +1,5 @@
 import {JSDOM} from 'jsdom';
-import {normalizeData,localDate as todayCalendarDate} from '../data.js';
+import {normalizeData,encodeData,localDate as todayCalendarDate} from '../data.js';
 import {financeEnrichmentCSV} from '../bank-import.js';
 import {exportSection} from '../account-sections.js';
 import assert from 'node:assert/strict';
@@ -10,6 +10,13 @@ import {pathToFileURL} from 'node:url';
 const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'everyday-ui-'));
 const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
+const launchHtml=await readFile(new URL('index.html',root),'utf8');
+assert.ok(!launchHtml.includes('Loading your dashboard'),'static startup markup has no loading panel');
+const bootSource=await readFile(new URL('app.js',root),'utf8');
+assert.ok(bootSource.includes('readStartupAccountCache()'),'app reads existing device cloud copies before auth');
+assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
+assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
+
 assert.ok(stylesheet.includes('--page-bottom-gap:18px'),'all pages share Money’s 18px dock gap');
 assert.ok(stylesheet.includes('padding-bottom:var(--page-bottom-gap)'),'Home and scrolling pages reserve dock clearance within main');
 assert.ok(stylesheet.includes('main:not(:has(.home-command-center)) > :last-child'),'scrollable pages do not double the new bottom gutter');
@@ -22,10 +29,8 @@ assert.ok(stylesheet.includes('.home-metric-target small{font:inherit;margin-lef
 assert.ok(stylesheet.includes('[data-theme="dark"] .home-metric-separator'), 'Home goal maintains subdued dark-mode color');
 assert.ok(stylesheet.includes('.home-command-center > .home-metrics,'),'Home metrics reset global section margin');
 assert.ok(stylesheet.includes('.home-command-center > .home-dashboard{margin-bottom:0}'),'dashboard resets global section margin');
-const initialGear=dom.window.document.querySelector('header .home-settings svg');
-assert.ok(initialGear.querySelector('circle[cx="12"][cy="12"][r="3.25"]'),'gear center concentric with viewBox');
-const firstPaintGear=initialGear.innerHTML;
-assert.equal(dom.window.document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
+// The initial HTML shell is intentionally empty in v108; header and Home are
+// rendered synchronously by app.js, before the account provider resolves.
 assert.ok(stylesheet.includes('transform:scaleX(var(--nutrition-fill,0))'),'metric fills share the same transform percentage');
 assert.ok(stylesheet.includes('v99.7.15 — single-action Buddy CTA'),'single action style is present');
 assert.ok(stylesheet.includes('v103 — match the older pre-v99.7.15 caption-era action type'),'Buddy bottom action typography loaded');
@@ -42,17 +47,8 @@ assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition
 assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-meter>span'),'modal progress fill uses identical sizing and scale');
 
 assert.ok(stylesheet.includes('/* v99.7.13 — daily check-in: optional body-fat entry alongside weight. */'),'paired measurement inputs have mobile grid styling');
-const initialHome=dom.window.document.querySelector('.home-command-center');
-assert.ok(initialHome,'first paint uses the compact Home layout');
-assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'single Add action before JS');
-assert.equal(initialHome.querySelectorAll('.home-metric').length,2,'daily totals first');
-assert.equal(initialHome.querySelectorAll('.nutrition-total-value').length,2,'first-paint numbers use the shared metric component');
-assert.equal(initialHome.querySelectorAll('.nutrition-total-meter').length,2,'first-paint meters use the shared sizing component');
-assert.ok(stylesheet.includes('padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))'),'Home dock clearance preserved');
-assert.deepEqual([...initialHome.querySelectorAll('.home-metric-value')].map(el=>el.textContent),['— / —','— / —'],'loading skeleton shows inline current / goal');
-assert.equal(initialHome.querySelectorAll('.home-metric-sub').length,0,'obsolete left/over subtitle absent on first paint');
-assert.ok(initialHome.querySelector('.home-add-trigger').disabled);
-assert.ok(!dom.window.document.body.textContent.includes('Goals are guides, not grades'));
+assert.equal(dom.window.document.querySelector('#app')?.children.length,0,'static startup does not insert a skeleton');
+
 for(const key of ['window','document','localStorage','navigator'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
 let storagePersisted=false,persistRequests=0;
 Object.defineProperty(dom.window.navigator,'storage',{configurable:true,value:{persisted:async()=>storagePersisted,persist:async()=>{persistRequests++;storagePersisted=true;return true;},estimate:async()=>({usage:4096,quota:1024*1024})}});
@@ -82,13 +78,31 @@ const submit=async(kind,values)=>{const form=document.querySelector(`[data-form=
 globalThis.FormData=dom.window.FormData;
 try{
  await import(pathToFileURL(join(temp,'app.mjs')).href+'?v=67');await tick();await tick();
+
+// v108 first paint happens after the app module executes but before auth resolves.
+const initialGear=document.querySelector('header .home-settings svg');
+assert.ok(initialGear?.querySelector('circle[cx="12"][cy="12"][r="3.25"]'),'gear center concentric with viewBox');
+const firstPaintGear=initialGear.innerHTML;
+assert.equal(document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
+const initialHome=document.querySelector('.home-command-center');
+assert.ok(initialHome,'first app render uses the compact Home layout');
+assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'one Add action before auth');
+assert.equal(initialHome.querySelectorAll('.home-metric').length,2,'daily totals first');
+assert.equal(initialHome.querySelectorAll('.nutrition-total-value').length,2,'numbers use the shared metric component');
+assert.equal(initialHome.querySelectorAll('.nutrition-total-meter').length,2,'meters use the shared sizing component');
+assert.ok(stylesheet.includes('padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))'),'Home dock clearance preserved');
+assert.ok([...initialHome.querySelectorAll('.home-metric-value')].every(el=>/\d/.test(el.textContent)&&el.textContent!=='— / —'),'current local totals appear without a loading skeleton');
+assert.equal(initialHome.querySelectorAll('.home-metric-sub').length,0,'obsolete subtitle absent');
+assert.ok(initialHome.querySelector('.home-add-trigger').disabled,'editing waits until auth resolves');
+assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
+
  assert.equal(persistRequests,1,'startup requests persistent origin storage once');
  const {state}=await import(pathToFileURL(fixture));
  assert.ok(document.querySelector('.home-command-center'),'Home structure exists before auth finishes');
  assert.equal(document.querySelector('main').getAttribute('aria-busy'),'true');
  assert.equal(document.querySelectorAll('.home-metric').length,2,'pending Home keeps the same two metrics');
  assert.equal(document.querySelectorAll('.home-add-trigger').length,1,'pending Home has one Add action');
- assert.equal(document.querySelector('.home-metric-value').textContent,'— / —');
+ assert.notEqual(document.querySelector('.home-metric-value').textContent,'— / —','pending Home displays local data, not a loading placeholder');
  assert.ok(document.querySelector('.home-add-trigger').disabled);
  assert.ok(!document.querySelector('.home-actions,.today-card,.weight-strip'),'old duplicate cards and weight strip removed');
  assert.equal(document.querySelectorAll('main > *').length,1,'loading Home has one root, not a flex row with offline panel');
@@ -522,6 +536,13 @@ try{
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
   assert.ok(sample.data.foods.length>=7,'demo provides enough foods to test paging');
+ const colored=normalizeData(sample.data),stableRoutine=colored.workoutTemplates.find(w=>w.id==='workout-03');
+ assert.ok(stableRoutine,'original Full body slot has a stable workout ID');
+ stableRoutine.name='Full';stableRoutine.color='#aa5577';
+ const colorRoundTrip=normalizeData(encodeData(colored));
+ assert.equal(colorRoundTrip.workoutTemplates.find(w=>w.id==='workout-03').color,'#aa5577','routine color survives compact backup serialization');
+ assert.equal(colorRoundTrip.workoutTemplates.find(w=>w.id==='workout-03').name,'Full','routine rename preserves stable ID');
+
  await click('home');
  document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]').click();await tick();
  assert.equal(document.querySelectorAll('.home-recent-routines .buddy-routine-choice').length,3,'Home uses the shared colored routine cards');
@@ -721,22 +742,24 @@ try{
  await click('close');
  await click('buddy-launch');await click('buddy-start');
  assert.ok(document.querySelector('.buddy-bike-content h1')?.textContent.includes('Bike · 5 min'),'bike screen keeps only the short title');
- assert.equal(document.querySelectorAll('[data-action="buddy-bike-select"]').length,4,'four clock designs appear in a 2x2 picker');
- assert.ok(stylesheet.includes('grid-template-columns:repeat(2,minmax(0,1fr))'),'bike clocks form a two-column grid');
+ assert.equal(document.querySelectorAll('[data-action="buddy-bike-select"]').length,0,'four-way clock picker is removed');
+ assert.equal(document.querySelectorAll('.bike-dial-large').length,1,'one large centered dial is shown');
+ assert.equal(document.querySelectorAll('.bike-dial-ticks i').length,12,'dial has twelve minute marks');
+ assert.ok(document.querySelector('.bike-dial-second-hand'),'dial includes a second hand');
+ assert.ok(stylesheet.includes('width:min(74vw,340px,38dvh)'),'dial uses a large responsive size');
  assert.equal(document.querySelector('.buddy-bike .buddy-step-number'),null,'no 01 step number on bike screen');
  assert.equal(document.querySelector('.buddy-bike .eyebrow'),null,'no WARM-UP label on bike screen');
  assert.equal(document.querySelector('.buddy-bike .buddy-step p'),null,'no bike instructions on screen');
- assert.equal(document.querySelector('.buddy-bike > .buddy-a')?.textContent.trim(),'Continue','original Continue action remains with no subtitle');
+ assert.equal(document.querySelector('.buddy-bike > .buddy-a')?.textContent.trim(),'Continue','existing Continue action remains with no subtitle');
  const bikeBefore=localStorage.getItem('everyday-demo-workspace-v1');
- document.querySelector('[data-action="buddy-bike-select"][data-clock="dial"]').click();await tick();
- assert.equal(document.querySelector('.bike-style-dial')?.getAttribute('aria-pressed'),'true','dial clock can be selected');
  await click('buddy-bike-start');
- assert.equal(document.querySelector('[data-action="buddy-bike-start"]')?.textContent,'Pause','Start runs the visual-only clock');
- assert.ok(document.querySelector('.buddy-bike').classList.contains('bike-ui-running'),'clock graphics animate after Start');
- assert.equal(localStorage.getItem('everyday-demo-workspace-v1'),bikeBefore,'clock selection and Start do not persist workout fields');
+ assert.equal(document.querySelector('[data-action="buddy-bike-start"]')?.textContent,'Pause','Start runs the visual-only dial');
+ assert.ok(document.querySelector('.buddy-bike').classList.contains('bike-ui-running'),'clock begins timing after Start');
+ assert.ok(document.querySelector('.bike-dial-second-hand')?.style.transform.includes('rotate('),'hand is positioned from elapsed seconds');
+ assert.equal(localStorage.getItem('everyday-demo-workspace-v1'),bikeBefore,'Start does not persist warm-up fields');
  await click('buddy-bike-start');
- assert.equal(document.querySelector('[data-action="buddy-bike-start"]')?.textContent,'Resume','preview countdown can be paused');
- assert.equal(localStorage.getItem('everyday-demo-workspace-v1'),bikeBefore,'pause does not persist workout fields');
+ assert.equal(document.querySelector('[data-action="buddy-bike-start"]')?.textContent,'Resume','dial can pause');
+ assert.equal(localStorage.getItem('everyday-demo-workspace-v1'),bikeBefore,'Pause does not persist warm-up fields');
  await click('buddy-bike-done');
  await click('buddy-exit');await click('home');
  document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]').click();await tick();

@@ -1,6 +1,6 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=99.7.4';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=108';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=83';
-import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=96';
+import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=108';
 import {applyClassificationRuleProposals} from './classification-model.js?v=96';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};

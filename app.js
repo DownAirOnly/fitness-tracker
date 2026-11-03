@@ -1,19 +1,19 @@
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=99.7.4';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=108';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
-import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=98';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=96';
+import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=108';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=108';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=99.7.4';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=108';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=99';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=103';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=98';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=99.7.4';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=72';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=108';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=108';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=108';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -62,14 +62,35 @@ function downloadJsonBackup(filename,markWorkspace=false,sourceData=data){
 }
 
 
+// Synchronous, read-only boot snapshot. The authenticated UID is confirmed
+// before the user can edit; cloud loading later reconciles recovery/revisions.
+const STARTUP_ACCOUNT_KEY='everyday-last-account-v1';
+function readStartupAccountCache(){
+ try{
+  let uid=localStorage.getItem(STARTUP_ACCOUNT_KEY);
+  if(!uid){
+   const matches=[];
+   for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i)||'';
+    if(key.startsWith('everyday-cloud-confirmed-v1:'))matches.push(key.slice('everyday-cloud-confirmed-v1:'.length));
+   }
+   if(matches.length===1)uid=matches[0];
+  }
+  if(!uid)return null;
+  const record=readCloudRecovery(uid)||readCloudConfirmed(uid);
+  return record?{uid,record}:null;
+ }catch{return null;}
+}
+
 let deviceData=load(),offlineWorkspace=readOfflineWorkspace(),existingDemo=offlineWorkspace?null:readDemoWorkspace(),demoMode=Boolean(existingDemo);
+let startupAccountCache=offlineWorkspace||demoMode?null:readStartupAccountCache();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud saving paused':'Connecting account service…', cloudReady=false, authChecked=false;
 let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null;
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
-let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
+let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
@@ -251,7 +272,8 @@ function render() {
   modalBack=null;pendingImport=null;importReadToken++;
   if(isLoading()){
     // Recovery controls must not become flex siblings of the compact Home.
-    shell(page==='home'?home(true):'<section class="panel" role="status"><h2>Loading</h2></section>');
+    // Device-backed data is already hydrated. Do not replace it with a loading panel.
+    shell(home(false));
     if(account&&!cloudBusy){
       modal('Account unavailable','<p class="body-copy">'+esc(cloudMessage)+'</p>'+
        button('Retry','cloud-load','primary')+
@@ -340,12 +362,32 @@ function recentMuscleWorkload(){
   (e.sets?.length||0)+(e.activeSetStartedAt?1:0));
  return result;
 }
-// Shared by Workout Buddy's routine chooser and the Home recent-routines dashboard.
-// Single reusable, tone-stable routine card: chooser, Lifting history and Home.
-function routineChoiceCard({action,name,detail='',date='',id='',workout='',disabled=false}){
- const label=String(name||'Workout'),normalized=label.trim().toLowerCase();
- const tone=normalized==='upper'?'upper':normalized==='lower'?'lower':normalized==='full body'||normalized==='full-body'?'full':'other';
- return '<button type="button" class="buddy-routine-choice routine-tone-'+tone+'" data-action="'+esc(action)+'"'+
+// Routine ID is the stable identity. Name and color are editable attributes.
+const ROUTINE_PRESET_COLORS={upper:'#69B98A',lower:'#AC8ED9',full:'#C58B58'};
+function routineDefaultTone(id,name){
+ if(id==='workout-01')return 'upper';
+ if(id==='workout-02')return 'lower';
+ if(id==='workout-03')return 'full';
+ const normalized=String(name||'').trim().toLowerCase();
+ return normalized==='upper'?'upper':normalized==='lower'?'lower':['full','full body','full-body'].includes(normalized)?'full':'other';
+}
+function routineDefaultColor(id,name){return ROUTINE_PRESET_COLORS[routineDefaultTone(id,name)]||'#69B98A';}
+function routineForSession(session){
+ const routines=savedWorkouts(),matched=routines.find(r=>r.id===session?.workoutId);
+ if(matched)return matched;
+ // Older backups without a workout ID can still resolve original templates.
+ const name=String(session?.type||'').trim().toLowerCase();
+ const legacyId= name==='upper'?'workout-01':name==='lower'?'workout-02':['full body','full-body','full'].includes(name)?'workout-03':null;
+ return (legacyId&&routines.find(r=>r.id===legacyId))||routines.find(r=>r.name.toLowerCase()===name)||null;
+}
+function routineDisplay(session){const routine=routineForSession(session);return {name:routine?.name||session?.type||'Workout',color:routine?.color||'',routineId:routine?.id||session?.workoutId||''};}
+// Shared chooser / Home / Lifting history card; all colors follow routine ID.
+function routineChoiceCard({action,name,detail='',date='',id='',workout='',routineId='',color='',disabled=false}){
+ const label=String(name||'Workout'),tone=routineDefaultTone(routineId,label);
+ const validColor=/^#[0-9a-f]{6}$/i.test(color)?color:'';
+ const custom=validColor&&validColor.toLowerCase()!==routineDefaultColor(routineId,label).toLowerCase();
+ return '<button type="button" class="buddy-routine-choice routine-tone-'+(custom?'custom':tone)+'"'+
+   (custom?' style="--routine-accent:'+validColor+'"':'')+' data-action="'+esc(action)+'"'+
    (id?' data-id="'+esc(id)+'"':'')+(workout?' data-workout="'+esc(workout)+'"':'')+
    (disabled?' disabled':'')+'><span class="routine-choice-main"><strong>'+esc(label)+'</strong>'+
    (detail?'<small>'+esc(detail)+'</small>':'')+'</span><span class="routine-choice-side">'+
@@ -355,8 +397,8 @@ function routineChoiceCard({action,name,detail='',date='',id='',workout='',disab
 function recentRoutineRecoveryPanel(){
  const sessions=recentRoutineSessions().slice(0,3),map=recentMuscleWorkload();
  const rows=sessions.map(session=>{
-  const details=routineSessionCounts(session),date=routineFinishedDate(session);
-  return routineChoiceCard({action:'routine-history-detail',id:session.id,name:session.type||'Workout',
+  const details=routineSessionCounts(session),date=routineFinishedDate(session),meta=routineDisplay(session);
+  return routineChoiceCard({action:'routine-history-detail',id:session.id,name:meta.name,color:meta.color,routineId:meta.routineId,
    detail:(date?niceDate(date):'Date unavailable')+' · '+details.exercises+' exercises · '+details.sets+' sets'});
  }).join('');
  return '<section class="home-recovery-panel" aria-label="Recent completed routines and muscle training">'+
@@ -519,7 +561,7 @@ function home(loading=false) {
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Spend':view==='lifting'?'Workout':'Eat','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
-   '</nav>'+button(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger'+(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?' home-add-resume':''),loading?'disabled':homeDashboardView==='lifting'&&data.activeWorkout?'aria-label="Resume workout"':'aria-label="Add to selected dashboard"')+'</div>'+
+   '</nav>'+button(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger'+(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?' home-add-resume':''),(loading||isLoading())?'disabled':homeDashboardView==='lifting'&&data.activeWorkout?'aria-label="Resume workout"':'aria-label="Add to selected dashboard"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
 }
@@ -1309,7 +1351,7 @@ function equipmentLabel(type){return ({machine:'Machine',cable:'Cable',dumbbell:
 function equipmentGlyph(type){
  const icons={
   dumbbell:'<svg viewBox="0 0 120 72" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M37 36h46"/><path d="M30 21v30M20 26v20M90 21v30M100 26v20"/></g></svg>',
-  cable:'<svg viewBox="0 0 120 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M24 10h72v18H24z"/><circle cx="60" cy="39" r="15"/><circle cx="60" cy="39" r="5"/><path d="M45 39H32v42M75 39h13v42M32 81l-7 8m7-8 7 8M88 81l-7 8m7-8 7 8"/></g></svg>',
+  cable:'<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><circle cx="47" cy="42" r="30"/><circle cx="47" cy="42" r="21" stroke-width="3" opacity=".6"/><circle cx="47" cy="42" r="5" fill="currentColor" stroke="none"/><path d="M77 42v41m0 0c0 8-10 9-13 3" stroke-width="5"/></g></svg>',
   machine:'<svg viewBox="0 0 120 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M25 89V15h66v74"/><rect x="31" y="28" width="13" height="47" rx="3"/><path d="M66 30v24M53 54h31M57 54v28M80 54v28M51 82h35"/></g></svg>',
   bench:'<svg viewBox="0 0 120 72" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"><path d="M24 37h72M35 37l-8 25M85 37l8 25"/></g></svg>',
   calisthenics:'<svg viewBox="0 0 120 90" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"><circle cx="60" cy="18" r="8"/><path d="M60 27v27M60 36L37 48M60 36l23 12M60 54L43 78M60 54l17 24"/></g></svg>',
@@ -1414,13 +1456,14 @@ function routineDeletePrompt(routine){
 }
 
 function newRoutineEditor(name,exercises){
- workoutEditorState={id:null,isNew:true,name:nextRoutineName(name),exercises:structuredClone(exercises||[])};
+ workoutEditorState={id:null,isNew:true,name:nextRoutineName(name),color:routineDefaultColor('',name),exercises:structuredClone(exercises||[])};
  workoutTemplateForm(null,true);
 }
 
 function workoutEditorCapture(){
  const form=document.querySelector('form[data-form="workout-template"]');if(!form||!workoutEditorState)return;
  if(form.elements.workoutName)workoutEditorState.name=form.elements.workoutName.value;
+ if(form.elements.workoutColor)workoutEditorState.color=form.elements.workoutColor.value;
  [...form.querySelectorAll('[data-workout-row]')].forEach(row=>{
    const i=Number(row.dataset.workoutRow),item=workoutEditorState.exercises[i];if(!item)return;
    const min=Number(row.querySelector('[name=repMin]')?.value),max=Number(row.querySelector('[name=repMax]')?.value),sets=Number(row.querySelector('[name=targetSets]')?.value),rest=Number(row.querySelector('[name=restSeconds]')?.value);
@@ -1434,11 +1477,11 @@ function workoutEditorRow(item,i,total){
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
    const w=workoutByName(name);if(!w)return;
-   workoutEditorState={id:w.id,isNew:false,name:w.name,exercises:structuredClone(w.exercises)};
+   workoutEditorState={id:w.id,isNew:false,name:w.name,color:w.color||routineDefaultColor(w.id,w.name),exercises:structuredClone(w.exercises)};
  }
  if(!workoutEditorState)return;
  const state=workoutEditorState;
- modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<p class="hint">Change the order, rep ranges, sets and rest times. Editing a routine never changes completed workout logs.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
+ modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<label class="field routine-color-control"><span>Routine color</span><input type="color" name="workoutColor" value="${esc(state.color||routineDefaultColor(state.id,state.name))}" aria-label="Routine color"></label><p class="hint">Change the order, rep ranges, sets and rest times. Previous sets stay in workout history.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
 }
 function workoutExercisePicker(){
  if(!workoutEditorState)return;
@@ -1585,37 +1628,33 @@ function buddyExerciseMuscleStage(e){
  // warm-primary / cool-secondary anatomy mapping rather than recent workload.
  return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e.name)+'</button>';
 }
-// Bike clock previews use transient UI state only; no saved workout fields.
+// v108 — single analog clock, fully transient. Continue alone saves warm-up.
 let buddyBikeUi=null;
 function buddyBikeUiFor(s){
- if(!buddyBikeUi||buddyBikeUi.sessionId!==s.id)buddyBikeUi={sessionId:s.id,selected:'ring',remaining:300,startedAt:0,running:false,everStarted:false};
+ if(!buddyBikeUi||buddyBikeUi.sessionId!==s.id)buddyBikeUi={sessionId:s.id,remaining:300,startedAt:0,running:false,everStarted:false};
  return buddyBikeUi;
 }
 function buddyBikeSecondsLeft(ui){
- return ui.running?Math.max(0,ui.remaining-Math.floor((Date.now()-ui.startedAt)/1000)):ui.remaining;
+ return ui.running?Math.max(0,ui.remaining-(Date.now()-ui.startedAt)/1000):ui.remaining;
 }
-function buddyBikeFormat(sec){return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');}
+function buddyBikeFormat(seconds){const total=Math.ceil(Math.max(0,seconds));return Math.floor(total/60)+':'+String(total%60).padStart(2,'0');}
 function buddyBikeRefresh(){
  const ui=buddyBikeUi;if(!ui)return;
  const left=buddyBikeSecondsLeft(ui);
- if(left===0&&ui.running){ui.running=false;ui.remaining=0;}
+ if(left<=0&&ui.running){ui.running=false;ui.remaining=0;}
  const root=document.querySelector('#buddy-root .buddy-bike');if(!root)return;
- for(const face of root.querySelectorAll('[data-bike-time]'))face.textContent=buddyBikeFormat(left);
- root.style.setProperty('--bike-progress',String((300-left)/300));
+ const display=root.querySelector('[data-bike-time]');if(display)display.textContent=buddyBikeFormat(left);
+ const hand=root.querySelector('.bike-dial-second-hand');
+ // A full 360 degrees every 60 seconds, using elapsed wall-clock time.
+ if(hand)hand.style.transform='rotate('+((300-left)*6)+'deg)';
  root.classList.toggle('bike-ui-running',ui.running);
  const start=root.querySelector('[data-action="buddy-bike-start"]');
- if(start)start.textContent=ui.running?'Pause':left===0?'Restart':!ui.everStarted?'Start':'Resume';
+ if(start)start.textContent=ui.running?'Pause':left<=0?'Restart':!ui.everStarted?'Start':'Resume';
 }
 function buddyBikeClockMarkup(head,s){
  const ui=buddyBikeUiFor(s);
- const choices=[
-  ['ring','Ring','<span class="bike-clock-ring"><i></i></span>'],
-  ['orbit','Orbit','<span class="bike-clock-orbit"><i></i></span>'],
-  ['digital','Digital','<span class="bike-clock-digital"><i></i><i></i><i></i></span>'],
-  ['dial','Dial','<span class="bike-clock-dial"><i></i><b></b></span>']
- ];
- const clocks=choices.map(([id,label,art])=>'<button type="button" class="bike-clock-option bike-style-'+id+(ui.selected===id?' is-selected':'')+'" data-action="buddy-bike-select" data-clock="'+id+'" aria-pressed="'+(ui.selected===id)+'"><span class="bike-clock-art" aria-hidden="true">'+art+'</span><strong data-bike-time>'+buddyBikeFormat(buddyBikeSecondsLeft(ui))+'</strong><small>'+label+'</small></button>').join('');
- return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-bike"><div class="buddy-bike-content"><h1>Bike · 5 min</h1><div class="bike-clock-grid" role="group" aria-label="Choose an animated clock style">'+clocks+'</div><button type="button" class="bike-clock-start" data-action="buddy-bike-start">'+(ui.running?'Pause':ui.remaining===0?'Restart':!ui.everStarted?'Start':'Resume')+'</button></div><button type="button" class="buddy-a" data-action="buddy-bike-done"><b>Continue</b></button></main></div>';
+ const ticks=Array.from({length:12},(_,i)=>'<i style="--mark:'+i+'"></i>').join('');
+ return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-bike"><div class="buddy-bike-content"><h1>Bike · 5 min</h1><div class="bike-dial-large" role="img" aria-label="Warm-up clock. Second hand makes one turn every minute"><div class="bike-dial-ticks" aria-hidden="true">'+ticks+'</div><span class="bike-dial-second-hand" aria-hidden="true"></span><span class="bike-dial-hub" aria-hidden="true"></span></div><strong class="bike-dial-readout" data-bike-time>'+buddyBikeFormat(buddyBikeSecondsLeft(ui))+'</strong><button type="button" class="bike-clock-start" data-action="buddy-bike-start">'+(ui.running?'Pause':ui.remaining<=0?'Restart':!ui.everStarted?'Start':'Resume')+'</button></div><button type="button" class="buddy-a" data-action="buddy-bike-done"><b>Continue</b></button></main></div>';
 }
 
 function buddyRender(){
@@ -1727,7 +1766,7 @@ document.addEventListener('visibilitychange',()=>{
 document.querySelector('#buddy-root')?.addEventListener('touchstart',()=>{
  if(!buddyActiveField())buddyRestoreTouchOrigin();
 },{passive:true,capture:true});
-function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();if(data.activeWorkout?.phase==='bike')buddyBikeRefresh();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='bike')buddyBikeRefresh();if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},1000);}
+function buddyOpen(){document.documentElement.classList.add('buddy-active');document.body.classList.add('buddy-active');document.querySelector('#buddy-root').innerHTML=buddyRender();if(data.activeWorkout?.phase==='bike')buddyBikeRefresh();buddyRestoreTouchOrigin();buddySyncInputViewport();clearInterval(buddyTicker);buddyTicker=setInterval(()=>{const s=data.activeWorkout;if(!s)return clearInterval(buddyTicker);const elapsed=document.querySelector('[data-buddy-elapsed]');if(elapsed)elapsed.textContent=buddyClock(buddySeconds(s.startedAt));if(s.phase==='bike')buddyBikeRefresh();if(s.phase==='exercise'){const e=buddyFind(s,s.selected),live=document.querySelector('[data-buddy-live-duration]');if(live&&e?.activeSetStartedAt)live.textContent=buddyClock(buddySeconds(e.activeSetStartedAt));if(e?.restStartedAt&&!e.activeSetStartedAt&&e.sets.length<buddyTargetSets(e)){const left=Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt));const rest=document.querySelector('[data-buddy-rest]');if(rest)rest.textContent=left?buddyClock(left):'Ready';}}},data.activeWorkout?.phase==='bike'?200:1000);}
 function buddyClose(){buddyMuscleView=null;buddyMuscleGroupView=null;buddyCompletedEditor=null;document.documentElement.classList.remove('buddy-active');document.body.classList.remove('buddy-active');document.querySelector('#buddy-root').innerHTML='';clearInterval(buddyTicker);buddyTicker=null;}
 async function buddyPersist(){
  // Paint the state transition before waiting for Firebase/cloud persistence.
@@ -1743,8 +1782,8 @@ function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-c
 
 function buddyRoutinePicker(){
  const active=data.activeWorkout,choices=savedWorkouts().filter(r=>(r.exercises||[]).length>0);
- const rows=choices.map(r=>routineChoiceCard({action:active?'buddy-resume-from-picker':'buddy-start',workout:r.name,name:r.name,
-  disabled:Boolean(active&&active.type!==r.name)})).join('');
+ const rows=choices.map(r=>routineChoiceCard({action:active?'buddy-resume-from-picker':'buddy-start',workout:r.name,name:r.name,routineId:r.id,color:r.color,
+  disabled:Boolean(active&&active.workoutId!==r.id)})).join('');
  modal('Choose a routine','<div class="buddy-start-list">'+
   (active&&!choices.some(r=>r.name===active.type)?button('Resume '+esc(active.type),'buddy-resume-from-picker','primary'):'')+
   (rows||'<p class="empty">Add exercises to a routine before starting Workout Buddy.</p>')+'</div>');
@@ -1783,7 +1822,8 @@ function routineFinishedDate(s){
 }
 function routineHistoryRow(s){
  const date=routineFinishedDate(s);
- return routineChoiceCard({action:'routine-history-detail',id:s.id,name:s.type||'Workout',
+ const meta=routineDisplay(s);
+ return routineChoiceCard({action:'routine-history-detail',id:s.id,name:meta.name,routineId:meta.routineId,color:meta.color,
   date:date?niceDate(date):'Unknown date'});
 }
 function routineHistoryPanel(){
@@ -1819,7 +1859,7 @@ function routineHistoryDetail(id,fromFullHistory=false){
   '<div class="routine-history-exercise"><div class="routine-history-exercise-head"><strong>'+esc(e.name||'Exercise')+'</strong><button type="button" class="outline small" data-action="routine-history-edit-exercise" data-id="'+esc(session.id)+'" data-exercise-index="'+exerciseIndex+'" data-from-full="'+fromFullHistory+'">Edit</button></div><small>'+e.sets.length+' sets</small>'+
   e.sets.map((set,i)=>'<div class="routine-history-set"><span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+effortText(set.difficulty):'')+'</span></div>').join('')+
   (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>').join('');
- modal(session.type||'Workout','<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
+ modal(routineDisplay(session).name,'<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
  ' · '+c.exercises+' exercises · '+c.sets+' sets'+(session.savedEarly?' · Saved early':'')+'</p>'+
  (exercises||empty('No sets recorded in this session.'))+'</div>',fromFullHistory?()=>routineHistoryAll():null);
 }
@@ -2669,11 +2709,6 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-launch'){if(data.activeWorkout){buddyOpen();return;}buddyRoutinePicker();return;}
   if(action==='buddy-resume-from-picker'){close(true);buddyOpen();return;}
   if(action==='buddy-start'){close(true);void refreshStorageProtection(true);buddyStart(el.dataset.workout);buddyOpen();return;}
-  if(action==='buddy-bike-select'){
-   const s=data.activeWorkout;if(s?.phase!=='bike')return;
-   const selected=el.dataset.clock;if(!['ring','orbit','digital','dial'].includes(selected))return;
-   buddyBikeUiFor(s).selected=selected;buddyOpen();return;
-  }
   if(action==='buddy-bike-start'){
    const s=data.activeWorkout;if(s?.phase!=='bike')return;
    const ui=buddyBikeUiFor(s);
@@ -3137,8 +3172,13 @@ app.addEventListener('submit',async event=>{
       if(!def||seen.has(item.exerciseId)||!Number.isInteger(item.repMin)||!Number.isInteger(item.repMax)||item.repMin<1||item.repMax<item.repMin||item.repMax>100||!Number.isInteger(item.targetSets)||item.targetSets<1||item.targetSets>10||!Number.isInteger(item.restSeconds)||item.restSeconds<0||item.restSeconds>1800)return alert('Check the routine exercises, reps, sets and rest times.');
       seen.add(item.exerciseId);
     }
-    if(state.isNew)data.workoutTemplates.push({id:id(),name,exercises:structuredClone(state.exercises)});
-    else{const existing=data.workoutTemplates?.find(w=>w.id===state.id);if(!existing)return alert('This routine was not found.');existing.name=name;existing.exercises=structuredClone(state.exercises);}
+    const color=/^#[0-9a-f]{6}$/i.test(state.color||'')?state.color:routineDefaultColor(state.id,name);
+    if(state.isNew)data.workoutTemplates.push({id:id(),name,color,exercises:structuredClone(state.exercises)});
+    else{
+      const existing=data.workoutTemplates?.find(w=>w.id===state.id);if(!existing)return alert('This routine was not found.');
+      existing.name=name;existing.color=color;existing.exercises=structuredClone(state.exercises);
+      if(data.activeWorkout?.workoutId===existing.id)data.activeWorkout.type=name;
+    }
     workout=name;workoutEditorState=null;close(true);render();void persist();return;
   }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
@@ -3226,7 +3266,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=107',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=108',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3286,16 +3326,24 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=107');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=108');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
       cloudConfirmed=null;cloudRecovery=null;cloudRecoveryConflict=null;
+      // Never carry another account's snapshot into the new session.
+      const cached=user?(readCloudRecovery(user.uid)||readCloudConfirmed(user.uid)):null;
+      if(user){
+       try{localStorage.setItem(STARTUP_ACCOUNT_KEY,user.uid);}catch{}
+       cloudRecovery=readCloudRecovery(user.uid);
+       cloudConfirmed=readCloudConfirmed(user.uid);
+      }else{try{localStorage.removeItem(STARTUP_ACCOUNT_KEY);}catch{}}
+      startupAccountCache=cached?{uid:user.uid,record:cached}:null;
       healthState={enabled:false,status:''};healthCheckedAt=0;
       if(offlineWorkspace){data=structuredClone(offlineWorkspace.data);cloudMessage='Offline JSON workspace · cloud saving paused';render();promptWeight();return;}
       if(demoMode&&user){demoMode=false;try{localStorage.removeItem(DEMO_WORKSPACE_KEY);}catch{}}
       if(demoMode&&!user){cloudMessage='Demo mode · saved separately on this device';render();return;}
-      data=user?emptyData():structuredClone(deviceData);
+      data=user?(cached?structuredClone(cached.data):emptyData()):structuredClone(deviceData);
       if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';render();promptWeight();}
     });
     cloudReady=true;render();if(!offlineWorkspace&&!demoMode)void syncHealth();

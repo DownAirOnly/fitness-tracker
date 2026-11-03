@@ -1,4 +1,4 @@
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=99.7.4';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=108';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=98';
 
@@ -49,7 +49,7 @@ export const templateExercises = {
     {exerciseId:'exercise-machine-calf-extension',repMin:10,repMax:16,targetSets:2,restSeconds:90}
   ]
 };
-export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,exercises:structuredClone(exercises)}));
+export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,color:['#69B98A','#AC8ED9','#C58B58'][index]||'#69B98A',exercises:structuredClone(exercises)}));
 export const emptyData = () => ({version: 1, settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -270,7 +270,7 @@ export function normalizeData(input) {
     data.workoutTemplates=input.workoutTemplates.map(w=>{
       if(!w||typeof w.id!=='string'||!w.id.trim()||typeof w.name!=='string'||!w.name.trim()||!Array.isArray(w.exercises)||w.exercises.length>100)throw new Error('Backup has an invalid workout template.');
       const fallback=fallbackWorkouts.get(w.name);
-      return{id:w.id,name:w.name,exercises:w.exercises.map((e,index)=>{
+      return{id:w.id,name:w.name,...(/^#[0-9a-f]{6}$/i.test(w.color||'')?{color:w.color}:{}),exercises:w.exercises.map((e,index)=>{
         const fallbackItem=fallback?.exercises?.[index];
         let exerciseId=typeof e?.exerciseId==='string'?e.exerciseId:'';
         if(idAliases.has(exerciseId))exerciseId=idAliases.get(exerciseId);

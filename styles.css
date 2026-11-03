@@ -3500,3 +3500,83 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  .buddy-routine-choice .routine-choice-side time{font-size:11px}
  .buddy-routine-choice .routine-choice-main strong{font-size:20px}
 }
+
+
+/* v108 — one large true analog dial. The hand tracks wall-clock elapsed
+   seconds, not a five-second looping decorative animation. */
+#buddy-root .buddy-bike-content{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:18px;width:100%;margin:auto 0;
+}
+#buddy-root .buddy-bike-content h1{
+ align-self:flex-start;margin:0 0 10px;
+}
+#buddy-root .bike-dial-large{
+ position:relative;display:block;flex:0 0 auto;
+ width:min(74vw,340px,38dvh);height:auto;aspect-ratio:1;
+ border:5px solid #8fc7a4;border-radius:50%;
+ background:radial-gradient(circle at 50% 50%,#234536 0%,#142a21 72%);
+ box-shadow:inset 0 0 0 8px #19372a,0 6px 30px #0005;
+}
+#buddy-root .bike-dial-large::before{
+ content:'';position:absolute;inset:13%;border:1px solid #446c56;
+ border-radius:50%;
+}
+#buddy-root .bike-dial-ticks{
+ position:absolute;inset:0;border-radius:50%;
+}
+#buddy-root .bike-dial-ticks i{
+ position:absolute;inset:0;transform:rotate(calc(var(--mark)*30deg));
+}
+#buddy-root .bike-dial-ticks i::after{
+ content:'';position:absolute;top:11px;left:calc(50% - 2px);
+ width:4px;height:19px;background:#abdabe;border-radius:2px;
+}
+#buddy-root .bike-dial-second-hand{
+ position:absolute;bottom:50%;left:calc(50% - 2px);
+ width:4px;height:39%;border-radius:5px;
+ background:#e4f8e8;box-shadow:0 0 9px #a3dfb3aa;
+ transform-origin:center bottom;
+ transition:transform .2s linear;
+}
+#buddy-root .bike-dial-hub{
+ position:absolute;left:calc(50% - 9px);top:calc(50% - 9px);
+ width:18px;height:18px;border-radius:50%;
+ background:#b0e5bf;border:4px solid #244939;
+}
+#buddy-root .bike-dial-readout{
+ font:750 clamp(38px,9vw,52px)/1 'DM Sans',sans-serif;
+ font-variant-numeric:tabular-nums;color:#eaf7ed;
+}
+#buddy-root .bike-clock-start{
+ width:min(100%,340px);flex:0 0 auto;
+}
+#buddy-root .buddy-bike > .buddy-a{width:100%;align-self:stretch}
+@media(max-height:740px){
+ #buddy-root .bike-dial-large{width:min(63vw,260px,32dvh)}
+ #buddy-root .buddy-bike-content{gap:10px}
+ #buddy-root .buddy-bike-content h1{margin-bottom:0}
+}
+@media(prefers-reduced-motion:reduce){
+ #buddy-root .bike-dial-second-hand{transition:none}
+}
+/* Routine cards now resolve stable IDs. Custom colors are persisted on the
+   template; the fixed preset tones retain their previous appearances. */
+.buddy-routine-choice.routine-tone-custom{
+ background:color-mix(in srgb,var(--routine-accent) 28%,#ecf3ed);
+ border-color:color-mix(in srgb,var(--routine-accent) 60%,#a0b4a5);
+ color:#163226;
+}
+[data-theme="dark"] .buddy-routine-choice.routine-tone-custom{
+ background:color-mix(in srgb,var(--routine-accent) 29%,#18271f);
+ border-color:color-mix(in srgb,var(--routine-accent) 48%,#365042);
+ color:#ecf3ea;
+}
+.routine-color-control{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.routine-color-control input[type=color]{
+ display:block;flex:0 0 86px;width:86px;height:46px;
+ border:1px solid #58725e;border-radius:12px;padding:4px;
+ background:transparent;cursor:pointer;
+}
