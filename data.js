@@ -52,6 +52,15 @@ export const templateExercises = {
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,color:['#69B98A','#AC8ED9','#C58B58'][index]||'#69B98A',exercises:structuredClone(exercises)}));
 export const defaultPreferences=()=>({homeDashboard:'nutrition',homeFoodIds:null,theme:'system',legacyImported:false});
 export const emptyData = () => ({version: 1, preferences:defaultPreferences(), settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+// A Finance reset only changes finance-owned state. Other tabs and account
+// preferences must remain byte-for-byte identical in the candidate notebook.
+export function resetFinanceData(current){
+ const next=structuredClone(current);
+ next.transactions=[];
+ next.classificationRules=[];
+ next.budgetPlan=emptyBudgetPlan();
+ return next;
+}
 export const id = () => globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
 export const localDate = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 export const trackingDate = (date = new Date(), resetMinutes = 360) => { const d=new Date(date), minutes=d.getHours()*60+d.getMinutes(); if(minutes<resetMinutes)d.setDate(d.getDate()-1); return localDate(d); };
