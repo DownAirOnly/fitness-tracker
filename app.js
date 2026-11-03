@@ -3610,6 +3610,8 @@ function expandImportGroup(el){
 function bankPreviewRecord(row,group){
  const bank=row.record,selected=group==='matched'?row.receipt:null;
  const candidates=bankReceiptCandidates(bank,data.transactions,bankCandidateSort,bankCandidateSearch).slice(0,30);
+ const suggested=group==='review'?candidates[0]?.tx:null,compared=selected||suggested;
+ const difference=compared?bank.amountCents-compared.amountCents:0;
  const candidatesHtml=candidates.length?candidates.map(c=>
   '<div class="bank-candidate"><span><strong>'+esc(c.tx.merchant||c.tx.description)+'</strong>'+
   '<small>Account '+esc(c.tx.accountLabel||'unspecified')+' · Purchased '+esc(budgetDateLong(c.tx.purchaseDate||c.tx.date))+
@@ -3618,17 +3620,25 @@ function bankPreviewRecord(row,group){
    budgetMoney(Math.abs(c.differenceCents))+' · '+c.days+' day'+(c.days===1?'':'s')+' apart</small></span>'+
   button('Match','bank-match-select','outline small','data-id="'+esc(bank.id)+'" data-receipt="'+esc(c.tx.id)+'"')+'</div>').join(''):
   '<p class="hint">No matching search results. Try another merchant search or clear the filter.</p>';
- return '<div class="bank-review-row"><div class="bank-review-bank"><strong>'+esc(bank.bankDescription)+'</strong>'+
-  '<small>Bank · '+esc(bank.accountLabel)+' · Posted '+esc(budgetDateLong(bank.date))+'</small>'+
-  '<b>'+budgetMoney(bank.amountCents)+'</b></div>'+
-  (selected?'<div class="bank-review-receipt"><strong>Matched to '+esc(selected.merchant||selected.description)+'</strong>'+
-  '<small>Account '+esc(selected.accountLabel||'unspecified')+' · Purchased '+esc(budgetDateLong(selected.purchaseDate||selected.date))+
-  ' · Posted '+esc(budgetDateLong(bank.date))+'</small><b>Receipt '+budgetMoney(selected.amountCents)+
-  ' · Difference '+(row.differenceCents>=0?'+':'−')+budgetMoney(Math.abs(row.differenceCents))+'</b>'+
-  (row.automatic?'<small>Suggested exact match · check before confirming</small>':'')+'</div>':'')+
-  '<div class="bank-review-actions">'+button('Import separately','bank-choice-new','outline small','data-id="'+esc(bank.id)+'"')+
-  button('Leave unresolved','bank-choice-defer','outline small','data-id="'+esc(bank.id)+'"')+'</div>'+
-  '<details class="bank-candidate-details"><summary>Choose a receipt / change match</summary>'+
+ return '<div class="bank-review-row">'+
+  '<div class="bank-review-pair"><div class="bank-review-bank"><small>Bank charge</small><strong>'+
+  esc(bank.bankDescription)+'</strong><small>Account '+esc(bank.accountLabel)+' · Posted '+
+  esc(budgetDateLong(bank.date))+'</small><b>'+budgetMoney(bank.amountCents)+'</b>'+
+  (row.badges?.length?'<small>'+esc(row.badges.join(' · '))+'</small>':'')+'</div>'+
+  (compared?'<div class="bank-review-receipt"><small>'+(selected?'Matched receipt':'Possible receipt · not yet linked')+
+   '</small><strong>'+esc(compared.merchant||compared.description)+'</strong>'+
+   '<small>Account '+esc(compared.accountLabel||'unspecified')+' · Purchased '+
+   esc(budgetDateLong(compared.purchaseDate||compared.date))+
+   (compared.postedDate?' · Posted '+esc(budgetDateLong(compared.postedDate)):' · Not posted')+'</small>'+
+   '<b>Receipt '+budgetMoney(compared.amountCents)+'</b>'+
+   '<small>Difference '+(difference>=0?'+':'−')+budgetMoney(Math.abs(difference))+'</small>'+
+   (selected&&row.automatic?'<small>Automatic suggestion · verify before confirming</small>':'')+
+   (suggested?button('Match this receipt','bank-match-select','outline small',
+    'data-id="'+esc(bank.id)+'" data-receipt="'+esc(suggested.id)+'"'):'')+'</div>':'')+
+   '</div>'+
+   '<div class="bank-review-actions">'+button('Import separately','bank-choice-new','outline small','data-id="'+esc(bank.id)+'"')+
+   button('Leave unresolved','bank-choice-defer','outline small','data-id="'+esc(bank.id)+'"')+'</div>'+
+   '<details class="bank-candidate-details"><summary>All candidates · choose or override</summary>'+
    '<div class="bank-candidate-list">'+candidatesHtml+'</div></details></div>';
 }
 function bankReviewMarkup(plan){
