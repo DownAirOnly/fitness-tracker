@@ -3707,6 +3707,11 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
 .money-unresolved strong{font-size:12px}
 .bank-review-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 16px}
 .bank-review-row{padding:13px 0;border-bottom:1px solid #dce7dc;display:grid;gap:10px}
+.bank-review-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:stretch}
+.bank-review-pair>:only-child{grid-column:span 2}
+.bank-review-pair :is(.bank-review-bank,.bank-review-receipt){min-width:0;padding:10px 8px;overflow-wrap:anywhere}
+.bank-review-pair :is(.bank-review-bank,.bank-review-receipt) button{font-size:10px;white-space:normal;padding:7px}
+
 .bank-review-bank,.bank-review-receipt{display:grid;gap:4px;min-width:0;background:#eff3eb;padding:12px;border-radius:12px}
 .bank-review-bank strong,.bank-review-receipt strong{font-size:12px;overflow-wrap:anywhere}
 .bank-review-bank small,.bank-review-receipt small{font-size:10px;line-height:1.45;color:#65776a}
