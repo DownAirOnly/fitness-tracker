@@ -91,7 +91,7 @@ assert.equal(initialHome.querySelectorAll('.home-metric').length,2,'daily totals
 assert.equal(initialHome.querySelectorAll('.nutrition-total-value').length,2,'numbers use the shared metric component');
 assert.equal(initialHome.querySelectorAll('.nutrition-total-meter').length,2,'meters use the shared sizing component');
 assert.ok(stylesheet.includes('padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))'),'Home dock clearance preserved');
-assert.ok([...initialHome.querySelectorAll('.home-metric-value')].every(el=>/\\d/.test(el.textContent)&&el.textContent!=='— / —'),'current local totals appear without a loading skeleton');
+assert.ok([...initialHome.querySelectorAll('.home-metric-value')].every(el=>/\d/.test(el.textContent)&&el.textContent!=='— / —'),'current local totals appear without a loading skeleton');
 assert.equal(initialHome.querySelectorAll('.home-metric-sub').length,0,'obsolete subtitle absent');
 assert.ok(initialHome.querySelector('.home-add-trigger').disabled,'editing waits until auth resolves');
 assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
