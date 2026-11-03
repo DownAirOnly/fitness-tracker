@@ -340,12 +340,32 @@ function recentMuscleWorkload(){
   (e.sets?.length||0)+(e.activeSetStartedAt?1:0));
  return result;
 }
-// Shared by Workout Buddy's routine chooser and the Home recent-routines dashboard.
-// Single reusable, tone-stable routine card: chooser, Lifting history and Home.
-function routineChoiceCard({action,name,detail='',date='',id='',workout='',disabled=false}){
- const label=String(name||'Workout'),normalized=label.trim().toLowerCase();
- const tone=normalized==='upper'?'upper':normalized==='lower'?'lower':normalized==='full body'||normalized==='full-body'?'full':'other';
- return '<button type="button" class="buddy-routine-choice routine-tone-'+tone+'" data-action="'+esc(action)+'"'+
+// Routine ID is the stable identity. Name and color are editable attributes.
+const ROUTINE_PRESET_COLORS={upper:'#69B98A',lower:'#AC8ED9',full:'#C58B58'};
+function routineDefaultTone(id,name){
+ if(id==='workout-01')return 'upper';
+ if(id==='workout-02')return 'lower';
+ if(id==='workout-03')return 'full';
+ const normalized=String(name||'').trim().toLowerCase();
+ return normalized==='upper'?'upper':normalized==='lower'?'lower':['full','full body','full-body'].includes(normalized)?'full':'other';
+}
+function routineDefaultColor(id,name){return ROUTINE_PRESET_COLORS[routineDefaultTone(id,name)]||'#69B98A';}
+function routineForSession(session){
+ const routines=savedWorkouts(),matched=routines.find(r=>r.id===session?.workoutId);
+ if(matched)return matched;
+ // Older backups without a workout ID can still resolve original templates.
+ const name=String(session?.type||'').trim().toLowerCase();
+ const legacyId= name==='upper'?'workout-01':name==='lower'?'workout-02':['full body','full-body','full'].includes(name)?'workout-03':null;
+ return (legacyId&&routines.find(r=>r.id===legacyId))||routines.find(r=>r.name.toLowerCase()===name)||null;
+}
+function routineDisplay(session){const routine=routineForSession(session);return {name:routine?.name||session?.type||'Workout',color:routine?.color||'',routineId:routine?.id||session?.workoutId||''};}
+// Shared chooser / Home / Lifting history card; all colors follow routine ID.
+function routineChoiceCard({action,name,detail='',date='',id='',workout='',routineId='',color='',disabled=false}){
+ const label=String(name||'Workout'),tone=routineDefaultTone(routineId,label);
+ const validColor=/^#[0-9a-f]{6}$/i.test(color)?color:'';
+ const custom=validColor&&validColor.toLowerCase()!==routineDefaultColor(routineId,label).toLowerCase();
+ return '<button type="button" class="buddy-routine-choice routine-tone-'+(custom?'custom':tone)+'"'+
+   (custom?' style="--routine-accent:'+validColor+'"':'')+' data-action="'+esc(action)+'"'+
    (id?' data-id="'+esc(id)+'"':'')+(workout?' data-workout="'+esc(workout)+'"':'')+
    (disabled?' disabled':'')+'><span class="routine-choice-main"><strong>'+esc(label)+'</strong>'+
    (detail?'<small>'+esc(detail)+'</small>':'')+'</span><span class="routine-choice-side">'+
@@ -355,8 +375,8 @@ function routineChoiceCard({action,name,detail='',date='',id='',workout='',disab
 function recentRoutineRecoveryPanel(){
  const sessions=recentRoutineSessions().slice(0,3),map=recentMuscleWorkload();
  const rows=sessions.map(session=>{
-  const details=routineSessionCounts(session),date=routineFinishedDate(session);
-  return routineChoiceCard({action:'routine-history-detail',id:session.id,name:session.type||'Workout',
+  const details=routineSessionCounts(session),date=routineFinishedDate(session),meta=routineDisplay(session);
+  return routineChoiceCard({action:'routine-history-detail',id:session.id,name:meta.name,color:meta.color,routineId:meta.routineId,
    detail:(date?niceDate(date):'Date unavailable')+' · '+details.exercises+' exercises · '+details.sets+' sets'});
  }).join('');
  return '<section class="home-recovery-panel" aria-label="Recent completed routines and muscle training">'+
@@ -1414,13 +1434,14 @@ function routineDeletePrompt(routine){
 }
 
 function newRoutineEditor(name,exercises){
- workoutEditorState={id:null,isNew:true,name:nextRoutineName(name),exercises:structuredClone(exercises||[])};
+ workoutEditorState={id:null,isNew:true,name:nextRoutineName(name),color:routineDefaultColor('',name),exercises:structuredClone(exercises||[])};
  workoutTemplateForm(null,true);
 }
 
 function workoutEditorCapture(){
  const form=document.querySelector('form[data-form="workout-template"]');if(!form||!workoutEditorState)return;
  if(form.elements.workoutName)workoutEditorState.name=form.elements.workoutName.value;
+ if(form.elements.workoutColor)workoutEditorState.color=form.elements.workoutColor.value;
  [...form.querySelectorAll('[data-workout-row]')].forEach(row=>{
    const i=Number(row.dataset.workoutRow),item=workoutEditorState.exercises[i];if(!item)return;
    const min=Number(row.querySelector('[name=repMin]')?.value),max=Number(row.querySelector('[name=repMax]')?.value),sets=Number(row.querySelector('[name=targetSets]')?.value),rest=Number(row.querySelector('[name=restSeconds]')?.value);
@@ -1434,11 +1455,11 @@ function workoutEditorRow(item,i,total){
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
    const w=workoutByName(name);if(!w)return;
-   workoutEditorState={id:w.id,isNew:false,name:w.name,exercises:structuredClone(w.exercises)};
+   workoutEditorState={id:w.id,isNew:false,name:w.name,color:w.color||routineDefaultColor(w.id,w.name),exercises:structuredClone(w.exercises)};
  }
  if(!workoutEditorState)return;
  const state=workoutEditorState;
- modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<p class="hint">Change the order, rep ranges, sets and rest times. Editing a routine never changes completed workout logs.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
+ modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<label class="field routine-color-control"><span>Routine color</span><input type="color" name="workoutColor" value="${esc(state.color||routineDefaultColor(state.id,state.name))}" aria-label="Routine color"></label><p class="hint">Change the order, rep ranges, sets and rest times. Previous sets stay in workout history.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
 }
 function workoutExercisePicker(){
  if(!workoutEditorState)return;
@@ -1743,8 +1764,8 @@ function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-c
 
 function buddyRoutinePicker(){
  const active=data.activeWorkout,choices=savedWorkouts().filter(r=>(r.exercises||[]).length>0);
- const rows=choices.map(r=>routineChoiceCard({action:active?'buddy-resume-from-picker':'buddy-start',workout:r.name,name:r.name,
-  disabled:Boolean(active&&active.type!==r.name)})).join('');
+ const rows=choices.map(r=>routineChoiceCard({action:active?'buddy-resume-from-picker':'buddy-start',workout:r.name,name:r.name,routineId:r.id,color:r.color,
+  disabled:Boolean(active&&active.workoutId!==r.id)})).join('');
  modal('Choose a routine','<div class="buddy-start-list">'+
   (active&&!choices.some(r=>r.name===active.type)?button('Resume '+esc(active.type),'buddy-resume-from-picker','primary'):'')+
   (rows||'<p class="empty">Add exercises to a routine before starting Workout Buddy.</p>')+'</div>');
@@ -1783,7 +1804,8 @@ function routineFinishedDate(s){
 }
 function routineHistoryRow(s){
  const date=routineFinishedDate(s);
- return routineChoiceCard({action:'routine-history-detail',id:s.id,name:s.type||'Workout',
+ const meta=routineDisplay(s);
+ return routineChoiceCard({action:'routine-history-detail',id:s.id,name:meta.name,routineId:meta.routineId,color:meta.color,
   date:date?niceDate(date):'Unknown date'});
 }
 function routineHistoryPanel(){
@@ -1819,7 +1841,7 @@ function routineHistoryDetail(id,fromFullHistory=false){
   '<div class="routine-history-exercise"><div class="routine-history-exercise-head"><strong>'+esc(e.name||'Exercise')+'</strong><button type="button" class="outline small" data-action="routine-history-edit-exercise" data-id="'+esc(session.id)+'" data-exercise-index="'+exerciseIndex+'" data-from-full="'+fromFullHistory+'">Edit</button></div><small>'+e.sets.length+' sets</small>'+
   e.sets.map((set,i)=>'<div class="routine-history-set"><span>Set '+(i+1)+' · '+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+effortText(set.difficulty):'')+'</span></div>').join('')+
   (e.notes?'<p>'+esc(e.notes)+'</p>':'')+'</div>').join('');
- modal(session.type||'Workout','<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
+ modal(routineDisplay(session).name,'<div class="routine-history-details"><p class="body-copy">'+(routineFinishedDate(session)?niceDate(routineFinishedDate(session)):'Unknown date')+
  ' · '+c.exercises+' exercises · '+c.sets+' sets'+(session.savedEarly?' · Saved early':'')+'</p>'+
  (exercises||empty('No sets recorded in this session.'))+'</div>',fromFullHistory?()=>routineHistoryAll():null);
 }
@@ -3137,8 +3159,13 @@ app.addEventListener('submit',async event=>{
       if(!def||seen.has(item.exerciseId)||!Number.isInteger(item.repMin)||!Number.isInteger(item.repMax)||item.repMin<1||item.repMax<item.repMin||item.repMax>100||!Number.isInteger(item.targetSets)||item.targetSets<1||item.targetSets>10||!Number.isInteger(item.restSeconds)||item.restSeconds<0||item.restSeconds>1800)return alert('Check the routine exercises, reps, sets and rest times.');
       seen.add(item.exerciseId);
     }
-    if(state.isNew)data.workoutTemplates.push({id:id(),name,exercises:structuredClone(state.exercises)});
-    else{const existing=data.workoutTemplates?.find(w=>w.id===state.id);if(!existing)return alert('This routine was not found.');existing.name=name;existing.exercises=structuredClone(state.exercises);}
+    const color=/^#[0-9a-f]{6}$/i.test(state.color||'')?state.color:routineDefaultColor(state.id,name);
+    if(state.isNew)data.workoutTemplates.push({id:id(),name,color,exercises:structuredClone(state.exercises)});
+    else{
+      const existing=data.workoutTemplates?.find(w=>w.id===state.id);if(!existing)return alert('This routine was not found.');
+      existing.name=name;existing.color=color;existing.exercises=structuredClone(state.exercises);
+      if(data.activeWorkout?.workoutId===existing.id)data.activeWorkout.type=name;
+    }
     workout=name;workoutEditorState=null;close(true);render();void persist();return;
   }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
