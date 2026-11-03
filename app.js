@@ -561,7 +561,7 @@ function home(loading=false) {
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
     HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Spend':view==='lifting'?'Workout':'Eat','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
-   '</nav>'+button(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger'+(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?' home-add-resume':''),loading?'disabled':homeDashboardView==='lifting'&&data.activeWorkout?'aria-label="Resume workout"':'aria-label="Add to selected dashboard"')+'</div>'+
+   '</nav>'+button(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger'+(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?' home-add-resume':''),(loading||isLoading())?'disabled':homeDashboardView==='lifting'&&data.activeWorkout?'aria-label="Resume workout"':'aria-label="Add to selected dashboard"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
 }
