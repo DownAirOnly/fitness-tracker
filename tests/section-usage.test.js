@@ -20,8 +20,8 @@ test('reported Firestore usage equals the exact UTF-8 bytes of each uploaded sec
 });
 test('large combined accounts are allowed, but one oversized Unicode section is rejected',()=>{
  const data=emptyData();
- for(let i=0;i<5200;i++)data.foodEntries.push({id:'meal-'+i,date:'2026-'+String(Math.floor(i/500)+1).padStart(2,'0')+'-29',name:'Yogurt serving '+i+' '+('s'.repeat(18)),calories:100,protein:10,quantity:1});
- for(let i=0;i<3800;i++)data.transactions.push({id:'bank-'+i,date:'2026-'+String(Math.floor(i/350)+1).padStart(2,'0')+'-29',kind:'expense',amountCents:719,description:'Groceries purchase '+i+' '+('z'.repeat(25)),category:'Groceries'});
+ for(let i=0;i<5200;i++)data.foodEntries.push({id:'meal-'+i,date:'2026-'+String(Math.floor(i/500)+1).padStart(2,'0')+'-15',name:'Yogurt serving '+i+' '+('s'.repeat(18)),calories:100,protein:10,quantity:1});
+ for(let i=0;i<3800;i++)data.transactions.push({id:'bank-'+i,date:'2026-'+String(Math.floor(i/350)+1).padStart(2,'0')+'-15',kind:'expense',amountCents:719,description:'Groceries purchase '+i+' '+('z'.repeat(25)),category:'Groceries'});
  const usage=accountSectionUsage(data);
  assert.ok(Object.values(usage.sections).every(file=>file.bytes<MAX_CLOUD_BYTES));
  assert.equal(usage.months.length,11);
