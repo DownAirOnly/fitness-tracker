@@ -341,11 +341,17 @@ function recentMuscleWorkload(){
  return result;
 }
 // Shared by Workout Buddy's routine chooser and the Home recent-routines dashboard.
-function routineChoiceCard({action,name,detail,id='',workout='',disabled=false}){
- return '<button type="button" class="buddy-routine-choice" data-action="'+esc(action)+'"'+
+// Single reusable, tone-stable routine card: chooser, Lifting history and Home.
+function routineChoiceCard({action,name,detail='',date='',id='',workout='',disabled=false}){
+ const label=String(name||'Workout'),normalized=label.trim().toLowerCase();
+ const tone=normalized==='upper'?'upper':normalized==='lower'?'lower':normalized==='full body'||normalized==='full-body'?'full':'other';
+ return '<button type="button" class="buddy-routine-choice routine-tone-'+tone+'" data-action="'+esc(action)+'"'+
    (id?' data-id="'+esc(id)+'"':'')+(workout?' data-workout="'+esc(workout)+'"':'')+
-   (disabled?' disabled':'')+'><span><strong>'+esc(name)+'</strong><small>'+esc(detail)+'</small></span><b aria-hidden="true">›</b></button>';
+   (disabled?' disabled':'')+'><span class="routine-choice-main"><strong>'+esc(label)+'</strong>'+
+   (detail?'<small>'+esc(detail)+'</small>':'')+'</span><span class="routine-choice-side">'+
+   (date?'<time>'+esc(date)+'</time>':'')+'<b aria-hidden="true">›</b></span></button>';
 }
+
 function recentRoutineRecoveryPanel(){
  const sessions=recentRoutineSessions().slice(0,3),map=recentMuscleWorkload();
  const rows=sessions.map(session=>{
@@ -1738,7 +1744,6 @@ function buddyDeletePrompt(){modal('Delete workout?',`<div class="buddy-delete-c
 function buddyRoutinePicker(){
  const active=data.activeWorkout,choices=savedWorkouts().filter(r=>(r.exercises||[]).length>0);
  const rows=choices.map(r=>routineChoiceCard({action:active?'buddy-resume-from-picker':'buddy-start',workout:r.name,name:r.name,
-  detail:r.exercises.length+' exercises'+(active&&active.type===r.name?' · Resume active workout':active?' · Finish current workout first':' · Bike warm-up first'),
   disabled:Boolean(active&&active.type!==r.name)})).join('');
  modal('Choose a routine','<div class="buddy-start-list">'+
   (active&&!choices.some(r=>r.name===active.type)?button('Resume '+esc(active.type),'buddy-resume-from-picker','primary'):'')+
@@ -1777,9 +1782,9 @@ function routineFinishedDate(s){
  return parsed&&!Number.isNaN(parsed.getTime())?localDate(parsed):s.date||'';
 }
 function routineHistoryRow(s){
- const c=routineSessionCounts(s);
- return '<button type="button" class="routine-history-row" data-action="routine-history-detail" data-id="'+esc(s.id)+'">'+
- '<time>'+esc(routineFinishedDate(s)?niceDate(routineFinishedDate(s)):'Unknown date')+'</time><span><strong>'+esc(s.type||'Workout')+'</strong><small>'+c.exercises+' exercises · '+c.sets+' sets'+(s.savedEarly?' · Saved early':'')+'</small></span><b>›</b></button>';
+ const date=routineFinishedDate(s);
+ return routineChoiceCard({action:'routine-history-detail',id:s.id,name:s.type||'Workout',
+  date:date?niceDate(date):'Unknown date'});
 }
 function routineHistoryPanel(){
  const sessions=recentRoutineSessions();
@@ -3221,7 +3226,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=106',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=107',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3281,7 +3286,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=106');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=107');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
