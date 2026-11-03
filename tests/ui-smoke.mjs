@@ -131,6 +131,15 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelector('header .home-settings svg').innerHTML,firstPaintGear,'hydrated header gear matches first paint');
  await click('settings');
  assert.ok(document.querySelector('.panel [data-action="sign-in"]'),'Settings retains signed-out Google sign-in');
+ assert.ok(document.querySelector('.finance-reset-panel [data-action="finance-reset-prompt"]'),'Settings exposes finance-only reset');
+ const financeBeforeReset=localStorage.getItem('everyday-fitness-v1');
+ await click('finance-reset-prompt');
+ const financeResetConfirm=document.querySelector('[data-action="finance-reset-confirm"]');
+ assert.ok(financeResetConfirm?.disabled,'finance reset requires a 3-second countdown');
+ financeResetConfirm.click();await tick();
+ assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'disabled Finance reset cannot delete records');
+ await click('close');
+ assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'canceling Finance reset changes nothing');
  await click('home');
  assert.ok(!document.querySelector('main .weight-strip'),'weight belongs in Progress, not Home');
 
