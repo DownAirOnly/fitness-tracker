@@ -1,6 +1,6 @@
 import {decodeStoredData,encodeStoredData} from './storage-model.js?v=108';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
-import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=98';
+import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=111';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -222,10 +222,23 @@ export function normalizeData(input) {
       throw Error('Backup has an invalid financial transaction.');
     if(tx.time!=null&&!(typeof tx.time==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(tx.time)))
       throw Error('Backup has an invalid transaction time.');
-    const extras=[['merchant',160],['note',500],['externalId',160],['bankDescription',240],['accountLabel',120],['statementLabel',160],['subcategory',80],['itemization',3000]];
+    const extras=[['merchant',160],['note',500],['externalId',160],['bankDescription',240],['accountLabel',120],['statementLabel',160],['subcategory',80],['itemization',3000],
+      ['matchedBankId',160],['billKey',180],['adjustmentCategory',80],['bankDifferenceNote',500]];
     for(const [key,max] of extras)if(tx[key]!=null&&(typeof tx[key]!=='string'||tx[key].length>max))
       throw Error('Backup has invalid transaction '+key+'.');
     if(tx.purchaseDate!=null&&!validDate(tx.purchaseDate))throw Error('Backup has invalid transaction purchase date.');
+    if(tx.postedDate!=null&&!validDate(tx.postedDate))throw Error('Backup has invalid transaction posted date.');
+    if(tx.paycheckDate!=null&&!validDate(tx.paycheckDate))throw Error('Backup has invalid transaction paycheck date.');
+    if(tx.receiptAmountCents!=null&&(!Number.isSafeInteger(tx.receiptAmountCents)||tx.receiptAmountCents<=0))
+      throw Error('Backup has an invalid original receipt amount.');
+    if(tx.items!=null&&(!Array.isArray(tx.items)||tx.items.length>100||
+      tx.items.some(item=>!item||typeof item.name!=='string'||!item.name.trim()||item.name.length>120||
+       typeof item.category!=='string'||!item.category.trim()||item.category.length>80||
+       !Number.isSafeInteger(item.amountCents)||item.amountCents<=0)))
+      throw Error('Backup has an invalid structured receipt.');
+    if(tx.items?.length&&tx.items.reduce((n,item)=>n+item.amountCents,0)!==(tx.receiptAmountCents??tx.amountCents))
+      throw Error('Structured receipt items must total the original receipt.');
+    if(tx.billKey!=null&&!/^[^|]{1,160}\|\d{4}-\d{2}-\d{2}$/.test(tx.billKey))throw Error('Invalid bill link.');
     if(tx.bankDirection!=null&&!['debit','credit'].includes(tx.bankDirection))throw Error('Backup has an invalid original bank direction.');
     if(tx.source!=null&&!['manual','import'].includes(tx.source))throw Error('Backup has invalid transaction source.');
     if(transactionIds.has(tx.id))throw Error('Backup contains duplicate transaction IDs.');
@@ -234,6 +247,10 @@ export function normalizeData(input) {
       description:tx.description.trim(),category:tx.category?.trim()||'Uncategorized',currency:'USD'};
     if(tx.time!=null)clean.time=tx.time;
     if(tx.purchaseDate!=null)clean.purchaseDate=tx.purchaseDate;
+    if(tx.postedDate!=null)clean.postedDate=tx.postedDate;
+    if(tx.paycheckDate!=null)clean.paycheckDate=tx.paycheckDate;
+    if(tx.receiptAmountCents!=null)clean.receiptAmountCents=tx.receiptAmountCents;
+    if(tx.items?.length)clean.items=tx.items.map(item=>({name:item.name.trim(),category:item.category.trim(),amountCents:item.amountCents}));
     if(tx.bankDirection)clean.bankDirection=tx.bankDirection;
     for(const [key] of extras)if(tx[key]?.trim())clean[key]=tx[key].trim();
     if(tx.source)clean.source=tx.source;
