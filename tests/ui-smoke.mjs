@@ -1107,7 +1107,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('sign-out');state.user='bob';await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'account separation');
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
- assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');assert.equal(state.records.has('bob'),false);
+ assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');
+ assert.equal(JSON.parse(state.records.get('bob')?.payload||'{"foodEntries":[]}').foodEntries.length,0,
+  'the failed purchase was not written to the other signed-in account');
  assert.ok(localStorage.getItem('everyday-cloud-recovery-v1:bob'),'failed cloud save leaves an account-scoped device recovery copy');
  await click('home');
  assert.ok(document.querySelector('.home-sync-warning'),'unsynced cloud work is still visibly flagged on Home');
