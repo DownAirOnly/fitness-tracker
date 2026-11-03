@@ -999,9 +999,9 @@ function paycheckCard(p,index){
  const bills=p.bills.map(e=>{
   const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
   return '<div class="money-detail-line"><span>'+esc(e.name)+'<small>Due '+esc(budgetDate(e.date))+
-   ' · '+(e.status==='paid'?'Paid':e.status==='skipped'?'Skipped':'Upcoming')+'</small></span>'+
+   ' · '+(e.bankLinked?'Bank posted':e.status==='paid'?'Paid':e.status==='skipped'?'Skipped':'Upcoming')+'</small></span>'+
    '<strong>−'+budgetMoney(e.amountCents)+'</strong>'+
-   (e.status==='paid'?button('Undo','budget-mark-pending','outline small',attrs):
+   (e.bankLinked?'<small>Matched</small>':e.status==='paid'?button('Undo','budget-mark-pending','outline small',attrs):
     button('Paid','budget-mark-paid','outline small',attrs))+
    button('Move','money-move-bill','text-btn small',attrs)+'</div>';
  }).join('');
@@ -1016,7 +1016,7 @@ function paycheckCard(p,index){
    budgetMoney(p.incomeCents)+'</strong></div>'+
   '<details class="money-ledger-details"><summary>Paycheck details</summary>'+paychecks+'</details>'+
   '<div class="money-ledger-line"><span>− Bills from this check</span><strong>−'+budgetMoney(p.billCents)+'</strong></div>'+
-  '<details class="money-ledger-details"><summary>'+p.bills.length+' scheduled bill'+(p.bills.length===1?'':'s')+'</summary>'+
+  '<details class="money-ledger-details" open><summary>'+p.bills.length+' scheduled bill'+(p.bills.length===1?'':'s')+'</summary>'+
    (bills||'<p class="hint">No bills assigned. Add recurring bills in Planning.</p>')+'</details>'+
   '<div class="money-ledger-line"><span>− Other spending</span><strong>−'+budgetMoney(p.otherCents)+'</strong></div>'+
   '<details class="money-ledger-details"><summary>'+p.spending.length+' purchase'+(p.spending.length===1?'':'s')+'</summary>'+
@@ -1069,6 +1069,8 @@ function finances(){
    button('All transactions','finance-history-open','outline')+
    button('Spending insights','finance-insights-open','outline')+
    button('Import Bank of America','finance-bofa-import','outline')+
+   button('Transaction entry & CSV tools','finance-transactions-open','outline')+
+   button('Receipt CSV format','finance-csv-example','outline')+
    button('ChatGPT export','finance-export-enrichment','outline')+
    button('Paste clarifications','finance-enrichment-paste','outline')+
    button('Merchant rules','classification-rules-open','outline')+
