@@ -47,7 +47,7 @@ export function rebuildBankReconciliation(plan,current){
  let unchanged=plan.bankUnchanged||0;
  for(const record of originalRows){
   const choice=decisions[record.id]||{action:'defer'};
-  const candidates=bankReceiptCandidates(record,current.transactions);
+  const candidates=record.kind==='expense'&&record.bankDirection==='debit'?bankReceiptCandidates(record,current.transactions):[]
   let action=choice.action;
   if(action==='match'){
    const receipt=current.transactions.find(tx=>tx.id===choice.receiptId);
@@ -130,7 +130,7 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
   const priorUnresolved=new Set((current.budgetPlan?.unresolvedBankRows||[]).map(row=>row.id));
  const decisions={},claimedAutoReceipts=new Set();
  for(const record of active){
-  const candidates=bankReceiptCandidates(record,current.transactions);
+  const candidates=record.kind==='expense'&&record.bankDirection==='debit'?bankReceiptCandidates(record,current.transactions):[]
   const strong=candidates.filter(c=>c.auto);
   if(priorUnresolved.has(record.id))decisions[record.id]={action:'defer'};
   else if(strong.length===1&&!claimedAutoReceipts.has(strong[0].tx.id)){
@@ -153,7 +153,7 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
 export function bankChoose(plan,current,id,action,receiptId='',adjustmentCategory='',adjustmentNote=''){
  if(!plan.bankRecords?.some(row=>row.id===id))throw Error('Bank row is no longer in this preview.');
  if(!['match','new','defer'].includes(action))throw Error('Invalid bank review choice.');
- if(action==='match'&&!current.transactions.some(tx=>tx.id===receiptId&&isReceipt(tx)))
+ if(action==='match'&&(!plan.bankRecords.some(row=>row.id===id&&row.kind==='expense'&&row.bankDirection==='debit')||!current.transactions.some(tx=>tx.id===receiptId&&isReceipt(tx))))
   throw Error('Select an existing unmatched purchase.');
  if(adjustmentCategory.length>80||adjustmentNote.length>500)throw Error('Difference details are too long.');
  plan.bankDecisions[id]={action,receiptId,adjustmentCategory,adjustmentNote,automatic:false};
