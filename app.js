@@ -2,12 +2,14 @@ import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4'
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit} from './data.js?v=108';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
-import {prepareImport,prepareBankImport,prepareRuleReview,importSections} from './import-model.js?v=108';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=111';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=111';
+import {paycheckWindows,paycheckWhatIf} from './paycheck-model.js?v=111';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=108';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=97';
 import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=108';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=98';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=111';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=99';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=103';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
@@ -92,7 +94,7 @@ let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
-let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='';
+let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='',moneyWeeks=1,bankCandidateSort='amount',bankCandidateSearch='';
 let financeHistoryQuery='',financeHistoryKind='all',financeHistoryMonth='all',financeHistoryCategory='all',financeHistoryReview='all',financeHistorySort='newest',financeHistoryVisible=50;
 let foodLibrarySearch='',foodLibraryFilter='all',exerciseLibrarySearch='',exerciseLibraryFilter='all',workoutEditorState=null,routineDeletedStack=[],buddyMuscleView=null,buddyMuscleGroupView=null,buddyCompletedEditor=null;
 const app=document.querySelector('#app');
@@ -966,45 +968,91 @@ function financeNav(selected){
  return '<nav class="finance-section-nav" aria-label="Finance sections">'+sections.map(([key,label,action])=>
   button(label,action,'finance-section-link'+(selected===key?' selected':''),selected===key?'aria-current="page"':'')).join('')+'</nav>';
 }
+function paycheckCard(p,index){
+ const current=index===0;
+ const paychecks=p.paycheckEvents.map(e=>{
+  const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
+  return '<div class="money-detail-line"><span>'+esc(e.name)+'<small>'+esc(budgetDate(e.date))+
+   ' · '+(e.status==='paid'?'Received':'Expected')+'</small></span><strong>'+
+   budgetMoney(e.amountCents)+'</strong>'+button(e.status==='paid'?'Edit deposit':'Mark received','money-paycheck-received','outline small',attrs)+'</div>';
+ }).join('');
+ const bills=p.bills.map(e=>{
+  const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
+  return '<div class="money-detail-line"><span>'+esc(e.name)+'<small>Due '+esc(budgetDate(e.date))+
+   ' · '+(e.status==='paid'?'Paid':e.status==='skipped'?'Skipped':'Upcoming')+'</small></span>'+
+   '<strong>−'+budgetMoney(e.amountCents)+'</strong>'+
+   (e.status==='paid'?button('Undo','budget-mark-pending','outline small',attrs):
+    button('Paid','budget-mark-paid','outline small',attrs))+
+   button('Move','money-move-bill','text-btn small',attrs)+'</div>';
+ }).join('');
+ const purchases=p.spending.map(tx=>'<div class="money-detail-line"><span>'+esc(tx.merchant||tx.description)+
+  '<small>'+esc(budgetDate(tx.purchaseDate||tx.date))+(tx.postedDate?' · Posted '+esc(budgetDate(tx.postedDate)):'')+
+  '</small></span><strong>−'+budgetMoney(tx.amountCents)+'</strong>'+
+  button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div>').join('');
+ return '<section class="panel money-paycheck-card'+(current?' money-current':'')+'">'+
+  '<div class="money-period-label"><strong>'+(p.future?'Upcoming check':current?'This paycheck':'Next paycheck')+
+  '</strong><span>'+esc(budgetDateLong(p.start))+' – '+esc(budgetDateLong(p.endInclusive))+'</span></div>'+
+  '<div class="money-ledger-line"><span>Paycheck'+(p.received?' · received':' · expected')+'</span><strong>'+
+   budgetMoney(p.incomeCents)+'</strong></div>'+
+  '<details class="money-ledger-details"><summary>Paycheck details</summary>'+paychecks+'</details>'+
+  '<div class="money-ledger-line"><span>− Bills from this check</span><strong>−'+budgetMoney(p.billCents)+'</strong></div>'+
+  '<details class="money-ledger-details"><summary>'+p.bills.length+' scheduled bill'+(p.bills.length===1?'':'s')+'</summary>'+
+   (bills||'<p class="hint">No bills assigned. Add recurring bills in Planning.</p>')+'</details>'+
+  '<div class="money-ledger-line"><span>− Other spending</span><strong>−'+budgetMoney(p.otherCents)+'</strong></div>'+
+  '<details class="money-ledger-details"><summary>'+p.spending.length+' purchase'+(p.spending.length===1?'':'s')+'</summary>'+
+   (purchases||'<p class="hint">No purchases assigned to this period.</p>')+'</details>'+
+  '<div class="money-ledger-total"><span>= Left from this check</span><strong class="'+(p.leftCents<0?'budget-negative':'')+'">'+
+   budgetMoney(p.leftCents)+'</strong></div>'+
+  (!p.received?'<p class="money-expected-note">Provisional: this check has not been marked received. Expected income is not confirmed cash.</p>':'')+
+  (current?'<form class="money-what-if" data-form="money-scenario"><label class="field"><span>If I spend…</span>'+
+   '<input type="text" name="amount" inputmode="decimal" placeholder="18.00" required></label>'+
+   '<button type="submit" class="outline">Calculate</button></form>':'')+
+  '</section>';
+}
+function moneyCaps(){
+ const month=budgetMonth,rows=budgetMonthSpending(data.budgetPlan,data.transactions||[],month);
+ const monthText=new Date(month+'-01T12:00:00Z').toLocaleDateString('en-US',{month:'long',year:'numeric',timeZone:'UTC'});
+ return '<section class="panel money-caps"><div class="section-head"><h2>Monthly category caps</h2>'+
+  button('Manage','budget-open','outline small')+'</div>'+
+  '<label class="field"><span>'+esc(monthText)+'</span><input type="month" data-budget-month value="'+esc(month)+'"></label>'+
+  (rows.length?rows.map(row=>{
+   const pct=Math.max(0,Math.min(100,row.percent));
+   return '<div class="money-cap-row"><div><strong>'+esc(row.category)+'</strong><span>'+
+    budgetMoney(row.remainingCents)+' left</span></div><div class="finance-insight-meter"><span style="width:'+pct+'%"></span></div>'+
+    '<small>'+budgetMoney(row.actualCents)+' / '+budgetMoney(row.limitCents)+'</small></div>';
+  }).join(''):'<p class="hint">Add category caps in Planning to see remaining limits here.</p>')+
+  '</section>';
+}
 function finances(){
- const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate()),paycheck=snapshot.nextPaycheck;
- const upcoming=snapshot.upcoming;
- const cash=snapshot.balanceCents===null?'Not entered':budgetMoney(snapshot.balanceCents);
- const source=snapshot.balanceCents===null?'Set a balance to see available cash.':
-  'Manually entered · '+esc(snapshot.balanceAsOf)+'. Not bank-synced.';
- const outlook=snapshot.balanceCents===null?'Enter an available balance to start a cautious spending estimate.':
-  !snapshot.balanceCurrent?'Your entered balance is not from today. Update it before using an estimate.':
-  !snapshot.hasBills?'No bills are scheduled. Add your known bills before relying on an estimate.':
-  'Subtracts '+budgetMoney(snapshot.billsBeforeIncomeCents)+' of planned bills through '+esc(snapshot.estimateThrough)+'. Future paychecks are not counted.';
- return financeNav('overview')+
-  '<section class="panel finance-cash-hero" aria-label="Available cash">'+
-   '<div class="finance-cash-top"><div><p class="finance-outlook-label">Available balance</p><strong class="finance-cash-value">'+cash+'</strong></div>'+
-   button(snapshot.balanceCents===null?'Set balance':'Update','budget-balance','outline small')+'</div>'+
-   '<p class="finance-source">'+source+'</p></section>'+
-  '<div class="finance-glance-cards" aria-label="Upcoming money">'+
-   '<section class="panel finance-glance-card"><small>Next expected paycheck</small><strong>'+
-    (paycheck?budgetMoney(paycheck.amountCents):'Not scheduled')+'</strong><span>'+
-    (paycheck?esc(paycheck.date)+' · expected, not received':'No income scheduled within 60 days')+'</span></section>'+
-   '<section class="panel finance-glance-card"><small>Planned bills · next 14 days</small><strong>'+
-    budgetMoney(snapshot.billsSoonCents)+'</strong><span>'+snapshot.billsSoon.length+
-    ' payment'+(snapshot.billsSoon.length===1?'':'s')+' · not bank verified</span></section></div>'+
-  '<section class="panel finance-spend-outlook" aria-label="Spending outlook">'+
-   '<p class="finance-outlook-label">Spending estimate</p><h2>'+
-    (snapshot.spendingEstimateCents===null?'Not enough information':budgetMoney(snapshot.spendingEstimateCents))+'</h2>'+
-   '<p>'+outlook+'</p>'+
-   (snapshot.spendingEstimateCents!==null&&snapshot.spendingEstimateCents<0?
-    '<p class="budget-warning" role="status">Planned bills exceed entered cash before the next expected paycheck. Review your obligations.</p>':'')+
-   '<p class="hint">Estimate uses only your listed bills.</p>'+
-   button('Review the plan','budget-open','outline')+'</section>'+
-  '<section class="panel finance-next-activity"><div class="section-head"><div><h2>Upcoming</h2></div>'+
-   button('Edit schedules','budget-open','text-btn')+'</div>'+
-   (upcoming.length?'<div class="finance-activity-list">'+upcoming.map(event=>
-    '<div class="finance-activity-row"><div><strong>'+esc(event.name)+'</strong><small>'+esc(event.date)+' · '+
-    (event.kind==='income'?'Expected income':'Planned bill')+'</small></div>'+
-    '<b class="'+esc(event.kind)+'">'+(event.kind==='income'?'+':'−')+formatFinanceAmount(event.amountCents)+'</b></div>').join('')+'</div>':
-    empty('Nothing scheduled yet. Add bills and paydays in Planning.'))+'</section>'+
-  '<div class="finance-overview-actions">'+button('Log spending','finance-transactions-open','primary')+
-   button('All transactions','finance-history-open','outline')+'</div>';
+ const view=paycheckWindows(data.budgetPlan,data.transactions||[],localDate(),moneyWeeks);
+ const plan=data.budgetPlan;
+ return '<div class="money-top-control"><strong>This paycheck</strong><div class="money-week-switch" role="group" aria-label="Paycheck view">'+
+  button('1 week','money-weeks',moneyWeeks===1?'selected':'outline','data-weeks="1"')+
+  button('2 weeks','money-weeks',moneyWeeks===2?'selected':'outline','data-weeks="2"')+'</div></div>'+
+  (view.configured?view.periods.map(paycheckCard).join('')+
+   (view.heldBackCents!==null?'<section class="panel money-held-back"><span>Held back from previous check · estimated</span><strong>'+
+    budgetMoney(view.heldBackCents)+'</strong><small>Not added to this paycheck. Period starting '+esc(budgetDateLong(view.heldBackPeriod))+'.</small></section>':''):
+   '<section class="panel money-setup"><h2>Set your payday</h2><p>Add a recurring paycheck and its expected amount to see this week’s remainder. A bank balance is optional.</p>'+
+   button('Add payday','budget-schedule-new','primary')+'</section>')+
+  '<div class="money-primary-actions">'+button('+ Purchase','home-log-finance','primary')+
+   button('Paste receipt CSV','finance-paste-csv','outline')+'</div>'+
+  financeRecent()+moneyCaps()+
+  (plan.unresolvedBankRows?.length?'<section class="panel money-unresolved"><strong>'+plan.unresolvedBankRows.length+
+   ' unmatched bank charge'+(plan.unresolvedBankRows.length===1?'':'s')+'</strong>'+
+   button('Review bank charges','money-review-unresolved','outline')+'</section>':'')+
+  '<section class="panel money-account"><div class="section-head"><h2>Account balance</h2>'+
+   button('Update','budget-balance','outline small')+'</div><strong>'+
+   (plan.balanceCents===null?'Not entered':budgetMoney(plan.balanceCents))+'</strong><small>'+
+   (plan.balanceAsOf?'Last updated '+esc(budgetDateLong(plan.balanceAsOf)):'Optional manual reference; not connected to your bank')+'</small></section>'+
+  '<section class="panel money-tools"><div class="section-head"><h2>More money tools</h2></div>'+
+   '<div class="money-tools-grid">'+button('Planning · bills and paydays','budget-open','outline')+
+   button('All transactions','finance-history-open','outline')+
+   button('Spending insights','finance-insights-open','outline')+
+   button('Import Bank of America','finance-bofa-import','outline')+
+   button('ChatGPT export','finance-export-enrichment','outline')+
+   button('Paste clarifications','finance-enrichment-paste','outline')+
+   button('Merchant rules','classification-rules-open','outline')+
+   button('Classification review','classification-review-open','outline')+'</div></section>';
 }
 function financeTransactions(){
  return '<div class="page-head finances-page-head finance-transactions-head"><h1>Transactions<span class="accent">.</span></h1>'+
