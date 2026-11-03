@@ -133,7 +133,9 @@ export function prepareReconciliation(records,current,{errors=[],warnings=[],det
   const candidates=record.kind==='expense'&&record.bankDirection==='debit'?bankReceiptCandidates(record,current.transactions):[]
   const strong=candidates.filter(c=>c.auto);
   if(priorUnresolved.has(record.id))decisions[record.id]={action:'defer'};
-  else if(strong.length===1&&!claimedAutoReceipts.has(strong[0].tx.id)){
+  else if(strong.length===1&&!claimedAutoReceipts.has(strong[0].tx.id)&&
+   candidates.filter(c=>c.merchant&&c.days<=7&&c.differenceCents===0&&
+    (!c.tx.accountLabel||c.account)).length===1){
    claimedAutoReceipts.add(strong[0].tx.id);
    decisions[record.id]={action:'match',receiptId:strong[0].tx.id,automatic:true};
   }
