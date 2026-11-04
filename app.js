@@ -4000,7 +4000,17 @@ async function commitImport(){
       data=candidate;storeOfflineWorkspace(data,true);cloudMessage='Offline JSON workspace · saved on this device';
     }else if(account)await active.save(candidate);else save(candidate);
     if(!workspaceMode&&(session!==active||account?.uid!==owner))return;
-    data=candidate;if(!workspaceMode&&!account)deviceData=structuredClone(candidate);else if(!workspaceMode)cloudMessage='Saved to your account';
+    data=candidate;
+    if(!workspaceMode&&!account)deviceData=structuredClone(candidate);
+    else if(!workspaceMode&&owner){
+      // Full and section imports bypass persist(), so they must acknowledge
+      // cloud confirmation and retire any old device recovery as well.
+      try{cloudConfirmed=writeCloudConfirmed(owner,active.revision,candidate);}catch{
+       cloudConfirmed={uid:owner,revision:active.revision,updatedAt:isoNow(),data:structuredClone(candidate)};
+      }
+      clearCloudRecovery(owner);cloudRecovery=null;cloudRecoveryConflict=null;
+      cloudPending=false;cloudMessage='Saved to your account';
+    }
     importSaving=false;cloudBusy=false;render();
     alert(plan.kind==='json'?(workspaceMode?'Workspace JSON replaced.':'Backup restored.'):`${plan.display?.count??plan.changeCount} item${(plan.display?.count??plan.changeCount)===1?'':'s'} imported.`);
   }catch(error){
