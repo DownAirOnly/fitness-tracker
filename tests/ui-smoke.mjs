@@ -582,6 +582,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  document.querySelector('.shell > main').scrollTop=410;
  await click('food-progress-nav');
  assert.equal(document.querySelector('.shell > main').scrollTop,410,'Progress chart navigation does not jump to top');
+ await click('food-progress-current');
+ assert.equal(document.querySelector('.shell > main').scrollTop,410,'resetting Progress chart period also preserves scroll');
  await click('home');
   assert.ok(sample.data.foods.length>=7,'demo provides enough foods to test paging');
  const colored=normalizeData(sample.data),stableRoutine=colored.workoutTemplates.find(w=>w.id==='workout-03');
