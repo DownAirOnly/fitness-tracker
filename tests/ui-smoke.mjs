@@ -1228,6 +1228,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  Object.defineProperty(form.querySelector('[name="file"]'),'files',{value:[{size:100,text:async()=>JSON.stringify(backup)}]});
  form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await click('commit-import');
  assert.deepEqual(JSON.parse(state.records.get('bob').payload),backup,'JSON restore preserves the exported snapshot');
+ assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'confirmed JSON imports retire stale device recovery');
+ assert.deepEqual(normalizeData(JSON.parse(localStorage.getItem('everyday-cloud-confirmed-v1:bob')).data).foodEntries,
+  normalizeData(backup).foodEntries,'confirmed import updates the offline account snapshot');
  // Pass 2: selected-day preview and full log share the same entries/totals.
  await click('food');
  const setDate=async value=>{await click('food-log');const field=document.querySelector('.food-log-date input');assert.ok(field,'date picker is in All food entries');field.value=value;field.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();assert.equal(document.querySelector('.food-log-date input').value,value);await click('close');};
