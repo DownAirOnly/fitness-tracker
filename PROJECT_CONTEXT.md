@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v114 (November 3, 2026)
+## Current release — v115 (November 4, 2026)
+
+- **Money tab selector restored:** The Overview screen again includes the exact same Overview / Transactions / Planning navigation control already shared by the other two Money screens.
+- **Two-week summary is one card:** Toggling two weeks combines the two underlying paycheck windows into one read-only summary with aggregated income, scheduled bills, other purchases, dates and remainder. Expandable paycheck details retain both scheduled entries and their individual received/expected status; the one-week view and saved allocations remain unchanged. The What-if purchase calculation uses the combined period in two-week mode. If only one scheduled check exists, it is displayed as a single period, never duplicated.
+- **Scroll retention:** `render()` retains the scroll position of the main page scroller when updating the current screen (e.g. Progress nutrition chart period navigation or budget month selectors). Switching pages starts a fresh scroll container at the top. The iOS viewport-origin cleanup for keyboard positioning is separate and unchanged.
+- **Cloud recovery auto-retry and import acknowledgement:** On login, when Firestore confirms a recovery copy is based on the current server revision, Everyday attempts to sync it automatically, and retries after foreground/online events with a cooldown. Existing conflict detection remains intact: changed server revisions still require explicit review, and failures retain the recovery and warning. Successful section/CSV/full JSON imports update the last-confirmed local account snapshot and retire old recovery storage, preventing the restored-unsaved banner after a successfully confirmed import. No recovery is deleted merely because the warning appears.
+- **No Firebase security-rule or schema changes.** Regression tests cover combined paychecks, preserved scroll on Money/Progress, and successful import recovery-cache acknowledgement.
+
+## Previous release — v114 (November 3, 2026)
 
 - **Paycheck-first Money setup:** Fresh Finance accounts see a clear first step to add a payday, expected take-home amount and frequency. The setup button opens the existing reusable budget schedule form preselected to **income / Paycheck / weekly**, not the old generic expense / monthly defaults. Users can choose a different frequency and anchor date; a saved schedule is not automatically marked received.
 - **Recurring-bill next step:** Once a payday exists but there are no recurring bills, Money shows an explicit `Add a bill` action that opens the existing expense schedule editor, and states that the calculated remainder is incomplete until obligations have been entered. No existing account data or schedule is replaced.
