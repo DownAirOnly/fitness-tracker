@@ -4,7 +4,7 @@ import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,fo
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
-import {paycheckWindows,paycheckWhatIf} from './paycheck-model.js?v=112';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=112';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=112';
@@ -106,7 +106,7 @@ let deviceData=load(),offlineWorkspace=readOfflineWorkspace(),existingDemo=offli
 let startupAccountCache=offlineWorkspace||demoMode?null:readStartupAccountCache();
 let describeCloudError=error=>error?.message||'Cloud access failed. Please retry.';
 let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=false, cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud saving paused':'Connecting account service…', cloudReady=false, authChecked=false;
-let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null;
+let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null,cloudAutoRetryAt=0;
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
@@ -288,14 +288,24 @@ function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
   const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Money'],['progress','progress','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><img class="brand-mark" src="icons/header-mark.svg" alt="" aria-hidden="true"> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><img class="brand-mark" src="icons/header-mark.svg" alt="" aria-hidden="true"> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
+  // A calendar, chart-period or month control can repaint the current page.
+  // Retain the main scroll position on same-page rerenders, but start at the top
+  // when switching tabs. The document viewport stays at (0,0) for iOS.
+  const previousMain=app.querySelector('.shell > main');
+  const previousScroll=previousMain?.dataset.page===page?previousMain.scrollTop:null;
+  const restoreScroll=()=>{
+   if(previousScroll===null)return;
+   const nextMain=app.querySelector('.shell > main');
+   if(nextMain)nextMain.scrollTop=previousScroll;
+  };
   modalBack=null;pendingImport=null;importReadToken++;
   if(isLoading()){
     // Recovery controls must not become flex siblings of the compact Home.
     // Device-backed data is already hydrated. Do not replace it with a loading panel.
-    shell(home(false));
+    shell(home(false));restoreScroll();
     if(account&&!cloudBusy){
       modal('Account unavailable','<p class="body-copy">'+esc(cloudMessage)+'</p>'+
        button('Retry','cloud-load','primary')+
@@ -304,7 +314,7 @@ function render() {
     return;
   }
   const views={home,food,gym,progress,finances,financeTransactions,financeHistory,classificationReview,classificationRules,financeInsights,financeBudget,history,settings};
-  shell(views[page]?.()||home());
+  shell(views[page]?.()||home());restoreScroll();
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
 
@@ -1014,7 +1024,7 @@ function financeNav(selected){
   button(label,action,'finance-section-link'+(selected===key?' selected':''),selected===key?'aria-current="page"':'')).join('')+'</nav>';
 }
 function paycheckCard(p,index,hasBillSchedules=true){
- const current=index===0;
+ const current=index===0,combined=(p.periodCount||1)>1;
  const paychecks=p.paycheckEvents.map(e=>{
   const attrs='data-id="'+esc(e.id)+'" data-date="'+esc(e.date)+'"';
   return '<div class="money-detail-line"><span>'+esc(e.name)+'<small>'+esc(budgetDate(e.date))+
@@ -1036,9 +1046,10 @@ function paycheckCard(p,index,hasBillSchedules=true){
   '</small></span><strong>−'+budgetMoney(tx.amountCents)+'</strong>'+
   button('Edit','finance-edit','text-btn small','data-id="'+esc(tx.id)+'"')+'</div>').join('');
  return '<section class="panel money-paycheck-card'+(current?' money-current':'')+'">'+
-  '<div class="money-period-label"><strong>'+(p.future?'Upcoming check':current?'This paycheck':'Next paycheck')+
+  '<div class="money-period-label"><strong>'+(combined?'Both paychecks':p.future?'Upcoming check':current?'This paycheck':'Next paycheck')+
   '</strong><span>'+esc(budgetDateLong(p.start))+' – '+esc(budgetDateLong(p.endInclusive))+'</span></div>'+
-  '<div class="money-ledger-line"><span>Paycheck'+(p.received?' · received':' · expected')+'</span><strong>'+
+  '<div class="money-ledger-line"><span>'+(combined?'Paychecks':'Paycheck')+
+   (combined?' · '+p.paycheckEvents.filter(e=>e.status==='paid').length+' received / '+p.paycheckEvents.length+' total':p.received?' · received':' · expected')+'</span><strong>'+
    budgetMoney(p.incomeCents)+'</strong></div>'+
   '<details class="money-ledger-details"><summary>Paycheck details</summary>'+paychecks+'</details>'+
   '<div class="money-ledger-line"><span>− Bills from this check</span><strong>−'+budgetMoney(p.billCents)+'</strong></div>'+
@@ -1047,10 +1058,10 @@ function paycheckCard(p,index,hasBillSchedules=true){
   '<div class="money-ledger-line"><span>− Other spending</span><strong>−'+budgetMoney(p.otherCents)+'</strong></div>'+
   '<details class="money-ledger-details"><summary>'+p.spending.length+' purchase'+(p.spending.length===1?'':'s')+'</summary>'+
    (purchases||'<p class="hint">No purchases assigned to this period.</p>')+'</details>'+
-  '<div class="money-ledger-total"><span>= Left from this check</span><strong class="'+(p.leftCents<0?'budget-negative':'')+'">'+
+  '<div class="money-ledger-total"><span>'+(combined?'= Left across two checks':'= Left from this check')+'</span><strong class="'+(p.leftCents<0?'budget-negative':'')+'">'+
    budgetMoney(p.leftCents)+'</strong></div>'+
   (!hasBillSchedules?'<p class="money-expected-note" role="status">No recurring bills are set up yet. This remainder is incomplete and should not be treated as spendable money.</p>':'')+
-  (!p.received?'<p class="money-expected-note">Provisional: this check has not been marked received. Expected income is not confirmed cash.</p>':'')+
+  (!p.received?'<p class="money-expected-note">Provisional: '+(combined?'one or both checks have':'this check has')+' not been marked received. Expected income is not confirmed cash.</p>':'')+
   (current?'<form class="money-what-if" data-form="money-scenario"><label class="field"><span>If I spend…</span>'+
    '<input type="text" name="amount" inputmode="decimal" placeholder="18.00" required></label>'+
    '<button type="submit" class="outline">Calculate</button></form>':'')+
@@ -1075,10 +1086,11 @@ function finances(){
  const plan=data.budgetPlan,hasBills=plan.schedules.some(rule=>rule.kind==='expense');
  const incomeRules=plan.schedules.filter(rule=>rule.kind==='income');
  const weekly=incomeRules.length===0||incomeRules.every(rule=>rule.frequency==='weekly');
- return '<div class="money-top-control"><strong>This paycheck</strong><div class="money-week-switch" role="group" aria-label="Paycheck view">'+
+ const displayedPeriods=moneyWeeks===2?[combinePaycheckPeriods(view.periods)].filter(Boolean):view.periods;
+ return financeNav('overview')+'<div class="money-top-control"><strong>This paycheck</strong><div class="money-week-switch" role="group" aria-label="Paycheck view">'+
   button(weekly?'1 week':'1 check','money-weeks',moneyWeeks===1?'selected':'outline','data-weeks="1"')+
   button(weekly?'2 weeks':'2 checks','money-weeks',moneyWeeks===2?'selected':'outline','data-weeks="2"')+'</div></div>'+
-  (view.configured?view.periods.map((period,index)=>paycheckCard(period,index,hasBills)).join('')+
+  (view.configured?displayedPeriods.map((period,index)=>paycheckCard(period,index,hasBills)).join('')+
    (!hasBills?'<section class="panel money-setup money-setup-bills"><h2>Next: Add your regular bills</h2>'+
     '<p class="body-copy">Enter your recurring payments so Everyday can subtract them from the correct paycheck. Until then, the amount above excludes your regular bills.</p>'+
     button('+ Add a bill','money-setup-bill','primary')+'</section>':'')+
@@ -2683,7 +2695,7 @@ document.addEventListener('click',async event=>{
   if(action==='offline-exit-export'){if(!offlineWorkspace)return;downloadJsonBackup(offlineOutputName(),false,data);await performOfflineWorkspaceExit();return;}
   if(action==='offline-exit-without'){if(!offlineWorkspace||el.disabled)return;await performOfflineWorkspaceExit();return;}
   if(action==='cloud-load'){if(offlineWorkspace)return;if(cloudBusy)return;if(cloudPending){if(!confirm('Discard these unsaved device changes and load the latest cloud version? Export first if you want to keep them.'))return;if(account?.uid)clearCloudRecovery(account.uid);cloudRecovery=null;cloudRecoveryConflict=null;cloudPending=false;}await loadAccount();return;}
-  if(action==='cloud-retry'){if(offlineWorkspace)return;if(!session?.ready){await loadAccount();if(session?.ready&&cloudPending&&!cloudRecoveryConflict)await persist();return;}await persist();return;}
+  if(action==='cloud-retry'){if(offlineWorkspace)return;if(!session?.ready){await loadAccount();return;}await persist();return;}
   if(action==='cloud-recovery-export'){const recovery=cloudRecoveryConflict||cloudRecovery;if(!recovery)return;downloadJsonBackup('everyday-device-recovery-'+localDate()+'.json',false,recovery.data);return;}
   if(action==='cloud-recovery-discard'){if(!account?.uid||!cloudRecoveryConflict)return;if(!confirm('Discard the saved device recovery copy and keep the cloud version?'))return;clearCloudRecovery(account.uid);cloudRecovery=null;cloudRecoveryConflict=null;cloudPending=false;cloudMessage=session?.ready?'Loaded from your account':'Using the last confirmed device copy';render();return;}
   if(action==='storage-persist'){await refreshStorageProtection(true);return;}
@@ -3414,7 +3426,8 @@ app.addEventListener('submit',async event=>{
     await budgetCommit(plan);close(true);render();}catch(error){alert(error.message);}return;
   }
   if(form.dataset.form==='money-scenario'){
-   try{const period=paycheckWindows(data.budgetPlan,data.transactions,localDate(),1).periods[0];
+   try{const view=paycheckWindows(data.budgetPlan,data.transactions,localDate(),moneyWeeks);
+    const period=moneyWeeks===2?combinePaycheckPeriods(view.periods):view.periods[0];
     if(!period)throw Error('Set up a payday first.');
     const amount=parseFinanceAmount(v.amount),after=paycheckWhatIf(period,amount);
     modal('What-if purchase','<p class="body-copy">Spend '+budgetMoney(amount)+' now → '+budgetMoney(after)+
@@ -3682,7 +3695,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=114',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=115',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3772,6 +3785,10 @@ async function loadAccount(){
    cloudBusy=false;render();
    if(migratePreferences&&active.ready&&!cloudRecoveryConflict){
     void persist().then(saved=>{if(saved&&!cloudPending)clearLegacyPreferenceKeys();});
+   }else if(active.ready&&cloudPending&&!cloudRecoveryConflict){
+    // A matching-revision recovery is safe to retry without discarding it.
+    // Don't leave the user staring at "ready to sync" after every reload.
+    setTimeout(()=>{if(session===active)resumePendingCloudSave();},0);
    }
    if(active.ready){void syncHealth();promptWeight();}
    else if(hasLocalCloudFallback())promptWeight();
@@ -3780,7 +3797,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=114');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=115');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -3807,11 +3824,19 @@ async function startCloud(){
 window.addEventListener('beforeunload',event=>{captureCriticalLocalState();if(!offlineWorkspace&&(cloudPending||cloudBusy)){event.preventDefault();event.returnValue='';}});
 window.addEventListener('pagehide',()=>captureCriticalLocalState());
 function resumePendingCloudSave(){
-  if(demoMode||offlineWorkspace||!account||cloudBusy||!cloudPending||cloudRecoveryConflict)return;
-  if(session?.ready)void persist();
-  else if(hasLocalCloudFallback())void loadAccount();
+ if(demoMode||offlineWorkspace||!account||cloudBusy||!cloudPending||cloudRecoveryConflict||navigator.onLine===false)return;
+ // A failed cloud connection must not cause repeated saves on every iOS
+ // visibility tick. The manual Retry button remains immediately available.
+ const now=Date.now();
+ if(now-cloudAutoRetryAt<15000)return;
+ cloudAutoRetryAt=now;
+ if(session?.ready)void persist();
+ else if(hasLocalCloudFallback())void loadAccount();
 }
 window.addEventListener('online',()=>{void checkLatestRelease();resumePendingCloudSave();});
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible')resumePendingCloudSave();
+});
 
 function appearancePanel(){
   const selected=window.everydayTheme?.preference || 'system';
