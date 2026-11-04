@@ -79,6 +79,26 @@ export function paycheckWindows(input,transactions,today,count=1){
   heldBackCents:previous?.leftCents??null,heldBackPeriod:previous?.start||null,
   future};
 }
+// The two-week control is a single ledger window over two independent
+// scheduled checks. Keep the underlying paycheck periods and bill allocations
+// unchanged; only the read-only presentation and what-if total are combined.
+export function combinePaycheckPeriods(periods){
+ if(!Array.isArray(periods)||!periods.length)return null;
+ if(periods.length===1)return{...periods[0],periodCount:1};
+ const first=periods[0],last=periods.at(-1);
+ return {...first,periodCount:periods.length,
+  start:first.start,end:last.end,endInclusive:last.endInclusive,
+  paycheckEvents:periods.flatMap(p=>p.paycheckEvents),
+  bills:periods.flatMap(p=>p.bills),
+  spending:periods.flatMap(p=>p.spending),
+  expectedCents:sum(periods,p=>p.expectedCents),
+  incomeCents:sum(periods,p=>p.incomeCents),
+  billCents:sum(periods,p=>p.billCents),
+  otherCents:sum(periods,p=>p.otherCents),
+  leftCents:sum(periods,p=>p.leftCents),
+  received:periods.every(p=>p.received),
+  receivedCount:periods.filter(p=>p.received).length};
+}
 export function paycheckWhatIf(period,amountCents){
  if(!Number.isSafeInteger(amountCents)||amountCents<0)throw Error('Invalid purchase amount.');
  return period.leftCents-amountCents;
