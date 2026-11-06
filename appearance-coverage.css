@@ -140,7 +140,8 @@
 :root[data-theme="dark"] .exercise-card.equipment-machine{--card-bg:var(--ap-panel-accent)}
 :root[data-theme="dark"] .exercise-card .exercise-card-summary{color:var(--ap-muted)}
 :root[data-theme="dark"] .exercise.exercise-card{border-color:var(--ap-border)}
-:root[data-theme="dark"] :is(.exercise.equipment-machine,.exercise.equipment-cable,.exercise.equipment-dumbbell,.exercise.equipment-bench,.exercise.equipment-calisthenics){
+:root[data-theme="dark"] .exercise.exercise-card{background:var(--card-bg);border-color:var(--card-border)}
+:root[data-theme="dark"] :is(.exercise.equipment-machine:not(.exercise-card),.exercise.equipment-cable:not(.exercise-card),.exercise.equipment-dumbbell:not(.exercise-card),.exercise.equipment-bench:not(.exercise-card),.exercise.equipment-calisthenics:not(.exercise-card)){
  background:var(--ap-card-top);border-color:var(--ap-border);
 }
 :root[data-theme="dark"] :is(.exercise.equipment-machine,.exercise.equipment-cable,.exercise.equipment-dumbbell) :is(.equipment-label,.equipment-art){
@@ -157,6 +158,11 @@
 :root[data-theme="dark"] .buddy-routine-choice.routine-tone-upper{background:var(--ap-panel-accent);border-color:var(--ap-outline-strong);color:var(--ap-on-surface)}
 :root[data-theme="dark"] .buddy-routine-choice.routine-tone-lower{background:var(--ap-soft-secondary);border-color:var(--ap-outline-strong);color:var(--ap-on-surface)}
 :root[data-theme="dark"] .buddy-routine-choice.routine-tone-full{background:var(--ap-raised);border-color:var(--ap-border);color:var(--ap-on-surface)}
+:root[data-theme="dark"] .buddy-routine-choice.routine-tone-custom{
+ background:color-mix(in srgb,var(--routine-accent) 27%,var(--ap-surface));
+ border-color:color-mix(in srgb,var(--routine-accent) 55%,var(--ap-border));
+ color:var(--ap-on-surface);
+}
 :root[data-theme="dark"] :is(.buddy-setup,.buddy-elapsed,.buddy-rest-timer,.buddy-rep-range,.buddy-running-values>div,.buddy-completed-set,.buddy-stepper button,.buddy-exercise-tools button,.buddy-setup-editor button){
  background:var(--ap-raised);border-color:var(--ap-border);color:var(--ap-on-surface);
 }
