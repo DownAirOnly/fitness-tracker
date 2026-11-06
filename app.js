@@ -1,5 +1,6 @@
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=113';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=116';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
@@ -291,6 +292,7 @@ function shell(content) {
   app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><img class="brand-mark" src="icons/header-mark.svg" alt="" aria-hidden="true"> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
+  applyCurrentAppearance();
   // A calendar, chart-period or month control can repaint the current page.
   // Retain the main scroll position on same-page rerenders, but start at the top
   // when switching tabs. The document viewport stays at (0,0) for iOS.
@@ -2671,11 +2673,14 @@ app.addEventListener('change',event=>{
   financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
  if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){
-  data.preferences.theme=event.target.value;window.everydayTheme?.set(event.target.value);
+  data.preferences.theme=event.target.value;window.everydayTheme?.set(event.target.value);applyCurrentAppearance();
   void persist();return;
  }if(event.target.name==='date' && event.target.closest('.food-log-date')){if(event.target.value){chosenDate=event.target.value;render();foodLog();}return;}
  if(event.target.name==='date' && event.target.closest('.tracking-date') && !event.target.closest('.modal')) {if(event.target.value) {chosenDate=event.target.value;render();}}});
 document.addEventListener('input',event=>{
+ if(event.target.closest('form[data-form="appearance-custom"]')&&['background','surface','primary','secondary'].includes(event.target.name)){
+  document.querySelector('.appearance-live-preview')?.style.setProperty('--preview-'+event.target.name,event.target.value);return;
+ }
  if(event.target.name==='foodPlanSearch'){foodPlanSearch=event.target.value;refreshFoodPlanSearch();return;}
  if(event.target.name!=='homeFoodSearch')return;
  const query=event.target.value.trim().toLowerCase();
@@ -2683,6 +2688,27 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
+  if(action==='appearance-palette'||action==='appearance-skin'){
+   const appearance=normalizeAppearance(data.preferences?.appearance);
+   if(action==='appearance-palette'){
+    if(!PALETTES.some(p=>p.id===el.dataset.id)&&!appearance.customPalettes.some(p=>p.id===el.dataset.id))return;
+    appearance.paletteId=el.dataset.id;
+   }else{
+    const skin=SKINS.find(s=>s.id===el.dataset.id);if(!skin)return;
+    appearance.skinId=skin.id;
+    if(skin.id!=='none')appearance.paletteId=skin.paletteId;
+   }
+   data.preferences.appearance=appearance;applyCurrentAppearance();render();void persist();return;
+  }
+  if(action==='appearance-custom-new'){appearanceCustomEditor();return;}
+  if(action==='appearance-custom-edit'){appearanceCustomEditor(el.dataset.id);return;}
+  if(action==='appearance-custom-delete'){
+   const appearance=normalizeAppearance(data.preferences?.appearance),old=appearance.customPalettes.find(p=>p.id===el.dataset.id);
+   if(!old||!confirm('Delete custom palette "'+old.name+'"?'))return;
+   appearance.customPalettes=appearance.customPalettes.filter(p=>p.id!==old.id);
+   if(appearance.paletteId===old.id)appearance.paletteId='forest';
+   data.preferences.appearance=appearance;applyCurrentAppearance();render();void persist();return;
+  }
   if(action==='demo-start'||action==='demo-reset'){if(account||offlineWorkspace)return;if(demoMode&&action==='demo-start')return;if(demoMode&&action==='demo-reset'&&!confirm('Reset all demo entries to the original sample?'))return;const fixture=createDemoData();try{storeDemoWorkspace(fixture);}catch{alert('This device could not open the demo workspace.');return;}demoMode=true;data=fixture;chosenDate=DEMO_LAST_DATE;page='home';cloudMessage='Demo mode · saved separately on this device';close(true);render();return;}
   if(action==='demo-exit'){if(!demoMode)return;if(data.activeWorkout&&!confirm('Exit demo during an active workout? The demo session will be discarded.'))return;demoMode=false;try{localStorage.removeItem(DEMO_WORKSPACE_KEY);}catch{}data=structuredClone(deviceData);chosenDate=currentTrackingDate();page='home';cloudMessage='Only on this device · sign in for cloud saving';close(true);render();promptWeight();return;}
   if(action==='sign-in'){if(demoMode)return alert('Exit demo mode before signing in.');if(offlineWorkspace)return alert('Exit the offline JSON workspace before changing cloud sign-in.');if(!cloudApi)return;try{await cloudApi.signIn();}catch(error){cloudMessage=describeCloudError(error);render();}return;}
@@ -3588,6 +3614,18 @@ app.addEventListener('submit',async event=>{
     }
     workout=name;workoutEditorState=null;close(true);render();void persist();return;
   }
+  if(form.dataset.form==='appearance-custom'){
+   try{
+    const previous=normalizeAppearance(data.preferences?.appearance),current=previous.customPalettes.find(p=>p.id===v.paletteId);
+    if(!current&&previous.customPalettes.length>=20)throw Error('You can save up to 20 custom palettes.');
+    const nextId=current?.id||('custom-'+id().replace(/[^a-z0-9-]/gi,'').slice(0,40).toLowerCase());
+    const item={id:nextId,name:String(v.paletteName||'').trim(),colors:Object.fromEntries(['background','surface','primary','secondary'].map(key=>[key,String(v[key]||'')]))};
+    const candidate={...previous,paletteId:nextId,customPalettes:current?previous.customPalettes.map(p=>p.id===nextId?item:p):[...previous.customPalettes,item]};
+    data.preferences.appearance=normalizeAppearance(candidate);
+    close(true);render();void persist();
+   }catch(error){alert(error.message);}
+   return;
+  }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
   if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
@@ -3751,7 +3789,7 @@ function clearLegacyPreferenceKeys(){
 }
 function applyCurrentAccountPreferences(){
  homeDashboardView=readHomeDashboard();
- window.everydayTheme?.set(data.preferences?.theme||'system');
+ window.everydayTheme?.set(data.preferences?.theme||'system');applyCurrentAppearance();
 }
 async function loadAccount(){
   let migratePreferences=false;
@@ -3838,10 +3876,71 @@ document.addEventListener('visibilitychange',()=>{
  if(document.visibilityState==='visible')resumePendingCloudSave();
 });
 
-function appearancePanel(){
-  const selected=window.everydayTheme?.preference || 'system';
-  return `<section class="panel"><h2>Appearance</h2><label class="field spaced"><span>Theme</span><select name="appearance">${[['system','System — follow device'],['dark','Dark'],['light','Light']].map(([value,label])=>`<option value="${value}" ${selected===value?'selected':''}>${label}</option>`).join('')}</select></label><p class="hint">Synced with your signed-in account. System follows your phone’s appearance. The offline workspace or guest notebook keeps its own copy.</p></section>`;
+function appearanceMix(a,b,ratio){
+ const part=(value,i)=>parseInt(value.slice(1+i*2,3+i*2),16);
+ return '#'+[0,1,2].map(i=>Math.round(part(a,i)*(1-ratio)+part(b,i)*ratio).toString(16).padStart(2,'0')).join('');
 }
+function appearanceReadable(bg){
+ const rgb=[0,2,4].map(i=>parseInt(bg.slice(1+i,3+i),16)/255).map(n=>n<=0.04045?n/12.92:((n+0.055)/1.055)**2.4);
+ return rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722>0.31?'#15211c':'#f3f5f1';
+}
+function applyCurrentAppearance(){
+ const choice=normalizeAppearance(data.preferences?.appearance),colors=appearancePalette(choice).colors,root=document.documentElement;
+ root.dataset.skin=choice.skinId;
+ root.dataset.appearance=choice.paletteId==='forest'&&choice.skinId==='none'?'default':'customized';
+ const props={
+  '--ap-bg':colors.background,'--ap-surface':colors.surface,'--ap-primary':colors.primary,'--ap-secondary':colors.secondary,
+  '--ap-input':appearanceMix(colors.background,colors.surface,0.5),
+  '--ap-border':appearanceMix(colors.surface,colors.secondary,0.32),
+  '--ap-muted':appearanceMix(appearanceReadable(colors.surface),colors.surface,0.38),
+  '--ap-on-bg':appearanceReadable(colors.background),'--ap-on-surface':appearanceReadable(colors.surface),
+  '--ap-on-primary':appearanceReadable(colors.primary),
+  '--ap-raised':appearanceMix(colors.surface,colors.primary,0.14)
+ };
+ for(const [name,value]of Object.entries(props))root.style.setProperty(name,value);
+ if(root.dataset.theme==='dark')document.querySelector('meta[name="theme-color"]')?.setAttribute('content',colors.background);
+}
+function appearanceSwatches(colors){
+ return '<span class="appearance-swatches" aria-hidden="true">'+['background','surface','primary','secondary'].map(key=>'<i style="background:'+colors[key]+'"></i>').join('')+'</span>';
+}
+function appearancePanel(){
+ const chosen=normalizeAppearance(data.preferences?.appearance);
+ const gallery=(items,kind)=>'<div class="appearance-gallery">'+items.map(item=>{
+  const selected=(kind==='palette'?chosen.paletteId:chosen.skinId)===item.id;
+  const colors=kind==='palette'?item.colors:PALETTES.find(p=>p.id===item.paletteId).colors;
+  return '<button type="button" class="appearance-choice'+(selected?' selected':'')+'" data-action="appearance-'+kind+'" data-id="'+esc(item.id)+'" aria-pressed="'+selected+'">'+
+   appearanceSwatches(colors)+'<strong>'+esc(item.name)+'</strong><small>'+esc(item.description||'Saved custom palette')+'</small>'+
+   (selected?'<span class="appearance-current">Selected</span>':'')+'</button>';
+ }).join('')+'</div>';
+ const custom=chosen.customPalettes;
+ return '<section class="panel appearance-section"><h2>Appearance</h2>'+
+  '<label class="field spaced"><span>Display mode</span><select name="appearance">'+[['system','System — follow device'],['dark','Dark'],['light','Light']].map(([value,label])=>'<option value="'+value+'" '+(data.preferences.theme===value?'selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
+  '<p class="hint">The original green appearance is Enchanted Forest. Ocean at Night is an optional blue palette. Color palettes and skin artwork apply in Dark mode.</p>'+
+  '<div class="appearance-heading"><h3>Color palettes</h3><small>Change colors without changing layout</small></div>'+gallery(PALETTES,'palette')+
+  '<div class="appearance-heading"><h3>Skins</h3><small>Decorative treatments · available all year</small></div>'+gallery(SKINS,'skin')+
+  '<div class="appearance-heading"><h3>My palettes</h3><small>Save up to 20 named combinations</small></div>'+
+  (custom.length?'<div class="appearance-gallery">'+custom.map(item=>'<div class="appearance-custom-tile">'+
+   '<button type="button" class="appearance-choice'+(chosen.paletteId===item.id?' selected':'')+'" data-action="appearance-palette" data-id="'+esc(item.id)+'" aria-pressed="'+(chosen.paletteId===item.id)+'">'+appearanceSwatches(item.colors)+'<strong>'+esc(item.name)+'</strong>'+(chosen.paletteId===item.id?'<span class="appearance-current">Selected</span>':'')+'</button>'+
+   '<div class="appearance-custom-actions">'+button('Edit','appearance-custom-edit','outline small','data-id="'+esc(item.id)+'"')+button('Delete','appearance-custom-delete','outline small','data-id="'+esc(item.id)+'"')+'</div></div>').join('')+'</div>':'<p class="hint">No custom palettes yet.</p>')+
+  button('+ Create palette','appearance-custom-new','outline')+
+  '<p class="hint">Choosing a skin starts with its matching colors. You can then choose another palette without losing the skin. Your selections sync in account settings and full backups.</p></section>';
+}
+function appearanceCustomEditor(paletteId=''){
+ const appearance=normalizeAppearance(data.preferences?.appearance),existing=appearance.customPalettes.find(p=>p.id===paletteId);
+ if(!existing&&appearance.customPalettes.length>=20)return alert('You can save up to 20 custom palettes.');
+ const palette=existing||appearancePalette(appearance),colors=palette.colors;
+ const colorInput=(label,key)=>'<label class="field"><span>'+label+'</span><input type="color" name="'+key+'" value="'+colors[key]+'" required></label>';
+ modal(existing?'Edit custom palette':'New custom palette',
+  '<form class="form appearance-custom-form" data-form="appearance-custom">'+
+  '<input type="hidden" name="paletteId" value="'+esc(existing?.id||'')+'">'+
+  input('Palette name','paletteName',existing?.name||'My palette','text','maxlength="36" required')+
+  '<div class="appearance-color-inputs">'+colorInput('Background','background')+colorInput('Cards','surface')+colorInput('Primary accent','primary')+colorInput('Secondary accent','secondary')+'</div>'+
+  '<div class="appearance-live-preview" style="--preview-bg:'+colors.background+';--preview-surface:'+colors.surface+';--preview-primary:'+colors.primary+';--preview-secondary:'+colors.secondary+'">'+
+  '<strong>Everyday preview</strong><div class="appearance-preview-card"><small>CALORIES</small><b>1,420 / 1,600</b><i></i></div>'+
+  '<div class="appearance-preview-card"><small>PROTEIN</small><b>112g / 130g</b><i class="secondary"></i></div></div>'+
+  '<div class="form-actions"><button class="primary" type="submit">Save palette</button>'+button('Cancel','close','outline')+'</div></form>');
+}
+
 
 function dateHeader(label,accessibleLabel=label){
   return `<div class="date-row tracking-date">${input(label,'date',chosenDate,'date','required aria-label="'+esc(accessibleLabel||'Tracking date')+'"')}${button('Today','today','outline small','aria-label="Go to today"')}</div>`;
