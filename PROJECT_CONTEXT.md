@@ -2,7 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v118 (November 6, 2026)
+## Current release — v119 (November 6, 2026)
+
+- **Third appearance pass — labels, badges and progress indicators:** Following the v118 iPhone review, screenshots still showed green Workout Buddy completed/remaining section labels, exercise count and set-progress indicators, routine setup details, timed workout metric tiles, monthly-cap separator lines, nutrition period tabs and Recent Logged Days heading, the Settings version bubble, and Cloud file sizes text/meters. The newly scoped v119 CSS in the existing `appearance-coverage.css` derives these details from the four synced palette colors. No appearance model or app structure changes are needed.
+- **Semantics preserved:** Current vs completed vs pending workout progress are palette-primary/secondary/border; seven-color effort intensity scale, muscle diagrams, intentional movement-direction categories, warning/negative statuses retain meaning. Standard muted labels remain readable on Amethyst and other dark palettes.
+- **Only appearance:** v119 app HTML, service worker, cloud-import cache URLs and release metadata are aligned; screenshots will need physical iPhone visual verification. Food/workout/money records and account palette storage remain unchanged.
+
+## Previous release — v118 (November 6, 2026)
 
 - **Second screenshot-driven appearance audit:** The user supplied 17 iPhone screenshots covering Home Eat/Workout/Spend, Food cards and planner, Progress trend/charts, Money transactions/paychecks, Lifting list/routine modal, Add Food form, and Workout Buddy bike/ready/running states. The v117 layer did not theme several nested green elements. The remaining v118 changes live in the existing \`appearance-coverage.css\` and address the root app background/header gear, Workout calendar/recovery and Lifting routine picker, Food Plan choices and food-log time/save controls, Money transaction "Category, date & more", and Workout Buddy header, clock face/Start, history, notes, labels, set editor and active set.
 - **Unified appearance colors:** Nonsemantic surfaces and text now derive from the four synced palette values, rather than accidental older forest constants. This includes the root \`#app\` background, which v117 missed despite setting root colors. Keep effort intensity, muscle activation art and warning/negative states semantically distinct.

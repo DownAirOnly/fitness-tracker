@@ -472,3 +472,166 @@
  border-color:var(--ap-outline-strong);
  color:var(--ap-on-surface);
 }
+
+
+/* v119 — residual palette tokens found in the final iPhone screenshots.
+   Status/muscle/effort colors remain semantic; general labels and chrome do not. */
+
+/* Settings version and storage panels. */
+:root[data-theme="dark"] .version-badge{
+ background:var(--ap-raised);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .storage-meter{
+ color:var(--ap-secondary);
+}
+:root[data-theme="dark"] .storage-meter>div{
+ background:var(--ap-border);
+}
+:root[data-theme="dark"] .storage-meter>div>span{
+ background:var(--ap-secondary);
+}
+:root[data-theme="dark"] .storage-meter p{
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .storage-meter p strong{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .google-sync-usage .section-head h2{
+ color:var(--ap-on-surface);
+}
+
+/* Workout timing KPI tiles and horizontal dividers. */
+:root[data-theme="dark"] .timing-summary>div{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .timing-summary small,
+:root[data-theme="dark"] .timing-row small{
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .timing-row{
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .timing-row strong,
+:root[data-theme="dark"] .timing-row b{
+ color:var(--ap-on-surface);
+}
+
+/* Nutrition progress: the selector, empty chart and recent-days eyebrow
+   otherwise kept forest green even under Amethyst. */
+:root[data-theme="dark"] .food-period-tabs{
+ background:var(--ap-deep);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .food-period-tabs button{
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .food-period-tabs button.active{
+ background:var(--ap-raised);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .food-period-nav button{
+ background:var(--ap-input);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .food-progress-chart-empty{
+ border-color:var(--ap-outline-strong);
+}
+:root[data-theme="dark"] .recent-food-days{
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(.recent-food-days .eyebrow,.food-progress-panel .eyebrow){
+ color:var(--ap-primary);
+}
+
+/* Category-cap separators and inline labels should follow the same palette
+   as their budget cards. This is distinct from negative/balance warning colors. */
+:root[data-theme="dark"] .budget-category-item,
+:root[data-theme="dark"] .finance-insight-breakdown-item{
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(.finance-insight-breakdown-item>small,.budget-category-item>small){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .budget-inline-tools>summary{
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] .budget-category-item .finance-insight-meter{
+ background:var(--ap-border);
+}
+:root[data-theme="dark"] .budget-category-item .finance-insight-meter>span{
+ background:var(--ap-secondary);
+}
+
+/* Workout Buddy exercise count and set progress bars were previously green.
+   Completed/current/pending states are now derived from the chosen colors. */
+:root[data-theme="dark"] .buddy-progress{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .buddy-set-status{
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .buddy-set-bars i{
+ background:var(--ap-border);
+}
+:root[data-theme="dark"] .buddy-set-bars i.done{
+ background:var(--ap-secondary);
+}
+:root[data-theme="dark"] .buddy-set-bars i.current{
+ background:var(--ap-primary);
+}
+:root[data-theme="dark"] .buddy-picker-completed-head,
+:root[data-theme="dark"] #buddy-root .buddy-picker-screen .buddy-picker-head .eyebrow{
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] .buddy-completed-exercise-strip .exercise-card{
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .buddy-completed-exercise-strip .exercise-card-summary{
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .buddy-completed-exercise-strip .exercise-card-trailing{
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] #buddy-root .buddy-card-set-summaries>span{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.buddy-setup span,.buddy-rep-range span,.buddy-hero-kicker>small,.buddy-exercise-title>small,.buddy-exercise-title p,.buddy-compact-history small){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .exercise-card .exercise-setup-inline{
+ color:var(--ap-muted)!important;
+}
+:root[data-theme="dark"] .buddy-exercise-view .buddy-compact-history{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] #buddy-root .buddy-completed-edit-set{
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] #buddy-root .buddy-completed-edit-set-heading{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] #buddy-root .buddy-completed-edit-set-heading span,
+:root[data-theme="dark"] #buddy-root .buddy-completed-edit-meta label,
+:root[data-theme="dark"] #buddy-root .buddy-completed-edit-notes-top{
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] #buddy-root .buddy-completed-edit-meta :is(input,textarea){
+ background:var(--ap-input);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+
+/* General labels on non-semantic screens should not retain permanent sage
+   accents; movement arrows, effort ratings and anatomy keep their meanings. */
+:root[data-theme="dark"] :is(.eyebrow,.progress-count,.budget-provenance,.finance-source){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.recent-food-days .eyebrow,.buddy-complete .eyebrow,.buddy-picker-head .eyebrow){
+ color:var(--ap-primary);
+}
