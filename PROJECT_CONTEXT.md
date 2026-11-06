@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v115 (November 4, 2026)
+## Current release — v116 (November 6, 2026)
+
+- **Appearance gallery:** Settings now includes subtle color palettes and optional decorative skins. The existing dark forest-green Everyday appearance remains the original default, labeled **Enchanted Forest**; blue is separately named **Ocean at Night**, never "classic." Harvest/Thanksgiving, Winter Holiday/Christmas, High Seas, Forest, and Pixel Arcade skins stay available year-round. Skins change visual treatment without changing navigation, Workout Buddy anatomy, or data.
+- **Multiple custom palettes:** Up to 20 named palettes, each with editable background, card, primary, and secondary colors, can be created, selected, edited, and deleted. Color inputs show a live in-dialog preview; saving a palette applies it, while canceling leaves current appearance unchanged. Selecting a skin starts with its matching palette, and selecting a different palette keeps the skin.
+- **Safe account-backed configuration:** The existing light/dark/system preference remains intact; custom palettes and skins apply to Dark mode. Account preference appearance is validated in the shared notebook model, defaults to the original forest appearance for older backups/accounts, and round-trips through existing Firebase static settings and full JSON backups. No dated logs, routines, Finance records, Firebase rules, or monthly schema are changed. v116 asset URLs and offline cache are aligned. CI and iPhone visual verification are independent milestones.
+- **Scope note:** This separate appearance release does not implement or settle the proposed workout variation system; approved alternatives and per-set swaps remain design decisions for later development.
+
+## Previous release — v115 (November 4, 2026)
 
 - **Money tab selector restored:** The Overview screen again includes the exact same Overview / Transactions / Planning navigation control already shared by the other two Money screens.
 - **Two-week summary is one card:** Toggling two weeks combines the two underlying paycheck windows into one read-only summary with aggregated income, scheduled bills, other purchases, dates and remainder. Expandable paycheck details retain both scheduled entries and their individual received/expected status; the one-week view and saved allocations remain unchanged. The What-if purchase calculation uses the combined period in two-week mode. If only one scheduled check exists, it is displayed as a single period, never duplicated.

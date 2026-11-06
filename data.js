@@ -1,3 +1,4 @@
+import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=116';
 import {decodeStoredData,encodeStoredData} from './storage-model.js?v=112';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=112';
@@ -50,7 +51,7 @@ export const templateExercises = {
   ]
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,color:['#69B98A','#AC8ED9','#C58B58'][index]||'#69B98A',exercises:structuredClone(exercises)}));
-export const defaultPreferences=()=>({homeDashboard:'nutrition',homeFoodIds:null,theme:'system',legacyImported:false});
+export const defaultPreferences=()=>({homeDashboard:'nutrition',homeFoodIds:null,theme:'system',appearance:defaultAppearance(),legacyImported:false});
 export const emptyData = () => ({version: 1, preferences:defaultPreferences(), settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 // A Finance reset only changes finance-owned state. Other tabs and account
 // preferences must remain byte-for-byte identical in the candidate notebook.
@@ -195,7 +196,7 @@ export function normalizeData(input) {
      prefs.homeFoodIds.some(x=>typeof x!=='string'||!x||x.length>160)))throw Error('Invalid favorite Home food IDs.');
   if(prefs.legacyImported!=null&&typeof prefs.legacyImported!=='boolean')throw Error('Invalid preference migration marker.');
   data.preferences={homeDashboard,homeFoodIds:prefs.homeFoodIds==null?null:[...new Set(prefs.homeFoodIds)],
-   theme:prefs.theme||'system',legacyImported:prefs.legacyImported===true};
+   theme:prefs.theme||'system',appearance:normalizeAppearance(prefs.appearance),legacyImported:prefs.legacyImported===true};
   if(![data.settings.calories,data.settings.protein,data.settings.heightInches].every(x=>Number.isFinite(Number(x)) && Number(x)>0) || !['lb','kg'].includes(data.settings.unit)) throw new Error('Backup settings are invalid.');
   if(input.settings.weekStart!=null&&(!Number.isInteger(input.settings.weekStart)||input.settings.weekStart<0||input.settings.weekStart>6)) throw new Error('Backup week start is invalid.');
   data.settings.weekStart=5;

@@ -14,6 +14,9 @@ const launchHtml=await readFile(new URL('index.html',root),'utf8');
 assert.ok(!launchHtml.includes('Loading your dashboard'),'static startup markup has no loading panel');
 const bootSource=await readFile(new URL('app.js',root),'utf8');
 assert.ok(bootSource.includes('readStartupAccountCache()'),'app reads existing device cloud copies before auth');
+assert.ok(bootSource.includes('function appearancePanel()'),'Settings includes appearance gallery');
+assert.ok(bootSource.includes('appearance-custom')&&bootSource.includes('appearance-skin'),'Gallery handles custom colors and skins');
+assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin stylesheet is included');
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('weights.slice(0,90),chartBodyFat=bodyFat.slice(0,90)'),'both measurement graphs select their 90 latest records independently');
@@ -71,7 +74,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(data|calendar-ui|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(appearance-model|data|calendar-ui|muscle-map|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
