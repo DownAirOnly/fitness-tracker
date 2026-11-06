@@ -12,7 +12,7 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=119'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=120'),'palette coverage stylesheet is loaded');
 for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
 assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
 
@@ -59,6 +59,21 @@ const remainingThemeChecks=[
 ];
 for(const [label,selector]of remainingThemeChecks)assert.ok(appearanceCoverage.includes(selector),'missing palette coverage for '+label);
 assert.ok(appearanceCoverage.includes('background:var(--ap-border)'),'incomplete bars use palette border colors');
+
+/* v120: screenshot regressions for nonsemantic green borders and labels. */
+const semanticPaletteRules=[
+ ['Unselected gallery tile',/\.appearance-section \.appearance-choice\s*\{[^}]*border-color:var\(--ap-border\)/],
+ ['Selected gallery tile',/\.appearance-section \.appearance-choice\.selected\s*\{[^}]*border-color:var\(--ap-primary\)/],
+ ['Food totals divider',/\.daily-food-card \.food-preview-heading\s*\{[^}]*border-top-color:var\(--ap-border\)/],
+ ['Food row separators',/\.daily-food-card \.food-preview-row\s*\{[^}]*border-bottom-color:var\(--ap-border\)/],
+ ['Workout status text',/\.buddy-entry p\s*\{[^}]*color:var\(--ap-muted\)/],
+ ['Paycheck details text',/\.money-ledger-details>summary\s*\{[^}]*color:var\(--ap-muted\)/],
+ ['Transaction filter divider',/\.finance-history-summary\s*\{[^}]*color:var\(--ap-muted\)/],
+ ['Budget category dividers',/\.budget-category-item[^}]*\{[^}]*border-color:var\(--ap-border\)/]
+];
+for(const [name,re]of semanticPaletteRules)assert.match(appearanceCoverage,re,'palette rule missing: '+name);
+assert.ok(appearanceCoverage.includes('Financial success and failure'),'semantic income/expense colors are intentionally preserved');
+
 assert.ok(appearanceCoverage.includes('color:var(--ap-muted)!important'),'setup note overrides prior forced green labels');
 
 
