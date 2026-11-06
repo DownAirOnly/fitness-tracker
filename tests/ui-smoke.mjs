@@ -11,6 +11,10 @@ const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'ever
 const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
+const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=117'),'palette coverage stylesheet is loaded');
+for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
+assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
 assert.ok(!launchHtml.includes('Loading your dashboard'),'static startup markup has no loading panel');
 const bootSource=await readFile(new URL('app.js',root),'utf8');
 assert.ok(bootSource.includes('readStartupAccountCache()'),'app reads existing device cloud copies before auth');
