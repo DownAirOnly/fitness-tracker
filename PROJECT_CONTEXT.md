@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v116 (November 6, 2026)
+## Current release — v117 (November 6, 2026)
+
+- **All-screen dark-palette coverage:** v116 account palettes and skins were not recoloring multiple older hard-coded surfaces. The iPhone screenshot review showed mixed colors in Home totals/controls, Food cards, Lifting exercise cards, Progress charts, Money paycheck views and bottom navigation. A final `appearance-coverage.css` layer now derives these visible backgrounds, controls, card footers, charts and text accents from the selected account palette.
+- **Default Enchanted Forest remains green; Ocean at Night is optional blue.** The coverage stylesheet applies to all dark themes, including the default forest. Upper/Lower/Full routine distinctions now use palette-relative shades; active muscle anatomy, alerts, negative amounts and other semantic statuses retain their meaningful colors.
+- **No data change:** This is purely CSS/release wiring. Existing palette storage, custom palette editor, Firestore, backups, food, lifting and finance data are unchanged. v117 HTML, service-worker, cloud import, asset references and tests are aligned. Physical iPhone appearance still requires user review.
+- **Unrelated workout substitutions** remain a separate future workstream.
+
+## Previous release — v116 (November 6, 2026)
 
 - **Appearance gallery:** Settings now includes subtle color palettes and optional decorative skins. The existing dark forest-green Everyday appearance remains the original default, labeled **Enchanted Forest**; blue is separately named **Ocean at Night**, never "classic." Harvest/Thanksgiving, Winter Holiday/Christmas, High Seas, Forest, and Pixel Arcade skins stay available year-round. Skins change visual treatment without changing navigation, Workout Buddy anatomy, or data.
 - **Multiple custom palettes:** Up to 20 named palettes, each with editable background, card, primary, and secondary colors, can be created, selected, edited, and deleted. Color inputs show a live in-dialog preview; saving a palette applies it, while canceling leaves current appearance unchanged. Selecting a skin starts with its matching palette, and selecting a different palette keeps the skin.
