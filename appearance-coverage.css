@@ -172,6 +172,13 @@
 :root[data-theme="dark"] .buddy-screen{background:var(--ap-bg);color:var(--ap-on-bg)}
 :root[data-theme="dark"] .buddy-a{background:var(--ap-primary);color:var(--ap-on-primary)}
 :root[data-theme="dark"] .buddy-a b{color:inherit}
+:root[data-theme="dark"] .buddy-exercise-view .buddy-a{
+ background:var(--ap-primary)!important;color:var(--ap-on-primary)!important;
+}
+:root[data-theme="dark"] #buddy-root .buddy-exercise-view > button.buddy-a > b,
+:root[data-theme="dark"] .buddy-a-with-rest .buddy-rest-in-action :is(strong,small){
+ color:var(--ap-on-primary);
+}
 :root[data-theme="dark"] .buddy-completed-exercise-strip .exercise-card{
  background:var(--ap-panel-accent);border-color:var(--ap-outline-strong);
 }
