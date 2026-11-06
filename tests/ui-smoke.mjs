@@ -12,9 +12,34 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=117'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=118'),'palette coverage stylesheet is loaded');
 for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
 assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
+
+const screenshotScreens=[
+ ['App shell',':root[data-theme="dark"] #app'],
+ ['Settings gear','.home-settings.active'],
+ ['Home recovery panel','.home-recovery-panel'],
+ ['Workout calendar','.home-lifting-calendar .ed-calendar'],
+ ['Routine dropdown','.routine-picker select'],
+ ['Plan totals','.food-plan-totals>div'],
+ ['Plan foods','.food-plan-choice'],
+ ['Food stepper','.time-step-row>button'],
+ ['New food control','.save-new-food-option'],
+ ['Money details','.finance-more>summary'],
+ ['Workout Buddy header','.buddy-head'],
+ ['Workout Buddy history','.buddy-last-toggle'],
+ ['Workout Buddy notes','.buddy-notes-toggle'],
+ ['Workout Buddy active set','.buddy-running-values>div'],
+ ['Warm-up clock','#buddy-root .bike-dial-large'],
+ ['Warm-up Start','#buddy-root .bike-clock-start']
+];
+for(const [screen,selector]of screenshotScreens){
+ assert.ok(appearanceCoverage.includes(selector),'missing screenshot theme coverage: '+screen);
+}
+assert.ok(appearanceCoverage.includes('background:var(--ap-bg)'),'shell uses palette background');
+assert.ok(appearanceCoverage.includes('accent-color:var(--ap-primary)'),'new-food checkbox uses palette color');
+
 assert.ok(!launchHtml.includes('Loading your dashboard'),'static startup markup has no loading panel');
 const bootSource=await readFile(new URL('app.js',root),'utf8');
 assert.ok(bootSource.includes('readStartupAccountCache()'),'app reads existing device cloud copies before auth');

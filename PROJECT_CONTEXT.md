@@ -2,7 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v117 (November 6, 2026)
+## Current release — v118 (November 6, 2026)
+
+- **Second screenshot-driven appearance audit:** The user supplied 17 iPhone screenshots covering Home Eat/Workout/Spend, Food cards and planner, Progress trend/charts, Money transactions/paychecks, Lifting list/routine modal, Add Food form, and Workout Buddy bike/ready/running states. The v117 layer did not theme several nested green elements. The remaining v118 changes live in the existing \`appearance-coverage.css\` and address the root app background/header gear, Workout calendar/recovery and Lifting routine picker, Food Plan choices and food-log time/save controls, Money transaction "Category, date & more", and Workout Buddy header, clock face/Start, history, notes, labels, set editor and active set.
+- **Unified appearance colors:** Nonsemantic surfaces and text now derive from the four synced palette values, rather than accidental older forest constants. This includes the root \`#app\` background, which v117 missed despite setting root colors. Keep effort intensity, muscle activation art and warning/negative states semantically distinct.
+- **No schema/flow changes:** This is a theme-only, dark-mode-only improvement. The user's original Enchanted Forest green is still the default; Ocean at Night is separate blue. Saved palettes, skins, data and existing controls are unchanged. Release v118 updates HTML asset tokens, dynamic cloud module, service-worker cache, the project context, and targeted UI smoke coverage. CI does not substitute for on-device visual QA.
+
+## Previous release — v117 (November 6, 2026)
 
 - **All-screen dark-palette coverage:** v116 account palettes and skins were not recoloring multiple older hard-coded surfaces. The iPhone screenshot review showed mixed colors in Home totals/controls, Food cards, Lifting exercise cards, Progress charts, Money paycheck views and bottom navigation. A final `appearance-coverage.css` layer now derives these visible backgrounds, controls, card footers, charts and text accents from the selected account palette.
 - **Default Enchanted Forest remains green; Ocean at Night is optional blue.** The coverage stylesheet applies to all dark themes, including the default forest. Upper/Lower/Full routine distinctions now use palette-relative shades; active muscle anatomy, alerts, negative amounts and other semantic statuses retain their meaningful colors.
