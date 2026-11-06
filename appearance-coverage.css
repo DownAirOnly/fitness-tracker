@@ -245,3 +245,230 @@
 
 /* Warning and negative balances deliberately retain distinct status colors.
    Respect reduced-motion preferences and preserve all existing geometry. */
+
+
+/* v118 — screenshot-driven residual color audit.
+   All rules below use the *same* four palette inputs as the main appearance
+   layer. These are previously unthemed nested surfaces, not layout changes. */
+
+/* The visible page is #app, not the document root. Older CSS fixed its
+   background at forest green, leaving the masthead and page gutters green. */
+:root[data-theme="dark"],
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] #app{
+ background:var(--ap-bg);
+ color:var(--ap-on-bg);
+}
+:root[data-theme="dark"] .home-settings{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .home-settings.active{
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-primary);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(button,input,select,textarea):focus-visible{
+ outline-color:var(--ap-secondary);
+}
+
+/* The Home dashboard has separate components inside its themed outer card. */
+:root[data-theme="dark"] .home-dashboard-stat :is(span,strong),
+:root[data-theme="dark"] .home-lifting-week strong,
+:root[data-theme="dark"] .home-lifting-recent-row span{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.home-lifting-week span,.home-lifting-recent>span,.home-lifting-recent-row small,.home-dash-caption,.home-dashboard-hint){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.home-food-page-position,.home-food-pager button,.home-dashboard-food-grid .food-card-nutrition){
+ color:var(--ap-on-surface);
+}
+
+/* Workout dashboard calendar and recovery cards had solid green backgrounds. */
+:root[data-theme="dark"] .home-lifting-calendar .ed-calendar,
+:root[data-theme="dark"] .ed-calendar{
+ background:var(--ap-panel-accent);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .ed-calendar :is(.ed-calendar-header strong,.ed-calendar-weekday,.ed-calendar-day,.ed-calendar-day span,.ed-calendar-legend){
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .ed-calendar-day.completed span,
+:root[data-theme="dark"] .ed-calendar-legend i.completed{
+ border-color:var(--ap-primary);
+}
+:root[data-theme="dark"] .ed-calendar-day.projected span,
+:root[data-theme="dark"] .ed-calendar-legend i.projected{
+ border-color:var(--ap-muted);
+}
+:root[data-theme="dark"] .ed-calendar-arrows button,
+:root[data-theme="dark"] .home-lifting-calendar .ed-calendar-schedule{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .home-lifting-calendar .ed-calendar-footer{
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .home-recovery-panel{
+ background:var(--ap-soft-secondary);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .home-recovery-note,
+:root[data-theme="dark"] .home-recent-routines .routine-choice-main small{
+ color:var(--ap-muted);
+}
+/* The selected routine dropdown is distinct from ordinary .field select. */
+:root[data-theme="dark"] .routine-picker select{
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-outline-strong);
+ color:var(--ap-on-surface);
+}
+
+/* Rest-of-day Food Plan dialog: the whole interior was left forest green. */
+:root[data-theme="dark"] .food-plan-totals>div{
+ background:var(--ap-panel-accent);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.food-plan-totals small,.food-plan-difference,.food-plan-item small,.food-plan-choice small){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .food-plan-choice,
+:root[data-theme="dark"] .food-plan-item{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.food-plan-choice b,.food-plan-difference strong){
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] .food-plan-quantity button{
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-outline-strong);
+ color:var(--ap-on-surface);
+}
+
+/* Manual food entry dialog: the date and text inputs were themed, but
+   the stepped time, presets, and "save as new food" control were not. */
+:root[data-theme="dark"] .time-step-row>button,
+:root[data-theme="dark"] .food-quantity-quick button,
+:root[data-theme="dark"] .food-quantity-presets button{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .time-step-row>strong,
+:root[data-theme="dark"] .food-quantity-quick{
+ background:var(--ap-deep);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .time-step-options button{
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] .save-new-food-option{
+ background:var(--ap-deep);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .save-new-food-option input{
+ accent-color:var(--ap-primary);
+}
+:root[data-theme="dark"] .save-new-food-option small{
+ color:var(--ap-muted);
+}
+
+/* Money's transaction "Category, date & more" disclosure and detailed
+   fields still forced green despite the rest of the transaction page changing. */
+:root[data-theme="dark"] .finance-more{
+ background:var(--ap-deep);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .finance-more>summary{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.finance-more .field span,.finance-quick-kind .field>span){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .finance-more[open]{
+ background:var(--ap-subtle);
+}
+
+/* Workout Buddy is a separate full-screen UI with its own legacy colors.
+   Theme the controls, banners and clock; keep muscle targets and the seven
+   effort-intensity colors independent so their meanings remain visible. */
+:root[data-theme="dark"] .buddy-head{
+ background:var(--ap-bg);
+ border-color:var(--ap-border);
+ color:var(--ap-on-bg);
+}
+:root[data-theme="dark"] :is(.buddy-head small,.buddy-progress,.buddy-undo,.buddy-back,.buddy-number-field>span,.buddy-effort-wrap>span,.buddy-rep-range span,.buddy-running-values small,.buddy-running-clock small,.buddy-number-input small){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .buddy-head .buddy-elapsed{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .buddy-exit{
+ background:var(--ap-deep);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.buddy-rep-range,button.buddy-setup,.buddy-last-toggle,.buddy-journal-chip,.buddy-notes-toggle,.buddy-notes-toggle.has-note){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.buddy-last-toggle small,.buddy-last-chevron,.buddy-notes-toggle small,.buddy-notes-toggle.has-note small,.buddy-rep-range span){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .buddy-last-toggle b{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .buddy-running-values>div,
+:root[data-theme="dark"] .buddy-completed-set{
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.buddy-stepper button,.buddy-number-field input,.buddy-number-field select){
+ background:var(--ap-input);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .buddy-notes-wrap textarea{
+ background:var(--ap-input);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] #buddy-root .buddy-bike-content h1,
+:root[data-theme="dark"] #buddy-root .bike-dial-readout{
+ color:var(--ap-on-bg);
+}
+:root[data-theme="dark"] #buddy-root .bike-dial-large{
+ background:radial-gradient(circle at 50% 45%,var(--ap-panel-accent) 0%,var(--ap-deep) 76%);
+ border-color:var(--ap-secondary);
+ box-shadow:inset 0 0 0 8px var(--ap-input),0 6px 30px #0005;
+}
+:root[data-theme="dark"] #buddy-root .bike-dial-large::before{
+ border-color:var(--ap-outline-strong);
+}
+:root[data-theme="dark"] #buddy-root .bike-dial-ticks i::after{
+ background:var(--ap-secondary);
+}
+:root[data-theme="dark"] #buddy-root .bike-dial-second-hand{
+ background:var(--ap-on-surface);
+ box-shadow:0 0 9px var(--ap-secondary);
+}
+:root[data-theme="dark"] #buddy-root .bike-dial-hub{
+ background:var(--ap-primary);
+ border-color:var(--ap-deep);
+}
+:root[data-theme="dark"] #buddy-root .bike-clock-start{
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-outline-strong);
+ color:var(--ap-on-surface);
+}
