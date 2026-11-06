@@ -809,3 +809,158 @@
 :root[data-theme="dark"] :is(.money-cap-row small,.budget-category-item>small,.finance-insight-breakdown-item>small){
  color:var(--ap-muted);
 }
+
+
+/* v120 residual-selector audit: neutral controls that are not in the initial
+   17 screenshot sample. This keeps newly opened dialogs on the same palette. */
+:root[data-theme="dark"] :is(
+ .import-group,.food-library-item,.suggestion-card,.suggestion-search-result,
+ .food-batch-list,.food-batch-row,
+ .routine-library-row,.routine-starter,.routine-undo,
+ .routine-history-row,.routine-history-exercise,
+ .muscle-related-list button,.routine-history-edit-tabs button,
+ .home-remaining>span,.demo-entry,.finance-bank-facts,
+ .finance-intro-mark,.finance-count,
+ .suggestion-selected-anchor,.food-match-selected,
+ .offline-workspace-banner
+){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .library-search input,.suggestion-search input,
+ .lift-form .lift-notes textarea,
+ .routine-history-editor textarea,.finance-money-input,
+ .finance-extra-fields textarea,.finance-sample,
+ .sort-control select,.tag-check,.suggestion-target>span
+){
+ background:var(--ap-input);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .suggestion-chips button,.workout-order-actions button,
+ .suggestion-feedback-summary button,.food-batch-row button,
+ .routine-row-actions button,.routine-undo button,
+ .routine-history-edit-tabs button,
+ .home-food-pick .home-food-position
+){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .suggestion-chips button.selected,.home-food-pick.selected .home-food-position,
+ .routine-history-edit-tabs button.selected
+){
+ background:var(--ap-primary);
+ border-color:var(--ap-primary);
+ color:var(--ap-on-primary);
+}
+:root[data-theme="dark"] :is(
+ .import-filename,.import-human-summary>p:last-child,.import-date-label,
+ .import-source-grid button small,
+ .food-library-item small,.suggestion-card small,
+ .tag-check small,.suggestion-card-copy em,.suggestion-time>small,
+ .suggestion-search-result small,.suggestion-search-hint,
+ .suggestion-search>span,.food-match-label,.food-match small,
+ .food-match-selected small,.food-batch-row small,
+ .food-batch-heading small,.routine-toolbar strong,
+ .routine-library-row small,.routine-starter small,.routine-undo small,
+ .routine-history-row time,.routine-history-row small,
+ .routine-history-exercise small,.workout-template-title em,
+ .exercise-chart-note,.exercise-chart-legend-item small,
+ .exercise-chart-effort small,.import-library-effect,
+ .home-remaining small,.demo-entry small,
+ .finance-bank-facts>small,.finance-bank-facts>strong
+){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(
+ .suggestion-search-result b,.finance-intro-mark,.finance-count
+){
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(
+ .import-summary,.import-group>summary>span,.import-badge,
+ .pinned-count,.suggestion-feedback-summary button,
+ .muscle-name,.muscle-unmapped,.routine-undo
+){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .import-footer,.import-date-block+.import-date-block,
+ .buddy-journal-row,.home-remaining>span,.routine-history-row,
+ .routine-history-exercise
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(
+ .food-batch-list,.food-batch-row,.home-remaining>span,
+ .offline-workspace-banner
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(
+ .sort-control select,.tag-check,.suggestion-target>span,
+ .food-library-item,.suggestion-card,.suggestion-search-result
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .suggestion-chips button.selected{
+ background:var(--ap-panel-accent);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .nutrition-accuracy-unknown>span,.exercise-muscle-peek,
+ .buddy-muscles-link,.routine-muscle-link
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(
+ .exercise-muscle-peek,.buddy-muscles-link,
+ .routine-muscle-link,.muscle-figure,
+ .muscle-unmapped,.muscle-name
+){
+ background:var(--ap-deep);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.muscle-disclaimer,.muscle-unmapped){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.exercise-chart-legend-item.rep){
+ color:var(--ap-secondary);
+}
+:root[data-theme="dark"] :is(.exercise-rep-segment){
+ stroke:var(--ap-secondary);
+}
+:root[data-theme="dark"] :is(.buddy-journal-row blockquote,.routine-undo small){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.buddy-notes-done){
+ background:var(--ap-raised);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.finance-bank-facts){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(#app-update-notice){
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] #app-update-notice button{
+ background:var(--ap-primary);
+ color:var(--ap-on-primary);
+}
+:root[data-theme="dark"] :is(.home-remaining>span.reached strong){
+ color:var(--ap-secondary);
+}
+
+/* Financial success and failure, verified/clean import states and the
+   anatomy's activated muscle regions remain unchanged on purpose. */
