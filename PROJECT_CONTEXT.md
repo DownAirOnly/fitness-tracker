@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v119 (November 6, 2026)
+## Current release — v120 (November 6, 2026)
+
+- **Fourth and broader appearance audit:** The v119 iPhone screenshots still showed green visual dividers in the Food log, green unselected color-palette borders, muted sage Workout Buddy "workout in progress" text, green paycheck detail labels, a green transaction-history filter separator, and forest-tinted status/metadata elsewhere. Those are neutral interface decorations, not financial or exercise meaning.
+- **Single palette-driven cleanup:** v120 builds on the existing final `appearance-coverage.css`. Border dividers, navigation disclosure labels, neutral metadata and unselected theme cards now use the synced palette's border/muted/surface/primary tokens. The user can still see Enchanted Forest green *in the swatch preview* without its green leaking into the surrounding Amethyst gallery. The audit also included neutral controls in the Food library, import, routine management, history panels, and progress charts not shown in the latest screenshots.
+- **Meaningful colors retained:** Financial green/red income and expense states, warnings, muscle-activation overlays, and seven-level effort scale still communicate distinct data. The brand logo retains its identity. No record schema, layout, workflow, workout values or backup format changed.
+- **Checks:** Targeted UI smoke assertions cover the exact former green dividers and labels. Updated service worker, HTML and dynamic cloud-module versions are v120. The GitHub CI pass and live iPhone visual verification are separate checkpoints.
+
+## Previous release — v119 (November 6, 2026)
 
 - **Third appearance pass — labels, badges and progress indicators:** Following the v118 iPhone review, screenshots still showed green Workout Buddy completed/remaining section labels, exercise count and set-progress indicators, routine setup details, timed workout metric tiles, monthly-cap separator lines, nutrition period tabs and Recent Logged Days heading, the Settings version bubble, and Cloud file sizes text/meters. The newly scoped v119 CSS in the existing `appearance-coverage.css` derives these details from the four synced palette colors. No appearance model or app structure changes are needed.
 - **Semantics preserved:** Current vs completed vs pending workout progress are palette-primary/secondary/border; seven-color effort intensity scale, muscle diagrams, intentional movement-direction categories, warning/negative statuses retain meaning. Standard muted labels remain readable on Amethyst and other dark palettes.

@@ -635,3 +635,332 @@
 :root[data-theme="dark"] :is(.recent-food-days .eyebrow,.buddy-complete .eyebrow,.buddy-picker-head .eyebrow){
  color:var(--ap-primary);
 }
+
+
+/* v120 — audit of nonsemantic forest accents across dark-mode screens.
+   Separators, muted text, inactive borders and neutral containers MUST come
+   from the selected account palette. Green/red financial income/expense states,
+   effort ratings, anatomy highlighting, and individual swatch previews remain
+   independent because they communicate meaning. */
+
+/* The gallery itself must use the chosen palette, not the forest palette it
+   can also *offer* as one of the options. Unselected tiles use subdued borders. */
+:root[data-theme="dark"] .appearance-section .appearance-choice {
+ background:transparent;
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .appearance-section .appearance-choice.selected {
+ border-color:var(--ap-primary);
+}
+:root[data-theme="dark"] .appearance-section :is(.appearance-choice small,.appearance-heading small){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .appearance-section .appearance-current{
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] .appearance-section .appearance-custom-actions button {
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .appearance-section .appearance-choice:focus-visible {
+ outline-color:var(--ap-primary);
+}
+
+/* Food summary: the rule between totals and logged entries was permanently
+   forest green, as were the separators between multiple log entries. */
+:root[data-theme="dark"] .daily-food-card .food-preview-heading {
+ border-top-color:var(--ap-border);
+}
+:root[data-theme="dark"] .daily-food-card .food-preview-row {
+ border-bottom-color:var(--ap-border);
+}
+:root[data-theme="dark"] .daily-food-card :is(.food-preview-heading small,.food-preview-row small,.food-preview-empty) {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .daily-food-card .food-log-open {
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] .food-total-grid small,
+:root[data-theme="dark"] .food-total-number>span {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .food-total-grid .bar{
+ background:var(--ap-border);
+}
+:root[data-theme="dark"] .food-preview-heading strong {
+ color:var(--ap-on-surface);
+}
+
+/* Routine status and all neutral text on exercise cards. Equipment and
+   movement cues keep separate meanings; setup notes do not. */
+:root[data-theme="dark"] .buddy-entry p {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .exercise-card .exercise-setup-inline {
+ color:var(--ap-muted)!important;
+}
+:root[data-theme="dark"] .exercise-card .exercise-card-summary {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.home-lifting-summary,.home-workout-calendar-header small,.home-no-routines,.home-last-sets>p,.home-last-set span,.home-calendar-lift small) {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.home-calendar-lift,.home-lifting-week,.home-lifting-recent) {
+ border-color:var(--ap-border);
+}
+
+/* Money — visual dividers and navigational disclosure labels are not
+   financial gains/losses. Keep .income/.expense/.budget-negative etc intact. */
+:root[data-theme="dark"] :is(
+ .finance-history-more,
+ .finance-history-summary,
+ .finance-history .finance-history-summary,
+ .finance-history .finance-recent-list,
+ .finance-history .finance-activity-row,
+ .money-ledger-details,
+ .money-detail-line,
+ .budget-future,.budget-completed,
+ .budget-category-item,.budget-rule-row,.budget-event,
+ .finance-activity-row,.finance-insight-breakdown-item,
+ .finance-workflows,.finance-review-diff
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .money-ledger-details>summary {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .finance-history-more>summary,
+:root[data-theme="dark"] .finance-history-more>summary::marker,
+:root[data-theme="dark"] .finance-history-more>summary::before {
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] .finance-history-summary {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.finance-history-more .field>span,.finance-history .field>span,.finance-review-help,.finance-review-diff small,.finance-recent-count) {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.finance-row-main .finance-row-date,.finance-row-main .finance-row-details,.finance-row-main .finance-raw-description,.finance-row-main .finance-itemized,.import-record .finance-itemized,.finance-review-callout small) {
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] .finance-row-main .finance-row-category {
+ color:var(--ap-secondary);
+}
+:root[data-theme="dark"] .finance-row-main .finance-review-flag {
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .finance-review-callout{
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(
+ .finance-insight-metric small,.finance-insight-metric span,
+ .finance-insight-footnote,.finance-insight-quality p,.finance-insight-convenience p,
+ .finance-insights-shortcut p:not(.eyebrow),
+ .finance-source,.finance-spend-outlook>p:not(.eyebrow),
+ .finance-glance-card small,.finance-glance-card span,
+ .finance-activity-row small,.finance-quick-kind .field>span,
+ .finance-workflows>summary small,.finance-workflow-content>p,
+ .budget-shortcut p:not(.eyebrow),.budget-metrics small,
+ .budget-cash-glance small,.budget-provenance,
+ .budget-rule-row small,.budget-event small,
+ .budget-drawer>summary small,.budget-empty-forecast,
+ .money-detail-line small,.money-held-back small,.money-account small,
+ .finance-insight-breakdown-item>small
+){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.finance-workflows>summary::after,.budget-drawer>summary::after){
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(.finance-history-more>summary,.budget-inline-tools>summary,.finance-history-tools a){
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(.finance-workflows>summary,.budget-drawer>summary,.budget-inline-tools>summary):focus-visible{
+ outline-color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(.finance-insight-metric,.budget-metrics>div,.budget-cash-glance>div){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(.finance-history-more>summary,.finance-filter-chip,.finance-section-link){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .finance-filter-chip.selected {
+ border-color:var(--ap-primary);
+ background:var(--ap-panel-accent);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .finance-history .finance-filter-chip:focus-visible{
+ outline-color:var(--ap-primary);
+}
+:root[data-theme="dark"] .money-week-switch{
+ border-color:var(--ap-border);
+}
+
+/* A budget cap's decorative separators are neutral even if the amount
+   happens to be positive; use semantic green only for actual income/status. */
+:root[data-theme="dark"] :is(.money-cap-row,.budget-category-item,.budget-completed,.budget-future) {
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(.money-cap-row small,.budget-category-item>small,.finance-insight-breakdown-item>small){
+ color:var(--ap-muted);
+}
+
+
+/* v120 residual-selector audit: neutral controls that are not in the initial
+   17 screenshot sample. This keeps newly opened dialogs on the same palette. */
+:root[data-theme="dark"] :is(
+ .import-group,.food-library-item,.suggestion-card,.suggestion-search-result,
+ .food-batch-list,.food-batch-row,
+ .routine-library-row,.routine-starter,.routine-undo,
+ .routine-history-row,.routine-history-exercise,
+ .muscle-related-list button,.routine-history-edit-tabs button,
+ .home-remaining>span,.demo-entry,.finance-bank-facts,
+ .finance-intro-mark,.finance-count,
+ .suggestion-selected-anchor,.food-match-selected,
+ .offline-workspace-banner
+){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .library-search input,.suggestion-search input,
+ .lift-form .lift-notes textarea,
+ .routine-history-editor textarea,.finance-money-input,
+ .finance-extra-fields textarea,.finance-sample,
+ .sort-control select,.tag-check,.suggestion-target>span
+){
+ background:var(--ap-input);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .suggestion-chips button,.workout-order-actions button,
+ .suggestion-feedback-summary button,.food-batch-row button,
+ .routine-row-actions button,.routine-undo button,
+ .routine-history-edit-tabs button,
+ .home-food-pick .home-food-position
+){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .suggestion-chips button.selected,.home-food-pick.selected .home-food-position,
+ .routine-history-edit-tabs button.selected
+){
+ background:var(--ap-primary);
+ border-color:var(--ap-primary);
+ color:var(--ap-on-primary);
+}
+:root[data-theme="dark"] :is(
+ .import-filename,.import-human-summary>p:last-child,.import-date-label,
+ .import-source-grid button small,
+ .food-library-item small,.suggestion-card small,
+ .tag-check small,.suggestion-card-copy em,.suggestion-time>small,
+ .suggestion-search-result small,.suggestion-search-hint,
+ .suggestion-search>span,.food-match-label,.food-match small,
+ .food-match-selected small,.food-batch-row small,
+ .food-batch-heading small,.routine-toolbar strong,
+ .routine-library-row small,.routine-starter small,.routine-undo small,
+ .routine-history-row time,.routine-history-row small,
+ .routine-history-exercise small,.workout-template-title em,
+ .exercise-chart-note,.exercise-chart-legend-item small,
+ .exercise-chart-effort small,.import-library-effect,
+ .home-remaining small,.demo-entry small,
+ .finance-bank-facts>small,.finance-bank-facts>strong
+){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(
+ .suggestion-search-result b,.finance-intro-mark,.finance-count
+){
+ color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(
+ .import-summary,.import-group>summary>span,.import-badge,
+ .pinned-count,.suggestion-feedback-summary button,
+ .muscle-name,.muscle-unmapped,.routine-undo
+){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .import-footer,.import-date-block+.import-date-block,
+ .buddy-journal-row,.home-remaining>span,.routine-history-row,
+ .routine-history-exercise
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(
+ .food-batch-list,.food-batch-row,.home-remaining>span,
+ .offline-workspace-banner
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(
+ .sort-control select,.tag-check,.suggestion-target>span,
+ .food-library-item,.suggestion-card,.suggestion-search-result
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .suggestion-chips button.selected{
+ background:var(--ap-panel-accent);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .nutrition-accuracy-unknown>span,.exercise-muscle-peek,
+ .buddy-muscles-link,.routine-muscle-link
+){
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(
+ .exercise-muscle-peek,.buddy-muscles-link,
+ .routine-muscle-link,.muscle-figure,
+ .muscle-unmapped,.muscle-name
+){
+ background:var(--ap-deep);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.muscle-disclaimer,.muscle-unmapped){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.exercise-chart-legend-item.rep){
+ color:var(--ap-secondary);
+}
+:root[data-theme="dark"] :is(.exercise-rep-segment){
+ stroke:var(--ap-secondary);
+}
+:root[data-theme="dark"] :is(.buddy-journal-row blockquote,.routine-undo small){
+ color:var(--ap-muted);
+}
+:root[data-theme="dark"] :is(.buddy-notes-done){
+ background:var(--ap-raised);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.finance-bank-facts){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(#app-update-notice){
+ background:var(--ap-panel-accent);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] #app-update-notice button{
+ background:var(--ap-primary);
+ color:var(--ap-on-primary);
+}
+:root[data-theme="dark"] :is(.home-remaining>span.reached strong){
+ color:var(--ap-secondary);
+}
+
+/* Financial success and failure, verified/clean import states and the
+   anatomy's activated muscle regions remain unchanged on purpose. */
