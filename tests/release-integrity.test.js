@@ -16,6 +16,8 @@ test('published version, entry assets, registration and offline bundle stay alig
  assert.ok(index.includes('styles.css?v='+revision),'HTML loads release stylesheet');
  assert.ok(index.includes('app.js?v='+revision),'HTML loads release JS');
  assert.ok(service.includes('"./styles.css?v='+revision+'"'),'offline stylesheet matches HTML');
+ assert.ok(index.includes('appearance-coverage.css?v='+revision),'HTML loads the theme coverage stylesheet');
+ assert.ok(service.includes('"./appearance-coverage.css?v='+revision+'"'),'theme coverage CSS is precached offline');
  assert.ok(service.includes('"./app.js?v='+revision+'"'),'offline app matches HTML');
  assert.ok(app.includes("register('./sw.js?v="+revision+"'"),'app registers the release service worker');
  // Module imports are pinned to asset revisions. Ensure the corresponding
