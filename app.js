@@ -3925,7 +3925,7 @@ function appearanceSwatches(colors){
 }
 function appearancePlacementPreview(colors,isForest){
  const roles=appearanceRoles(colors,isForest);
- const values={shell:roles.shell,panel:roles.panel,support:roles.support,control:roles.control,accent:colors.primary,border:roles.border};
+ const values={shell:roles.shell,panel:roles.panel,support:roles.support,control:roles.control,accent:colors.primary,border:roles.border,muted:roles.muted,ink:appearanceReadable(colors.surface)};
  const style=Object.entries(values).map(([key,value])=>'--preview-'+key+':'+value).join(';');
  return '<div class="appearance-placement-preview" style="'+style+'">'+
   '<div class="appearance-placement-header"><strong>Everyday<span>.</span></strong><span class="appearance-placement-gear" aria-hidden="true">⚙</span></div>'+
