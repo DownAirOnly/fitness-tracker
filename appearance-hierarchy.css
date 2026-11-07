@@ -1,0 +1,123 @@
+/* v121: surface hierarchy, shared by every dark palette.
+   The original Enchanted Forest uses its historical food-card colors; other
+   palettes inherit the same placement roles, never a forest-colored fallback.
+   Semantic money statuses and anatomy highlights are deliberately untouched. */
+:root[data-theme="dark"]{
+ --ap-deep:var(--ap-bg);
+ --ap-subtle:var(--ap-bg);
+ --ap-card-top:var(--ap-surface);
+ --ap-card-bottom:var(--ap-support);
+ --ap-panel-accent:color-mix(in srgb,var(--ap-surface) 95%,var(--ap-secondary));
+ --ap-soft-secondary:color-mix(in srgb,var(--ap-surface) 96%,var(--ap-secondary));
+ --ap-outline-strong:var(--ap-border);
+}
+:root[data-theme="dark"] :is(body,#app,.shell){background:var(--ap-bg);color:var(--ap-on-bg)}
+:root[data-theme="dark"] #app>.nav{
+ background:var(--ap-bg)!important;
+ border-top-color:var(--ap-border)!important;
+}
+:root[data-theme="dark"] #app>.nav button:not(.active){color:var(--ap-muted)}
+:root[data-theme="dark"] #app>.nav button.active{color:var(--ap-primary)}
+:root[data-theme="dark"] :is(.panel,.today-card,.modal,.daily-food-card,.food-log-totals){
+ background-color:var(--ap-surface);border-color:var(--ap-border);
+}
+:root[data-theme="dark"] :is(.food-card,.pinned-food-grid .food-card-pinned,.home-dashboard-food-grid .food-card){
+ background:var(--ap-surface);border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .food-card .food-card-macros{
+ background:var(--ap-support);border-color:var(--ap-border);
+}
+:root[data-theme="dark"] .food-card .food-card-macro+.food-card-macro{border-color:var(--ap-border)}
+:root[data-theme="dark"] .food-card .food-card-macro small{color:var(--ap-muted)!important}
+:root[data-theme="dark"] .food-card .food-card-macro b{color:var(--ap-on-surface)}
+:root[data-theme="dark"] .food-card .food-card-controls .card-edit{
+ background:var(--ap-control);border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .home-settings{
+ background:var(--ap-control);border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(.appearance-choice,.appearance-custom-tile .appearance-choice){
+ background:var(--ap-surface);border-color:var(--ap-border);color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .appearance-choice.selected{
+ border-color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(.appearance-choice small,.appearance-heading small){color:var(--ap-muted)}
+:root[data-theme="dark"] :is(.list-row,.week-row,.food-card,.nutrition-total-cell,.money-detail-line,.finance-history-summary,.budget-category-item){
+ border-color:var(--ap-border);
+}
+/* High-contrast temporary diagnostics: outline token roles without replacing
+   the surface colors themselves or saving any preference. */
+:root[data-theme-inspect="on"][data-theme="dark"] #app>.shell{
+ box-shadow:inset 0 0 0 2px #c084fc;
+}
+:root[data-theme-inspect="on"][data-theme="dark"] :is(.panel,.today-card,.modal,.food-card,.home-metric,.home-dashboard-stage){
+ outline:2px solid #5cc8ff;outline-offset:-2px;
+}
+:root[data-theme-inspect="on"][data-theme="dark"] .food-card .food-card-macros{
+ outline:2px solid #ffc078;outline-offset:-2px;position:relative;
+}
+:root[data-theme-inspect="on"][data-theme="dark"] :is(.food-card .food-card-controls .card-edit,.home-settings,.appearance-choice,.home-dash-tab){
+ outline:2px solid #5ce0c3;outline-offset:-2px;
+}
+:root[data-theme-inspect="on"][data-theme="dark"] :is(#app>.nav button.active,.primary,.appearance-choice.selected){
+ outline:2px solid #ffe36e;outline-offset:-2px;
+}
+/* A compact, real-token representation of placement in Appearance settings.
+   This preview deliberately works even if the user's display mode is Light. */
+.appearance-placement-preview{
+ --preview-ink:#f3f5f1;
+ background:var(--preview-shell);color:var(--preview-ink);
+ border:1px solid var(--preview-border);border-radius:15px;
+ padding:12px;display:grid;gap:11px;margin:14px 0 10px;
+}
+.appearance-placement-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.appearance-placement-header strong{font:700 16px 'Outfit',sans-serif;letter-spacing:-.5px}
+.appearance-placement-header strong span{color:var(--preview-accent)}
+.appearance-placement-gear{
+ display:grid;place-items:center;border-radius:9px;
+ background:var(--preview-control);border:1px solid var(--preview-border);
+ color:var(--preview-ink);width:28px;height:28px;font-size:15px;
+}
+.appearance-placement-card{
+ overflow:hidden;border:1px solid var(--preview-border);
+ border-radius:11px;background:var(--preview-panel);
+}
+.appearance-placement-body{
+ min-height:65px;padding:11px;display:flex;justify-content:space-between;
+ align-items:start;gap:9px;
+}
+.appearance-placement-body strong{font-size:12px;line-height:1.3}
+.appearance-placement-menu{
+ border:1px solid var(--preview-border);border-radius:7px;
+ background:var(--preview-control);padding:3px 9px;
+ font-size:16px;line-height:1.1;
+}
+.appearance-placement-macros{
+ display:grid;grid-template-columns:1fr 1fr;
+ background:var(--preview-support);border-top:1px solid var(--preview-border);
+}
+.appearance-placement-macros span{padding:9px 10px;display:grid;gap:3px}
+.appearance-placement-macros span+span{border-left:1px solid var(--preview-border)}
+.appearance-placement-macros small{font-size:9px;letter-spacing:.06em;color:#c1cfbf}
+.appearance-placement-macros b{font-size:13px}
+.appearance-placement-nav{
+ border-top:1px solid var(--preview-border);
+ display:flex;justify-content:space-around;padding:8px 0 1px;
+ font-size:10px;color:#9caca4;font-weight:700;
+}
+.appearance-placement-nav .selected{color:var(--preview-accent)}
+.appearance-placement-legend{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+ gap:5px;margin-bottom:4px;
+}
+.appearance-placement-legend span{font-size:9px;min-width:0;text-align:center;color:inherit}
+.appearance-placement-legend i{display:block;width:100%;height:13px;border-radius:5px;margin-bottom:4px;border:1px solid #8884}
+.appearance-inspector-tools{margin:12px 0 3px}
+.appearance-inspector-tools .hint{margin:8px 0 0}
+.appearance-inspector-legend{display:flex;flex-wrap:wrap;gap:8px 13px;margin-top:9px;font-size:10px}
+.appearance-inspector-legend span{display:inline-flex;align-items:center;gap:5px}
+.appearance-inspector-legend i{width:10px;height:10px;display:inline-block;border-radius:3px}
+@media(max-width:360px){.appearance-placement-legend span{font-size:8px}.appearance-placement-preview{padding:9px}}
