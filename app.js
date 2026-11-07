@@ -2688,6 +2688,12 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
+  if(action==='appearance-inspect'){
+   const inspecting=document.documentElement.dataset.themeInspect!=='on';
+   document.documentElement.dataset.themeInspect=inspecting?'on':'off';
+   el.textContent=inspecting?'Hide color outlines':'Highlight themed areas';
+   el.setAttribute('aria-pressed',String(inspecting));return;
+  }
   if(action==='appearance-palette'||action==='appearance-skin'){
    const appearance=normalizeAppearance(data.preferences?.appearance);
    if(action==='appearance-palette'){
@@ -3733,7 +3739,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=120',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=121',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3835,7 +3841,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=120');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=121');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
@@ -3884,18 +3890,32 @@ function appearanceReadable(bg){
  const rgb=[0,2,4].map(i=>parseInt(bg.slice(1+i,3+i),16)/255).map(n=>n<=0.04045?n/12.92:((n+0.055)/1.055)**2.4);
  return rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722>0.31?'#15211c':'#f3f5f1';
 }
+function appearanceRoles(colors,isOriginalForest=false){
+ // Preserve the actual OG footer/control colors rather than approximating
+ // them by spreading the accent evenly across every surface.
+ const readable=appearanceReadable(colors.surface);
+ return{
+  shell:colors.background,panel:colors.surface,
+  support:isOriginalForest?'#253e2d':appearanceMix(colors.surface,colors.secondary,0.17),
+  control:isOriginalForest?'#2d4835':appearanceMix(colors.surface,colors.secondary,0.24),
+  border:isOriginalForest?'#34483a':appearanceMix(colors.surface,readable,0.10),
+  muted:isOriginalForest?'#9bbba4':appearanceMix(readable,colors.surface,0.40),
+  raised:appearanceMix(colors.surface,readable,0.055)
+ };
+}
 function applyCurrentAppearance(){
  const choice=normalizeAppearance(data.preferences?.appearance),colors=appearancePalette(choice).colors,root=document.documentElement;
+ const roles=appearanceRoles(colors,choice.paletteId==='forest');
  root.dataset.skin=choice.skinId;
  root.dataset.appearance=choice.paletteId==='forest'&&choice.skinId==='none'?'default':'customized';
  const props={
   '--ap-bg':colors.background,'--ap-surface':colors.surface,'--ap-primary':colors.primary,'--ap-secondary':colors.secondary,
   '--ap-input':appearanceMix(colors.background,colors.surface,0.5),
-  '--ap-border':appearanceMix(colors.surface,colors.secondary,0.32),
-  '--ap-muted':appearanceMix(appearanceReadable(colors.surface),colors.surface,0.38),
+  '--ap-support':roles.support,'--ap-control':roles.control,
+  '--ap-border':roles.border,'--ap-muted':roles.muted,
   '--ap-on-bg':appearanceReadable(colors.background),'--ap-on-surface':appearanceReadable(colors.surface),
   '--ap-on-primary':appearanceReadable(colors.primary),
-  '--ap-raised':appearanceMix(colors.surface,colors.primary,0.14)
+  '--ap-raised':roles.raised
  };
  for(const [name,value]of Object.entries(props))root.style.setProperty(name,value);
  if(root.dataset.theme==='dark')document.querySelector('meta[name="theme-color"]')?.setAttribute('content',colors.background);
@@ -3903,8 +3923,22 @@ function applyCurrentAppearance(){
 function appearanceSwatches(colors){
  return '<span class="appearance-swatches" aria-hidden="true">'+['background','surface','primary','secondary'].map(key=>'<i style="background:'+colors[key]+'"></i>').join('')+'</span>';
 }
+function appearancePlacementPreview(colors,isForest){
+ const roles=appearanceRoles(colors,isForest);
+ const values={shell:roles.shell,panel:roles.panel,support:roles.support,control:roles.control,accent:colors.primary,border:roles.border,muted:roles.muted,ink:appearanceReadable(colors.surface)};
+ const style=Object.entries(values).map(([key,value])=>'--preview-'+key+':'+value).join(';');
+ return '<div class="appearance-placement-preview" style="'+style+'">'+
+  '<div class="appearance-placement-header"><strong>Everyday<span>.</span></strong><span class="appearance-placement-gear" aria-hidden="true">⚙</span></div>'+
+  '<div class="appearance-placement-card"><div class="appearance-placement-body"><strong>Favorite food</strong><span class="appearance-placement-menu" aria-hidden="true">⋯</span></div>'+
+  '<div class="appearance-placement-macros"><span><small>CALORIES</small><b>230</b></span><span><small>PROTEIN</small><b>42 g</b></span></div></div>'+
+  '<div class="appearance-placement-nav"><span class="selected">Eat</span><span>Lift</span><span>Money</span></div>'+
+  '</div><div class="appearance-placement-legend">'+
+  [['Page',roles.shell],['Cards',roles.panel],['Footer',roles.support],['Controls',roles.control],['Accent',colors.primary]].map(([label,color])=>'<span><i style="background:'+color+'"></i>'+label+'</span>').join('')+
+  '</div>';
+}
 function appearancePanel(){
  const chosen=normalizeAppearance(data.preferences?.appearance);
+ const selectedPalette=appearancePalette(chosen),inspecting=document.documentElement.dataset.themeInspect==='on';
  const gallery=(items,kind)=>'<div class="appearance-gallery">'+items.map(item=>{
   const selected=(kind==='palette'?chosen.paletteId:chosen.skinId)===item.id;
   const colors=kind==='palette'?item.colors:PALETTES.find(p=>p.id===item.paletteId).colors;
@@ -3915,7 +3949,7 @@ function appearancePanel(){
  const custom=chosen.customPalettes;
  return '<section class="panel appearance-section"><h2>Appearance</h2>'+
   '<label class="field spaced"><span>Display mode</span><select name="appearance">'+[['system','System — follow device'],['dark','Dark'],['light','Light']].map(([value,label])=>'<option value="'+value+'" '+(data.preferences.theme===value?'selected':'')+'>'+label+'</option>').join('')+'</select></label>'+
-  '<p class="hint">The original green appearance is Enchanted Forest. Ocean at Night is an optional blue palette. Color palettes and skin artwork apply in Dark mode.</p>'+
+  '<p class="hint">Enchanted Forest restores the original dark card, green macro strip and muted menu chips. Every palette uses that same color placement in Dark mode.</p>'+appearancePlacementPreview(selectedPalette.colors,chosen.paletteId==='forest')+'<div class="appearance-inspector-tools">'+'<button type="button" class="outline small appearance-inspector-toggle" data-action="appearance-inspect" aria-pressed="'+inspecting+'">'+(inspecting?'Hide color outlines':'Highlight themed areas')+'</button>'+'<p class="hint">Temporary outlines show page, panels, support strips, small controls and selected accents across the app. Dark mode only; nothing is saved.</p>'+'<div class="appearance-inspector-legend">'+[['Page','#c084fc'],['Panels','#5cc8ff'],['Support','#ffc078'],['Controls','#5ce0c3'],['Selected','#ffe36e']].map(([label,color])=>'<span><i style="background:'+color+'"></i>'+label+'</span>').join('')+'</div></div>'+
   '<div class="appearance-heading"><h3>Color palettes</h3><small>Change colors without changing layout</small></div>'+gallery(PALETTES,'palette')+
   '<div class="appearance-heading"><h3>Skins</h3><small>Decorative treatments · available all year</small></div>'+gallery(SKINS,'skin')+
   '<div class="appearance-heading"><h3>My palettes</h3><small>Save up to 20 named combinations</small></div>'+
