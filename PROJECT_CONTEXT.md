@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v125 (November 8, 2026)
+## Current release — v126 (November 8, 2026)
+
+- **Remaining theme typography:** Added palette-derived informational/muted text coverage across Home's calorie/protein target denominators, Food suggestions and CSV help, the Home foods selection count, nutrition card captions, blank-state notices in Money and food history, and other routine explanatory text. Strong numbers remain readable; deliberate income/expense, warning, success, active button, and anatomy colors retain their semantic distinction.
+- **Food CSV usability on iPhone:** The previous CSV text link is now a properly sized outline button with explicit expanded state. Opening it synchronously focuses and selects the entire generated CSV so a clipboard Paste can replace it; a visible Select all control permits repeating the action. Paste parsing, Food Library logic, and save behavior are unchanged. CSV field uses 16px monospaced text to avoid iOS zoom.
+- **Scope and safety:** No user records or Firebase schema changed; no workout/finance calculations or themes/skins removed. New typography coverage is a separate last-loaded CSS file, preserving the color-system hierarchy and making the changes easy to audit. CI and user device visual review are separate checkpoints.
+
+## Previous release — v125 (November 8, 2026)
+
+
 
 - **Set Levels now uses a rolling 8-day window:** Today plus the preceding seven calendar dates, independent of the Friday work week or configured routine day. Applies to Progress, the Lifting routine preview and the Workout Buddy preview.
 - **No inflated planned totals:** Recent completed sets come from the lift log with active-session deduplication; routine planned sets are a separate comparison and never added into the recorded totals. Existing v124 audited muscle mappings and original anatomy are preserved.
