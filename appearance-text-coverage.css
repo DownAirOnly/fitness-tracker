@@ -1,0 +1,110 @@
+/* v126 — palette-relative type coverage.
+   These are informational/muted text roles, not status indicators. Do not
+   recolor income/expense, errors, success, active navigation, muscle highlights
+   or deliberately colorful routine identities. */
+:root[data-theme="dark"]{
+ --ap-text-secondary:var(--ap-muted);
+ --ap-text-subtle:color-mix(in srgb,var(--ap-muted) 88%,var(--ap-surface));
+}
+
+/* Calorie and protein denominator, including /1600 and /130g on Home. The
+   older selector below in styles.css had a fixed forest-green value and
+   outranked the former generic appearance rule. */
+:root[data-theme="dark"] .home-metric .nutrition-total-value .nutrition-total-target,
+:root[data-theme="dark"] .home-metric .nutrition-total-value .nutrition-total-separator,
+:root[data-theme="dark"] .home-metric .nutrition-total-value .nutrition-total-target .nutrition-total-unit,
+:root[data-theme="dark"] :is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-target,
+:root[data-theme="dark"] :is(.daily-food-card,.food-log-totals) .nutrition-total-value .nutrition-total-separator,
+:root[data-theme="dark"] :is(.daily-food-card,.food-log-totals) .nutrition-total-target .nutrition-total-unit{
+ color:var(--ap-text-secondary);
+}
+
+/* Messages and ordinary notes throughout Food, Lifting, Money and Progress.
+   This also covers the currently green blank-state notices in Money and the
+   All food entries modal. */
+:root[data-theme="dark"] :is(
+ .empty,.hint,.body-copy,
+ .field>span,.form .field>span,
+ .finance-recent>.empty,.finance-history-list .empty,
+ .modal .empty,.food-progress-chart-empty .empty,
+ .food-csv-panel small,
+ .home-food-count,.home-food-pick small,
+ .food-match-label,.food-match small,.food-match-selected small,
+ .food-batch-heading small,.food-batch-row small,
+ .suggestion-card-macros,.suggestion-card-copy em,
+ .suggestion-search-hint,.suggestion-search>span,
+ .suggestion-anchor-recent>small,.suggestion-target small,
+ .suggestion-selected-anchor small,.suggestion-feedback-summary small,
+ .food-plan-item small,.food-plan-choice small,.food-plan-difference,
+ .tag-check small,.save-new-food-option small,
+ .finance-recent-count,.finance-source,.finance-row-main small,
+ .finance-workflow-content>p,.finance-workflows>summary small,
+ .finance-quick-kind .field>span,
+ .finance-insights-shortcut p:not(.eyebrow),
+ .finance-spend-outlook>p:not(.eyebrow),
+ .finance-glance-card span,.finance-glance-card small,
+ .budget-provenance,.budget-cash-glance small,
+ .history-day span,.week-row small,.list-row small,
+ .home-remaining small,.home-dashboard-hint,
+ .exercise-chart-note,.muscle-disclaimer,.muscle-unmapped
+){
+ color:var(--ap-text-secondary);
+}
+
+/* Strong figures/labels remain bright and readable. These are NOT positive
+   or negative statuses, just nutritional amounts and explanatory captions. */
+:root[data-theme="dark"] .suggestion-card-macros{
+ color:color-mix(in srgb,var(--ap-on-surface) 76%,var(--ap-muted));
+}
+:root[data-theme="dark"] .home-food-count{
+ color:var(--ap-text-secondary);
+}
+:root[data-theme="dark"] .home-dashboard-food-grid .food-card-nutrition{
+ color:var(--ap-text-secondary)!important;
+}
+:root[data-theme="dark"] .food-card .food-card-tag,
+:root[data-theme="dark"] .food-card .food-card-macro small{
+ color:var(--ap-text-secondary)!important;
+}
+
+/* Accessible, thumb-sized control instead of the old CSV text-link.
+   Opening selects the entire editable CSV field, making iOS Paste available
+   immediately; select again without closing by using the secondary control. */
+.food-csv-block{
+ display:grid;gap:9px;justify-items:start;
+ min-width:0;
+}
+.food-csv-block>.food-csv-trigger{
+ display:inline-flex;align-items:center;gap:9px;
+ min-height:44px;min-width:0;
+ padding:10px 15px;border-radius:12px;
+ font-size:13px;font-weight:800;white-space:normal;
+ text-align:left;
+}
+.food-csv-trigger svg{
+ width:18px;height:18px;flex:0 0 18px;
+ stroke:currentColor;fill:none;stroke-width:1.8;
+ stroke-linecap:round;stroke-linejoin:round;
+}
+.food-csv-block .food-csv-panel{
+ width:100%;min-width:0;gap:8px;margin-top:0;
+}
+.food-csv-panel textarea{
+ display:block;width:100%;min-height:104px;
+ padding:12px;border-radius:11px;
+ font-size:16px;line-height:1.4;
+ -webkit-user-select:text;user-select:text;
+}
+.food-csv-panel .food-csv-toolbar{
+ display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap;
+}
+.food-csv-panel .food-csv-toolbar button{
+ min-height:38px;padding:8px 12px;
+}
+.food-csv-panel [data-food-csv-status]{
+ display:block;flex:1 1 190px;
+ font-size:11px;line-height:1.45;
+}
+:root[data-theme="dark"] .food-csv-panel [data-food-csv-status]{
+ color:var(--ap-text-secondary);
+}
