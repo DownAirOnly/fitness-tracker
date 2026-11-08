@@ -1,0 +1,53 @@
+/* v123: routine identity, weighted set exposure and simple measurement ranges. */
+.ed-calendar-day.completed span{border-color:var(--ed-routine-color,#b6e0b6)!important;background:color-mix(in srgb,var(--ed-routine-color,#b6e0b6) 16%,transparent)}
+.ed-calendar-day.projected span{border-color:var(--ed-routine-color,#fff)!important;border-style:dotted!important;background:color-mix(in srgb,var(--ed-routine-color,#fff) 9%,transparent)}
+.ed-calendar-day:focus-visible{outline:2px solid var(--ed-routine-color,#fff);outline-offset:2px}
+.routine-muscle-preview{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:55px;text-align:left;padding:11px 15px;margin:5px 0 12px;border-radius:13px;border:1px solid var(--ap-border,#d3e0d4);background:var(--ap-surface,#f4f7f2);color:var(--ap-on-surface,#172c23)}
+.routine-muscle-preview span{display:grid;gap:3px;min-width:0}
+.routine-muscle-preview strong{font-size:13px}
+.routine-muscle-preview small{font-size:11px;opacity:.72}
+.routine-muscle-preview b{font-size:23px;color:var(--ap-primary,#5d9466)}
+.buddy-muscle-usage-link{border:1px solid var(--ap-border,#9bb5a5);background:var(--ap-surface,#f0f5f0);color:var(--ap-on-surface,#273e30);border-radius:10px;min-height:38px;padding:9px 12px;font-size:12px;font-weight:800;text-align:left}
+.buddy-picker-screen>.buddy-muscle-usage-link{width:100%;flex:0 0 auto;margin:2px 0 12px}
+.buddy-muscle-usage-link.compact{font-size:10px;min-height:30px;padding:6px 9px;margin-left:auto}
+.weight-range-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:4px;margin:13px 0 7px;border:1px solid var(--ap-border,#d9e2db);border-radius:12px;background:var(--ap-bg,#eef3ed)}
+.weight-range-tabs button{border:0;background:transparent;color:var(--ap-muted,#62776c);border-radius:9px;min-height:35px;font-size:12px;font-weight:800}
+.weight-range-tabs button.selected{color:var(--ap-on-primary,#172c23);background:var(--ap-primary,#b5d58d)}
+.bodyfat-compact{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 2px;margin:6px 0 10px;border-bottom:1px solid var(--ap-border,#d9e2db)}
+.bodyfat-compact span{display:grid;gap:3px}
+.bodyfat-compact strong{font-size:12px}
+.bodyfat-compact small{font-size:11px;color:var(--ap-muted,#62776c)}
+.bodyfat-compact button{min-height:35px;padding:8px 10px}
+.muscle-levels{display:grid;gap:11px;min-width:0}
+.muscle-levels h3{font:750 21px 'Outfit',sans-serif;letter-spacing:-.5px;margin:0}
+.muscle-level-subtitle,.muscle-level-note{font-size:11px;line-height:1.5;color:var(--ap-muted,#6b8072);margin:0}
+.muscle-level-overview{display:grid;gap:8px}
+.muscle-level-map{border:1px solid var(--ap-border,#d8e1dc);background:var(--ap-bg,#edf4f1);border-radius:13px;padding:11px 10px}
+.muscle-level-map-title{font-size:11px;font-weight:800;color:var(--ap-on-surface,#273e30);text-align:center;margin-bottom:7px}
+.muscle-level-figures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;justify-items:center}
+.muscle-level-figures>div{width:100%;display:grid;place-items:center;gap:2px}
+.muscle-level-figures>div>span{font-size:9px;letter-spacing:.12em;color:var(--ap-muted,#637868);font-weight:800}
+.muscle-level-figures svg{height:189px;width:auto;max-width:100%;max-height:none}
+.muscle-level-body .muscle-level-region>*{fill:var(--load-color)!important;stroke:#a8d6ed!important;stroke-width:.9;opacity:1!important}
+.muscle-level-body .muscle-silhouette>*{fill:#243c4e!important;stroke:#647c8d!important;stroke-width:1.1}
+.muscle-level-body .muscle-contours{stroke:#b1ddeb;stroke-width:.85;opacity:.45}
+.muscle-level-planned{border:1px solid var(--ap-border,#d9e3db);border-radius:10px;padding:8px}
+.muscle-level-planned summary{font-weight:750;font-size:12px;cursor:pointer;min-height:26px}
+.muscle-level-planned .muscle-level-map{margin-top:8px}
+.muscle-level-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;font-size:9px;font-weight:700;text-align:center;color:var(--ap-muted,#62776c)}
+.muscle-level-scale span{padding-top:9px;position:relative}
+.muscle-level-scale span:before{content:'';height:5px;border-radius:6px;position:absolute;top:0;left:2px;right:2px;background:#344e60}
+.muscle-level-scale span:nth-child(2):before{background:#39729d}
+.muscle-level-scale span:nth-child(3):before{background:#278fb9}
+.muscle-level-scale span:nth-child(4):before{background:#25b9da}
+.muscle-level-scale span:nth-child(5):before{background:#6fe0ed}
+.muscle-level-items{display:grid;gap:8px}
+.muscle-level-item{padding:8px 0;border-bottom:1px solid var(--ap-border,#dce5df)}
+.muscle-level-row{display:flex;justify-content:space-between;gap:9px;align-items:center;font-size:12px}
+.muscle-level-row strong{font-size:12px}
+.muscle-level-row span{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ap-on-surface,#223a30)}
+.muscle-level-meter{margin:6px 0 4px;height:6px;background:var(--ap-border,#dce5df);border-radius:8px;overflow:hidden}
+.muscle-level-meter i{display:block;height:100%;border-radius:8px}
+.muscle-level-item small{display:block;font-size:10px;color:var(--ap-muted,#62776c)}
+.muscle-level-note{border-top:1px solid var(--ap-border,#d9e2db);padding-top:10px}
+@media(max-width:375px){.muscle-level-figures svg{height:166px}.buddy-muscle-usage-link.compact{padding:5px 7px}.bodyfat-compact button{font-size:10px}}
