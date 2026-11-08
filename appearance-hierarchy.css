@@ -121,3 +121,9 @@
 .appearance-inspector-legend span{display:inline-flex;align-items:center;gap:5px}
 .appearance-inspector-legend i{width:10px;height:10px;display:inline-block;border-radius:3px}
 @media(max-width:360px){.appearance-placement-legend span{font-size:8px}.appearance-placement-preview{padding:9px}}
+
+/* v122: shared n./e./c. typography, with the active appearance colors on Everyday. */
+.brand .brand-monogram{display:inline-flex;align-items:baseline;justify-content:center;width:34px;height:34px;flex:0 0 34px;padding:3px 3px 0 0;font-family:'DM Sans',system-ui,-apple-system,sans-serif;font-size:30px;font-weight:800;line-height:1;letter-spacing:-.105em;color:#b5d58d}
+.brand .brand-monogram span{color:#91ba98}
+:root[data-theme="dark"] .brand .brand-monogram{color:var(--ap-primary,#b5d58d)}
+:root[data-theme="dark"] .brand .brand-monogram span{color:var(--ap-secondary,#91ba98)}
