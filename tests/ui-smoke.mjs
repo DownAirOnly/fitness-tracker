@@ -12,7 +12,7 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=125'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=126'),'palette coverage stylesheet is loaded');
 for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
 assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
 
@@ -86,9 +86,18 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=125'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=126'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=125'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=126'),'mobile layout fixes load after the theme styles');
+const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=126'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
+for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
+ assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
+}
+assert.ok(typeCoverage.includes('.food-csv-trigger'),'CSV is styled as a visible control');
+assert.ok(!typeCoverage.includes('.finance-row-side b.income'),'finance positive-status text must keep meaning');
+
 assert.ok(bootSource.includes('start=shiftDate(end,-7)'),'Set Levels uses a rolling eight-day window');
 assert.ok(bootSource.includes("activeTab=page==='history'?'progress':page"),'History keeps Progress navigation selected');
 assert.ok(uiPolish.includes('grid-template-columns:minmax(0,1fr) auto'),'iOS date-row controls cannot overlap');
@@ -1167,7 +1176,18 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  const foodFormTest=document.querySelector('form[data-form="food"]');assert.ok(foodFormTest);
  document.querySelector('[data-action="food-quantity"][data-amount="0.5"]').click();await tick();
  assert.equal(foodFormTest.elements.quantity.value,'0.5','half-serving shortcut adjusts hidden quantity');
- await click('food-csv-toggle');assert.ok(document.querySelector('[data-food-csv]').value.startsWith('recordType,date,name'));
+ await click('food-csv-toggle');
+ const csvTrigger=document.querySelector('[data-action="food-csv-toggle"]');
+ const selectedCSV=document.querySelector('[data-food-csv]');
+ assert.ok(csvTrigger.classList.contains('outline'),'CSV opens from a real styled button');
+ assert.equal(csvTrigger.getAttribute('aria-expanded'),'true','CSV button reports expanded state');
+ assert.ok(selectedCSV.value.startsWith('recordType,date,name'),'CSV includes pasteable header');
+ assert.equal(selectedCSV.selectionStart,0,'CSV selection starts at the first character');
+ assert.equal(selectedCSV.selectionEnd,selectedCSV.value.length,'CSV is fully selected for iPhone paste');
+ selectedCSV.setSelectionRange(2,5);
+ await click('food-csv-select');
+ assert.equal(selectedCSV.selectionStart,0,'Select all button resets the selection');
+ assert.equal(selectedCSV.selectionEnd,selectedCSV.value.length,'Select all button selects the full CSV');
  const foodCsv=document.querySelector('[data-food-csv]');
  foodCsv.value='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,14:30,true';
  foodCsv.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await tick();
