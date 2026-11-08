@@ -1382,7 +1382,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(document.querySelectorAll('.bodyfat-progress-chart').length,0,'redundant body-fat graph stays removed');
  
  assert.ok(document.querySelector('.weight-progress-chart [data-action="weight-all"]'),'weight graph preserves entry editing');
- assert.ok(document.querySelector('.bodyfat-compact [data-action="body-fat"]'),'body fat entry remains accessible without a graph');
+ assert.ok(document.querySelector('.bodyfat-compact [data-action="weight-all"]'),'body fat measurement history remains accessible without a graph');
  assert.ok(document.querySelectorAll('.weight-actual-dot').length<=90,'weight chart renders no more than 90 measured values');
  assert.equal(document.querySelectorAll('.bodyfat-dot').length,0,'no body-fat sparkline is rendered');
  await click('weight-all');assert.ok(document.querySelector('.measurement-history-list [data-action="edit-measurement"]'),'body fat remains in combined dated measurement history');await click('close');
