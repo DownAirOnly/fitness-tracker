@@ -12,7 +12,7 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=120'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=123'),'palette coverage stylesheet is loaded');
 for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
 assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
 
@@ -85,7 +85,8 @@ assert.ok(bootSource.includes('appearance-custom')&&bootSource.includes('appeara
 assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin stylesheet is included');
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
-assert.ok(bootSource.includes('weights.slice(0,90),chartBodyFat=bodyFat.slice(0,90)'),'both measurement graphs select their 90 latest records independently');
+assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
+assert.ok(launchHtml.includes('muscle-levels.css?v=123'),'set-level and routine-color stylesheet is loaded');
 assert.ok(bootSource.includes('weightProgressChart(chartWeights,weights)'),'visible weight trend retains full-history rolling averages');
 assert.ok(bootSource.includes('scheduleStandaloneViewportRecovery()'),'PWA lifecycle includes viewport-origin recovery');
 const webManifest=JSON.parse(await readFile(new URL('manifest.webmanifest',root),'utf8'));
@@ -1257,7 +1258,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelector('form[data-form="weight"] [name="bodyFatValue"]').required,false,'body fat remains optional');
  await submit('weight',{value:'180',date:'2026-09-20'});
  await click('progress');await click('body-fat');await submit('body-fat',{value:'22.4',date:'2026-09-20'});
- await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.ok(document.querySelector('.bodyfat-progress-chart'),'body fat chart renders');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
+ await click('progress');assert.ok(document.querySelector('main').textContent.includes('180'));assert.ok(document.querySelector('.weight-progress-chart'),'weigh-in chart renders');assert.ok(document.querySelector('.weight-actual-dot'),'exact weigh-in point renders');assert.equal(document.querySelector('.bodyfat-progress-chart'),null,'body fat graph remains removed');assert.ok(document.querySelector('.bodyfat-compact'),'body fat reading remains accessible');assert.ok(document.querySelector('.weight-range-tabs [data-days="90"].selected'),'weight chart defaults to 90 days');assert.equal(JSON.parse(state.records.get('bob').payload).bodyFat[0].value,22.4);
  // The same weight form can update a day's body fat without creating duplicates.
  await click('progress');await click('weight');
  await submit('weight',{value:'180',bodyFatValue:'22.8',date:'2026-09-20'});
@@ -1378,13 +1379,13 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(!document.querySelector('.trend-highlight .eyebrow'),'redundant current-week heading removed');
   assert.equal(document.querySelector('.weight-chart-key.trend b').textContent,'7-day average','legend accurately names seven-day average');
   assert.ok(!document.querySelector('.weight-chart-note'),'obsolete chart explanation removed');
-  assert.equal(document.querySelectorAll('.bodyfat-progress-chart .weight-chart-range span').length,2,'body-fat graph has two date endpoints');
+  assert.equal(document.querySelectorAll('.bodyfat-progress-chart').length,0,'redundant body-fat graph stays removed');
  
  assert.ok(document.querySelector('.weight-progress-chart [data-action="weight-all"]'),'weight graph preserves entry editing');
- assert.ok(document.querySelector('.bodyfat-progress-chart [data-action="bodyfat-all"]'),'body fat graph preserves entry editing');
+ assert.ok(document.querySelector('.bodyfat-compact [data-action="body-fat"]'),'body fat entry remains accessible without a graph');
  assert.ok(document.querySelectorAll('.weight-actual-dot').length<=90,'weight chart renders no more than 90 measured values');
  assert.ok(document.querySelectorAll('.bodyfat-dot').length<=90,'body fat chart renders no more than 90 measured values');
- await click('bodyfat-all');assert.ok(document.querySelector('.measurement-history-list [data-action="edit-measurement"]'),'body fat history opens combined dated measurements');await click('close');
+ await click('weight-all');assert.ok(document.querySelector('.measurement-history-list [data-action="edit-measurement"]'),'body fat remains in combined dated measurement history');await click('close');
  assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
  const progressExercise=document.querySelector('.exercise-progress-panel .progress-exercise-card');if(progressExercise){
   assert.ok(progressExercise.classList.contains('exercise'),'Progress uses shared Lifting exercise card');
