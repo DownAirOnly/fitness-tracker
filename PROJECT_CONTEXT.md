@@ -2,7 +2,16 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v123 (November 8, 2026)
+## Current release — v124 (November 8, 2026)
+
+- **Restore the approved muscle anatomy:** Roll back the v123 internal chest/abs/quads/back/glute/hamstring/calf shapes and contours to exactly the v122 Natural Anatomy paths. The outer body silhouette was never changed. Keep the front/back views, existing warm/cool highlights, recovery map, and new Set Levels. The extra adductor shape is rendered only as a separate overlay when needed so it does not alter the older exercise thumbnails.
+- **Muscle mapping audit:** Verified the complete 15-exercise default library; tightened primary versus assisting roles to avoid giving equivalent-set credit for passive stabilization. Fixed predictable exercise naming aliases (for example, Machine Row and seated leg curl). Unknown custom exercises remain deliberately unmapped rather than guessed.
+- **Set Levels sanity:** Confirmed from source that completed and planned exposures stay separate, current active Buddy sets are not double-counted against their finalized lift records, and existing workout/food/money histories remain unmodified. Added focused regression tests covering defaults, aliases, workload estimates, duplicate prevention, and v122 SVG geometry.
+- **No unrelated feature changes:** Routine-specific calendar colors, 7/30/90-day weight chart, compact body-fat summary (no redundant body-fat graph), Workout Buddy controls, themes, and new e. branding are unchanged. Release assets and offline-cache version move to v124. Automated tests and on-device visual appearance are separate checkpoints.
+
+## Previous release — v123 (November 8, 2026)
+
+
 
 - **Routine colors in the calendar:** Future scheduled dates and completed session markers inherit their actual saved routine color where a routine is identifiable. Dotted rings remain planned, solid rings completed; history-only estimates and manually logged dates remain neutral.
 - **Detailed anatomy and set levels:** Improved original front/rear SVG muscle shapes, added adductors, and a weekly set-exposure heatmap. One primary-muscle set = one direct set; supporting work = 0.5 equivalent sets, explicitly labeled as estimates rather than training prescriptions.

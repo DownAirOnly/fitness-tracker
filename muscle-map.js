@@ -1,4 +1,5 @@
-/* Detailed, original, locally rendered muscle guide. Not a medical/anatomical atlas.
+/* Original v122 anatomy geometry with separate read-only set-level overlays.
+   Not a medical/anatomical atlas.
    Muscle groups are reference metadata, not derived from user records. */
 const labels={
  chest:'Chest / pectorals',delts:'Shoulders / deltoids',triceps:'Triceps',
@@ -10,35 +11,50 @@ const exercises={
  'chest press':{primary:['chest'],secondary:['triceps','delts']},
  'lat pulldown':{primary:['lats'],secondary:['biceps','upperBack']},
  'seated row':{primary:['upperBack','lats'],secondary:['biceps','delts']},
- 'shoulder press':{primary:['delts'],secondary:['triceps','traps']},
- 'triceps pushdown':{primary:['triceps'],secondary:['forearms']},
- 'bicep curl':{primary:['biceps'],secondary:['forearms']},
- 'seated leg press':{primary:['quads','glutes'],secondary:['hamstrings','adductors','calves']},
- 'leg press':{primary:['quads','glutes'],secondary:['hamstrings','adductors','calves']},
- 'leg curl':{primary:['hamstrings'],secondary:['calves']},
- 'glute kickback':{primary:['glutes'],secondary:['hamstrings']},
+  'shoulder press':{primary:['delts'],secondary:['triceps']},
+  'triceps pushdown':{primary:['triceps'],secondary:[]},
+  'bicep curl':{primary:['biceps'],secondary:[]},
+  'seated leg press':{primary:['quads','glutes'],secondary:[]},
+  'leg press':{primary:['quads','glutes'],secondary:[]},
+  'leg curl':{primary:['hamstrings'],secondary:[]},
+  'glute kickback':{primary:['glutes'],secondary:[]},
  'leg extension':{primary:['quads'],secondary:[]},
  'hip abduction':{primary:['glutes'],secondary:[]},
  'hip adduction':{primary:['adductors'],secondary:[]},
  'adductor machine':{primary:['adductors'],secondary:[]},
  'calf extension':{primary:['calves'],secondary:[]},
  'calf raise':{primary:['calves'],secondary:[]},
- 'torso rotation':{primary:['obliques'],secondary:['abs']},
- 'abdominal crunch':{primary:['abs'],secondary:['obliques']},
- 'lateral raise':{primary:['delts'],secondary:['traps']},
- 'dumbbell lateral raise':{primary:['delts'],secondary:['traps']},
+  'torso rotation':{primary:['obliques'],secondary:[]},
+  'abdominal crunch':{primary:['abs'],secondary:[]},
+  'lateral raise':{primary:['delts'],secondary:[]},
+  'dumbbell lateral raise':{primary:['delts'],secondary:[]},
  'tricep extension':{primary:['triceps'],secondary:[]},
- 'deadlift':{primary:['glutes','hamstrings','lowerBack'],secondary:['traps','upperBack','forearms']},
- 'squat':{primary:['quads','glutes'],secondary:['hamstrings','adductors','abs']},
+  'deadlift':{primary:['glutes','hamstrings'],secondary:['lowerBack','traps','upperBack']},
+  'squat':{primary:['quads','glutes'],secondary:['adductors']},
  'push up':{primary:['chest'],secondary:['triceps','delts']},
  'pushup':{primary:['chest'],secondary:['triceps','delts']},
  'pull up':{primary:['lats'],secondary:['biceps','upperBack']},
  'pullup':{primary:['lats'],secondary:['biceps','upperBack']},
- 'plank':{primary:['abs'],secondary:['obliques','delts']}
+  'plank':{primary:['abs'],secondary:['obliques']}
+};
+// Normalize only well-known naming variants. Unknown custom exercises remain
+// unmapped instead of silently receiving an arbitrary muscle attribution.
+const nameAliases={
+ 'row':'seated row','machine row':'seated row','seated cable row':'seated row',
+ 'seated lat pulldown':'lat pulldown','lat pull down':'lat pulldown',
+ 'shoulder press machine':'shoulder press','machine overhead press':'shoulder press',
+ 'biceps curl':'bicep curl','curl':'bicep curl',
+ 'tricep pushdown':'triceps pushdown','triceps push down':'triceps pushdown',
+ 'triceps extension':'tricep extension','overhead triceps extension':'tricep extension',
+ 'lying leg curl':'leg curl','seated leg curl':'leg curl','hamstring curl':'leg curl',
+ 'abdominal machine':'abdominal crunch','ab crunch':'abdominal crunch',
+ 'seated calf raise':'calf raise','standing calf raise':'calf raise',
+ 'glute press':'glute kickback','hip abduction machine':'hip abduction',
+ 'hip adduction machine':'hip adduction'
 };
 export function exerciseMuscleProfile(name){
  const key=String(name||'').toLowerCase().replace(/^(machine|cable|dumbbell|db)\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
- const found=exercises[key];
+ const found=exercises[nameAliases[key]||key];
  return found?{primary:[...found.primary],secondary:[...found.secondary]}:null;
 }
 // Natural baseline from the approved Anatomy Lab: curved head/neck, original balanced torso and legs.
@@ -48,36 +64,40 @@ const silhouette='<path d="M90 5 C100 5 105 12 105 22 C105 32 100 40 90 40 C80 4
  '<path d="M124 57 Q137 57 140 75 L153 145 Q156 154 146 158 L137 151 120 98 114 72 Z"/>'+
  '<path d="M65 162 Q89 170 115 162 L116 179 109 241 105 303 Q102 316 90 315 L89 289 92 240 90 190 88 240 91 289 90 315 Q78 316 75 303 L71 241 64 179 Z"/>';
 const front={
- chest:'<path d="M65 72 Q73 64 87 69 Q89 72 88 78 L87 94 Q76 103 65 91 L63 83 Z M93 69 Q107 64 115 72 L117 83 115 91 Q104 103 93 94 L92 78 Z"/><path d="M67 82 Q78 88 87 82 M93 82 Q103 88 113 82" fill="none" stroke-width=".75"/>',
+ chest:'<path d="M67 73 Q75 65 88 70 L88 91 Q77 100 65 88 Z M92 70 Q105 65 113 73 L115 88 Q103 100 92 91 Z"/>',
  delts:'<ellipse cx="58" cy="67" rx="9" ry="14" transform="rotate(18 58 67)"/><ellipse cx="122" cy="67" rx="9" ry="14" transform="rotate(-18 122 67)"/>',
  biceps:'<ellipse cx="50" cy="103" rx="7" ry="18" transform="rotate(13 50 103)"/><ellipse cx="130" cy="103" rx="7" ry="18" transform="rotate(-13 130 103)"/>',
  forearms:'<path d="M40 119 Q48 119 47 132 L40 151 Q32 153 32 146 Z M140 119 Q132 119 133 132 L140 151 Q148 153 148 146 Z"/>',
- abs:'<path d="M78 103 Q84 101 88 104 L88 114 78 115 Z M92 104 Q98 101 102 103 L102 115 92 114 Z M78 118 L88 117 88 127 79 130 Z M92 117 L102 118 101 130 92 127 Z M80 133 L88 131 88 141 83 143 Z M92 131 L100 133 97 143 92 141 Z"/>',
+ abs:'<path d="M77 103 L103 103 103 141 Q90 148 77 141 Z"/>',
  obliques:'<path d="M70 104 L77 104 77 140 70 148 66 138 Z M110 104 L103 104 103 140 110 148 114 138 Z"/>',
- quads:'<path d="M65 180 Q73 177 78 181 L77 219 71 235 67 221 Z M79 180 Q85 178 88 184 L86 230 79 245 75 232 Z M92 184 Q95 178 101 180 L105 232 98 245 94 230 Z M102 181 Q107 177 115 180 L113 221 109 235 103 219 Z"/>',
- adductors:'<path d="M88 183 Q89 193 87 206 L84 226 89 239 90 240 94 226 93 204 92 183 Z"/>',
- calves:'<path d="M73 249 Q79 247 85 252 L83 266 79 277 76 271 Z M95 252 Q101 247 107 249 L104 271 100 277 97 266 Z M75 279 L82 280 80 299 77 302 Z M98 280 L105 279 103 302 100 299 Z"/>'
+ quads:'<path d="M66 180 Q78 174 88 181 L85 238 76 251 70 239 Z M92 181 Q102 174 114 180 L110 239 101 251 95 238 Z"/>',
+ calves:'<path d="M74 250 L86 251 84 291 77 301 73 291 Z M94 251 L106 250 107 291 103 301 96 291 Z"/>'
 };
 const rear={
  traps:'<path d="M82 49 L98 49 114 73 103 83 90 69 77 83 66 73 Z"/>',
  delts:'<ellipse cx="59" cy="67" rx="9" ry="14" transform="rotate(18 59 67)"/><ellipse cx="121" cy="67" rx="9" ry="14" transform="rotate(-18 121 67)"/>',
- upperBack:'<path d="M78 75 L89 81 88 111 78 104 72 90 Z M102 75 L91 81 92 111 102 104 108 90 Z M82 111 L90 116 98 111 93 123 87 123 Z"/>',
- lats:'<path d="M65 85 Q73 89 77 105 L83 122 88 133 88 151 74 139 Q64 116 63 100 Z M115 85 Q107 89 103 105 L97 122 92 133 92 151 106 139 Q116 116 117 100 Z"/>',
+ upperBack:'<path d="M79 79 L101 79 105 109 90 120 75 109 Z"/>',
+ lats:'<path d="M67 83 L76 91 77 114 88 125 88 148 74 138 65 105 Z M113 83 L104 91 103 114 92 125 92 148 106 138 115 105 Z"/>',
  triceps:'<ellipse cx="49" cy="102" rx="7" ry="19" transform="rotate(14 49 102)"/><ellipse cx="131" cy="102" rx="7" ry="19" transform="rotate(-14 131 102)"/>',
  forearms:'<path d="M40 120 L47 121 42 150 33 151 Z M140 120 L133 121 138 150 147 151 Z"/>',
  lowerBack:'<path d="M79 128 L101 128 106 154 90 162 74 154 Z"/>',
- glutes:'<path d="M64 163 C68 158 78 157 85 160 Q90 165 88 174 C85 186 79 190 72 187 C66 184 63 173 64 163 Z M95 160 C102 157 112 158 116 163 C117 173 114 184 108 187 C101 190 95 186 92 174 Q90 165 95 160 Z"/>',
- hamstrings:'<path d="M67 187 Q75 185 80 190 L78 225 73 245 68 234 Z M81 189 L87 186 86 223 81 245 77 237 Z M93 186 L99 189 103 237 99 245 94 223 Z M100 190 Q105 185 113 187 L112 234 107 245 102 225 Z"/>',
- calves:'<path d="M73 249 Q80 244 85 251 L84 270 78 288 72 279 Z M95 251 Q100 244 107 249 L108 279 102 288 96 270 Z M77 285 L84 276 82 295 79 301 Z M96 276 L103 285 101 301 98 295 Z"/>'
+ glutes:'<path d="M65 164 C69 158 77 156 84 160 Q88 164 88 172 C87 179 83 186 76 186 C68 185 65 176 65 164 Z M96 160 C103 156 111 158 115 164 C115 176 112 185 104 186 C97 186 93 179 92 172 Q92 164 96 160 Z"/>',
+ hamstrings:'<path d="M67 186 Q79 182 87 185 L84 243 73 248 Z M93 185 Q101 182 113 186 L107 248 96 243 Z"/>',
+ calves:'<path d="M73 249 Q79 243 86 249 L84 290 78 299 72 287 Z M94 249 Q101 243 107 249 L108 287 102 299 96 290 Z"/>'
 };
+// Hip adductors were not represented in the approved v122 shape set.
+// Keep its small overlay separate so the original 15 muscle silhouettes do
+// not change, even on ordinary exercise cards or recovery maps.
+const adductorShape='<path d="M88 183 Q89 193 87 206 L84 226 89 239 90 240 94 226 93 204 92 183 Z"/>';
+const withAdductors=(view,active)=>view==='front'&&active?{...front,adductors:adductorShape}:view==='front'?front:rear;
 // A unique gradient namespace prevents repeated Buddy/exercise thumbnails from sharing SVG IDs.
 let anatomySvgSequence=0;
 const contours={
- front:'M90 54V144 M66 91Q77 101 88 95 M92 95Q104 101 115 91 M70 102Q75 121 71 144 M110 102Q105 121 109 144 M90 100V143 M79 116H87 M93 116H102 M79 130H87 M93 130H102 M68 184Q80 208 75 238 M112 184Q100 208 105 238 M78 252Q83 271 80 287 M102 252Q97 271 100 287',
- back:'M90 54V157 M68 73Q79 88 88 89 M112 73Q101 88 92 89 M74 108Q79 126 87 131 M106 108Q101 126 93 131 M75 154Q90 164 105 154 M90 163V183 M74 190Q83 213 78 242 M106 190Q97 213 102 242 M79 249Q84 269 80 288 M101 249Q96 269 100 288'
+ front:'M90 55V143 M70 82Q90 91 110 82 M78 106H102 M78 118H102 M78 130H102 M74 204L82 230 M106 204L98 230',
+ back:'M90 56V154 M70 84Q90 97 110 84 M77 112Q90 125 103 112 M90 163V177 M74 203L83 233 M106 203L97 233'
 };
 function bodySvg(view,profile){
- const muscles=view==='front'?front:rear;
+ const muscles=withAdductors(view,Boolean(profile?.primary.includes('adductors')||profile?.secondary.includes('adductors')));
  const uid='anatomy-'+(++anatomySvgSequence);
  const gradients='<defs>'+
   '<linearGradient id="'+uid+'-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffd1a0"/><stop offset=".55" stop-color="#ff8a56"/><stop offset="1" stop-color="#e65e38"/></linearGradient>'+
@@ -120,7 +140,7 @@ export function muscleGuideMarkup(name){
  * Uses the same anatomical paths as the regular Exercise muscle guide.
  */
 function recoveryBodySvg(view,statuses){
- const muscles=view==='front'?front:rear,uid='recovery-'+(++anatomySvgSequence);
+ const muscles=withAdductors(view,Boolean(statuses.adductors)),uid='recovery-'+(++anatomySvgSequence);
  const regions=Object.entries(muscles).map(([id,shape])=>{
   const state=statuses[id]==='today'?'recent-today':statuses[id]==='yesterday'?'recent-yesterday':'quiet';
   const color=state==='recent-today'?'#f16c68':state==='recent-yesterday'?'#f0ca53':'#638a81';
@@ -153,7 +173,7 @@ export function muscleExercisePairMarkup(name){
    the warm/cool primary/secondary mapping and two-day recovery markers. */
 const setColor=(value)=>value<=0?'#344e60':value<4?'#39729d':value<8?'#278fb9':value<12?'#25b9da':'#6fe0ed';
 function setLevelSvg(view,counts){
- const groups=view==='front'?front:rear,side=view==='front'?'Front':'Back';
+ const groups=withAdductors(view,true),side=view==='front'?'Front':'Back';
  const regions=Object.entries(groups).map(([id,path])=>{
   const item=counts?.[id]||{},n=Number(item.effective)||0;
   return '<g class="muscle-region muscle-level-region" data-muscle="'+id+'" style="--load-color:'+setColor(n)+'"><title>'+labels[id]+': '+n.toFixed(1)+' equivalent sets</title>'+path+'</g>';
@@ -183,5 +203,5 @@ export function muscleSetLevelsMarkup(done={},planned=null,{title='Set levels',s
   (hasDone&&hasPlan?'<details class="muscle-level-planned"><summary>View planned muscle map</summary>'+levelPair(planned,'Planned workload')+'</details>':'')+'</div>'+
   '<div class="muscle-level-scale"><span>0</span><span>1–3</span><span>4–7</span><span>8–11</span><span>12+</span></div>'+
   '<div class="muscle-level-items">'+(items||'<p class="muscle-level-subtitle">No mapped sets in this period yet.</p>')+'</div>'+
-  '<p class="muscle-level-note">Approximate set exposure, not a recovery or growth score. Each completed primary-muscle set counts as 1; supporting involvement counts as 0.5. Planned sets do not count as completed.</p></section>';
+  '<p class="muscle-level-note">Approximate set exposure, not a recovery or growth score. Primary muscles count as 1 per completed set; substantial assisting muscles count as 0.5. Passive stabilization is not credited. Planned sets never count as completed.</p></section>';
 }
