@@ -1,0 +1,115 @@
+/* v125 — targeted iPhone layout and hierarchy repairs.
+   Keep theme layering, routine identity and persistent data behavior intact. */
+
+/* Give ordinary flex/grid children a non-overflowing minimum width. In
+   particular, iOS date inputs otherwise retain an intrinsic width that
+   overlays their adjacent Open food button. */
+#app .shell main :is(.date-row,.history-day,.section-head) > *{min-width:0}
+#app main[data-page="history"] .date-row{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;
+ align-items:end;gap:10px;width:100%;max-width:100%;
+}
+#app main[data-page="history"] .date-row .field{
+ display:flex;min-width:0;max-width:none;width:100%;
+}
+#app main[data-page="history"] .date-row input[type="date"]{
+ -webkit-appearance:none;appearance:none;
+ display:block;width:100%;max-width:100%;min-width:0;min-height:48px;
+ overflow:hidden;text-overflow:ellipsis;
+}
+#app main[data-page="history"] .date-row input[type="date"]::-webkit-date-and-time-value{
+ display:block;min-width:0;max-width:100%;text-align:left;
+}
+#app main[data-page="history"] .date-row .outline{
+ min-height:48px;white-space:nowrap;margin:0;
+}
+#app main[data-page="history"] .history-day{
+ display:grid;grid-template-columns:minmax(88px,1fr) minmax(0,2.2fr) 22px;
+ gap:11px;align-items:center;max-width:100%;min-width:0;
+}
+#app main[data-page="history"] .history-day strong{
+ width:auto;min-width:0;line-height:1.25;
+}
+#app main[data-page="history"] .history-day span{
+ min-width:0;overflow-wrap:anywhere;word-break:normal;white-space:normal;
+}
+#app main[data-page="history"] .history-day b{
+ min-width:0;text-align:center;justify-self:end;
+}
+@media(max-width:350px){
+ #app main[data-page="history"] .date-row{grid-template-columns:minmax(0,1fr)}
+ #app main[data-page="history"] .date-row .outline{justify-self:start}
+ #app main[data-page="history"] .history-day{grid-template-columns:minmax(75px,.95fr) minmax(0,2fr) 18px;gap:7px;padding:12px}
+}
+
+/* Preserve a solid painted header behind the gear in iOS standalone mode.
+   Avoid compositing blur or fractional transformed positioning for the SVG. */
+#app > .shell > .top{
+ position:relative;z-index:1;isolation:isolate;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ filter:none!important;overflow:visible;
+}
+:root[data-theme="dark"] #app > .shell > .top{background:var(--ap-bg)}
+#app .home-settings,
+#app .home-settings .settings-icon,
+#app .home-settings .settings-icon svg{
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ filter:none!important;transform:none!important;
+}
+#app .home-settings{background-clip:padding-box}
+#app .home-settings .settings-icon svg{
+ width:24px;height:24px;stroke-width:2;shape-rendering:geometricPrecision;
+}
+
+/* A routine's saved accent is the single source of truth in both calendar
+   markers and cards, including the default Upper/Lower/Full routines.
+   Palette colors still control typography and neutral surfaces. */
+.buddy-routine-choice[style*="--routine-accent"]{
+ background:color-mix(in srgb,var(--routine-accent) 18%,#fff);
+ border-color:color-mix(in srgb,var(--routine-accent) 55%,#e1e8e4);
+}
+:root[data-theme="dark"] .buddy-routine-choice[style*="--routine-accent"]{
+ background:color-mix(in srgb,var(--routine-accent) 36%,var(--ap-surface))!important;
+ border-color:color-mix(in srgb,var(--routine-accent) 64%,var(--ap-border))!important;
+ color:var(--ap-on-surface)!important;
+}
+:root[data-theme="dark"] .buddy-routine-choice[style*="--routine-accent"] .routine-choice-main small{
+ color:color-mix(in srgb,var(--ap-on-surface) 77%,var(--routine-accent));
+}
+:root[data-theme="dark"] .buddy-routine-choice[style*="--routine-accent"] .routine-choice-main strong{color:var(--ap-on-surface)}
+
+/* Time-range selection should behave like a small segmented control rather
+   than another full-width panel above a compact phone chart. */
+.weight-range-tabs{
+ display:flex;justify-content:flex-end;align-self:flex-end;
+ width:max-content;max-width:100%;gap:3px;
+ margin:6px 0 2px auto!important;padding:2px!important;border-radius:9px;
+}
+.weight-range-tabs button{
+ min-width:62px;min-height:29px!important;
+ padding:4px 9px!important;font-size:10px!important;
+ line-height:1.1;border-radius:7px;white-space:nowrap;
+}
+.bodyfat-compact{
+ margin:12px 0 0!important;padding:12px 1px 0!important;
+ border-top:1px solid var(--ap-border,#d9e2db)!important;
+ border-bottom:0!important;
+}
+.bodyfat-compact span{min-width:0}
+
+/* Keep the Save routine action floating, but do not paint an opaque box
+   over the exercise inputs while scrolling or at the end of the modal. */
+#overlay .workout-editor-actions{
+ position:sticky;bottom:0;
+ padding:12px 0 6px;margin:0;
+ background:transparent!important;
+ -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+ box-shadow:none!important;
+ isolation:isolate;z-index:3;
+}
+#overlay .workout-editor-actions button{
+ min-width:0;box-shadow:0 5px 20px rgba(0,0,0,.2);
+}
+#overlay .modal:has(.workout-template-form){scroll-padding-bottom:110px}
+#overlay .workout-template-list{padding-bottom:16px}
+#overlay .workout-template-row:last-child{scroll-margin-bottom:110px}

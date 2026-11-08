@@ -2,7 +2,17 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v124 (November 8, 2026)
+## Current release — v125 (November 8, 2026)
+
+- **Set Levels now uses a rolling 8-day window:** Today plus the preceding seven calendar dates, independent of the Friday work week or configured routine day. Applies to Progress, the Lifting routine preview and the Workout Buddy preview.
+- **No inflated planned totals:** Recent completed sets come from the lift log with active-session deduplication; routine planned sets are a separate comparison and never added into the recorded totals. Existing v124 audited muscle mappings and original anatomy are preserved.
+- **Progress cleanup:** Compact, right-aligned 7/30/90-day weight selector. Latest body-fat reading moved beneath the weight graph and weekly entries; removed duplicate body-fat Edit measurements button. Single combined measurement editor remains accessible from the graph or empty-period fallback.
+- **Visual and navigation repairs:** History's date row and cards use bounded grid columns to prevent iOS control overlap. Opening History from Progress keeps Progress highlighted and aria-current accurate. Routine cards use their saved colors like calendar circles, overriding near-monochrome theme coverage. Settings gear and header avoid blur/compositing effects. Routine editor's Save/Add dock remains sticky without opaque overlay or a rectangular background.
+- **Release safety:** No data schemas, Firebase records, lifting history, exercise definitions, imported records, or finance logic changed. A final device rendering check is still needed independently of GitHub CI.
+
+## Previous release — v124 (November 8, 2026)
+
+
 
 - **Restore the approved muscle anatomy:** Roll back the v123 internal chest/abs/quads/back/glute/hamstring/calf shapes and contours to exactly the v122 Natural Anatomy paths. The outer body silhouette was never changed. Keep the front/back views, existing warm/cool highlights, recovery map, and new Set Levels. The extra adductor shape is rendered only as a separate overlay when needed so it does not alter the older exercise thumbnails.
 - **Muscle mapping audit:** Verified the complete 15-exercise default library; tightened primary versus assisting roles to avoid giving equivalent-set credit for passive stabilization. Fixed predictable exercise naming aliases (for example, Machine Row and seated leg curl). Unknown custom exercises remain deliberately unmapped rather than guessed.
