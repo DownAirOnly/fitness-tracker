@@ -24,11 +24,18 @@ export function completedMuscleSets(lifts,active=null,from='',through=''){
  for(const item of lifts||[]){
   if(!validDate(item.date))continue;
   addMuscleSets(result,item.exercise,item.sets?.length||0);
-  if(item.buddySessionId)recorded.add(item.buddySessionId+'|'+normalize(item.exercise)+'|'+normalize(item.equipment||'other'));
+  if(item.buddySessionId){
+   const base=item.buddySessionId+'|'+normalize(item.exercise);
+   recorded.add(base+'|'+normalize(item.equipment||'other'));
+   // Legacy Buddy lifts without an equipment field must not be counted again
+   // as an active exercise of the same name from the same session.
+   if(!item.equipment)recorded.add(base+'|*');
+  }
  }
  if(active&&validDate(active.date)){
   for(const e of active.exercises||[]){
-   if(recorded.has(active.id+'|'+normalize(e.name)+'|'+normalize(e.equipment||'other')))continue;
+   const base=active.id+'|'+normalize(e.name);
+   if(recorded.has(base+'|'+normalize(e.equipment||'other'))||recorded.has(base+'|*'))continue;
    addMuscleSets(result,e.name,confirmedSetCount(e));
   }
  }
