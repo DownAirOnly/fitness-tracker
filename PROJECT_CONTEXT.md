@@ -2,7 +2,20 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v120 (November 6, 2026)
+## Current release — v123 (November 8, 2026)
+
+- **Routine colors in the calendar:** Future scheduled dates and completed session markers inherit their actual saved routine color where a routine is identifiable. Dotted rings remain planned, solid rings completed; history-only estimates and manually logged dates remain neutral.
+- **Detailed anatomy and set levels:** Improved original front/rear SVG muscle shapes, added adductors, and a weekly set-exposure heatmap. One primary-muscle set = one direct set; supporting work = 0.5 equivalent sets, explicitly labeled as estimates rather than training prescriptions.
+- **Planned versus completed:** A routine preview in Lifting and a read-only overlay before/during Workout Buddy show planned muscle exposure against confirmed logged sets. No exercise swapping, database schema, or historical records are modified.
+- **Weight progress:** Rolling 7/30/90 calendar-day tabs (default 90 days; up to 90 weigh-ins). Removed the redundant body-fat graph but retained body-fat values, capture, and combined measurement history.
+- **Release:** v123 asset URLs and offline cache. UI checks updated for the new chart and previously stale v120 stylesheet reference. CI and actual iPhone visual approval remain separate checkpoints.
+
+## Previous releases — v121–v122 (November 6–8, 2026)
+
+- **v121:** Original Enchanted Forest surface hierarchy, reusable semantic colors, Appearance preview and temporary inspector.
+- **v122:** Portfolio-aligned lowercase e. branding and refreshed PWA icons.
+
+## Earlier release — v120 (November 6, 2026)
 
 - **Fourth and broader appearance audit:** The v119 iPhone screenshots still showed green visual dividers in the Food log, green unselected color-palette borders, muted sage Workout Buddy "workout in progress" text, green paycheck detail labels, a green transaction-history filter separator, and forest-tinted status/metadata elsewhere. Those are neutral interface decorations, not financial or exercise meaning.
 - **Single palette-driven cleanup:** v120 builds on the existing final `appearance-coverage.css`. Border dividers, navigation disclosure labels, neutral metadata and unselected theme cards now use the synced palette's border/muted/surface/primary tokens. The user can still see Enchanted Forest green *in the swatch preview* without its green leaking into the surrounding Amethyst gallery. The audit also included neutral controls in the Food library, import, routine management, history panels, and progress charts not shown in the latest screenshots.
