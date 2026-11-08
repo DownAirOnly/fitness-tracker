@@ -1,8 +1,9 @@
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=123';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=116';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup} from './muscle-map.js?v=123';
+import {completedMuscleSets,plannedMuscleSets,activeMuscleSets} from './muscle-load.js?v=123';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
@@ -320,7 +321,7 @@ function render() {
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
 
-let homeCalendarMonth=currentTrackingDate().slice(0,7),homeFoodPage=0;
+let homeCalendarMonth=currentTrackingDate().slice(0,7),homeFoodPage=0,weightChartDays=90;
 function projectedWorkoutDates(recent){
  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
  if(dates.length!==4)return [];
@@ -341,7 +342,7 @@ function workoutPlanForDate(date){
   const item=schedule.find(s=>s.day===dow);
   if(!item)return null;
   const routine=savedWorkouts().find(r=>r.id===item.routineId);
-  return {source:'schedule',label:routine?.name||'Any workout'};
+  return {source:'schedule',label:routine?.name||'Any workout',color:routine?(routine.color||routineDefaultColor(routine.id,routine.name)):null};
  }
  return projectedWorkoutDates(recentRoutineSessions()).includes(date)?{source:'estimate',label:'Estimated workout'}:null;
 }
@@ -442,10 +443,18 @@ function recentRoutineRecoveryPanel(){
 function workoutCalendar(){
  const recent=recentRoutineSessions(),completed=new Set([
   ...recent.map(routineFinishedDate),...(data.lifts||[]).map(l=>l.date)
- ].filter(Boolean)),month=homeCalendarMonth;
+ ].filter(Boolean)),month=homeCalendarMonth,projected=upcomingWorkoutDates(month,completed);
+ const routineColors={};
+ for(const session of [...recent].reverse()){
+  const date=routineFinishedDate(session),meta=routineDisplay(session);
+  if(date&&meta.routineId)routineColors[date]=meta.color||routineDefaultColor(meta.routineId,meta.name);
+ }
+ for(const date of projected){
+  const plan=workoutPlanForDate(date);if(plan?.color)routineColors[date]=plan.color;
+ }
  return '<article class="home-dashboard-content home-dash-lifting home-lifting-calendar">'+
-  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...completed],
-   projected:upcomingWorkoutDates(month,completed),projectedLabel:data.workoutSchedule?.length?'Scheduled':'Projected',
+  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...completed],routineColors,
+   projected,projectedLabel:data.workoutSchedule?.length?'Scheduled':'Projected',
    action:'home-calendar-day',navAction:'home-calendar-month',showLegend:false,
    footerAction:'workout-schedule-open',footerLabel:'Schedule'})+
   recentRoutineRecoveryPanel()+'</article>';
@@ -1778,6 +1787,13 @@ function buddyBikeClockMarkup(head,s){
 function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
  const head=`<header class="buddy-head"><span><small>${esc(s.type.toUpperCase())}</small><strong>Workout Buddy</strong></span><span class="buddy-head-actions"><span class="buddy-elapsed" data-buddy-elapsed>${buddyClock(buddySeconds(s.startedAt))}</span><button type="button" class="buddy-exit" data-action="buddy-exit">Exit</button></span></header>`;
+ if(buddyMuscleView==='@routine-levels'){
+  return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-muscle-screen">'+
+   '<button class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button>'+
+   muscleSetLevelsMarkup(activeMuscleSets(s),plannedMuscleSets(s.exercises),
+    {title:'Muscles this workout',subtitle:'Planned sets and confirmed sets so far'})+
+   '</main></div>';
+ }
  if(buddyMuscleView&&buddyMuscleGroupView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-group-back">‹ Back to muscles</button><h1>${esc(muscleGroupLabel(buddyMuscleGroupView))}</h1>${muscleGroupDetailsMarkup(buddyMuscleGroupView,muscleRelatedExercises(buddyMuscleGroupView))}</main></div>`;
  if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(buddyMuscleView)}</main></div>`;
  if(s.phase==='bike')return buddyBikeClockMarkup(head,s);
@@ -1788,7 +1804,7 @@ function buddyRender(){
   const completedStrip=completed.length?'<section class="buddy-picker-completed" aria-label="Completed exercises"><div class="buddy-picker-completed-head"><strong>Completed exercises</strong></div><div class="buddy-completed-exercise-strip">'+completed.map(e=>
     exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-edit-completed',attrs:'data-key="'+esc(buddyKey(e))+'" aria-label="Edit completed '+esc(e.name)+' sets"',modifier:'buddy-exercise buddy-exercise-done',summary:'<span class="buddy-card-set-summaries">'+e.sets.map(set=>'<span>'+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+' · '+(set.difficulty?effortText(set.difficulty):'No effort')+'</span>').join('')+'</span>',trailing:'✓'}))
    ).join('')+'</div></section>':'';
-  return `<div class="buddy-screen">${head}<main class="buddy-main buddy-picker-screen"><div class="buddy-progress"><span>${done}/${total} exercises</span></div>${buddyUndoControl(s)}${completedStrip}<div class="buddy-picker-head"><p class="eyebrow">REMAINING EXERCISES</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;
+  return `<div class="buddy-screen">${head}<main class="buddy-main buddy-picker-screen"><div class="buddy-progress"><span>${done}/${total} exercises</span></div>${buddyUndoControl(s)}<button type="button" class="buddy-muscle-usage-link" data-action="buddy-muscle-overview">Muscle set levels · Planned vs completed</button>${completedStrip}<div class="buddy-picker-head"><p class="eyebrow">REMAINING EXERCISES</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;
  }
  if(s.phase==='complete')return `<div class="buddy-screen">${head}<main class="buddy-main buddy-complete"><div><p class="eyebrow">CIRCUIT COMPLETE</p><h1>${esc(s.type)} finished</h1><p>${done} exercises · ${buddyClock(buddySeconds(s.startedAt,s.completedAt))} total</p></div>${buddyUndoControl(s)}<button class="buddy-a" data-action="buddy-confirm-finish"><span>Ready to wrap up?</span><b>Finish workout</b></button><button class="buddy-secondary" data-action="buddy-back-picker">Back to exercises</button></main></div>`;
  const e=buddyFind(s,s.selected);if(!e)return'';
@@ -1805,7 +1821,7 @@ function buddyRender(){
  const undoSet=buddyUndoControl(s);
  const rest=showRest?`<span class="buddy-rest-in-action" role="timer" aria-label="Rest countdown"><small>REST</small><strong data-buddy-rest>${left?buddyClock(left):'Ready'}</strong></span>`:'';
  const muscleStage=buddyExerciseMuscleStage(e);
- if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view">${setProgress}<div class="buddy-action-tools">${undoSet}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e,false)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div>${muscleStage}<button class="buddy-a" data-action="buddy-a"><b>Finish set ${i+1}</b></button></main></div>`;
+ if(running)return `<div class="buddy-screen buddy-set-active">${head}<main class="buddy-main buddy-exercise-view">${setProgress}<div class="buddy-action-tools">${undoSet}<button type="button" class="buddy-muscle-usage-link compact" data-action="buddy-muscle-overview">Set levels</button></div><div class="buddy-exercise-title">${buddyExerciseHeading(e,false)}</div><div class="buddy-running-values"><div><small>WEIGHT</small><strong>${fmt(d.weight)} ${esc(data.settings.unit)}</strong></div><div><small>REPS</small><strong>${d.reps}</strong></div></div><div class="buddy-running-clock"><small>SET TIME</small><strong data-buddy-live-duration>${buddyClock(buddySeconds(e.activeSetStartedAt))}</strong></div>${muscleStage}<button class="buddy-a" data-action="buddy-a"><b>Finish set ${i+1}</b></button></main></div>`;
  // Every finished set belongs in COMPLETED SETS, including the set under review.
  const confirmedSets=reviewing?e.sets.slice(0,e.reviewSetIndex):e.sets;
  const completedSets=confirmedSets.length?`<div class="buddy-completed-sets">${confirmedSets.map((set,n)=>`<div class="buddy-completed-set"><b>Set ${n+1}</b><span class="buddy-completed-summary">${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps} · ${set.difficulty?effortText(set.difficulty):'No effort'} · <time>${buddyClock(set.durationSeconds||0)}</time></span></div>`).join('')}</div>`:'';
@@ -1815,7 +1831,7 @@ function buddyRender(){
  const history=lastSession?'<div class="buddy-history-preview"><button type="button" class="buddy-last-toggle" data-action="buddy-toggle-history" aria-expanded="'+Boolean(e.showRecent)+'"><span><b>LAST · '+esc(niceDate(lastSession.date))+'</b><small>'+esc(buddyLastTwo(lastSession))+'</small></span><span class="buddy-last-chevron" aria-hidden="true">'+(e.showRecent?'⌃':'⌄')+'</span></button>'+(e.showRecent?'<div class="buddy-compact-history" role="region" aria-label="Earlier exercise history">'+recent.slice(1,3).map(l=>'<div><small>'+esc(niceDate(l.date))+'</small><span>'+esc(buddyLastTwo(l))+'</span></div>').join('')+(recent.length===1?'<small>No earlier workouts</small>':'')+'</div>':'')+'</div>':'';
  const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setupDraft??e.setup??'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
  const historyRest=history?'<div class="buddy-history-rest-row">'+history+'</div>':'';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${undoSet}</div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><b>${action}</b>${rest}</button></main></div>`;
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-action-tools">${undoSet}<button type="button" class="buddy-muscle-usage-link compact" data-action="buddy-muscle-overview">Set levels</button></div><div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><b>${action}</b>${rest}</button></main></div>`;
 
 }
 let buddyTicker=null;
@@ -1912,10 +1928,11 @@ function gym() {
   (templates.length?templates.map(x=>'<option value="'+esc(x.name)+'" '+(workout===x.name?'selected':'')+'>'+esc(x.name)+'</option>').join(''):'<option value="">No routines</option>')+
   '</select></label>'+button('Manage','routine-manage','outline small')+'</div>';
  const active=Boolean(data.activeWorkout);
+ const routineMuscles=selected&&exercises.length?'<button type="button" class="routine-muscle-preview" data-action="routine-muscle-overview" data-routine="'+esc(selected.id)+'"><span><strong>Planned muscle usage</strong><small>See set levels for '+esc(selected.name)+'</small></span><b aria-hidden="true">›</b></button>':'';
  const buddy='<section class="buddy-entry buddy-entry-compact'+(active?' buddy-entry-active':'')+'"><div class="buddy-entry-copy"><h2>Workout Buddy</h2>'+
   (active?'<p>'+esc(data.activeWorkout.type)+' workout in progress</p>':'')+'</div>'+
   '<div class="buddy-entry-actions">'+(active?button('Resume','buddy-launch','primary')+button('End workout','buddy-end','outline small'):button('Start','buddy-launch','primary'))+'</div></section>';
- return buddy+picker+'<section class="routine-exercise-section"><div class="routine-exercise-tools">'+
+ return buddy+picker+routineMuscles+'<section class="routine-exercise-section"><div class="routine-exercise-tools">'+
   button('Exercises','exercise-library','outline small')+(selected?button('Edit workout','edit-workout','outline small'):'')+
   button('+ Custom','custom-lift','outline small')+'</div><div class="exercise-list">'+
   (exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e))).join(''):empty('This routine is empty. Edit it to add exercises.'))+
@@ -2162,15 +2179,6 @@ function weightProgressChart(weights,allWeights=weights){
  const trendPath=points.length>=2?'<path class="weight-trend-line" d="'+weightSmoothPath(trendCoords)+'"></path>':'';
  return '<div class="weight-progress-chart"><div class="weight-chart-head"><span><small>LATEST</small><strong>'+fmt(latest.value)+' '+esc(data.settings.unit)+'</strong></span><span><small>7-DAY AVERAGE</small><strong>'+trendLabel+'</strong></span></div><div class="weight-chart-legend"><span class="weight-chart-key actual"><i></i><b>Actual weigh-ins</b></span><span class="weight-chart-key trend"><i></i><b>7-day average</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Individual weight history with seven-day average">'+trendPath+(actualCoords.length>1?'<polyline class="weight-actual-line" points="'+actualLine+'"></polyline>':'')+actualCoords.map(pt=>'<circle class="weight-actual-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="'+(points.length>60?'2.25':'3.6')+'"><title>'+niceDate(pt.date)+' · '+fmt(pt.value)+' '+esc(data.settings.unit)+'</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+esc(changeText)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="weight-all">Edit weigh-ins</button></div></div>';
 }
-function bodyFatProgressChart(entries){
- const points=[...entries].filter(b=>Number.isFinite(b.value)).sort((a,b)=>a.date.localeCompare(b.date)).map(b=>({date:b.date,value:Number(b.value)}));
- if(!points.length)return'';
- const values=points.map(p=>p.value),min=Math.min(...values),max=Math.max(...values),spread=Math.max(1,max-min),pad=Math.max(.5,spread*.18),yMin=min-pad,yMax=max+pad,w=320,h=92,pX=13,pY=12;
- const first=Date.parse(points[0].date+'T12:00:00'),last=Date.parse(points.at(-1).date+'T12:00:00'),range=Math.max(1,last-first),x=date=>points.length===1?w/2:pX+(Date.parse(date+'T12:00:00')-first)/range*(w-2*pX),y=value=>h-pY-(value-yMin)/(yMax-yMin)*(h-2*pY);
- const coords=points.map(p=>({x:x(p.date),y:y(p.value),...p})),line=coords.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
- return '<div class="bodyfat-progress-chart"><div class="weight-chart-head"><span><small>BODY FAT</small><strong>'+fmt(points.at(-1).value)+'%</strong></span><span><small>READINGS</small><strong>'+points.length+'</strong></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Body fat percentage history">'+(coords.length>1?'<polyline class="bodyfat-line" points="'+line+'"></polyline>':'')+coords.map(p=>'<circle class="bodyfat-dot" cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+(points.length>60?'2.15':'3.4')+'"><title>'+niceDate(p.date)+' · '+fmt(p.value)+'% body fat</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="body-fat">+ Body fat</button><button type="button" class="text-btn" data-action="bodyfat-all">Edit dated entries</button></div></div>';
-}
-
 function shiftDate(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return localDate(d);}
 function foodProgressWindow(period=foodProgressPeriod,offset=foodProgressOffset){
  const today=currentTrackingDate(),base=new Date(today+'T12:00:00');let start,end,label,granularity;
@@ -2276,18 +2284,23 @@ function progress() {
  const visibleWeeks=weeks.slice(0,6);
  const weights=[...data.weights].sort((a,b)=>b.date.localeCompare(a.date));
  const bodyFat=[...(data.bodyFat||[])].sort((a,b)=>b.date.localeCompare(a.date));
- // These are last 90 RECORDS, not 90 days or six weeks; each chart has its
- // own window independent of the weekly weight-summary list.
- const chartWeights=weights.slice(0,90),chartBodyFat=bodyFat.slice(0,90);
+ // Rolling calendar periods, capped at 90 readings.
+ const today=currentTrackingDate(),firstWeightDay=shiftDate(today,-(weightChartDays-1));
+ const chartWeights=weights.filter(item=>item.date>=firstWeightDay&&item.date<=today).slice(0,90);
  const currentWeek=startOfWeek(currentTrackingDate(),FIXED_WEEK_START),latest=weeks[0],previous=weeks[1];
  const change=previous?round(latest.average-previous.average):null;
  const days=[...new Set(data.foodEntries.map(currentFoodTrackingDate))].sort().reverse().slice(0,7),foodWindow=foodProgressWindow();
  const range=w=>`${niceDate(w.week)} – ${niceDate(endOfWeek(w.week))}`;
  const latestCard=latest?`<div class="trend-highlight"><p class="trend-range">${range(latest)}</p><div class="trend-metrics"><div><strong>${fmt(latest.average)} <em>${data.settings.unit}</em></strong><small>Average weight · ${latest.count} weigh-in${latest.count===1?'':'s'}</small></div></div><p class="trend-change">${change===null?'Log another week to compare averages.':`${change>0?'↑':change<0?'↓':'→'} ${fmt(Math.abs(change))} ${data.settings.unit} ${change>0?'higher':change<0?'lower':'change'} than the previous logged week`}</p></div>`:empty('Add a weigh-in to see weekly average weight.');
  const weekly=visibleWeeks.length?'<div class="week-list">'+visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong></span></div>`).join('')+'</div>':'';
- const weightChart=chartWeights.length?weightProgressChart(chartWeights,weights):'';
- const bodyFatChart=chartBodyFat.length?bodyFatProgressChart(chartBodyFat):'<div class="measurement-chart-actions measurement-chart-empty">'+button('+ Body fat','body-fat','outline small')+'</div>';
- return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${weightChart}${bodyFatChart}${weekly}</section>${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
+ const weightChart=chartWeights.length?weightProgressChart(chartWeights,weights):'<p class="hint">No weigh-ins during the selected period.</p>';
+ const chartControls='<div class="weight-range-tabs" role="group" aria-label="Weight chart timeframe">'+[7,30,90].map(days=>'<button type="button" data-action="weight-chart-window" data-days="'+days+'" class="'+(weightChartDays===days?'selected':'')+'" aria-pressed="'+(weightChartDays===days)+'">'+(days===7?'7 days':days+' days')+'</button>').join('')+'</div>';
+ const latestFat=bodyFat[0],fatSummary='<div class="bodyfat-compact"><span><strong>Body fat</strong><small>'+(latestFat?fmt(latestFat.value)+'% · '+niceDate(latestFat.date):'No entries yet')+'</small></span>'+button(latestFat?'Edit measurements':'+ Body fat',latestFat?'weight-all':'body-fat','outline small')+'</div>';
+ const muscleWeekStart=startOfWeek(today,FIXED_WEEK_START);
+ const muscleLevels='<section class="panel progress-details muscle-levels-panel">'+muscleSetLevelsMarkup(
+  completedMuscleSets(data.lifts,data.activeWorkout,muscleWeekStart,today),null,
+  {title:'Set levels',subtitle:'Logged muscle exposure · '+niceDate(muscleWeekStart)+' – '+niceDate(endOfWeek(muscleWeekStart)),showAll:true})+'</section>';
+ return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${chartControls}${weightChart}${fatSummary}${weekly}</section>${muscleLevels}${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
 }
 
 function history() {
@@ -2978,6 +2991,9 @@ document.addEventListener('click',async event=>{
   if(action==='workout-schedule-clear'){data.workoutSchedule=[];close(true);selectHomeDashboard('lifting');void persist();return;}
   if(action==='home-food-page'){homeFoodPage=(homeFoodPage+(Number(el.dataset.step)||1)+Math.max(1,Math.ceil(homeFoodPicks().length/6)))%Math.max(1,Math.ceil(homeFoodPicks().length/6));selectHomeDashboard('nutrition');return;}
   if(action==='home-food-plan'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodPlanItems=[];foodPlanSearch='';foodPlan();return;}
+  if(action==='weight-chart-window'){
+   const days=Number(el.dataset.days);if([7,30,90].includes(days)){weightChartDays=days;render();}return;
+  }
   if(action==='home-calendar-month'){homeCalendarMonth=calendarShiftMonth(homeCalendarMonth,Number(el.dataset.delta)||0);selectHomeDashboard('lifting');return;}
   if(action==='home-calendar-day'){
    const date=el.dataset.date;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
@@ -3040,6 +3056,16 @@ document.addEventListener('click',async event=>{
     if(document.body.classList.contains('buddy-active')){buddyMuscleView=name;buddyMuscleGroupView=null;buddyOpen();}
     else openMuscleGuide(name,equipment);
     return;
+  }
+  if(action==='routine-muscle-overview'){
+    const routine=savedWorkouts().find(r=>r.id===el.dataset.routine);if(!routine)return;
+    modal('Planned muscle usage',muscleSetLevelsMarkup({},plannedMuscleSets(workoutExercises(routine)),
+      {title:routine.name+' · Set levels',subtitle:'Preview of planned sets; nothing is logged.'}));
+    return;
+  }
+  if(action==='buddy-muscle-overview'){
+    if(!data.activeWorkout)return;
+    buddyReadEditor();buddyReadNotes();buddyMuscleGroupView=null;buddyMuscleView='@routine-levels';buddyOpen();return;
   }
   if(action==='routine-muscle-guide'){
     if(!workoutEditorState)return;
@@ -3739,7 +3765,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=122',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=123',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3841,7 +3867,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=121');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=123');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

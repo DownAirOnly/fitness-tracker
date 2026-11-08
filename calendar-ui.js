@@ -1,6 +1,6 @@
 // Reusable month grid for Everyday surfaces. No DOM or storage dependencies.
 // All markers are date keyed; one source of truth for completed vs projected styling.
-export function calendarMonthMarkup({monthKey,today='',completed=[],projected=[],projectedLabel='Projected',showLegend=true,footerAction='',footerLabel='',action='calendar-day',navAction='calendar-month'}){
+export function calendarMonthMarkup({monthKey,today='',completed=[],projected=[],routineColors={},projectedLabel='Projected',showLegend=true,footerAction='',footerLabel='',action='calendar-day',navAction='calendar-month'}){
  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey))return '';
  const [year,month]=monthKey.split('-').map(Number),first=new Date(year,month-1,1),
    days=new Date(year,month,0).getDate(),offset=first.getDay();
@@ -11,8 +11,10 @@ export function calendarMonthMarkup({monthKey,today='',completed=[],projected=[]
   const iso=monthKey+'-'+String(day).padStart(2,'0');
   const finished=completedSet.has(iso),planned=!finished&&projectedSet.has(iso);
   const kind=finished?' completed':planned?' projected':'';
+  const color=routineColors[iso],validColor=typeof color==='string'&&/^#[0-9a-fA-F]{6}$/.test(color);
+  const colored=validColor?' style="--ed-routine-color:'+color+'"':'';
   const label=iso+(finished?' · Workout completed':planned?' · '+futureLabel+' workout':'');
-  return '<button type="button" class="ed-calendar-day'+kind+(iso===today?' today':'')+'" data-action="'+action+'" data-date="'+iso+'" aria-label="'+label+'"><span>'+day+'</span></button>';
+  return '<button type="button" class="ed-calendar-day'+kind+(iso===today?' today':'')+'" data-action="'+action+'" data-date="'+iso+'"'+colored+' aria-label="'+label+'"><span>'+day+'</span></button>';
  }).join('');
  const title=first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
  return '<section class="ed-calendar" aria-label="Workout calendar">'+
