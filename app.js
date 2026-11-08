@@ -2303,7 +2303,7 @@ function progress() {
  const weekly=visibleWeeks.length?'<div class="week-list">'+visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong></span></div>`).join('')+'</div>':'';
  const weightChart=chartWeights.length?weightProgressChart(chartWeights,weights):'<div class="weight-chart-empty"><p class="hint">No weigh-ins during the selected period.</p><button type="button" class="text-btn" data-action="weight-all">Edit measurements</button></div>';
  const chartControls='<div class="weight-range-tabs" role="group" aria-label="Weight chart timeframe">'+[7,30,90].map(days=>'<button type="button" data-action="weight-chart-window" data-days="'+days+'" class="'+(weightChartDays===days?'selected':'')+'" aria-pressed="'+(weightChartDays===days)+'">'+(days===7?'7 days':days+' days')+'</button>').join('')+'</div>';
- const latestFat=bodyFat[0],fatSummary='<div class="bodyfat-compact"><span><strong>Latest body fat</strong><small>'+(latestFat?fmt(latestFat.value)+'% · '+niceDate(latestFat.date):'No entries yet')+'</small></span></div>';
+ const latestFat=bodyFat[0],fatSummary='<div class="bodyfat-compact"><span><strong>Latest body fat</strong><small>'+(latestFat?fmt(latestFat.value)+'% · '+niceDate(latestFat.date):'No entries yet')+'</small></span>'+(latestFat?'':button('+ Body fat','body-fat','outline small'))+'</div>';
  const muscleWindow=recentMuscleWindow();
  const muscleLevels='<section class="panel progress-details muscle-levels-panel">'+muscleSetLevelsMarkup(
   muscleWindow.completed,null,
