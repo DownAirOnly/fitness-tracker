@@ -1,8 +1,9 @@
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=99.7.4';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=123';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=116';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel} from './muscle-map.js?v=99.7.17';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup} from './muscle-map.js?v=123';
+import {completedMuscleSets,plannedMuscleSets,activeMuscleSets} from './muscle-load.js?v=123';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
@@ -320,7 +321,7 @@ function render() {
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
 
-let homeCalendarMonth=currentTrackingDate().slice(0,7),homeFoodPage=0;
+let homeCalendarMonth=currentTrackingDate().slice(0,7),homeFoodPage=0,weightChartDays=90;
 function projectedWorkoutDates(recent){
  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
  if(dates.length!==4)return [];
@@ -341,7 +342,7 @@ function workoutPlanForDate(date){
   const item=schedule.find(s=>s.day===dow);
   if(!item)return null;
   const routine=savedWorkouts().find(r=>r.id===item.routineId);
-  return {source:'schedule',label:routine?.name||'Any workout'};
+  return {source:'schedule',label:routine?.name||'Any workout',color:routine?(routine.color||routineDefaultColor(routine.id,routine.name)):null};
  }
  return projectedWorkoutDates(recentRoutineSessions()).includes(date)?{source:'estimate',label:'Estimated workout'}:null;
 }
@@ -442,10 +443,18 @@ function recentRoutineRecoveryPanel(){
 function workoutCalendar(){
  const recent=recentRoutineSessions(),completed=new Set([
   ...recent.map(routineFinishedDate),...(data.lifts||[]).map(l=>l.date)
- ].filter(Boolean)),month=homeCalendarMonth;
+ ].filter(Boolean)),month=homeCalendarMonth,projected=upcomingWorkoutDates(month,completed);
+ const routineColors={};
+ for(const session of [...recent].reverse()){
+  const date=routineFinishedDate(session),meta=routineDisplay(session);
+  if(date&&meta.routineId)routineColors[date]=meta.color||routineDefaultColor(meta.routineId,meta.name);
+ }
+ for(const date of projected){
+  const plan=workoutPlanForDate(date);if(plan?.color)routineColors[date]=plan.color;
+ }
  return '<article class="home-dashboard-content home-dash-lifting home-lifting-calendar">'+
-  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...completed],
-   projected:upcomingWorkoutDates(month,completed),projectedLabel:data.workoutSchedule?.length?'Scheduled':'Projected',
+  calendarMonthMarkup({monthKey:month,today:currentTrackingDate(),completed:[...completed],routineColors,
+   projected,projectedLabel:data.workoutSchedule?.length?'Scheduled':'Projected',
    action:'home-calendar-day',navAction:'home-calendar-month',showLegend:false,
    footerAction:'workout-schedule-open',footerLabel:'Schedule'})+
   recentRoutineRecoveryPanel()+'</article>';
@@ -1912,10 +1921,11 @@ function gym() {
   (templates.length?templates.map(x=>'<option value="'+esc(x.name)+'" '+(workout===x.name?'selected':'')+'>'+esc(x.name)+'</option>').join(''):'<option value="">No routines</option>')+
   '</select></label>'+button('Manage','routine-manage','outline small')+'</div>';
  const active=Boolean(data.activeWorkout);
+ const routineMuscles=selected&&exercises.length?'<button type="button" class="routine-muscle-preview" data-action="routine-muscle-overview" data-routine="'+esc(selected.id)+'"><span><strong>Planned muscle usage</strong><small>See set levels for '+esc(selected.name)+'</small></span><b aria-hidden="true">›</b></button>':'';
  const buddy='<section class="buddy-entry buddy-entry-compact'+(active?' buddy-entry-active':'')+'"><div class="buddy-entry-copy"><h2>Workout Buddy</h2>'+
   (active?'<p>'+esc(data.activeWorkout.type)+' workout in progress</p>':'')+'</div>'+
   '<div class="buddy-entry-actions">'+(active?button('Resume','buddy-launch','primary')+button('End workout','buddy-end','outline small'):button('Start','buddy-launch','primary'))+'</div></section>';
- return buddy+picker+'<section class="routine-exercise-section"><div class="routine-exercise-tools">'+
+ return buddy+picker+routineMuscles+'<section class="routine-exercise-section"><div class="routine-exercise-tools">'+
   button('Exercises','exercise-library','outline small')+(selected?button('Edit workout','edit-workout','outline small'):'')+
   button('+ Custom','custom-lift','outline small')+'</div><div class="exercise-list">'+
   (exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e))).join(''):empty('This routine is empty. Edit it to add exercises.'))+
@@ -2978,6 +2988,9 @@ document.addEventListener('click',async event=>{
   if(action==='workout-schedule-clear'){data.workoutSchedule=[];close(true);selectHomeDashboard('lifting');void persist();return;}
   if(action==='home-food-page'){homeFoodPage=(homeFoodPage+(Number(el.dataset.step)||1)+Math.max(1,Math.ceil(homeFoodPicks().length/6)))%Math.max(1,Math.ceil(homeFoodPicks().length/6));selectHomeDashboard('nutrition');return;}
   if(action==='home-food-plan'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodPlanItems=[];foodPlanSearch='';foodPlan();return;}
+  if(action==='weight-chart-window'){
+   const days=Number(el.dataset.days);if([7,30,90].includes(days)){weightChartDays=days;render();}return;
+  }
   if(action==='home-calendar-month'){homeCalendarMonth=calendarShiftMonth(homeCalendarMonth,Number(el.dataset.delta)||0);selectHomeDashboard('lifting');return;}
   if(action==='home-calendar-day'){
    const date=el.dataset.date;if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
@@ -3040,6 +3053,16 @@ document.addEventListener('click',async event=>{
     if(document.body.classList.contains('buddy-active')){buddyMuscleView=name;buddyMuscleGroupView=null;buddyOpen();}
     else openMuscleGuide(name,equipment);
     return;
+  }
+  if(action==='routine-muscle-overview'){
+    const routine=savedWorkouts().find(r=>r.id===el.dataset.routine);if(!routine)return;
+    modal('Planned muscle usage',muscleSetLevelsMarkup({},plannedMuscleSets(workoutExercises(routine)),
+      {title:routine.name+' · Set levels',subtitle:'Preview of planned sets; nothing is logged.'}));
+    return;
+  }
+  if(action==='buddy-muscle-overview'){
+    if(!data.activeWorkout)return;
+    buddyReadEditor();buddyReadNotes();buddyMuscleGroupView=null;buddyMuscleView='@routine-levels';buddyOpen();return;
   }
   if(action==='routine-muscle-guide'){
     if(!workoutEditorState)return;
@@ -3739,7 +3762,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=122',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=123',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3841,7 +3864,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=121');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=123');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
