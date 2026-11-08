@@ -3,7 +3,7 @@ import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=124';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=116';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup} from './muscle-map.js?v=124';
-import {completedMuscleSets,plannedMuscleSets,activeMuscleSets} from './muscle-load.js?v=124';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=124';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
@@ -290,7 +290,8 @@ function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
   const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Money'],['progress','progress','Progress']];
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="brand-monogram" aria-hidden="true">e<span>.</span></span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(page===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
+  const activeTab=page==='history'?'progress':page;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="brand-monogram" aria-hidden="true">e<span>.</span></span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(activeTab===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(activeTab===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
   applyCurrentAppearance();
@@ -322,6 +323,12 @@ function render() {
 }
 
 let homeCalendarMonth=currentTrackingDate().slice(0,7),homeFoodPage=0,weightChartDays=90;
+// Eight inclusive calendar days: today plus the previous seven, regardless of the
+// user's configured work week or the routine schedule boundary.
+function recentMuscleWindow(){
+ const end=currentTrackingDate(),start=shiftDate(end,-7);
+ return {start,end,completed:completedMuscleSets(data.lifts,data.activeWorkout,start,end)};
+}
 function projectedWorkoutDates(recent){
  const dates=recent.slice(0,4).map(row=>Date.parse((row.date||routineFinishedDate(row))+'T12:00:00')).filter(Number.isFinite);
  if(dates.length!==4)return [];
@@ -421,8 +428,9 @@ function routineChoiceCard({action,name,detail='',date='',id='',workout='',routi
  const label=String(name||'Workout'),tone=routineDefaultTone(routineId,label);
  const validColor=/^#[0-9a-f]{6}$/i.test(color)?color:'';
  const custom=validColor&&validColor.toLowerCase()!==routineDefaultColor(routineId,label).toLowerCase();
+ const accent=validColor||routineDefaultColor(routineId,label);
  return '<button type="button" class="buddy-routine-choice routine-tone-'+(custom?'custom':tone)+'"'+
-   (custom?' style="--routine-accent:'+validColor+'"':'')+' data-action="'+esc(action)+'"'+
+   ' style="--routine-accent:'+accent+'" data-action="'+esc(action)+'"'+
    (id?' data-id="'+esc(id)+'"':'')+(workout?' data-workout="'+esc(workout)+'"':'')+
    (disabled?' disabled':'')+'><span class="routine-choice-main"><strong>'+esc(label)+'</strong>'+
    (detail?'<small>'+esc(detail)+'</small>':'')+'</span><span class="routine-choice-side">'+
@@ -1790,8 +1798,8 @@ function buddyRender(){
  if(buddyMuscleView==='@routine-levels'){
   return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-muscle-screen">'+
    '<button class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button>'+
-   muscleSetLevelsMarkup(activeMuscleSets(s),plannedMuscleSets(s.exercises),
-    {title:'Muscles this workout',subtitle:'Planned sets and confirmed sets so far'})+
+   muscleSetLevelsMarkup(recentMuscleWindow().completed,plannedMuscleSets(s.exercises),
+    {title:'Muscles this workout',subtitle:'Last 8 days of logged sets, including this session · planned sets shown separately'})+
    '</main></div>';
  }
  if(buddyMuscleView&&buddyMuscleGroupView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-group-back">‹ Back to muscles</button><h1>${esc(muscleGroupLabel(buddyMuscleGroupView))}</h1>${muscleGroupDetailsMarkup(buddyMuscleGroupView,muscleRelatedExercises(buddyMuscleGroupView))}</main></div>`;
@@ -2177,7 +2185,7 @@ function weightProgressChart(weights,allWeights=weights){
  const changeText=change==null?'First weigh-in':change===0?'No net change':(change>0?'+':'')+fmt(change)+' '+data.settings.unit+' since '+niceDate(points[0].date);
  const trendLabel=points.length>=3?fmt(latestTrend.trend)+' '+data.settings.unit:'Building trend';
  const trendPath=points.length>=2?'<path class="weight-trend-line" d="'+weightSmoothPath(trendCoords)+'"></path>':'';
- return '<div class="weight-progress-chart"><div class="weight-chart-head"><span><small>LATEST</small><strong>'+fmt(latest.value)+' '+esc(data.settings.unit)+'</strong></span><span><small>7-DAY AVERAGE</small><strong>'+trendLabel+'</strong></span></div><div class="weight-chart-legend"><span class="weight-chart-key actual"><i></i><b>Actual weigh-ins</b></span><span class="weight-chart-key trend"><i></i><b>7-day average</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Individual weight history with seven-day average">'+trendPath+(actualCoords.length>1?'<polyline class="weight-actual-line" points="'+actualLine+'"></polyline>':'')+actualCoords.map(pt=>'<circle class="weight-actual-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="'+(points.length>60?'2.25':'3.6')+'"><title>'+niceDate(pt.date)+' · '+fmt(pt.value)+' '+esc(data.settings.unit)+'</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+esc(changeText)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="weight-all">Edit weigh-ins</button></div></div>';
+ return '<div class="weight-progress-chart"><div class="weight-chart-head"><span><small>LATEST</small><strong>'+fmt(latest.value)+' '+esc(data.settings.unit)+'</strong></span><span><small>7-DAY AVERAGE</small><strong>'+trendLabel+'</strong></span></div><div class="weight-chart-legend"><span class="weight-chart-key actual"><i></i><b>Actual weigh-ins</b></span><span class="weight-chart-key trend"><i></i><b>7-day average</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Individual weight history with seven-day average">'+trendPath+(actualCoords.length>1?'<polyline class="weight-actual-line" points="'+actualLine+'"></polyline>':'')+actualCoords.map(pt=>'<circle class="weight-actual-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="'+(points.length>60?'2.25':'3.6')+'"><title>'+niceDate(pt.date)+' · '+fmt(pt.value)+' '+esc(data.settings.unit)+'</title></circle>').join('')+'</svg><div class="weight-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+esc(changeText)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><div class="measurement-chart-actions"><button type="button" class="text-btn" data-action="weight-all">Edit measurements</button></div></div>';
 }
 function shiftDate(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return localDate(d);}
 function foodProgressWindow(period=foodProgressPeriod,offset=foodProgressOffset){
@@ -2295,12 +2303,12 @@ function progress() {
  const weekly=visibleWeeks.length?'<div class="week-list">'+visibleWeeks.map(w=>`<div class="week-row" data-week="${w.week}"><span><strong>${range(w)}</strong><small>${w.count} weigh-in${w.count===1?'':'s'}${w.week===currentWeek?' · Current week':''}</small></span><span class="week-values"><strong>${fmt(w.average)} ${data.settings.unit}</strong></span></div>`).join('')+'</div>':'';
  const weightChart=chartWeights.length?weightProgressChart(chartWeights,weights):'<p class="hint">No weigh-ins during the selected period.</p>';
  const chartControls='<div class="weight-range-tabs" role="group" aria-label="Weight chart timeframe">'+[7,30,90].map(days=>'<button type="button" data-action="weight-chart-window" data-days="'+days+'" class="'+(weightChartDays===days?'selected':'')+'" aria-pressed="'+(weightChartDays===days)+'">'+(days===7?'7 days':days+' days')+'</button>').join('')+'</div>';
- const latestFat=bodyFat[0],fatSummary='<div class="bodyfat-compact"><span><strong>Body fat</strong><small>'+(latestFat?fmt(latestFat.value)+'% · '+niceDate(latestFat.date):'No entries yet')+'</small></span>'+button(latestFat?'Edit measurements':'+ Body fat',latestFat?'weight-all':'body-fat','outline small')+'</div>';
- const muscleWeekStart=startOfWeek(today,FIXED_WEEK_START);
+ const latestFat=bodyFat[0],fatSummary='<div class="bodyfat-compact"><span><strong>Latest body fat</strong><small>'+(latestFat?fmt(latestFat.value)+'% · '+niceDate(latestFat.date):'No entries yet')+'</small></span></div>';
+ const muscleWindow=recentMuscleWindow();
  const muscleLevels='<section class="panel progress-details muscle-levels-panel">'+muscleSetLevelsMarkup(
-  completedMuscleSets(data.lifts,data.activeWorkout,muscleWeekStart,today),null,
-  {title:'Set levels',subtitle:'Logged muscle exposure · '+niceDate(muscleWeekStart)+' – '+niceDate(endOfWeek(muscleWeekStart)),showAll:true})+'</section>';
- return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${chartControls}${weightChart}${fatSummary}${weekly}</section>${muscleLevels}${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
+  muscleWindow.completed,null,
+  {title:'Set levels',subtitle:'Rolling 8 days · '+niceDate(muscleWindow.start)+' – '+niceDate(muscleWindow.end),showAll:true})+'</section>';
+ return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${chartControls}${weightChart}${weekly}${fatSummary}</section>${muscleLevels}${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
 }
 
 function history() {
@@ -3059,8 +3067,8 @@ document.addEventListener('click',async event=>{
   }
   if(action==='routine-muscle-overview'){
     const routine=savedWorkouts().find(r=>r.id===el.dataset.routine);if(!routine)return;
-    modal('Planned muscle usage',muscleSetLevelsMarkup({},plannedMuscleSets(workoutExercises(routine)),
-      {title:routine.name+' · Set levels',subtitle:'Preview of planned sets; nothing is logged.'}));
+    modal('Planned muscle usage',muscleSetLevelsMarkup(recentMuscleWindow().completed,plannedMuscleSets(workoutExercises(routine)),
+      {title:routine.name+' · Set levels',subtitle:'Last 8 days of logged sets · this routine’s plan stays separate, never added twice'}));
     return;
   }
   if(action==='buddy-muscle-overview'){
@@ -3765,7 +3773,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=124',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=125',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
