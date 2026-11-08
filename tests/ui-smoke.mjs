@@ -158,7 +158,7 @@ try{
 const initialGear=document.querySelector('header .home-settings svg');
 assert.ok(initialGear?.querySelector('circle[cx="12"][cy="12"][r="3.25"]'),'gear center concentric with viewBox');
 const firstPaintGear=initialGear.innerHTML;
-assert.equal(document.querySelector('header .brand .brand-mark')?.getAttribute('src'),'icons/header-mark.svg','header loads supplied peak mark');
+assert.equal(document.querySelector('header .brand .brand-monogram')?.textContent,'e.','header uses the portfolio-aligned e. monogram');
 const initialHome=document.querySelector('.home-command-center');
 assert.ok(initialHome,'first app render uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'one Add action before auth');
@@ -1384,7 +1384,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.weight-progress-chart [data-action="weight-all"]'),'weight graph preserves entry editing');
  assert.ok(document.querySelector('.bodyfat-compact [data-action="body-fat"]'),'body fat entry remains accessible without a graph');
  assert.ok(document.querySelectorAll('.weight-actual-dot').length<=90,'weight chart renders no more than 90 measured values');
- assert.ok(document.querySelectorAll('.bodyfat-dot').length<=90,'body fat chart renders no more than 90 measured values');
+ assert.equal(document.querySelectorAll('.bodyfat-dot').length,0,'no body-fat sparkline is rendered');
  await click('weight-all');assert.ok(document.querySelector('.measurement-history-list [data-action="edit-measurement"]'),'body fat remains in combined dated measurement history');await click('close');
  assert.ok(document.querySelectorAll('.exercise-progress-panel .exercise-progress-link').length<=4);
  const progressExercise=document.querySelector('.exercise-progress-panel .progress-exercise-card');if(progressExercise){
