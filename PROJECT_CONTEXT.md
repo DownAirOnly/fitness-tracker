@@ -2,7 +2,17 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v128 (November 9, 2026)
+## Current release — v129 (November 9, 2026)
+
+- **Lifting routine cohesion:** Replace the fixed-green native routine dropdown with horizontally scrolling, readable, color-coded routine buttons. Routines use their persisted, ID-stable individual colors (same as Home calendar markers and history cards), with one selected state and a visible Manage control.
+- **Planned muscles in the routine card, not separate screens:** Place a small front/back anatomical planned-muscle visual and four compact muscle-name chips inside the selected Lifting routine card, alongside its exercise/set counts. Reuse the approved v124 anatomy and v123 set-load mapping; no new muscle geometry or logged-set accounting. No new persistent data or exercise records.
+- **Remove redundant training analytics from Workout Buddy:** Remove the Set Levels buttons from picker, active, and ready/review states; eliminate the full-screen planned-versus-completed Buddy screen and the extra standalone Lifting Planned Muscle Usage panel. **Keep** the actual rolling 8-day Set Levels analytics in Progress and the per-exercise muscle anatomy preview.
+- **Full source-level green audit:** Inspect all CSS for literal green declarations and their roles; add `scripts/theme-green-audit.mjs` to repeat this audit. Fix confirmed nonsemantic leftovers including the Workout Schedule weekday dropdown (previously forced `#243d2b`), the low-contrast green Back to exercises control on Buddy completion, plus ordinary Home, Food, Lifting, and editor chrome. Preserve semantic money, exercise identity, effort, and muscle activation hues. Hundreds of older literal colors remain in the legacy stylesheet but many are overridden; the source audit is not a computed-style proof across iPhone themes.
+- **Verification and safety:** Targeted UI smoke assertions for colored routine switching and anatomy previews, missing Buddy analytics controls, and theme-aware schedule/complete controls; standard repo tests and GitHub CI. No changes to data schemas, Firebase records, food logs, finance, workouts, or workout Undo safety.
+
+## Previous release — v128 (November 9, 2026)
+
+
 
 - **Workout Buddy Undo safety:** Undo is always visible in its header with a 44px tap area, disabled only when no reversible action is available. It is no longer visually adjacent to the Exercises back button or duplicated in the set view.
 - **Opening Exercises is not an Undo action:** Picker navigation preserves the last meaningful set operation; an accidentally started/finished set can be undone directly from the picker, including after exiting and reopening Workout Buddy. Exercise-selection snapshots now include the selected exercise identity, so their undo target is well-defined.
