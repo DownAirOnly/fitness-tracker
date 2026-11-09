@@ -44,8 +44,10 @@ export function canUndoBuddyTransition(session){
  // remain reversible from the picker without first undoing the navigation.
  if(!onExercise&&!onPicker)return false;
  if(label==='start exercise'){
-  if(!current||!previous||current.status!=='active'||
+  if(!current||current.status!=='active'||
     current.activeSetStartedAt||Number.isInteger(current.reviewSetIndex))return false;
+  // Old single-step snapshots may not include an exercise array.
+  if(!previous)return !undo.phase&&current.sets.length===0;
   return current.sets.length===previous.sets.length&&
    (undo.phase==='picker'||!undo.phase);
  }
