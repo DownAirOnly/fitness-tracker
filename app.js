@@ -2935,12 +2935,14 @@ document.addEventListener('click',async event=>{
      data.preferences.homeFoodIds=ids;
      try{
       const localSaved=await persist();
-      if(!localSaved){
-       if(status?.isConnected)status.textContent='Cards were not saved. Export a backup and retry.';
+      if(account&&(cloudPending||cloudRecoveryConflict||!session?.ready)){
+       if(status?.isConnected)status.textContent=localSaved||cloudRecovery?
+        'Saved on this device, but NOT confirmed in Firebase. Keep the PWA installed and retry Save cards when connected.':
+        'Firebase did not confirm the save and the device recovery could not be verified. Export a backup before leaving.';
        return;
       }
-      if(account&&(cloudPending||cloudRecoveryConflict||!session?.ready)){
-       if(status?.isConnected)status.textContent='Saved on this device, but NOT confirmed in Firebase. Keep the PWA installed and retry Save cards when connected.';
+      if(!localSaved){
+       if(status?.isConnected)status.textContent='Cards were not saved. Export a backup and retry.';
        return;
       }
       homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');
