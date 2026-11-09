@@ -13,6 +13,10 @@ const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
 assert.ok(launchHtml.includes('appearance-coverage.css?v=128'),'palette coverage stylesheet is loaded');
+const liftingStyles=await readFile(new URL('lifting-routines.css',root),'utf8');
+assert.ok(launchHtml.includes('lifting-routines.css?v=128'),'new Lifting routine CSS is included');
+for(const selector of ['.gym-routine-tab.selected','.gym-selected-routine','.gym-routine-muscle-map'])
+ assert.ok(liftingStyles.includes(selector),'routine module styles: '+selector);
 for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
 assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
 
@@ -21,7 +25,7 @@ const screenshotScreens=[
  ['Settings gear','.home-settings.active'],
  ['Home recovery panel','.home-recovery-panel'],
  ['Workout calendar','.home-lifting-calendar .ed-calendar'],
- ['Routine dropdown','.routine-picker select'],
+ ['Workout schedule selectors','.workout-schedule-form .workout-schedule-day select'],
  ['Plan totals','.food-plan-totals>div'],
  ['Plan foods','.food-plan-choice'],
  ['Food stepper','.time-step-row>button'],
@@ -363,6 +367,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(document.querySelector('.muscle-recovery-pair svg'),'workload map includes anatomy SVG');
   await click('workout-schedule-open');
   assert.equal(document.querySelectorAll('.workout-schedule-day select').length,7,'seven schedule days');
+  assert.ok(appearanceCoverage.includes('.workout-schedule-form .workout-schedule-day select'),'schedule selectors have palette-derived backgrounds and borders');
+  assert.ok(appearanceCoverage.includes('.buddy-complete .buddy-secondary'),'completed-workout navigation uses theme controls, not faded green');
   document.querySelector('[name=workoutSchedule1]').value='any';
   await click('workout-schedule-save');
   assert.ok(document.querySelector('.ed-calendar-footer [data-action="workout-schedule-open"]'),'configured schedule remains editable');
@@ -870,10 +876,17 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('gym');
  assert.ok(!document.querySelector('.buddy-entry [data-action="custom-lift"]'),'Buddy has no duplicate manual lift button');
   assert.ok(document.querySelector('.routine-exercise-tools [data-action="custom-lift"]'),'manual lifting remains in exercise tools');
-  const routineSelector=document.querySelector('[data-routine-select]');
-  assert.ok(routineSelector,'routine selector is a dropdown');
-  assert.equal(routineSelector.options.length,normalizeData(sample.data).workoutTemplates.length,'all saved routines selectable');
-  assert.ok(document.querySelector('.routine-toolbar [data-action="routine-manage"]'),'Manage is next to routine dropdown');
+  const routineTabs=[...document.querySelectorAll('.gym-routine-tabs [data-action="gym-select-routine"]')];
+  assert.equal(routineTabs.length,normalizeData(sample.data).workoutTemplates.length,'all saved routines have colored buttons');
+  assert.ok(routineTabs.every(tab=>tab.style.getPropertyValue('--routine-accent')),'routine buttons retain their identities');
+  assert.equal(routineTabs.filter(tab=>tab.getAttribute('aria-pressed')==='true').length,1,'one selected routine');
+  assert.equal(document.querySelector('.routine-picker select'),null,'the forest-green native Lifting dropdown is gone');
+  assert.ok(document.querySelector('.gym-routine-heading [data-action="routine-manage"]'),'Manage stays beside routine heading');
+  const selectedRoutinePreview=document.querySelector('.gym-selected-routine');
+  assert.ok(selectedRoutinePreview?.querySelector('.gym-routine-muscle-map svg'),'selected routine has planned front/back muscle preview');
+  assert.equal(selectedRoutinePreview.querySelectorAll('.gym-routine-muscle-map svg').length,2);
+  assert.ok(selectedRoutinePreview.querySelector('.gym-selected-muscles'),'routine card describes its planned muscle targets');
+  assert.equal(document.querySelector('[data-action="routine-muscle-overview"]'),null,'no separate planning panel');
   assert.ok(!document.querySelector('.workout-tabs,.tracking-date,.routine-exercise-section h2,.routine-exercise-section .eyebrow'),'redundant Lifting labels removed');
  const normalExerciseCard=document.querySelector('.exercise-list .exercise-muscle-wrapper');
  assert.ok(normalExerciseCard?.querySelector('.exercise-card .equipment-art svg'),'regular Lifting uses the same equipment SVG card markup as Buddy');
@@ -891,6 +904,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('close');
  await click('buddy-launch');await click('buddy-start');
  assert.ok(document.querySelector('.buddy-bike-content h1')?.textContent.includes('Bike · 5 min'),'bike screen keeps only the short title');
+ assert.equal(document.querySelector('#buddy-root [data-action="buddy-muscle-overview"]'),null,'Workout Buddy has no set-planning analytics');
  assert.equal(document.querySelectorAll('[data-action="buddy-bike-select"]').length,0,'four-way clock picker is removed');
  assert.equal(document.querySelectorAll('.bike-dial-large').length,1,'one large centered dial is shown');
  assert.equal(document.querySelectorAll('.bike-dial-ticks i').length,12,'dial has twelve minute marks');
@@ -1343,9 +1357,11 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await submit('lift',{exercise:'Test press',date:'2026-09-20',weight:'40',reps:'8',difficulty:'7'});
  assert.equal(JSON.parse(state.records.get('bob').payload).lifts[0].date,'2026-09-20');
  await click('custom-lift');const legacyLateralForm=document.querySelector('[data-form="lift"]');legacyLateralForm.elements.exercise.value='Dumbbell Lateral Raises';legacyLateralForm.elements.equipment.value='dumbbell';for(const row of legacyLateralForm.querySelectorAll('.set-row')){row.querySelector('[name="weight"]').value='17.5';row.querySelector('[name="reps"]').value='8';row.querySelector('[name="difficulty"]').value='4';}legacyLateralForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
- const fullBodySelect=document.querySelector('[data-routine-select]');assert.ok([...fullBodySelect.options].some(o=>o.value==='Full body'),'Full body remains a saved option');
- fullBodySelect.value='Full body';fullBodySelect.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
- assert.equal(document.querySelector('[data-routine-select]').value,'Full body','routine selector changes the exercise list');
+ const fullBodyTab=[...document.querySelectorAll('[data-action="gym-select-routine"]')].find(x=>x.textContent.trim()==='Full body');
+ assert.ok(fullBodyTab,'Full body has its own color button');
+ fullBodyTab.click();await tick();
+ assert.ok(document.querySelector('.gym-routine-tab.selected')?.textContent.includes('Full body'),'routine buttons change the exercise list');
+ assert.ok(document.querySelector('.gym-selected-routine h2')?.textContent.includes('Full body'),'selected routine card follows the chosen button');
  const lateralCard=[...document.querySelectorAll('.exercise-list .exercise')].find(el=>el.dataset.name==='Lateral Raise');assert.ok(lateralCard,'Full body contains canonical Lateral Raise');assert.ok(lateralCard.textContent.includes('Last:'),'legacy Dumbbell Lateral Raises history resolves to Lateral Raise');assert.ok(!lateralCard.textContent.includes('First time'),'canonical history prevents false first-time state');
  await click('progress');await click('weight');
  assert.ok(document.querySelector('form[data-form="weight"] [name="bodyFatValue"]'),'new manual weigh-in includes optional body-fat field');
