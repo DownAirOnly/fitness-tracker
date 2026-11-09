@@ -2,7 +2,6 @@
 .ed-calendar-day.completed span{border-color:var(--ed-routine-color,#b6e0b6)!important;background:color-mix(in srgb,var(--ed-routine-color,#b6e0b6) 16%,transparent)}
 .ed-calendar-day.projected span{border-color:var(--ed-routine-color,#fff)!important;border-style:dotted!important;background:color-mix(in srgb,var(--ed-routine-color,#fff) 9%,transparent)}
 .ed-calendar-day:focus-visible{outline:2px solid var(--ed-routine-color,#fff);outline-offset:2px}
-.buddy-picker-screen>.buddy-muscle-usage-link{width:100%;flex:0 0 auto;margin:2px 0 12px}
 .weight-range-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:4px;margin:13px 0 7px;border:1px solid var(--ap-border,#d9e2db);border-radius:12px;background:var(--ap-bg,#eef3ed)}
 .weight-range-tabs button{border:0;background:transparent;color:var(--ap-muted,#62776c);border-radius:9px;min-height:35px;font-size:12px;font-weight:800}
 .weight-range-tabs button.selected{color:var(--ap-on-primary,#172c23);background:var(--ap-primary,#b5d58d)}
