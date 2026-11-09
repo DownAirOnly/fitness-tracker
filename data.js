@@ -125,6 +125,9 @@ export function convertNotebookWeightUnit(notebook,nextUnit) {
   if(!session||typeof session!=='object')return;
   if(Array.isArray(session.exercises))for(const exercise of session.exercises)convertExercise(exercise);
   if(Array.isArray(session.undo?.exercises))for(const exercise of session.undo.exercises)convertExercise(exercise);
+  // The v103+ multi-step Undo stack contains additional weight copies.
+  if(Array.isArray(session.undoStack))for(const snapshot of session.undoStack)
+   for(const exercise of snapshot?.exercises||[])convertExercise(exercise);
  }
  for(const weight of converted.weights||[])convertRecord(weight,'value');
  for(const lift of converted.lifts||[])for(const set of lift.sets||[])convertRecord(set,'weight');
