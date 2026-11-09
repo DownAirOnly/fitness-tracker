@@ -1,5 +1,7 @@
-// v103: Workout Buddy set defaults and bounded multi-step undo visibility.
-// A finalized exercise is never reversed by Undo.
+// v128 — Set defaults and safe, bounded multi-step Undo.
+// Navigation to the exercise list is not a workout action and must not
+// consume a reversible set. Finalizing the most recent exercise is reversible
+// until the whole workout is saved.
 export function nextBuddySetDraft(exercise,index,previousWorkout=null){
  const current=Array.isArray(exercise?.sets)?exercise.sets:[];
  const previous=Array.isArray(previousWorkout?.sets)?previousWorkout.sets:[];
@@ -7,36 +9,59 @@ export function nextBuddySetDraft(exercise,index,previousWorkout=null){
  return {weight:Number(source.weight)||0,reps:Number(source.reps)||8,difficulty:Number(source.difficulty)||0};
 }
 const keyFor=e=>e?String(e.name||'').toLowerCase()+'|'+String(e.equipment||'other'):'';
+
 export function canUndoBuddyTransition(session){
  if(!session)return false;
  const undo=(Array.isArray(session.undoStack)?session.undoStack.at(-1):null)||session.undo;
  const label=undo?.label;
- if(!label||label==='finish exercise')return false;
- // Never replace an already finalized exercise with an earlier snapshot.
- const completed=(session.exercises||[]).filter(e=>e.status==='done');
- const previous=undo.exercises||[];
- if(completed.some(e=>!previous.some(old=>keyFor(old)===keyFor(e)&&old.status==='done')))return false;
+ if(!label)return false;
+ const before=undo.exercises||[],now=session.exercises||[];
+ const beforeByKey=new Map(before.map(e=>[keyFor(e),e]));
+ // Undo must never roll back a *different* finalized exercise.
+ const completionTarget=label==='finish exercise'?undo.selected:null;
+ if(now.some(e=>e.status==='done'&&
+   (keyFor(e)!==completionTarget&&beforeByKey.get(keyFor(e))?.status!=='done')))return false;
+
  const phase=session.phase,key=session.selected;
- const current=(session.exercises||[]).find(e=>keyFor(e)===key);
- if(label==='bike finished')return phase==='picker'&&!key&&Boolean(session.bikeCompletedAt);
- if(label==='view exercises'){
-  const prev=(session.exercises||[]).find(e=>keyFor(e)===undo.selected);
-  return phase==='picker'&&!key&&undo.phase==='exercise'&&prev?.status==='active';
+ const changedStart=label==='start exercise'?now.find(e=>
+   e.status==='active'&&beforeByKey.get(keyFor(e))?.status==='pending'):null;
+ const target=label==='start exercise'?
+   (undo.target||session.selected||(changedStart?keyFor(changedStart):undo.selected)):
+   undo.selected;
+ const current=now.find(e=>keyFor(e)===target),previous=beforeByKey.get(target);
+ const onExercise=phase==='exercise'&&key===target;
+ const onPicker=phase==='picker'&&!key;
+ if(label==='bike finished')return onPicker&&Boolean(session.bikeCompletedAt);
+ // Compatibility: sessions recorded before v128 may have an extra navigation
+ // snapshot. They can still step back without damaging existing set history.
+ if(label==='view exercises')return onPicker&&undo.phase==='exercise'&&current?.status==='active';
+
+ if(label==='finish exercise'){
+  // The last finalized exercise is recoverable, even if it completed the
+  // routine. Undo restores its set-review screen and un-finalizes its lift.
+  return (onPicker||(phase==='complete'&&!key))&&
+   undo.phase==='exercise'&&previous?.status==='active'&&
+   current?.status==='done'&&current.sets.length===previous.sets.length;
  }
+
+ // Moving to Exercises is presentation-only. The latest set action must
+ // remain reversible from the picker without first undoing the navigation.
+ if(!onExercise&&!onPicker)return false;
  if(label==='start exercise'){
-  const before=(undo.exercises||[]).find(e=>keyFor(e)===key);
-  return phase==='exercise'&&current?.status==='active'&&
-   !current.activeSetStartedAt&&!Number.isInteger(current.reviewSetIndex)&&
-   (undo.phase==='picker'&&Boolean(before)&&current.sets.length===before.sets.length||
-    !undo.phase&&current.sets.length===0); // Legacy single-step snapshots.
+  if(!current||current.status!=='active'||
+    current.activeSetStartedAt||Number.isInteger(current.reviewSetIndex))return false;
+  // Old single-step snapshots may not include an exercise array.
+  if(!previous)return !undo.phase&&current.sets.length===0;
+  return current.sets.length===previous.sets.length&&
+   (undo.phase==='picker'||!undo.phase);
  }
- if(phase!=='exercise'||!current||undo.selected!==key)return false;
+ if(!current||current.status!=='active'||target===undefined)return false;
  const started=Boolean(current.activeSetStartedAt);
  if(label==='start next set')return started&&current.sets.length>0&&!Number.isInteger(current.reviewSetIndex);
- const start=/^start set (\d+)$/.exec(label);
- if(start)return started&&current.sets.length===Number(start[1])-1&&!Number.isInteger(current.reviewSetIndex);
- const finished=/^finish set (\d+)$/.exec(label);
- if(finished)return !started&&Number.isInteger(current.reviewSetIndex)&&
-  current.reviewSetIndex===Number(finished[1])-1&&current.sets.length===Number(finished[1]);
+ const startedSet=/^start set (\d+)$/.exec(label);
+ if(startedSet)return started&&current.sets.length===Number(startedSet[1])-1&&!Number.isInteger(current.reviewSetIndex);
+ const finishedSet=/^finish set (\d+)$/.exec(label);
+ if(finishedSet)return !started&&Number.isInteger(current.reviewSetIndex)&&
+  current.reviewSetIndex===Number(finishedSet[1])-1&&current.sets.length===Number(finishedSet[1]);
  return false;
 }

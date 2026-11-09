@@ -1,6 +1,6 @@
 /* Read-only muscle workload estimates. A primary set counts as 1 direct set;
    supporting muscles count as 0.5 equivalent sets. No training targets inferred. */
-import {exerciseMuscleProfile} from './muscle-map.js?v=127';
+import {exerciseMuscleProfile} from './muscle-map.js?v=128';
 const normalize=(value)=>String(value||'').trim().toLowerCase();
 export function addMuscleSets(target,name,sets=0){
  const profile=exerciseMuscleProfile(name),number=Number(sets);
