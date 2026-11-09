@@ -95,7 +95,9 @@ assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses p
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
-assert.ok(typeCoverage.includes('.food-csv-trigger'),'CSV is styled as a visible control');
+const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
+assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
+assert.ok(clipboardCss.includes('.food-undo-toast.leaving'),'Undo animates off screen after its five-second hold');
 assert.ok(!typeCoverage.includes('.finance-row-side b.income'),'finance positive-status text must keep meaning');
 
 assert.ok(bootSource.includes('start=shiftDate(end,-7)'),'Set Levels uses a rolling eight-day window');
