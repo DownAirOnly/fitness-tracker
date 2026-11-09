@@ -87,3 +87,50 @@ test('Undo never changes a finalized exercise, including old or stale snapshots'
  state.undoStack=[{label:'finish exercise',selected:key,exercises:[earlier]}];
  assert.equal(canUndoBuddyTransition(state),false,'legacy finish-exercise undo is blocked');
 });
+
+test('Undo stays available for an accidentally finished second set after opening Exercises',()=>{
+ const first={weight:110,reps:9},second={weight:100,reps:8};
+ const before=exercise([first]);before.activeSetStartedAt='2026-11-09T12:01:00Z';
+ const duringReview=exercise([first,second]);duringReview.reviewSetIndex=1;
+ const state={phase:'picker',selected:null,exercises:[duringReview],undoStack:[
+  {label:'start set 2',phase:'exercise',selected:key,exercises:[exercise([first])]},
+  {label:'finish set 2',phase:'exercise',selected:key,exercises:[before]}
+ ]};
+ assert.equal(canUndoBuddyTransition(state),true,'going to Exercises is not an Undo boundary');
+ const reloaded=JSON.parse(JSON.stringify(state));
+ assert.equal(canUndoBuddyTransition(reloaded),true,'same Undo works after PWA reload and restoration');
+ reloaded.exercises[0].sets=[first];
+ reloaded.exercises[0].activeSetStartedAt='now';
+ delete reloaded.exercises[0].reviewSetIndex;
+ reloaded.phase='exercise';reloaded.selected=key;
+ reloaded.undoStack.pop();
+ assert.equal(canUndoBuddyTransition(reloaded),true,'next Undo also reverses accidentally started second set');
+});
+
+test('Undo can reverse just the latest exercise finalization and protect prior completed exercises',()=>{
+ const previousDone={...exercise([{weight:160,reps:8}]),name:'Chest Press',status:'done'};
+ const reviewed=exercise([{weight:100,reps:10},{weight:95,reps:8}]);reviewed.reviewSetIndex=1;
+ const finalized={...exercise(reviewed.sets),status:'done'};
+ const snapshot={label:'finish exercise',phase:'exercise',selected:key,
+  exercises:[previousDone,reviewed]};
+ const state={phase:'picker',selected:null,exercises:[previousDone,finalized],
+  undoStack:[snapshot]};
+ assert.equal(canUndoBuddyTransition(state),true,'latest completed exercise can be un-finalized');
+ state.phase='complete';assert.equal(canUndoBuddyTransition(state),true,'even when it completes the last routine exercise');
+ state.exercises.push({...exercise([{weight:60,reps:12}]),name:'Lat Pulldown',status:'done'});
+ assert.equal(canUndoBuddyTransition(state),false,'a stale snapshot never removes a later finalized exercise');
+ state.exercises.pop();
+ state.undoStack[0].exercises[0].status='pending';
+ assert.equal(canUndoBuddyTransition(state),false,'cannot erase prior completed exercise history');
+});
+
+test('exercise-selection snapshots retain a target even when returning to the picker',()=>{
+ const pending=exercise([]);pending.status='pending';
+ const current=exercise([]);
+ const state={phase:'picker',selected:null,exercises:[current],undoStack:[
+  {label:'start exercise',target:key,phase:'picker',selected:null,exercises:[pending]}
+ ]};
+ assert.equal(canUndoBuddyTransition(state),true);
+ state.exercises[0].activeSetStartedAt='now';
+ assert.equal(canUndoBuddyTransition(state),false,'selection Undo must not throw away a started set');
+});
