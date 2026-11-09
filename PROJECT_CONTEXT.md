@@ -2,7 +2,18 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v127 (November 8, 2026)
+## Current release — v128 (November 9, 2026)
+
+- **Workout Buddy Undo safety:** Undo is always visible in its header with a 44px tap area, disabled only when no reversible action is available. It is no longer visually adjacent to the Exercises back button or duplicated in the set view.
+- **Opening Exercises is not an Undo action:** Picker navigation preserves the last meaningful set operation; an accidentally started/finished set can be undone directly from the picker, including after exiting and reopening Workout Buddy. Exercise-selection snapshots now include the selected exercise identity, so their undo target is well-defined.
+- **Finalizing an exercise is reversible:** The last finalized exercise retains an explicit Undo snapshot; Undo returns to its set-review screen and removes only the corresponding finalized Buddy lift mirror. Other completed exercises remain protected. The actual final Save workout still ends the active Undo session.
+- **Undo history and unit conversion:** Existing bounded, persistent multi-step Undo remains; exercise Notes and Setup are preserved. Converting between lb/kg also converts the exercise weights in every pending Undo stack snapshot so reopening/undoing cannot restore values in old units.
+- **Regression tests:** Cover accidental second set → Exercises → Exit/Resume → Undo, finalization with correct lift-mirror behavior, old snapshots, new selection-target keys, disabled header state, and lb/kg conversions. CI/Pages and real iPhone appearance are separate checkpoints.
+- **Data safety:** No Firebase schema, food, finance, saved lifting history, or unrelated UI changes. This release does not retroactively reconstruct actions from a workout that was already permanently finalized before v128.
+
+## Previous release — v127 (November 8, 2026)
+
+
 
 - **Top Undo notice:** A compact, palette-aware Food confirmation slides down just below the iPhone safe area, keeps its Undo action available for five seconds, and animates upward on expiration. It replaces the large green overlay over the bottom navigation. Reduced-motion preference is respected.
 - **Invisible Food CSV clipboard controls:** The Food editor now shows separate **Copy CSV** and **Paste CSV** buttons, with no CSV textarea or expanded panel. Copy generates the current header and Food row directly into the clipboard; Paste requests the system clipboard inside the button tap, validates a foodLog CSV row, and fills the food editor without saving until the user confirms. iOS clipboard permission failure appears as an inline message, never a silent no-op. Old visible-textbox style rules are retired.
