@@ -233,3 +233,19 @@ test('v84: bank metadata validates dates, bounded user classifications and recei
   else assert.throws(()=>normalizeData(notebook),/transaction|bank direction/i);
  }
 });
+
+test('changing weight units converts all persistent Buddy Undo stack snapshots',()=>{
+ const data=emptyData();
+ const before={name:'Chest Press',equipment:'machine',status:'active',
+  sets:[{weight:110,reps:10}],draft:{weight:120,reps:8}};
+ data.activeWorkout={id:'s',phase:'picker',selected:null,
+  exercises:[structuredClone(before)],undoStack:[
+   {label:'finish set 2',phase:'exercise',selected:'chest press|machine',exercises:[structuredClone(before)]},
+   {label:'finish exercise',phase:'exercise',selected:'chest press|machine',exercises:[structuredClone(before)]}
+  ]};
+ const kg=convertNotebookWeightUnit(data,'kg');
+ const expected=w=>Math.round((w/2.2046226218+Number.EPSILON)*10)/10;
+ assert.equal(kg.activeWorkout.undoStack[0].exercises[0].sets[0].weight,expected(110));
+ assert.equal(kg.activeWorkout.undoStack[1].exercises[0].draft.weight,expected(120));
+ assert.equal(data.activeWorkout.undoStack[0].exercises[0].sets[0].weight,110,'original record stays untouched');
+});
