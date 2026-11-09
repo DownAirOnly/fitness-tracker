@@ -1277,6 +1277,32 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');
+ // Home customization must actually upload, and an isolated new PWA without
+ // existing account caches must reconstruct its selection from Firebase.
+ await click('home');
+ const nutritionTab=document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]');
+ if(nutritionTab){nutritionTab.click();await tick();}
+ await click('home-food-customize');
+ const choicesFromCloud=[...document.querySelectorAll('.home-food-pick')];
+ assert.ok(choicesFromCloud.length,'Bob has at least one saved food for account layout');
+ for(const chosen of [...document.querySelectorAll('.home-food-pick.selected')]){chosen.click();await tick();}
+ choicesFromCloud[0].click();await tick();
+ const expectedCloudHomeIds=[choicesFromCloud[0].dataset.id];
+ state.fail=true;
+ await click('home-food-customize-save');
+ assert.ok(document.querySelector('[data-home-food-save-status]')?.textContent.includes('NOT confirmed in Firebase'),'failed sync cannot masquerade as cloud-saved');
+ assert.notDeepEqual(normalizeData(JSON.parse(state.records.get('bob').payload)).preferences.homeFoodIds,expectedCloudHomeIds,'failed save leaves Firestore preferences unchanged');
+ state.fail=false;
+ await click('home-food-customize-save');
+ assert.equal(document.querySelector('[data-home-food-save-status]'),null,'confirmed account save dismisses customization');
+ assert.deepEqual(normalizeData(JSON.parse(state.records.get('bob').payload)).preferences.homeFoodIds,expectedCloudHomeIds,'new Home card order exists in account data');
+ await click('settings');await click('sign-out');
+ // Simulate deleting and reinstalling the PWA: remove local confirmed/recovery
+ // account snapshots and legacy on-device selection, not the remote notebook.
+ for(const key of ['everyday-cloud-confirmed-v1:bob','everyday-cloud-recovery-v1:bob','everyday-last-account-v1','everyday-home-food-ids-v1'])localStorage.removeItem(key);
+ await click('sign-in');await click('home');
+ const restoredCloudIds=[...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(node=>node.dataset.id);
+ assert.deepEqual(restoredCloudIds,expectedCloudHomeIds,'Home customization is restored from remote account settings without local caches');
  await click('gym');assert.ok(!document.querySelector('.tracking-date input'),'redundant Lifting date selector stays removed');
  await click('custom-lift');assert.ok(document.querySelector('form[data-form="lift"] [name="date"]'),'manual lift editor retains an editable date');
  await submit('lift',{exercise:'Test press',date:'2026-09-20',weight:'40',reps:'8',difficulty:'7'});
