@@ -112,7 +112,7 @@ test('Undo can reverse just the latest exercise finalization and protect prior c
  const reviewed=exercise([{weight:100,reps:10},{weight:95,reps:8}]);reviewed.reviewSetIndex=1;
  const finalized={...exercise(reviewed.sets),status:'done'};
  const snapshot={label:'finish exercise',phase:'exercise',selected:key,
-  exercises:[previousDone,reviewed]};
+  exercises:[structuredClone(previousDone),reviewed]};
  const state={phase:'picker',selected:null,exercises:[previousDone,finalized],
   undoStack:[snapshot]};
  assert.equal(canUndoBuddyTransition(state),true,'latest completed exercise can be un-finalized');
