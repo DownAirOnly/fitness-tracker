@@ -2,7 +2,17 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v126 (November 8, 2026)
+## Current release — v127 (November 8, 2026)
+
+- **Top Undo notice:** A compact, palette-aware Food confirmation slides down just below the iPhone safe area, keeps its Undo action available for five seconds, and animates upward on expiration. It replaces the large green overlay over the bottom navigation. Reduced-motion preference is respected.
+- **Invisible Food CSV clipboard controls:** The Food editor now shows separate **Copy CSV** and **Paste CSV** buttons, with no CSV textarea or expanded panel. Copy generates the current header and Food row directly into the clipboard; Paste requests the system clipboard inside the button tap, validates a foodLog CSV row, and fills the food editor without saving until the user confirms. iOS clipboard permission failure appears as an inline message, never a silent no-op. Old visible-textbox style rules are retired.
+- **Home card customization account persistence audit and fix:** Home selected food IDs were already stored in `data.preferences.homeFoodIds`, serialized into Firestore's `state/settings` account document, and restored by account load. The defect was that Save cards previously fired `void persist()` and closed before cloud acknowledgement, making a failed/offline save indistinguishable from a confirmed account save. Both Save cards and Use favorites & recent now await `persist()`; they stay open with a clear warning when Firebase has not confirmed it. Legacy local selection migration can no longer replace a non-null cloud selection.
+- **Verification:** UI smoke tests exercise clipboard copy/paste and denial, Undo presence/motion, failed Firebase Home save warning, confirmed remote preference payload, and a fresh account session with local account caches removed. Actual device clipboard permissions and the user's current personal cloud data cannot be verified from this code-only workflow.
+- **Data safety:** No schema, nutrition/workout/finance records, authentication identities, or unrelated features changed.
+
+## Previous release — v126 (November 8, 2026)
+
+
 
 - **Remaining theme typography:** Added palette-derived informational/muted text coverage across Home's calorie/protein target denominators, Food suggestions and CSV help, the Home foods selection count, nutrition card captions, blank-state notices in Money and food history, and other routine explanatory text. Strong numbers remain readable; deliberate income/expense, warning, success, active button, and anatomy colors retain their semantic distinction.
 - **Food CSV usability on iPhone:** The previous CSV text link is now a properly sized outline button with explicit expanded state. Opening it synchronously focuses and selects the entire generated CSV so a clipboard Paste can replace it; a visible Select all control permits repeating the action. Paste parsing, Food Library logic, and save behavior are unchanged. CSV field uses 16px monospaced text to avoid iOS zoom.

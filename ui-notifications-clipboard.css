@@ -1,0 +1,73 @@
+/* v127: compact top-of-screen Undo notice and clipboard-only food CSV. */
+#overlay .food-undo-toast{
+ position:fixed!important;
+ top:calc(env(safe-area-inset-top, 0px) + 12px)!important;
+ bottom:auto!important;
+ left:50%!important;
+ z-index:1200;
+ width:max-content;max-width:min(390px,calc(100vw - 32px));
+ min-height:42px;
+ padding:7px 8px 7px 13px;
+ display:flex;align-items:center;justify-content:space-between;
+ gap:11px;border-radius:13px;
+ border:1px solid var(--ap-border,#4c5e52);
+ background:var(--ap-raised,#25392e);
+ color:var(--ap-on-surface,#f4f7f2);
+ box-shadow:0 5px 16px rgba(0,0,0,.19);
+ transform:translateX(-50%);
+ animation:food-undo-arrive .3s cubic-bezier(.17,.77,.27,1) both;
+ pointer-events:auto;
+}
+#overlay .food-undo-toast strong{
+ display:block;min-width:0;flex:1;max-width:250px;
+ font-size:12px;line-height:1.35;font-weight:700;
+ text-overflow:ellipsis;overflow:hidden;white-space:nowrap;
+}
+#overlay .food-undo-toast button{
+ flex:0 0 auto;min-height:32px;min-width:52px;padding:5px 10px;
+ border:1px solid var(--ap-border,#56735d);
+ background:transparent;color:var(--ap-primary,#b5d58d);
+ border-radius:9px;font-size:12px;font-weight:800;
+}
+#overlay .food-undo-toast.leaving{
+ animation:food-undo-depart .32s ease-in both;
+ pointer-events:none;
+}
+@keyframes food-undo-arrive{
+ from{opacity:0;transform:translate(-50%,calc(-100% - 30px))}
+ to{opacity:1;transform:translate(-50%,0)}
+}
+@keyframes food-undo-depart{
+ from{opacity:1;transform:translate(-50%,0)}
+ to{opacity:0;transform:translate(-50%,calc(-100% - 30px))}
+}
+@media(prefers-reduced-motion:reduce){
+ #overlay .food-undo-toast{animation-duration:.01ms}
+ #overlay .food-undo-toast.leaving{animation-duration:.01ms}
+}
+.food-csv-block{width:100%;min-width:0;display:block}
+.food-csv-actions{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:9px;width:100%;
+}
+.food-csv-actions button{
+ width:100%;min-width:0;min-height:44px;
+ display:inline-flex;align-items:center;justify-content:center;
+ padding:10px 13px;
+ border-radius:12px;
+ font-size:13px;font-weight:800;
+ white-space:nowrap;
+}
+.food-csv-status{
+ margin:9px 0 0;
+ font-size:11px;line-height:1.45;
+ color:var(--ap-muted,#9bbba4);
+}
+.food-csv-status[hidden]{display:none!important}
+.food-csv-status.error{color:#d9ac91}
+.home-food-save-status{
+ margin:8px 2px 0;font-size:11px;line-height:1.5;
+ color:var(--ap-muted,#9bbba4);
+}
+:root[data-theme="light"] .home-food-save-status,
+:root[data-theme="light"] .food-csv-status{color:#556a60}

@@ -1,9 +1,9 @@
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=126';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=127';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=116';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup} from './muscle-map.js?v=126';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=126';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup} from './muscle-map.js?v=127';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=127';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
@@ -111,7 +111,7 @@ let cloudApi=null, account=null, session=null, cloudBusy=false, cloudPending=fal
 let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null,cloudAutoRetryAt=0;
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
-let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, offlineExitTimer=null;
+let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, foodUndoExitTimer=null, offlineExitTimer=null;
 let financeResetReadyAt=0, financeResetSaving=false, financeResetNotice='';
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
@@ -488,7 +488,7 @@ function homeFoodPicks(){
  if(ids===null)ids=defaultHomeFoodIds();
  return ids.map(foodId=>all.find(f=>f.id===foodId)).filter(Boolean);
 }
-let homeFoodDraft=[];
+let homeFoodDraft=[],homeFoodSaveBusy=false;
 function updateHomeFoodNumbers(){
  for(const row of document.querySelectorAll('.home-food-pick')){
   const position=homeFoodDraft.indexOf(row.dataset.id)+1,number=row.querySelector('.home-food-position');
@@ -506,7 +506,7 @@ function homeFoodCustomize(){
   '<label class="field"><span>Find a saved food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
   '<p class="home-food-count" role="status"></p>'+
   '<div class="home-food-picker">'+choices.map(f=>'<button type="button" class="home-food-pick" data-action="home-food-pick-toggle" data-id="'+esc(f.id)+'" data-search="'+esc(f.name.toLowerCase())+'" aria-pressed="false"><span class="home-food-position" aria-hidden="true">+</span><span class="home-food-pick-copy"><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span></button>').join('')+'</div>'+
-  '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Use favorites & recent','home-food-customize-reset','outline')+'</div>');
+  '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Use favorites & recent','home-food-customize-reset','outline')+'</div>'+ '<p class="home-food-save-status" data-home-food-save-status role="status" aria-live="polite">'+(account?'Card order syncs with your Google account once saved.':'Only on this device until you sign in with Google.')+'</p>');
  updateHomeFoodNumbers();
 }
 let homeDashboardView=readHomeDashboard();
@@ -2569,10 +2569,6 @@ function foodFormCSV(form){
  const values=['foodLog',v.date.value,v.name.value,v.calories.value,v.protein.value,v.quantity.value,hhmm,save?'true':'false'];
  return foodCSVColumns.join(',')+'\n'+values.map(csvQuote).join(',');
 }
-function refreshFoodCSV(form){
- const box=form?.querySelector('[data-food-csv]'),panel=form?.querySelector('.food-csv-panel');
- if(box&&panel&&!panel.hidden)box.value=foodFormCSV(form);
-}
 function pasteFoodFormCSV(form,raw){
  const rows=parseCSV(raw.replace(/^\uFEFF/,''));if(!rows.length)return;
  const first=rows[0].map(x=>x.trim().toLowerCase()),header=first.includes('name')&&first.includes('calories')&&first.includes('protein');
@@ -2630,12 +2626,18 @@ function foodForm(entry=null,card=null,options={}) {
   if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
-  modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><button type="button" class="outline food-csv-trigger" data-action="food-csv-toggle" aria-controls="food-csv-panel" aria-expanded="false"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h12"/><path d="m16 15 3 3-3 3"/></svg>Paste / copy CSV</button><div class="food-csv-panel" id="food-csv-panel" hidden><label class="field"><span>Paste a foodLog CSV row or copy the generated CSV</span><textarea data-food-csv rows="4" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Food CSV input. Paste to fill the fields." placeholder="Paste a foodLog CSV row or a header and row"></textarea></label><div class="food-csv-toolbar"><small data-food-csv-status aria-live="polite">Paste a row to fill the fields; Save to commit.</small><button type="button" class="outline small" data-action="food-csv-select">Select all</button></div></div></div><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
+  modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
 }
 function showFoodUndo(entryId,name){
- clearTimeout(foodUndoTimer);const root=document.querySelector('#overlay');if(!root)return;
- root.innerHTML='<div class="food-undo-toast" role="status"><span><strong>Added '+esc(name)+'</strong><small>Saved to the food log.</small></span><button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button></div>';
- foodUndoTimer=setTimeout(()=>{const toast=document.querySelector('.food-undo-toast'),undo=toast?.querySelector('[data-action="undo-food-add"]');if(undo?.dataset.id===entryId)root.innerHTML='';},5000);
+ clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
+ const root=document.querySelector('#overlay');if(!root)return;
+ root.innerHTML='<div class="food-undo-toast" role="status"><strong>Added '+esc(name)+'</strong><button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button></div>';
+ const shown=root.querySelector('.food-undo-toast');
+ foodUndoTimer=setTimeout(()=>{
+  if(!shown.isConnected)return;
+  shown.classList.add('leaving');
+  foodUndoExitTimer=setTimeout(()=>{if(shown.isConnected)shown.remove();},340);
+ },5000);
 }
 function liftForm(lift=null,name='',equipment='other') {
  const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type),sets=lift?.sets||prior?.sets||[{weight:0,reps:8},{weight:0,reps:8}],options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${equipmentLabel(x)}</option>`).join('');
@@ -2664,7 +2666,7 @@ app.addEventListener('input',event=>{
  if(event.target.matches('[data-finance-history-search]')){
   financeHistoryQuery=event.target.value;financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
- if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.matches('[data-food-csv]')){const form=event.target.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');try{pasteFoodFormCSV(form,event.target.value);if(status)status.textContent='Food values loaded. Review and save.';}catch(e){if(status)status.textContent=e.message;}return;}if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
+ if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{
@@ -2693,7 +2695,7 @@ app.addEventListener('change',event=>{
   else if(field==='sort')financeHistorySort=value;
   financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
- if(event.target.closest('form[data-form="food"]')&&!event.target.matches('[data-food-csv]'))refreshFoodCSV(event.target.form);if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);refreshFoodCSV(event.target.form);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){
+ if(event.target.dataset.libraryFilter){if(event.target.dataset.libraryFilter==='food'){foodLibraryFilter=event.target.value;refreshFoodLibraryList();}else{exerciseLibraryFilter=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches?.('[data-routine-select]')){workout=event.target.value;render();return;}if(event.target.dataset.sortScope){const scope=event.target.dataset.sortScope;if(scope==='food-page'){foodSort=event.target.value;render();}else if(scope==='food-library'){foodLibrarySort=event.target.value;foodLibrary();}else if(scope==='exercise-library'){exerciseLibrarySort=event.target.value;exerciseLibrary();}return;}if(event.target.name==='date'&&event.target.closest('form[data-form="food"]')&&!event.target.form.elements.entryId.value){const time=event.target.form.elements.foodTime;if(time){time.value=event.target.value===localDate()?String(currentFoodSlot()):'';syncTimeControl(time);}return;}if(event.target.name==='file'){pendingImport=null;const token=++importReadToken;const preview=document.querySelector('#preview')||document.querySelector('#offline-workspace-preview');if(preview)preview.textContent='';const bankForm=event.target.closest('form[data-form="finance-bank-import"]');if(bankForm)void inferSelectedBankLabel(bankForm,event.target.files?.[0],token);return;}if(event.target.name==='appearance'){
   data.preferences.theme=event.target.value;window.everydayTheme?.set(event.target.value);applyCurrentAppearance();
   void persist();return;
  }if(event.target.name==='date' && event.target.closest('.food-log-date')){if(event.target.value){chosenDate=event.target.value;render();foodLog();}return;}
@@ -2921,16 +2923,36 @@ document.addEventListener('click',async event=>{
     else homeFoodDraft.push(foodId);
     updateHomeFoodNumbers();return;
    }
-   if(action==='home-food-customize-reset'){
-    data.preferences.homeFoodIds=defaultHomeFoodIds();void persist();
-    homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');return;
-   }
-   if(action==='home-food-customize-save'){
-    if(!homeFoodDraft.length){alert('Choose at least one Home food.');return;}
-    data.preferences.homeFoodIds=[...homeFoodDraft];void persist();
-    homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');return;
-   }
-   if(action==='budget-back'){page='finances';render();return;}
+   if(action==='home-food-customize-reset'||action==='home-food-customize-save'){
+     if(homeFoodSaveBusy)return;
+     const ids=action==='home-food-customize-reset'?defaultHomeFoodIds():[...homeFoodDraft];
+     if(!ids.length){alert('Choose at least one Home food.');return;}
+     const status=document.querySelector('[data-home-food-save-status]');
+     const controls=[...document.querySelectorAll('[data-action="home-food-customize-save"],[data-action="home-food-customize-reset"]')];
+     homeFoodSaveBusy=true;
+     controls.forEach(button=>{button.disabled=true;});
+     if(status)status.textContent=account?'Saving card order to your Google account…':'Saving card order on this device…';
+     data.preferences.homeFoodIds=ids;
+     try{
+      const localSaved=await persist();
+      if(account&&(cloudPending||cloudRecoveryConflict||!session?.ready)){
+       if(status?.isConnected)status.textContent=localSaved||cloudRecovery?
+        'Saved on this device, but NOT confirmed in Firebase. Keep the PWA installed and retry Save cards when connected.':
+        'Firebase did not confirm the save and the device recovery could not be verified. Export a backup before leaving.';
+       return;
+      }
+      if(!localSaved){
+       if(status?.isConnected)status.textContent='Cards were not saved. Export a backup and retry.';
+       return;
+      }
+      homeFoodDraft=[];homeFoodPage=0;close(true);selectHomeDashboard('nutrition');
+     }finally{
+      homeFoodSaveBusy=false;
+      controls.forEach(button=>{if(button.isConnected)button.disabled=false;});
+     }
+     return;
+    }
+    if(action==='budget-back'){page='finances';render();return;}
   if(action==='budget-balance'){
    const p=data.budgetPlan;
    modal('Update available cash','<form class="form" data-form="budget-balance">'+
@@ -3348,29 +3370,40 @@ document.addEventListener('click',async event=>{
       if(input.form?.elements.date)input.form.elements.date.value=localDate();
       
     }
-    if(input.name==='foodTime')refreshFoodCSV(input.form);
+    /* Clipboard CSV generated only on Copy. */
     
     return;
   }
-  if(action==='food-quantity'||action==='food-quantity-step'){const form=el.closest('form[data-form="food"]');if(!form)return;const hidden=form.elements.quantity,old=Number(hidden.value)||1,value=action==='food-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);if(!Number.isFinite(value)||value<=0)return;hidden.value=String(value);form.querySelector('[data-food-quantity-display]').textContent=fmt(value);refreshFoodCSV(form);return;}
-  if(action==='food-csv-toggle'||action==='food-csv-select'){
-    const form=el.closest('form[data-form="food"]'),panel=form?.querySelector('.food-csv-panel');
-    if(!panel)return;
-    if(action==='food-csv-toggle'){
-      panel.hidden=!panel.hidden;
-      el.setAttribute('aria-expanded',String(!panel.hidden));
-      if(panel.hidden)return;
-      panel.querySelector('[data-food-csv]').value=foodFormCSV(form);
+  if(action==='food-quantity'||action==='food-quantity-step'){const form=el.closest('form[data-form="food"]');if(!form)return;const hidden=form.elements.quantity,old=Number(hidden.value)||1,value=action==='food-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);if(!Number.isFinite(value)||value<=0)return;hidden.value=String(value);form.querySelector('[data-food-quantity-display]').textContent=fmt(value);return;}
+  if(action==='food-csv-copy'||action==='food-csv-paste'){
+    const form=el.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');
+    if(!form)return;
+    const notify=(message,failed=false)=>{
+     if(!status?.isConnected)return;
+     status.hidden=false;status.textContent=message;status.classList.toggle('error',failed);
+    };
+    const clipboard=navigator.clipboard;
+    if(!clipboard){
+     notify('Clipboard unavailable in this browser. Open Everyday over HTTPS in Safari or the installed PWA.',true);return;
     }
-    if(panel.hidden)return;
-    const field=panel.querySelector('[data-food-csv]');
-    // A direct tap must focus synchronously for the iOS keyboard/Paste menu.
-    // Select both the generated header and row so Paste replaces all of it.
-    field.focus();
-    field.select();
-    field.setSelectionRange(0,field.value.length);
-    const status=panel.querySelector('[data-food-csv-status]');
-    if(status)status.textContent='CSV selected. Paste to replace it, or copy the selected text.';
+    try{
+     if(action==='food-csv-copy'){
+      if(typeof clipboard.writeText!=='function')throw Error('Clipboard copying is unavailable.');
+      await clipboard.writeText(foodFormCSV(form));
+      notify('CSV copied to clipboard.');
+     }else{
+      if(typeof clipboard.readText!=='function')throw Error('Clipboard pasting is unavailable.');
+      // Clipboard read starts synchronously within the user tap.
+      const raw=await clipboard.readText();
+      if(!raw.trim())throw Error('Clipboard is empty. Copy a foodLog CSV row first.');
+      pasteFoodFormCSV(form,raw);
+      notify('CSV pasted. Review the details, then save.');
+     }
+    }catch(error){
+     notify(error?.name==='NotAllowedError'?
+      'Clipboard permission denied. Allow Paste when iOS prompts, then try again.':
+      (error?.message||'Could not access the clipboard.'),true);
+    }
     return;
   }
   if(action==='food-add-another'){
@@ -3394,7 +3427,7 @@ document.addEventListener('click',async event=>{
   if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';const saveOption=form.querySelector('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}renderFoodMatches(form);form.elements.name.focus();return;}
   if(action==='edit-card'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'food');return;}
   if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;render();void persist();return;}
-  if(action==='undo-food-add'){clearTimeout(foodUndoTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';render();void persist();return;}
+  if(action==='undo-food-add'){clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';render();void persist();return;}
   if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
   if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f,{returnPage:page});}return;}
   if(action==='custom-lift'){liftForm();return;}
@@ -3792,7 +3825,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=126',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=127',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3831,7 +3864,7 @@ function adoptLegacyDevicePreferences(){
   const raw=localStorage.getItem(HOME_FOOD_IDS_KEY);
   if(raw!==null){
    const ids=JSON.parse(raw);
-   if(Array.isArray(ids)&&ids.length<=250&&ids.every(v=>typeof v==='string'&&v.length<=160))
+   if(prefs.homeFoodIds==null&&Array.isArray(ids)&&ids.length<=250&&ids.every(v=>typeof v==='string'&&v.length<=160))
     prefs.homeFoodIds=[...new Set(ids)];
   }
   const theme=localStorage.getItem('everyday-theme');
@@ -3894,7 +3927,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=126');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=127');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

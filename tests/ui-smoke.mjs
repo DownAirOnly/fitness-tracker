@@ -12,7 +12,7 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=126'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=127'),'palette coverage stylesheet is loaded');
 for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
 assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
 
@@ -86,16 +86,18 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=126'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=127'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=126'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=127'),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=126'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=127'),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
-assert.ok(typeCoverage.includes('.food-csv-trigger'),'CSV is styled as a visible control');
+const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
+assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
+assert.ok(clipboardCss.includes('.food-undo-toast.leaving'),'Undo animates off screen after its five-second hold');
 assert.ok(!typeCoverage.includes('.finance-row-side b.income'),'finance positive-status text must keep meaning');
 
 assert.ok(bootSource.includes('start=shiftDate(end,-7)'),'Set Levels uses a rolling eight-day window');
@@ -144,6 +146,11 @@ for(const key of ['window','document','localStorage','navigator'])Object.defineP
 let storagePersisted=false,persistRequests=0;
 Object.defineProperty(dom.window.navigator,'storage',{configurable:true,value:{persisted:async()=>storagePersisted,persist:async()=>{persistRequests++;storagePersisted=true;return true;},estimate:async()=>({usage:4096,quota:1024*1024})}});
 globalThis.alert=()=>{};globalThis.confirm=()=>true;
+let clipboardText='',clipboardReadError=null;
+Object.defineProperty(dom.window.navigator,'clipboard',{configurable:true,value:{
+ writeText:async value=>{clipboardText=String(value);},
+ readText:async()=>{if(clipboardReadError)throw clipboardReadError;return clipboardText;}
+}});
 // jsdom lacks a native animation frame API; use a minimal visual-frame stub.
 globalThis.requestAnimationFrame=callback=>setTimeout(callback,0);
 const fixture=join(temp,'cloud.mjs');
@@ -1176,21 +1183,17 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  const foodFormTest=document.querySelector('form[data-form="food"]');assert.ok(foodFormTest);
  document.querySelector('[data-action="food-quantity"][data-amount="0.5"]').click();await tick();
  assert.equal(foodFormTest.elements.quantity.value,'0.5','half-serving shortcut adjusts hidden quantity');
- await click('food-csv-toggle');
- const csvTrigger=document.querySelector('[data-action="food-csv-toggle"]');
- const selectedCSV=document.querySelector('[data-food-csv]');
- assert.ok(csvTrigger.classList.contains('outline'),'CSV opens from a real styled button');
- assert.equal(csvTrigger.getAttribute('aria-expanded'),'true','CSV button reports expanded state');
- assert.ok(selectedCSV.value.startsWith('recordType,date,name'),'CSV includes pasteable header');
- assert.equal(selectedCSV.selectionStart,0,'CSV selection starts at the first character');
- assert.equal(selectedCSV.selectionEnd,selectedCSV.value.length,'CSV is fully selected for iPhone paste');
- selectedCSV.setSelectionRange(2,5);
- await click('food-csv-select');
- assert.equal(selectedCSV.selectionStart,0,'Select all button resets the selection');
- assert.equal(selectedCSV.selectionEnd,selectedCSV.value.length,'Select all button selects the full CSV');
- const foodCsv=document.querySelector('[data-food-csv]');
- foodCsv.value='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,14:30,true';
- foodCsv.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await tick();
+ assert.equal(document.querySelector('[data-food-csv]'),null,'CSV textarea is not rendered');
+ await click('food-csv-copy');
+ assert.ok(clipboardText.startsWith('recordType,date,name'),'Copy CSV writes header and row');
+ assert.ok(document.querySelector('[data-food-csv-status]').textContent.includes('copied'));
+ clipboardText='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,14:30,true';
+ await click('food-csv-paste');
+ assert.ok(document.querySelector('[data-food-csv-status]').textContent.includes('pasted'));
+ const denied=new Error('denied');denied.name='NotAllowedError';clipboardReadError=denied;
+ await click('food-csv-paste');
+ assert.ok(document.querySelector('[data-food-csv-status]').textContent.includes('permission denied'),'iOS permission error shown without a text field');
+ clipboardReadError=null;
  assert.equal(foodFormTest.elements.name.value,'Device meal');
  assert.equal(foodFormTest.elements.foodTime.value,'29','pasted CSV fills actual time');
  assert.equal(document.querySelector('[data-time-display]').textContent,'2:30 PM','paste updates visible time');
@@ -1205,20 +1208,25 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(Number.isInteger(Number(foodFormTest.elements.foodTime.value)),'Now adds a valid time slot');
  const beforeMidnight=foodFormTest.elements.date.value;
   const afterMidnight=new Date(Date.parse(beforeMidnight+'T12:00:00Z')+86400000).toISOString().slice(0,10);
-  foodCsv.value='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,23:30,true';
- foodCsv.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await tick();
+  clipboardText='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,23:30,true';
+ await click('food-csv-paste');
  assert.equal(foodFormTest.elements.foodTime.value,'47');assert.equal(foodFormTest.elements.date.value,beforeMidnight);
  foodTimeRow.querySelector('[data-delta="1"]').click();await tick();
  assert.equal(foodFormTest.elements.foodTime.value,'0');assert.equal(foodFormTest.elements.date.value,afterMidnight,'crossing midnight advances the calendar date');
  foodTimeRow.querySelector('[data-delta="-1"]').click();await tick();
  assert.equal(foodFormTest.elements.foodTime.value,'47');
- foodCsv.value='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,14:30,true';
- foodCsv.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await tick();
+ clipboardText='recordType,date,name,calories,protein,quantity,time,saveAsFood\nfoodLog,'+foodFormTest.elements.date.value+',Device meal,250,20,0.5,14:30,true';
+ await click('food-csv-paste');
  assert.equal(foodFormTest.elements.quantity.value,'0.5','pasted CSV fills serving quantity');
  document.querySelector('[data-action="food-quantity"][data-amount="1"]').click();await tick();
  assert.equal(foodFormTest.elements.quantity.value,'1','quick preset restores one serving');
- assert.ok(foodCsv.value.includes('"1"'),'open CSV updates with serving changes');await submit('food',{name:'Device meal',calories:'250',protein:'20'});
+ await click('food-csv-copy');assert.ok(clipboardText.includes('"1"'),'Copy CSV includes updated quantity without showing an input');await submit('food',{name:'Device meal',calories:'250',protein:'20'});
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries.length,1);
+ assert.ok(document.querySelector('.food-undo-toast'),'food log shows top Undo action');
+ const toastCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
+ assert.ok(toastCss.includes('top:calc(env(safe-area-inset-top'),'Undo stays below the iPhone status bar');
+ assert.ok(toastCss.includes('food-undo-arrive')&&toastCss.includes('food-undo-depart'),'Undo animates in and out');
+ assert.ok((await readFile(new URL('app.js',root),'utf8')).includes('},5000);'),'Undo remains visible for five seconds');
  await click('settings');await click('sign-in');await click('home');
  assert.equal(document.querySelectorAll('.account-banner').length,0,'signed-in Home has no account banner');
  for(const action of ['food','gym','finances','progress','settings']){
@@ -1271,6 +1279,32 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');
+ // Home customization must actually upload, and an isolated new PWA without
+ // existing account caches must reconstruct its selection from Firebase.
+ await click('home');
+ const nutritionTab=document.querySelector('[data-action="home-dashboard-select"][data-view="nutrition"]');
+ if(nutritionTab){nutritionTab.click();await tick();}
+ await click('home-food-customize');
+ const choicesFromCloud=[...document.querySelectorAll('.home-food-pick')];
+ assert.ok(choicesFromCloud.length,'Bob has at least one saved food for account layout');
+ for(const chosen of [...document.querySelectorAll('.home-food-pick.selected')]){chosen.click();await tick();}
+ choicesFromCloud[0].click();await tick();
+ const expectedCloudHomeIds=[choicesFromCloud[0].dataset.id];
+ state.fail=true;
+ await click('home-food-customize-save');
+ assert.ok(document.querySelector('[data-home-food-save-status]')?.textContent.includes('NOT confirmed in Firebase'),'failed sync cannot masquerade as cloud-saved');
+ assert.notDeepEqual(normalizeData(JSON.parse(state.records.get('bob').payload)).preferences.homeFoodIds,expectedCloudHomeIds,'failed save leaves Firestore preferences unchanged');
+ state.fail=false;
+ await click('home-food-customize-save');
+ assert.equal(document.querySelector('[data-home-food-save-status]'),null,'confirmed account save dismisses customization');
+ assert.deepEqual(normalizeData(JSON.parse(state.records.get('bob').payload)).preferences.homeFoodIds,expectedCloudHomeIds,'new Home card order exists in account data');
+ await click('settings');await click('sign-out');
+ // Simulate deleting and reinstalling the PWA: remove local confirmed/recovery
+ // account snapshots and legacy on-device selection, not the remote notebook.
+ for(const key of ['everyday-cloud-confirmed-v1:bob','everyday-cloud-recovery-v1:bob','everyday-last-account-v1','everyday-home-food-ids-v1'])localStorage.removeItem(key);
+ await click('sign-in');await click('home');
+ const restoredCloudIds=[...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(node=>node.dataset.id);
+ assert.deepEqual(restoredCloudIds,expectedCloudHomeIds,'Home customization is restored from remote account settings without local caches');
  await click('gym');assert.ok(!document.querySelector('.tracking-date input'),'redundant Lifting date selector stays removed');
  await click('custom-lift');assert.ok(document.querySelector('form[data-form="lift"] [name="date"]'),'manual lift editor retains an editable date');
  await submit('lift',{exercise:'Test press',date:'2026-09-20',weight:'40',reps:'8',difficulty:'7'});
