@@ -1718,8 +1718,8 @@ function buddyUndoSteps(s){
  if(Array.isArray(s.undoStack))return s.undoStack;
  return s.undo&&s.undo.label!=='finish exercise'?[s.undo]:[];
 }
-function buddyCaptureUndo(s,label){
- const snapshot={label,phase:s.phase,selected:s.selected,exercises:structuredClone(s.exercises),performedOrder:structuredClone(s.performedOrder||[])};
+function buddyCaptureUndo(s,label,target=null){
+ const snapshot={label,phase:s.phase,selected:s.selected,...(target?{target}:{}),exercises:structuredClone(s.exercises),performedOrder:structuredClone(s.performedOrder||[])};
  if(s.completedAt)snapshot.completedAt=s.completedAt;
  if(s.bikeCompletedAt)snapshot.bikeCompletedAt=s.bikeCompletedAt;
  s.undoStack=[...buddyUndoSteps(s).slice(-(BUDDY_UNDO_LIMIT-1)),snapshot];
@@ -3215,7 +3215,7 @@ document.addEventListener('click',async event=>{
    buddyUpsertLift(s,e); // Reuses the original session lift record ID.
    buddyCompletedEditor=null;await buddyPersist();return;
   }
-  if(action==='buddy-choose'){const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);if(!e)return;buddyCaptureUndo(s,'start exercise');e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
+  if(action==='buddy-choose'){const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);if(!e)return;buddyCaptureUndo(s,'start exercise',buddyKey(e));e.status='active';e.selectedAt=isoNow();if(!Number.isInteger(e.reviewSetIndex))e.draft=buddyDraft(e,e.sets.length);s.selected=el.dataset.key;s.phase='exercise';if(!Array.isArray(s.performedOrder))s.performedOrder=[];if(!s.performedOrder.includes(buddyKey(e)))s.performedOrder.push(buddyKey(e));await buddyPersist();return;}
   if(action==='buddy-setup-toggle'||action==='buddy-setup-save'||action==='buddy-journal-toggle'||action==='buddy-toggle-history'){
    buddyReadEditor();buddyReadNotes();
    const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;
