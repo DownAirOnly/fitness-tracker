@@ -181,6 +181,15 @@ function setLevelSvg(view,counts){
  return '<svg class="muscle-body muscle-level-body" viewBox="0 0 180 330" role="img" aria-label="'+side+' muscle workload illustration"><g class="muscle-silhouette">'+silhouette+'</g>'+regions+
   '<path class="muscle-contours" d="'+contours[view]+'" aria-hidden="true"/></svg>';
 }
+/* Visual routine planning preview: same approved anatomy as Set Levels, but
+   deliberately no weekly totals or analytics controls inside Workout Buddy.
+   The caller supplies the selected routine's planned sets, not logged work. */
+export function routinePlannedMusclesMarkup(load={}){
+ const hasMapped=Object.values(load||{}).some(item=>Number(item?.effective)>0);
+ if(!hasMapped)return '<div class="gym-routine-muscle-map empty" aria-label="No mapped routine muscles"></div>';
+ return '<div class="gym-routine-muscle-map" role="img" aria-label="Planned muscle groups, front and back">'+
+  '<span>'+setLevelSvg('front',load)+'</span><span>'+setLevelSvg('rear',load)+'</span></div>';
+}
 const effective=(load,id)=>Number(load?.[id]?.effective)||0;
 const levelPair=(load,label)=>'<div class="muscle-level-map"><div class="muscle-level-map-title">'+label+'</div><div class="muscle-level-figures">'+
  '<div><span>FRONT</span>'+setLevelSvg('front',load)+'</div><div><span>BACK</span>'+setLevelSvg('rear',load)+'</div></div></div>';
