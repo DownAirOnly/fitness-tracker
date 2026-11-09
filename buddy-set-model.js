@@ -23,8 +23,12 @@ export function canUndoBuddyTransition(session){
    (keyFor(e)!==completionTarget&&beforeByKey.get(keyFor(e))?.status!=='done')))return false;
 
  const phase=session.phase,key=session.selected;
- const target=undo.selected,current=now.find(e=>keyFor(e)===target),
-  previous=beforeByKey.get(target);
+ const changedStart=label==='start exercise'?now.find(e=>
+   e.status==='active'&&beforeByKey.get(keyFor(e))?.status==='pending'):null;
+ const target=label==='start exercise'?
+   (undo.target||session.selected||(changedStart?keyFor(changedStart):undo.selected)):
+   undo.selected;
+ const current=now.find(e=>keyFor(e)===target),previous=beforeByKey.get(target);
  const onExercise=phase==='exercise'&&key===target;
  const onPicker=phase==='picker'&&!key;
  if(label==='bike finished')return onPicker&&Boolean(session.bikeCompletedAt);
