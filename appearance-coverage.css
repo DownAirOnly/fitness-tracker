@@ -964,3 +964,96 @@
 
 /* Financial success and failure, verified/clean import states and the
    anatomy's activated muscle regions remain unchanged on purpose. */
+
+/* v129 — full legacy-green audit of ordinary interface roles.
+   The original styles.css contains 686 lines with green-ish hard-coded
+   values; some encode financial state, anatomy, effort, and routine identity.
+   These remaining neutral controls were not fully routed through the palette.
+   Keep semantic indicators distinct rather than recoloring all green. */
+
+/* Workout schedule: native selects previously remained #243d2b in Amethyst. */
+:root[data-theme="dark"] .workout-schedule-form .workout-schedule-day select{
+ background:var(--ap-input);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+ color-scheme:dark;
+}
+:root[data-theme="dark"] .workout-schedule-form .workout-schedule-day>span{
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] .workout-schedule-form .workout-schedule-day select:focus-visible{
+ outline:2px solid var(--ap-primary);outline-offset:2px;
+}
+
+/* The previous back-to-exercises text looked disabled and forest green.
+   It is a real navigation action, so give it proper visual contrast. */
+:root[data-theme="dark"] .buddy-complete .buddy-secondary{
+ display:inline-flex;justify-content:center;align-items:center;
+ align-self:center;
+ min-height:44px;padding:10px 20px;margin-top:12px;
+ border:1px solid var(--ap-border);
+ border-radius:12px;
+ background:var(--ap-raised);
+ color:var(--ap-on-surface);
+ font-weight:800;
+}
+:root[data-theme="dark"] .buddy-complete .buddy-secondary:focus-visible{
+ outline:2px solid var(--ap-primary);outline-offset:2px;
+}
+
+/* Common neutral controls and labels that have historical forest fills.
+   These are not financial income/expense signs, anatomy regions, seven-level
+   effort buttons, or the per-routine identity colors. */
+:root[data-theme="dark"] :is(
+ .home-quick-button,.food-relog-row,.food-relog-row button,
+ .routine-row-actions button,.workout-order-actions button,
+ .time-step-row>button,.time-step-options button,
+ .food-batch-row button,.routine-undo button,
+ .buddy-exercise-tools button,
+ .buddy-complete .buddy-secondary,
+ .sort-control select,.library-search input,
+ .food-quantity-presets button
+){
+ background:var(--ap-raised);
+ border-color:var(--ap-border);
+ color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] :is(
+ .home-quick-button,.sort-control select,.library-search input,
+ .time-step-options button,.workout-order-actions button
+):focus-visible{
+ outline-color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(
+ .home-food-picker .home-food-pick.selected,
+ .suggestion-selected-anchor,.food-match-selected,
+ .routine-history-edit-tabs button.selected
+){
+ border-color:var(--ap-primary);
+}
+:root[data-theme="dark"] :is(
+ .home-food-picker .home-food-pick.selected,.suggestion-selected-anchor
+){
+ background:var(--ap-panel-accent);
+}
+:root[data-theme="dark"] :is(
+ .food-relog-row small,.buddy-compact-history small,
+ .buddy-notes-heading,.home-quick-button small,
+ .workout-template-title em,.routine-history-row time,
+ .routine-library-row small,.routine-starter small,
+ .routine-history-exercise small,.buddy-journal-row blockquote
+){
+ color:var(--ap-muted);
+}
+
+/* A colored trend series is still a chart series, but its color should come
+   from the palette. Separate protein and calories hues stay distinguishable. */
+:root[data-theme="dark"] :is(.weight-chart-key.trend,.exercise-chart-legend-item.rep){
+ color:var(--ap-secondary);
+}
+:root[data-theme="dark"] :is(.weight-trend-line,.exercise-rep-segment){
+ stroke:var(--ap-secondary);
+}
+:root[data-theme="dark"] .weight-trend-dot{
+ fill:var(--ap-secondary);
+}
