@@ -12,7 +12,7 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=127'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=128'),'palette coverage stylesheet is loaded');
 for(const scope of ['.home-metric','.food-card .food-card-macros','.exercise-card.equipment-machine','.weight-progress-chart','.money-ledger-total','#app>.nav','.buddy-a'])assert.ok(appearanceCoverage.includes(scope),'appearance covers '+scope);
 assert.ok(appearanceCoverage.includes('var(--ap-secondary)')&&appearanceCoverage.includes('var(--ap-primary)'),'appearance derives from saved colors');
 
@@ -86,15 +86,18 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=127'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=128'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=127'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=128'),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=127'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=128'),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
+const undoCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
+assert.ok(launchHtml.includes('buddy-undo-guard.css?v=128'),'persistent header Undo CSS is loaded');
+assert.ok(undoCss.includes('.buddy-undo-header'),'dedicated top Undo style remains');
 const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
 assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
 assert.ok(clipboardCss.includes('.food-undo-toast.leaving'),'Undo animates off screen after its five-second hold');
