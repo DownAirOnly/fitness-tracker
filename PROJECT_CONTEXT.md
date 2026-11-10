@@ -2,7 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v130 (November 10, 2026)
+## Current release — v131 (November 10, 2026)
+
+- **Every Food entry visible on the tab:** The top selected-day Food card now lists all recorded entries, newest first, instead of stopping at three. The calorie/protein totals remain at the top of that card, and the full-log editor stays available as **Edit food log**. Favorites and More foods remain below the daily log.
+- **Slightly denser log:** Each top-card entry reduces vertical row padding from 9px to 7px and metadata spacing from 3px to 2px, with line-height 1.5 to 1.4. Names, nutrition details, colors, overall navigation, and the full-log modal's touch targets are unchanged.
+- **Safety/verification:** Rendering and CSS only; no record schema, sorting model, Firebase rules, backup format, stored meals, sync, or history edits. UI smoke covers more than three entries, selected-day ordering, removal, top-section placement, and spacing. GitHub CI/Pages status and iPhone visual fit remain separate checkpoints.
+
+## Previous release — v130 (November 10, 2026)
 
 - **Morning check-in from recent readings:** The once-per-tracking-day prompt prefills each field independently from the latest saved measurement dated today or earlier, prioritizing yesterday when that is the latest. The caption says **From yesterday**, **Last recorded** with the real date, or **Already logged today**; absent body-fat readings remain blank rather than fabricated.
 - **Fast, draft-only adjustments:** Each field has large **−0.5 / −0.1 / +0.1 / +0.5** buttons, using the configured weight unit and body-fat percentage. Values remain directly editable. Invalid/out-of-range adjustments are disabled; no reading is written until Save. Manual weigh-in and older dated-edit workflows remain unchanged.
