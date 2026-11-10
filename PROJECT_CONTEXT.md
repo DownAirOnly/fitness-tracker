@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v129 (November 9, 2026)
+## Current release — v130 (November 10, 2026)
+
+- **Morning check-in from recent readings:** The once-per-tracking-day prompt prefills each field independently from the latest saved measurement dated today or earlier, prioritizing yesterday when that is the latest. The caption says **From yesterday**, **Last recorded** with the real date, or **Already logged today**; absent body-fat readings remain blank rather than fabricated.
+- **Fast, draft-only adjustments:** Each field has large **−0.5 / −0.1 / +0.1 / +0.5** buttons, using the configured weight unit and body-fat percentage. Values remain directly editable. Invalid/out-of-range adjustments are disabled; no reading is written until Save. Manual weigh-in and older dated-edit workflows remain unchanged.
+- **Data safety:** Keep one weight and one body-fat record per date using existing independent streams; no migration, account rules, Health Shortcut protocol, backup format, or recovery behavior changes. Pure model tests cover latest-date selection and ± decimal adjustments; targeted UI smoke checks the loaded styles and touch targets.
+- **Verification:** GitHub CI and Pages deployment must be checked separately. Real iPhone prompt layout/keyboard/touch behavior is not yet confirmed by the user.
+
+## Previous release — v129 (November 9, 2026)
 
 - **Lifting routine cohesion:** Replace the fixed-green native routine dropdown with horizontally scrolling, readable, color-coded routine buttons. Routines use their persisted, ID-stable individual colors (same as Home calendar markers and history cards), with one selected state and a visible Manage control.
 - **Planned muscles in the routine card, not separate screens:** Place a small front/back anatomical planned-muscle visual and four compact muscle-name chips inside the selected Lifting routine card, alongside its exercise/set counts. Reuse the approved v124 anatomy and v123 set-load mapping; no new muscle geometry or logged-set accounting. No new persistent data or exercise records.
