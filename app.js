@@ -3818,7 +3818,7 @@ app.addEventListener('submit',async event=>{
   if(!Number.isFinite(value)||value<=0||!v.date)return alert('Enter a positive weight and date.');
   if(bodyFatValue!==null&&(!Number.isFinite(bodyFatValue)||bodyFatValue<0.1||bodyFatValue>100))return alert('Enter a body-fat percentage from 0.1 to 100, or leave it blank.');
   const item=data.weights.find(x=>x.id===v.weightId)||data.weights.find(x=>x.date===v.date),next={date:v.date,value};
-  if(item&&item.value!==value){Object.assign(item,next);delete item.source;delete item.recordedAt;}
+  if(item&&(item.value!==value||item.date!==v.date)){Object.assign(item,next);delete item.source;delete item.recordedAt;}
   else data.weights.push({id:id(),...next});
   if(bodyFatValue!==null){
    // The daily form shares the date but keeps measurements in separate streams.
