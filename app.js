@@ -1,9 +1,10 @@
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=129';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=129';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=130';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=130';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=130';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=129';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=129';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=130';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=130';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
@@ -14,7 +15,7 @@ import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './accoun
 import {availableMonths,exportMonth} from './account-monthly.js?v=112';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=112';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=112';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=129';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=130';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=112';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=112';
@@ -2650,13 +2651,29 @@ function liftForm(lift=null,name='',equipment='other') {
  modal(lift?'Edit lift':'Log lift',`<form class="form lift-form" data-form="lift"><input type="hidden" name="liftId" value="${esc(lift?.id||'')}">${input('Exercise','exercise',exercise,'text','maxlength="100" autocomplete="off" required')}${!lift?'<div class="exercise-matches" role="listbox" aria-label="Matching exercises"></div>':''}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label>${input('Date','date',lift?.date||(page==='gym'?currentTrackingDate():chosenDate),'date','required')}${prior?`<p class="prior">Last time · ${niceDate(prior.date)}<br><strong>${describeLift(prior)}</strong></p>`:''}<div class="section-head"><h3>Sets</h3>${button('+ Add set','add-set','text-btn')}</div><div id="sets">${sets.map((s,i)=>setRow(i,s)).join('')}</div><div class="form-grid"><label class="field lift-notes"><span>Notes (optional)</span><textarea name="notes" rows="1" maxlength="500" placeholder="Form, setup, pain, anything worth remembering">${esc(lift?.notes||'')}</textarea></label></div><div class="form-actions"><button class="primary" type="submit">Save lift</button>${lift?button('Delete lift','delete-lift','danger',`data-id="${esc(lift.id)}"`):''}</div></form>`);document.querySelector('.modal')?.classList.add('lift-dialog');
 }
 function setRow(i,s={weight:'',reps:'',difficulty:''}) {return `<div class="set-row"><span>${i+1}</span>${input('Weight ('+data.settings.unit+')','weight',s.weight,'number','min="0" step="0.5" inputmode="decimal" required')}${input('Reps','reps',s.reps,'number','min="1" step="1" inputmode="numeric" required')}<label class="field effort-field"><span>Effort</span><select name="difficulty" class="effort-select effort-${Number(s.difficulty)||0}" aria-label="Set ${i+1} effort">${effortOptions(s.difficulty)}</select></label>${button('−','remove-set','remove-set','aria-label="Remove set"')}</div>`;}
+function checkInMetric(label,name,value,reading,day,kind,optional=false){
+ const source=reading?(reading.date===day?'Already logged today':reading.date===shiftDate(day,-1)?'From yesterday · '+niceDate(reading.date):'Last recorded · '+niceDate(reading.date)):'No earlier reading';
+ const minimum='min="0.1" step="0.1" inputmode="decimal"'+(kind==='bodyFat'?' max="100"':'')+(optional?'':' required');
+ const steps=[-0.5,-0.1,0.1,0.5].map(step=>'<button type="button" data-action="weight-adjust" data-field="'+name+'" data-step="'+step+'"'+(stepCheckInValue(value,step,kind)===null?' disabled':'')+' aria-label="Adjust '+esc(label)+' by '+(step<0?'minus ':'plus ')+Math.abs(step).toFixed(1)+'">'+(step<0?'−':'+')+Math.abs(step).toFixed(1)+'</button>').join('');
+ return '<div class="weight-checkin-metric">'+input(label,name,value,'number',minimum)+'<p class="weight-checkin-source">'+esc(source)+'</p><div class="weight-checkin-steps" role="group" aria-label="Adjust '+esc(label)+'">'+steps+'</div></div>';
+}
+function refreshWeightAdjustButtons(form){
+ for(const control of form.querySelectorAll('[data-action="weight-adjust"]')){
+  const field=form.elements.namedItem(control.dataset.field);
+  const kind=control.dataset.field==='bodyFatValue'?'bodyFat':'weight';
+  control.disabled=stepCheckInValue(field?.value,Number(control.dataset.step),kind)===null;
+ }
+}
 function weightForm(w=null,prompt=false) {
- const weightInput=input(`Weight (${data.settings.unit})`,'value',w?.value??'','number','min="1" step="0.1" inputmode="decimal" required');
- const bodyFatInput=w?'':input('Body fat % (optional)','bodyFatValue','','number','min="0.1" max="100" step="0.1" inputmode="decimal"');
- modal(w?'Edit weigh-in':prompt?'Daily check-in':'Log your weight',
-  `<form class="form" data-form="weight"><input type="hidden" name="weightId" value="${esc(w?.id||'')}">`+
-  (w?weightInput:'<div class="measurement-fields">'+weightInput+bodyFatInput+'</div>')+
-  `${input('Date','date',w?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">${w?'Save weigh-in':'Save measurements'}</button>${w?button('Delete','delete-weight','danger',`data-id="${esc(w.id)}"`):button('Enter later','later','outline')}</div></form><p class="hint">${prompt?'This is today’s only automatic check-in. Close it or choose Enter later to skip until the next tracking day. ':''}Body fat is optional and saved independently from weight. Same-day weigh-ins replace the earlier weight value.</p>`);
+ const day=w?.date||currentTrackingDate(),checkIn=prompt&&!w;
+ const priorWeight=checkIn?checkInReading(data.weights,day):null;
+ const priorFat=checkIn?checkInReading(data.bodyFat,day):null;
+ const weightValue=w?.value??(checkIn?(priorWeight?.value??''):'');
+ const weightInput=input('Weight ('+esc(data.settings.unit)+')','value',weightValue,'number','min="0.1" step="0.1" inputmode="decimal" required');
+ const bodyFatInput=w?'':input('Body fat % (optional)','bodyFatValue',checkIn?(priorFat?.value??''):'','number','min="0.1" max="100" step="0.1" inputmode="decimal"');
+ const fields=checkIn?'<div class="weight-checkin-fields">'+checkInMetric('Weight ('+data.settings.unit+')','value',weightValue,priorWeight,day,'weight')+checkInMetric('Body fat % (optional)','bodyFatValue',priorFat?.value??'',priorFat,day,'bodyFat',true)+'</div>':w?weightInput:'<div class="measurement-fields">'+weightInput+bodyFatInput+'</div>';
+ modal(w?'Edit weigh-in':prompt?'Daily check-in':'Log your weight','<form class="form'+(checkIn?' weight-checkin-form':'')+'" data-form="weight"><input type="hidden" name="weightId" value="'+esc(w?.id||'')+'">'+fields+
+  input('Date','date',day,'date','required')+'<div class="form-actions"><button class="primary" type="submit">'+(w?'Save weigh-in':'Save measurements')+'</button>'+(w?button('Delete','delete-weight','danger','data-id="'+esc(w.id)+'"'):button('Enter later','later','outline'))+'</div></form><p class="hint">'+(prompt?'Last saved readings are only a starting point. Nothing is logged until Save. Enter later skips until the next tracking day. ':'')+'Body fat is optional and saved separately from weight. Same-day weigh-ins replace the earlier weight value.</p>');
 }
 function bodyFatForm(b=null){modal(b?'Edit body fat':'Log body fat',`<form class="form" data-form="body-fat"><input type="hidden" name="bodyFatId" value="${esc(b?.id||'')}">${input('Body fat %','value',b?.value??'','number','min="0.1" max="100" step="0.1" required')}${input('Date','date',b?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save body fat</button>${b?button('Delete','delete-body-fat','danger',`data-id="${esc(b.id)}"`):''}</div></form><p class="hint">Body fat is its own measurement stream. It does not require or modify a weight record.</p>`);}
 function importHub(){
@@ -2669,6 +2686,7 @@ function importModal(kind,source='file') {
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{
+ if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
  if(event.target.matches('[data-finance-history-search]')){
   financeHistoryQuery=event.target.value;financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
@@ -3279,6 +3297,14 @@ document.addEventListener('click',async event=>{
   if(action==='food-progress-period'){foodProgressPeriod=el.dataset.period||'week';foodProgressOffset=0;render();return;}
   if(action==='food-progress-nav'){foodProgressOffset=Math.min(0,foodProgressOffset+Number(el.dataset.delta||0));render();return;}
   if(action==='food-progress-current'){foodProgressOffset=0;render();return;}
+  if(action==='weight-adjust'){
+   const form=el.closest('form.weight-checkin-form'),field=form?.elements.namedItem(el.dataset.field);
+   if(!field)return;
+   const kind=el.dataset.field==='bodyFatValue'?'bodyFat':'weight';
+   const next=stepCheckInValue(field.value,Number(el.dataset.step),kind);
+   if(next===null)return;
+   field.value=next;field.dispatchEvent(new window.Event('input',{bubbles:true}));return;
+  }
   if(action==='weight-all'){weightHistoryAll();return;}
   if(action==='bodyfat-all'){bodyFatHistoryAll();return;}
   if(action==='weight'){weightForm();return;}
@@ -3822,7 +3848,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=129',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=130',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3924,7 +3950,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=129');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=130');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
