@@ -1,5 +1,11 @@
 # Everyday fitness tracker
 
+## v130 — faster daily measurements
+
+- The automatic daily check-in now starts with the latest prior weight and body-fat readings when available, clearly dating each source (yesterday versus older).
+- Each measurement has 0.1 and 0.5 increment/decrement controls; values remain editable and are not saved until confirmation.
+- No Firebase schema changes, imports, retroactive measurements or modification of historical data. See `PROJECT_CONTEXT.md` for the current handoff and device-verification status.
+
 **For current development state and next-conversation handoffs, read [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) first.** It is updated with each version and marks confirmed functionality, pending device verification, and proposed future work. This README retains the detailed historical notes.
 
 ## v99.7.17 — Buddy anatomy, top set actions and Home Resume
