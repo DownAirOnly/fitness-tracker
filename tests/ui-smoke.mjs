@@ -175,7 +175,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
