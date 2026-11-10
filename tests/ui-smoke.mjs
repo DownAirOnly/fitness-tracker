@@ -12,11 +12,11 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=130'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=131'),'palette coverage stylesheet is loaded');
 const liftingStyles=await readFile(new URL('lifting-routines.css',root),'utf8');
-assert.ok(launchHtml.includes('lifting-routines.css?v=130'),'new Lifting routine CSS is included');
+assert.ok(launchHtml.includes('lifting-routines.css?v=131'),'new Lifting routine CSS is included');
 const checkInCss=await readFile(new URL('weight-checkin.css',root),'utf8');
-assert.ok(launchHtml.includes('weight-checkin.css?v=130'),'daily check-in steppers CSS is loaded');
+assert.ok(launchHtml.includes('weight-checkin.css?v=131'),'daily check-in steppers CSS is loaded');
 assert.ok(checkInCss.includes('min-height:44px'),'daily adjustment controls have a 44px tap target');
 
 for(const selector of ['.gym-routine-tab.selected','.gym-selected-routine','.gym-routine-muscle-map'])
@@ -94,17 +94,17 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=130'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=131'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=130'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=131'),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=130'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=131'),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
 const undoCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
-assert.ok(launchHtml.includes('buddy-undo-guard.css?v=130'),'persistent header Undo CSS is loaded');
+assert.ok(launchHtml.includes('buddy-undo-guard.css?v=131'),'persistent header Undo CSS is loaded');
 assert.ok(undoCss.includes('.buddy-undo-header'),'dedicated top Undo style remains');
 const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
 assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
@@ -151,6 +151,8 @@ assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition
 assert.ok(stylesheet.includes(':is(.daily-food-card,.food-log-totals) .nutrition-total-meter>span'),'modal progress fill uses identical sizing and scale');
 
 assert.ok(stylesheet.includes('/* v99.7.13 — daily check-in: optional body-fat entry alongside weight. */'),'paired measurement inputs have mobile grid styling');
+assert.ok(stylesheet.includes('.food-preview-row{display:block;padding:7px 0;'),'daily Food rows save a small amount of vertical space');
+assert.ok(stylesheet.includes('font-size:11px;line-height:1.4;color:#c3d3c4;margin-top:2px'),'Food entry metadata keeps readable type with tighter spacing');
 assert.equal(dom.window.document.querySelector('#app')?.children.length,0,'static startup does not insert a skeleton');
 
 for(const key of ['window','document','localStorage','navigator'])Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
@@ -1422,6 +1424,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  const setDate=async value=>{await click('food-log');const field=document.querySelector('.food-log-date input');assert.ok(field,'date picker is in All food entries');field.value=value;field.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();assert.equal(document.querySelector('.food-log-date input').value,value);await click('close');};
  await setDate('2025-01-02');
  assert.ok(document.querySelector('.food-preview-empty'));
+ assert.equal(document.querySelector('main[data-page="food"] > :first-child')?.className,'food-day','selected-day food log stays first on Food tab');
  assert.ok([...document.querySelectorAll('.food-section-title h2')].some(el=>el.textContent==='More foods'),'Food page exposes the current library section');
  const savedCountBeforeOneOff=normalizeData(JSON.parse(state.records.get('bob').payload)).foods.length;
  await click('new-food');const saveAsFood=document.querySelector('[name="saveAsFood"]');assert.ok(saveAsFood&&saveAsFood.checked,'new manual foods default to saving in the library');saveAsFood.checked=false;await submit('food',{name:'One-off cruise dessert',calories:'420',protein:'6',quantity:'1'});
@@ -1429,10 +1432,11 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('food-log');assert.equal(document.querySelectorAll('.full-food-log .list-row').length,1,'one-off food is a real logged entry');await click('close');
  for(let i=1;i<=5;i++){
   await click('new-food');await submit('food',{name:'History food '+i,calories:'100',protein:'10',quantity:'2'});
-  assert.equal(document.querySelectorAll('.food-preview-row').length,Math.min(i+1,3));
+  assert.equal(document.querySelectorAll('.food-preview-row').length,i+1,'Food card shows every logged meal, not a three-entry preview');
   assert.equal(document.querySelector('.food-total-number strong').textContent,String(420+i*200));
  }
- assert.deepEqual([...document.querySelectorAll('.food-preview-row strong')].map(e=>e.textContent),['History food 5','History food 4','History food 3']);
+ assert.deepEqual([...document.querySelectorAll('.food-preview-row strong')].map(e=>e.textContent),['History food 5','History food 4','History food 3','History food 2','History food 1','One-off cruise dessert'],'all six entries appear in newest-first order');
+ assert.ok(document.querySelector('.food-log-open').textContent.includes('Edit food log'),'full history remains accessible without implying hidden entries');
  await click('food-log');
  assert.equal(document.querySelectorAll('.food-log-totals .nutrition-total-value').length,2,'full-log modal shares the Food metric structure');
  assert.equal(document.querySelectorAll('.food-log-totals .nutrition-total-meter').length,2,'full-log modal has both matching meter tracks');
@@ -1443,7 +1447,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelector('.food-total-number strong').textContent,'1520');
  await click('food-log');await click('edit-entry');await click('delete-entry');
  assert.equal(document.querySelector('.food-total-number strong').textContent,'1220');
- assert.equal(document.querySelectorAll('.food-preview-row').length,3);
+ assert.equal(document.querySelectorAll('.food-preview-row').length,5,'deleted item disappears without limiting remaining items');
  const countBeforeSaved=JSON.parse(state.records.get('bob').payload).foodEntries.length;
  await click('add-saved');assert.ok(document.querySelector('[data-form="food"]'),'saved card opens normal food form');assert.equal(document.querySelector('[data-form="food"] [name="date"]').value,'2025-01-02');await submit('food',{quantity:'0.5'});
  let current=JSON.parse(state.records.get('bob').payload);assert.equal(current.foodEntries.at(-1).date,'2025-01-02');assert.equal(current.foodEntries.at(-1).quantity,0.5);assert.ok(document.querySelector('.food-undo-toast'));
