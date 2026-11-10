@@ -1,5 +1,11 @@
 # Everyday fitness tracker
 
+## v131 — all Food entries on the selected day
+
+- The Food tab's leading daily card shows every logged meal/food entry rather than just three. Nutrition totals and newest-first order remain, and the full log editor is still accessible.
+- Slightly reduce row padding and detail spacing so more entries fit without reducing text size or affecting Food Library cards.
+- Rendering and styling only; no changes to nutrition data, account schema, Firebase, or historical logs.
+
 ## v130 — faster daily measurements
 
 - The automatic daily check-in now starts with the latest prior weight and body-fat readings when available, clearly dating each source (yesterday versus older).
