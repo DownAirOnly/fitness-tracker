@@ -1,5 +1,5 @@
 import {JSDOM} from 'jsdom';
-import {normalizeData,encodeData,localDate as todayCalendarDate} from '../data.js';
+import {normalizeData,encodeData,emptyData,localDate as todayCalendarDate} from '../data.js';
 import {exportSection} from '../account-sections.js';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
@@ -287,7 +287,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(document.querySelector('[data-action="section-export"][data-section="finances"]'));
   await click('section-import-open');
   const sectionForm=document.querySelector('form[data-form="section-import"]');
-  const sectionJson=JSON.stringify(exportSection(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))),'nutrition'));
+  const sectionJson=JSON.stringify(exportSection(emptyData(),'nutrition'));
+  // A fresh signed-out device need not have any locally persisted notebook yet.
   const sectionInput=sectionForm.querySelector('[name=files]');
   Object.defineProperty(sectionInput,'files',{configurable:true,value:[{name:'everyday-nutrition.json',size:sectionJson.length,text:async()=>sectionJson}]});
   sectionForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
