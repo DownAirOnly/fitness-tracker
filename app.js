@@ -50,6 +50,7 @@ function downloadSectionBackup(section){
  const link=document.createElement('a');link.href=URL.createObjectURL(blob);
  link.download='everyday-'+section+'-'+localDate()+'.json';link.click();
  setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+ return file;
 }
 function downloadMonthBackup(month){
  const file=exportMonth(data,month);
@@ -113,7 +114,7 @@ let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null,cloudAutoR
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, foodUndoExitTimer=null, offlineExitTimer=null;
-let financeResetReadyAt=0, financeResetSaving=false, financeResetNotice='', financeExportArmed=false;
+let financeResetReadyAt=0, financeResetSaving=false, financeResetNotice='', financeExportSignature='', financeExportOwner='';
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='',moneyWeeks=1,bankCandidateSort='amount',bankCandidateSearch='';
@@ -2426,39 +2427,55 @@ function storageProtectionPanel(){
   return '<section class="panel spaced"><div class="section-head"><div><h2>Offline protection</h2></div><span class="health-status '+tone+'">'+status+'</span></div><p class="body-copy">'+esc(detail)+'</p><p class="hint">'+esc(usage+quota+(storageProtection.error?' · '+storageProtection.error:''))+'</p>'+(storageProtection.supported&&storageProtection.persisted!==true?button('Ask for persistent storage','storage-persist','outline small'):'')+'</section>';
 }
 
+// Money is retired. Preserve the legacy cloud data until an explicit export
+// and separately confirmed deletion; changing app versions never clears it.
+function financeArchiveOwner(){
+ return demoMode?'demo':offlineWorkspace?'workspace:'+offlineWorkspace.filename:account?.uid?'account:'+account.uid:'device';
+}
+function financeArchiveMatchesExport(){
+ if(!financeExportSignature||financeExportOwner!==financeArchiveOwner())return false;
+ try{return JSON.stringify(exportSection(data,'finances').data)===financeExportSignature;}
+ catch{return false;}
+}
 function financeResetPanel(){
  const txCount=data.transactions?.length||0,ruleCount=data.classificationRules?.length||0;
- const plan=data.budgetPlan||{},scheduleCount=plan.schedules?.length||0;
- return '<section class="panel spaced finance-reset-panel"><h2>Reset Finance data</h2>'+
-   '<p class="body-copy">Start the Money tab from scratch without touching food logs, saved foods, workouts, weigh-ins, body fat or account settings.</p>'+
-   '<p class="hint">Currently: '+txCount+' transactions · '+ruleCount+' categorization rules · '+scheduleCount+' scheduled paydays or bills. A reset also clears budget limits, the manual balance, paycheck and bill markers, and pending bank-review rows.</p>'+
-   (financeResetNotice?'<p role="status">'+esc(financeResetNotice)+'</p>':'')+
-   button('Export Finances JSON first','section-export','outline','data-section="finances"')+
-   button('Delete all Finance data','finance-reset-prompt','danger')+
-   '<p class="hint">This affects your active account on every device after synchronization. Previously downloaded backups and retained legacy cloud migration files are not erased. The three-second confirmation is required before anything changes.</p></section>';
+ const plan=data.budgetPlan||{},scheduleCount=plan.schedules?.length||0,limitCount=plan.categoryLimits?.length||0;
+ const exported=financeArchiveMatchesExport();
+ return '<section class="panel spaced finance-reset-panel" aria-label="Retired Money archive"><h2>Money archive</h2>'+
+  '<p class="body-copy">Everyday is now for Food, Lifting and Progress. The Money tab is gone, but your old financial data stays preserved until you choose to remove it.</p>'+
+  '<p class="hint">Stored: '+txCount+' transactions · '+ruleCount+' categorization rules · '+scheduleCount+' recurring paydays or bills · '+limitCount+' budget limits. The export includes the complete retired Finance section, including bank metadata and budget settings.</p>'+
+  (financeResetNotice?'<p role="status">'+esc(financeResetNotice)+'</p>':'')+
+  button('Export current finances JSON','section-export','outline','data-section="finances"')+
+  (exported?'<p class="hint" role="status">Download started. Check the JSON file is saved and that the Command migration is complete before deleting.</p>'+
+   button('Optional: delete archived finances','finance-reset-prompt','danger'):
+   '<p class="hint">After you initiate an export, an optional delete button appears here. Downloading never removes any data.</p>')+
+  '<p class="hint">Old backups and legacy cloud migration snapshots may still contain past financial data. Keep this archive until the separate Command reconciliation and recovery checks are complete.</p></section>';
 }
 function financeResetPrompt(){
  if(financeResetSaving||importSaving)return;
+ if(!financeArchiveMatchesExport()){alert('Export the current financial archive first. The data or account changed since your last export.');return;}
  if(account&&!offlineWorkspace&&!demoMode&&(!session?.ready||cloudBusy||cloudPending||cloudRecoveryConflict)){
-  alert('Finish syncing your account before resetting Finance. Nothing has been deleted.');return;
+  alert('Finish syncing the account before deleting its financial archive. Nothing has been deleted.');return;
  }
  financeResetReadyAt=Date.now()+3000;
- modal('Delete all Finance data?', '<div class="buddy-delete-confirm"><p class="body-copy"><strong>This will reset your Money tab.</strong> All financial transactions, categorization rules, budget limits, scheduled bills and paydays, manual balances, and unresolved bank-review items will be removed from active Everyday data.</p>'+
-  '<p class="hint">Food, Lifting, Progress and account preferences stay intact. Old backups and migration snapshots may still contain prior Finance data. Export Finance JSON first if you may want it back.</p>'+
+ modal('Delete retired Money records?', '<div class="buddy-delete-confirm"><p class="body-copy"><strong>Deletion is irreversible in the active Everyday account.</strong> All transactions, categorization rules, budget limits, scheduled paydays and bills, balances and review markers will be removed. Food, Lifting, Progress and account preferences stay intact.</p>'+
+  '<p class="hint">Confirm the downloaded JSON exists and the Command data has been reconciled first. Older backups and cloud migration snapshots may still retain finances.</p>'+
+  '<label class="field finance-archive-verify"><input type="checkbox" data-finance-archive-verify> I saved the Finance JSON and verified my replacement copy.</label>'+
   '<p role="alert" data-finance-reset-error hidden></p>'+
-  '<button type="button" id="finance-reset-confirm" class="danger" data-action="finance-reset-confirm" disabled>Delete Finance data · 3</button>'+
+  '<button type="button" id="finance-reset-confirm" class="danger" data-action="finance-reset-confirm" disabled>Delete archived finances · 3</button>'+
   button('Cancel','close','outline')+'</div>');
  const confirmButton=document.querySelector('#finance-reset-confirm');
  for(let second=1;second<=3;second++)setTimeout(()=>{
   if(!confirmButton?.isConnected)return;
-  const left=3-second;
-  confirmButton.disabled=left!==0;
-  confirmButton.textContent=left?'Delete Finance data · '+left:'Delete Finance data';
+  const left=3-second,verified=Boolean(document.querySelector('[data-finance-archive-verify]')?.checked);
+  confirmButton.disabled=Boolean(left)||!verified;
+  confirmButton.textContent=left?'Delete archived finances · '+left:'Delete archived finances';
  },second*1000);
 }
 async function financeResetConfirm(){
  const btn=document.querySelector('#finance-reset-confirm');
- if(!btn||btn.disabled||Date.now()<financeResetReadyAt||financeResetSaving||importSaving)return;
+ if(!btn||btn.disabled||Date.now()<financeResetReadyAt||financeResetSaving||importSaving||
+   !document.querySelector('[data-finance-archive-verify]')?.checked||!financeArchiveMatchesExport())return;
  const active=session,owner=account?.uid,workspace=Boolean(offlineWorkspace);
  if(owner&&!workspace&&!demoMode&&(!active?.ready||cloudBusy||cloudPending||cloudRecoveryConflict)){
   const warning=document.querySelector('[data-finance-reset-error]');
@@ -2488,7 +2505,8 @@ async function financeResetConfirm(){
   }else if(!workspace&&!demoMode)deviceData=structuredClone(candidate);
   financeHistoryQuery='';financeHistoryKind='all';financeHistoryMonth='all';
   financeHistoryCategory='all';financeHistoryReview='all';financeHistorySort='newest';financeHistoryVisible=50;
-  financeNotice='Finance data reset.';financeResetNotice='Finance data deleted from your active Everyday records.';
+  financeExportSignature='';financeExportOwner='';
+  financeNotice='';financeResetNotice='Retired Money records cleared from active Everyday data.';
   close(true);render();
  }catch(error){
   if(owner&&(session!==active||account?.uid!==owner))return;
@@ -2697,6 +2715,11 @@ app.addEventListener('change',event=>{
   const txId=event.target.dataset.id;
   if(event.target.checked)pendingImport.selectedIds.add(txId);else pendingImport.selectedIds.delete(txId);
   showImportReview(pendingImport);return;
+ }
+ if(event.target.matches('[data-finance-archive-verify]')){
+  const confirmButton=document.querySelector('#finance-reset-confirm');
+  if(confirmButton)confirmButton.disabled=!event.target.checked||Date.now()<financeResetReadyAt;
+  return;
  }
  if(event.target.matches('.effort-select'))event.target.className='effort-select effort-'+(event.target.value||0);if(event.target.closest('.buddy-set-editor')){if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();else{buddyReadEditor();persist();}}if(event.target.matches('[name=buddyNotes]')){buddyReadNotes();persist();}});
 if(window.visualViewport){window.visualViewport.addEventListener('resize',()=>{setTimeout(syncLiftViewport,40);syncExerciseProgressViewport();});window.visualViewport.addEventListener('scroll',()=>{syncLiftViewport();syncExerciseProgressViewport();});}
@@ -3496,7 +3519,17 @@ document.addEventListener('click',async event=>{
    if(month)try{downloadMonthBackup(month);}catch(error){alert(error.message);}
    return;
   }
-  if(action==='section-export'){if(ACCOUNT_SECTIONS.includes(el.dataset.section))downloadSectionBackup(el.dataset.section);return;}
+  if(action==='section-export'){
+   if(ACCOUNT_SECTIONS.includes(el.dataset.section)){
+    const exported=downloadSectionBackup(el.dataset.section);
+    if(el.dataset.section==='finances'){
+     financeExportSignature=JSON.stringify(exported.data);
+     financeExportOwner=financeArchiveOwner();
+     financeResetNotice='Finance JSON download initiated; confirm the file is saved before deleting.';
+     if(page==='settings')render();
+    }
+   }return;
+  }
   if(action==='section-import-open'){sectionImportModal();return;}
   if(action==='export'){downloadJsonBackup(offlineWorkspace?offlineOutputName():`everyday-backup-${localDate()}.json`,Boolean(offlineWorkspace));return;}
   if(action==='import-more'){expandImportGroup(el);return;}
