@@ -49,7 +49,7 @@ function downloadSectionBackup(section){
  const bytes=JSON.stringify(file,null,2),blob=new Blob([bytes],{type:'application/json'});
  const link=document.createElement('a');link.href=URL.createObjectURL(blob);
  link.download='everyday-'+section+'-'+localDate()+'.json';link.click();
- setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+ setTimeout(()=>URL.revokeObjectURL?.(link.href),1000);
  return file;
 }
 function downloadMonthBackup(month){
