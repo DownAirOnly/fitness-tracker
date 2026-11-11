@@ -1,5 +1,5 @@
 import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=116';
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=112';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=132';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=112';
 
@@ -292,14 +292,15 @@ export function normalizeData(input) {
   if(Array.isArray(input.exerciseDefinitions)){
     if(input.exerciseDefinitions.length>10000)throw new Error('Backup has too many exercise definitions.');
     for(const e of input.exerciseDefinitions){
-      const setup=e?.setup==null?'':String(e.setup);
-      if(!e||typeof e.id!=='string'||!e.id.trim()||typeof e.name!=='string'||!e.name.trim()||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(e.equipment)||setup.length>200)throw new Error('Backup has an invalid exercise definition.');
+      const setup=e?.setup==null?'':String(e.setup),hasNotes=Object.prototype.hasOwnProperty.call(e||{},'notes'),notes=hasNotes?e.notes:'';
+      if(!e||typeof e.id!=='string'||!e.id.trim()||typeof e.name!=='string'||!e.name.trim()||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(e.equipment)||setup.length>200||(hasNotes&&(typeof notes!=='string'||notes.length>500)))throw new Error('Backup has an invalid exercise definition.');
       const key=e.name.toLowerCase()+'|'+e.equipment,existing=definitionByKey.get(key);
       if(existing){
         idAliases.set(e.id,existing.id);
         if(setup)existing.setup=setup;else delete existing.setup;
+        if(hasNotes)existing.notes=notes;
       }else{
-        const created={id:e.id,name:e.name,equipment:e.equipment,...(setup?{setup}:{})};
+        const created={id:e.id,name:e.name,equipment:e.equipment,...(setup?{setup}:{}),...(hasNotes?{notes}:{})};
         data.exerciseDefinitions.push(created);definitionByKey.set(key,created);idAliases.set(e.id,e.id);
       }
     }

@@ -1,5 +1,13 @@
 # Everyday fitness tracker
 
+## v132 — Beginner Workout Buddy and exercise notes
+
+- One-set routines still finish after one set by default; after that set you may **Start set 2** for today without changing the routine or being prompted for a third. Routine editor exposes the persistent planned-set target.
+- Exercise notes can be edited once and reused in different routines sharing the same movement. Older logged notes remain preserved, and existing note text is offered when a shared note is not yet set.
+- Android Chrome uses the live appearance background for the system theme-color meta tag where supported, including after light/dark changes; the PWA manifest has a neutral fallback. The native bottom navigation bar itself remains controlled by Android/Chrome.
+- Existing workouts, set history, and cloud accounts remain intact.
+
+
 ## v131 — all Food entries on the selected day
 
 - The Food tab's leading daily card shows every logged meal/food entry rather than just three. Nutrition totals and newest-first order remain, and the full log editor is still accessible.

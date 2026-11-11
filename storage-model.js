@@ -39,8 +39,10 @@ export function decodeStoredData(input){
   if(!exercise||typeof exercise.id!=='string'||!exercise.id.trim()||typeof exercise.name!=='string'||!exercise.name.trim())throw Error('Backup has an invalid exercise dictionary item.');
   if(exerciseMap.has(exercise.id))throw Error('Backup has duplicate exercise dictionary IDs.');
   const normalized=inferExercise(exercise.name),equipment=equipmentTypes.has(exercise.equipment)?exercise.equipment:normalized.equipment,setup=exercise.setup==null?'':String(exercise.setup);
+  const hasNotes=Object.prototype.hasOwnProperty.call(exercise,'notes'),notes=hasNotes?exercise.notes:'';
   if(setup.length>200)throw Error('Backup has an invalid exercise setup.');
-  const def={id:exercise.id,name:normalized.name,equipment,...(setup?{setup}:{})};
+  if(hasNotes&&(typeof notes!=='string'||notes.length>500))throw Error('Backup has invalid shared exercise notes.');
+  const def={id:exercise.id,name:normalized.name,equipment,...(setup?{setup}:{}),...(hasNotes?{notes}:{})};
   exerciseMap.set(exercise.id,def);exerciseDefinitions.push(def);usedExerciseIds.add(exercise.id);
  }
  const exerciseIdByKey=new Map(exerciseDefinitions.map(e=>[exerciseKey(e),e.id]));
@@ -90,7 +92,7 @@ export function encodeStoredData(data){
  const foodEntries=data.foodEntries.map(entry=>{const key=foodKey(entry);let foodId=foodByKey.get(key);if(!foodId){foodId=nextStableId('food',key,usedFoodIds);usedFoodIds.add(foodId);foods.push({id:foodId,name:entry.name,calories:entry.calories,protein:entry.protein,saved:false});foodByKey.set(key,foodId);}const record={id:entry.id,date:entry.date,foodId,quantity:entry.quantity};if(Number.isInteger(entry.t)&&entry.t>=0&&entry.t<=47)record.t=entry.t;return record;});
  const exercises=[],exerciseByKey=new Map(),exerciseById=new Map(),usedExerciseIds=new Set();
  for(const def of Array.isArray(data.exerciseDefinitions)?data.exerciseDefinitions:[]){
-  const normalized=inferExercise(def.name),exercise={id:def.id,name:normalized.name,equipment:equipmentTypes.has(def.equipment)?def.equipment:normalized.equipment,...(def.setup?{setup:def.setup}:{})},key=exerciseKey(exercise);
+  const normalized=inferExercise(def.name),exercise={id:def.id,name:normalized.name,equipment:equipmentTypes.has(def.equipment)?def.equipment:normalized.equipment,...(def.setup?{setup:def.setup}:{}),...(Object.prototype.hasOwnProperty.call(def,'notes')?{notes:def.notes}:{})},key=exerciseKey(exercise);
   if(!exercise.id||usedExerciseIds.has(exercise.id))continue;
   exercises.push(exercise);usedExerciseIds.add(exercise.id);exerciseByKey.set(key,exercise.id);exerciseById.set(exercise.id,exercise);
  }
