@@ -1,5 +1,5 @@
 import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=116';
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=112';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=132';
 import {normalizeClassificationRules} from './classification-model.js?v=96';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=112';
 
