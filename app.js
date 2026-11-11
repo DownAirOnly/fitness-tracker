@@ -1,10 +1,10 @@
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=131';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=131';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=131';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=132';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=132';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=132';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=131';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=131';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=132';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=132';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
@@ -15,7 +15,7 @@ import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './accoun
 import {availableMonths,exportMonth} from './account-monthly.js?v=112';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=112';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=112';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=131';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=132';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=112';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=112';
@@ -1545,9 +1545,22 @@ function exerciseLibrary(){
  const equipment=['all','machine','cable','dumbbell','bench','calisthenics','other'];
  modal('Exercise Library',`<div class="exercise-library"><div class="library-intro"><p class="body-copy">Canonical exercise definitions live here. Editing one changes the exercise used by every workout that references it, without logging anything today.</p><button type="button" class="primary small" data-action="new-exercise-def">+ New exercise</button></div><div class="library-search-row"><label class="library-search"><span>Search</span><input type="search" data-library-search="exercise" value="${esc(exerciseLibrarySearch)}" placeholder="Search exercises"></label><label class="sort-control"><span>Filter</span><select data-library-filter="exercise">${equipment.map(x=>`<option value="${x}" ${exerciseLibraryFilter===x?'selected':''}>${x==='all'?'All equipment':equipmentLabel(x)}</option>`).join('')}</select></label><label class="sort-control"><span>Sort</span><select data-sort-scope="exercise-library"><option value="name" ${exerciseLibrarySort==='name'?'selected':''}>A–Z</option><option value="equipment" ${exerciseLibrarySort==='equipment'?'selected':''}>Equipment</option></select></label></div><div class="library-result-count" data-exercise-library-count>${filteredExerciseLibrary().length} shown</div><div class="exercise-library-list">${exerciseLibraryRows()}</div></div>`);
 }
+// Exercise notes belong to the exercise definition, not a particular routine.
+// Older workout-only notes are used as a read-only fallback until explicitly saved.
+function sharedExerciseNotes(def){
+ if(Object.prototype.hasOwnProperty.call(def,'notes'))return String(def.notes||'').slice(0,500);
+ const key=exerciseHistoryKey(def.name,def.equipment);
+ const last=[...(data.lifts||[])].filter(l=>exerciseHistoryKey(l.exercise,l.equipment||'other')===key&&typeof l.notes==='string'&&l.notes.trim())
+  .sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+ return String(last?.notes||'').slice(0,500);
+}
+function setSharedExerciseNotes(e){
+ const def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);
+ if(def)def.notes=String(e.notes||'').slice(0,500);
+}
 function exerciseDefinitionForm(def=null,returnTo='library'){
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><p class="hint">This is the shared exercise definition. Workout-specific rep ranges are edited on the workout itself.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
+ modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label><p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
 }
 
 const routinePresets=[
@@ -1608,7 +1621,7 @@ function workoutEditorCapture(){
 }
 function workoutEditorRow(item,i,total){
  const e=resolveWorkoutExercise(item);if(!e)return'';
- return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e.name)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div><div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
+ return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e.name)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div><div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
 }
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
@@ -1617,7 +1630,7 @@ function workoutTemplateForm(name=null,preserve=false){
  }
  if(!workoutEditorState)return;
  const state=workoutEditorState;
- modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<label class="field routine-color-control"><span>Routine color</span><input type="color" name="workoutColor" value="${esc(state.color||routineDefaultColor(state.id,state.name))}" aria-label="Routine color"></label><p class="hint">Change the order, rep ranges, sets and rest times. Previous sets stay in workout history.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
+ modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<label class="field routine-color-control"><span>Routine color</span><input type="color" name="workoutColor" value="${esc(state.color||routineDefaultColor(state.id,state.name))}" aria-label="Routine color"></label><p class="hint">Planned sets are your starting target. A one-set exercise can optionally add a second set during Workout Buddy without changing this routine. Previous sets stay in workout history.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
 }
 function workoutExercisePicker(){
  if(!workoutEditorState)return;
@@ -1703,7 +1716,7 @@ function buddySetControlsMarkup(d){
  const weightStep=data.settings.unit==='kg'?1.1:2.5;
  return `<div class="buddy-set-editor"><div class="buddy-number-field"><span>Weight</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="-${weightStep}">−</button><button type="button" data-action="buddy-adjust" data-field="weight" data-delta="${weightStep}">+</button></div><div class="buddy-number-input"><input name="buddyWeight" type="number" min="0" step="${weightStep}" inputmode="decimal" value="${esc(d.weight)}"><small>${esc(data.settings.unit)}</small></div></div><div class="buddy-number-field"><span>Reps</span><div class="buddy-stepper"><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="-1">−</button><button type="button" data-action="buddy-adjust" data-field="reps" data-delta="1">+</button></div><input name="buddyReps" type="number" min="1" step="1" inputmode="numeric" value="${esc(d.reps)}"></div><input type="hidden" name="buddyDifficulty" value="${d.difficulty||0}"></div><div class="buddy-effort-wrap"><span>EFFORT</span><div class="buddy-effort-grid">${buddyEffortButtons(d.difficulty)}</div></div>`;
 }
-function buddyReadNotes(){const s=data.activeWorkout,field=document.querySelector('[name=buddyNotes]');if(!s||!field||!s.selected)return;const e=buddyFind(s,s.selected);if(e)e.notes=field.value.slice(0,500);}
+function buddyReadNotes(){const s=data.activeWorkout,field=document.querySelector('[name=buddyNotes]');if(!s||!field||!s.selected)return;const e=buddyFind(s,s.selected);if(e){e.notes=field.value.slice(0,500);setSharedExerciseNotes(e);}}
 // Uncommitted Setup text stays in the active workout's recoverable draft.
 // The exercise definition only changes after explicitly pressing Save.
 function buddyReadSetupDraft(){
@@ -1753,7 +1766,7 @@ function buddyUndo(s){
 }
 function buddyUndoControl(s){const allowed=canUndoBuddyTransition(s);return '<button type="button" class="buddy-undo buddy-undo-header" data-action="buddy-undo" aria-label="Undo last workout action" title="Undo last workout action" '+(allowed?'':'disabled aria-disabled="true"')+'>↶ Undo</button>';}
 function buddyDraft(e,index){return nextBuddySetDraft(e,index,buddyPrior(e));}
-function buddyStart(type){const w=workoutByName(type);if(!w)return;buddyBikeUi=null;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),status:'pending',sets:[]}))};persist();}
+function buddyStart(type){const w=workoutByName(type);if(!w)return;buddyBikeUi=null;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),...(sharedExerciseNotes(e)?{notes:sharedExerciseNotes(e)}:{}),status:'pending',sets:[]}))};persist();}
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
 function buddyExerciseHeading(e,showMini=true){
  return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div>'+
@@ -1817,6 +1830,8 @@ function buddyRender(){
   showRest=Boolean(e.restStartedAt&&!running)&&e.sets.length<target,
   left=showRest?Math.max(0,(e.restSeconds||90)-buddySeconds(e.restStartedAt)):0,range=buddyRepRange(e);
  const action=reviewing?(e.sets.length>=target?'Next exercise':`Start set ${e.sets.length+1}`):running?`Finish set ${i+1}`:`Start set ${i+1}`;
+ const optionalSecond=reviewing&&e.sets.length===1&&target===1?
+  '<div class="buddy-second-set-offer"><span>Want to try a second set?<small>Optional · today only</small></span><button type="button" data-action="buddy-add-second-set">Start set 2</button></div>':'';
  const setProgress=`<div class="buddy-set-status buddy-set-status-bars" role="status" aria-label="Set ${Math.min(i+1,target)} of ${target}"><div class="buddy-set-bars" aria-hidden="true">${Array.from({length:target},(_,n)=>`<i class="${n<i?'done':n===i?'current':''}"></i>`).join('')}</div></div>`;
  // Selecting an exercise does not start a timed set. Exercises already returns
  // to the picker, so do not show a redundant "Undo start exercise".
@@ -1833,7 +1848,7 @@ function buddyRender(){
  const history=lastSession?'<div class="buddy-history-preview"><button type="button" class="buddy-last-toggle" data-action="buddy-toggle-history" aria-expanded="'+Boolean(e.showRecent)+'"><span><b>LAST · '+esc(niceDate(lastSession.date))+'</b><small>'+esc(buddyLastTwo(lastSession))+'</small></span><span class="buddy-last-chevron" aria-hidden="true">'+(e.showRecent?'⌃':'⌄')+'</span></button>'+(e.showRecent?'<div class="buddy-compact-history" role="region" aria-label="Earlier exercise history">'+recent.slice(1,3).map(l=>'<div><small>'+esc(niceDate(l.date))+'</small><span>'+esc(buddyLastTwo(l))+'</span></div>').join('')+(recent.length===1?'<small>No earlier workouts</small>':'')+'</div>':'')+'</div>':'';
  const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setupDraft??e.setup??'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
  const historyRest=history?'<div class="buddy-history-rest-row">'+history+'</div>':'';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><b>${action}</b>${rest}</button></main></div>`;
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${optionalSecond}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><b>${action}</b>${rest}</button></main></div>`;
 
 }
 let buddyTicker=null;
@@ -3223,6 +3238,7 @@ document.addEventListener('click',async event=>{
    if(edit.sets.length!==e.sets.length)return; // Do not rewrite workout shape or timing.
    e.sets=structuredClone(edit.sets);
    e.notes=edit.notes;
+   setSharedExerciseNotes(e);
    const setup=String(edit.setup||'').trim().slice(0,200);
    if(setup)e.setup=setup;else delete e.setup;
    const def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);
@@ -3262,6 +3278,17 @@ document.addEventListener('click',async event=>{
    else e.showRecent=!e.showRecent;
    await buddyPersist();return;
  }
+  if(action==='buddy-add-second-set'){
+   buddyReadEditor();buddyReadNotes();
+   const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;
+   if(!e||e.status!=='active'||e.activeSetStartedAt||e.sets.length!==1||buddyTargetSets(e)!==1||!Number.isInteger(e.reviewSetIndex))return;
+   // Session-only progression: existing routine defaults/history are untouched.
+   // Reuse the normal next-set Undo semantics, including restoring targetSets=1.
+   buddyCaptureUndo(s,'start next set');
+   e.targetSets=2;delete e.reviewSetIndex;
+   e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';
+   await buddyPersist();return;
+  }
   if(action==='buddy-review-next'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||!Number.isInteger(e.reviewSetIndex))return;const finished=e.sets.length>=buddyTargetSets(e);buddyCaptureUndo(s,finished?'finish exercise':'start next set');delete e.reviewSetIndex;if(finished){buddyCompleteExercise(s,e);}else{e.draft=buddyDraft(e,e.sets.length);e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';}await buddyPersist();return;}
   if(action==='buddy-adjust'){const root=el.closest('.buddy-set-editor');if(!root)return;const field=el.dataset.field==='weight'?'buddyWeight':'buddyReps',input=root.querySelector('[name='+field+']');if(!input)return;const delta=Number(el.dataset.delta)||0,current=Number(input.value)||0,next=el.dataset.field==='weight'?Math.max(0,Math.round((current+delta)*10)/10):Math.max(1,Math.round(current+delta));input.value=next;if(el.closest('.routine-history-editor'))routineHistoryCaptureDraft();else if(!el.closest('.buddy-completed-editor')){buddyReadEditor();persist();}return;}
   if(action==='buddy-effort'){const root=el.closest('.buddy-completed-edit-set,.buddy-exercise-view,.routine-history-editor'),input=root?.querySelector('[name=buddyDifficulty]');if(!input)return;input.value=el.dataset.value;root.querySelectorAll('.buddy-effort').forEach(btn=>{const selected=btn===el;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',selected?'true':'false');});if(root.matches('.routine-history-editor'))routineHistoryCaptureDraft();else if(!root.closest('.buddy-completed-editor')){buddyReadEditor();persist();}return;}
@@ -3689,17 +3716,18 @@ app.addEventListener('submit',async event=>{
     return;
   }
   if(form.dataset.form==='exercise-definition'){
-    const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);
-    if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200)return alert('Check the exercise definition.');
+    const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),notes=String(v.notes||''),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);
+    if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200||notes.length>500)return alert('Check the exercise definition.');
     const duplicate=data.exerciseDefinitions?.find(x=>x.id!==v.exerciseId&&x.name.toLowerCase()===name.toLowerCase()&&x.equipment===equipment);
     if(duplicate)return alert('That exercise already exists with this equipment.');
     let created=null;
     if(existing){
       const oldName=existing.name,oldEquipment=existing.equipment;Object.assign(existing,{name,equipment});
       if(setup)existing.setup=setup;else delete existing.setup;
+      existing.notes=notes;
       data.lifts.forEach(l=>{if(l.exercise.toLowerCase()===oldName.toLowerCase()&&(l.equipment||'other')===oldEquipment){l.exercise=name;l.equipment=equipment;}});
     }else{
-      created={id:id(),name,equipment,...(setup?{setup}:{})};data.exerciseDefinitions.push(created);
+      created={id:id(),name,equipment,...(setup?{setup}:{}),notes};data.exerciseDefinitions.push(created);
     }
     if(v.returnTo==='routine'&&created&&workoutEditorState&&!workoutEditorState.exercises.some(e=>e.exerciseId===created.id)){
       workoutEditorState.exercises.push({exerciseId:created.id,repMin:6,repMax:12,targetSets:2,restSeconds:90});
@@ -3848,7 +3876,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=131',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=132',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3950,7 +3978,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=131');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=132');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
