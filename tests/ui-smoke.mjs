@@ -1,6 +1,5 @@
 import {JSDOM} from 'jsdom';
 import {normalizeData,encodeData,localDate as todayCalendarDate} from '../data.js';
-import {financeEnrichmentCSV} from '../bank-import.js';
 import {exportSection} from '../account-sections.js';
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
@@ -12,9 +11,9 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=132'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=133'),'palette coverage stylesheet is loaded');
 const liftingStyles=await readFile(new URL('lifting-routines.css',root),'utf8');
-assert.ok(launchHtml.includes('lifting-routines.css?v=132'),'new Lifting routine CSS is included');
+assert.ok(launchHtml.includes('lifting-routines.css?v=133'),'new Lifting routine CSS is included');
 const checkInCss=await readFile(new URL('weight-checkin.css',root),'utf8');
 const beginnerCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
 assert.ok(beginnerCss.includes('.buddy-second-set-offer button')&&beginnerCss.includes('min-height:44px'),'optional beginner action is accessible and palette-aware');
@@ -23,7 +22,7 @@ const themeSource=await readFile(new URL('theme.js',root),'utf8');
 assert.equal(manifest.theme_color,'#15171a','Android native chrome has a neutral static fallback rather than fixed forest green');
 assert.equal(manifest.background_color,'#15171a','installed PWA startup background uses the same neutral fallback');
 assert.ok(themeSource.includes('refresh: apply')&&themeSource.includes('--ap-bg'),'theme-color follows the selected dark palette after OS display-mode changes');
-assert.ok(launchHtml.includes('weight-checkin.css?v=132'),'daily check-in steppers CSS is loaded');
+assert.ok(launchHtml.includes('weight-checkin.css?v=133'),'daily check-in steppers CSS is loaded');
 assert.ok(checkInCss.includes('min-height:44px'),'daily adjustment controls have a 44px tap target');
 
 for(const selector of ['.gym-routine-tab.selected','.gym-selected-routine','.gym-routine-muscle-map'])
@@ -101,17 +100,17 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=132'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=133'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=132'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=133'),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=132'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=133'),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
 const undoCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
-assert.ok(launchHtml.includes('buddy-undo-guard.css?v=132'),'persistent header Undo CSS is loaded');
+assert.ok(launchHtml.includes('buddy-undo-guard.css?v=133'),'persistent header Undo CSS is loaded');
 assert.ok(undoCss.includes('.buddy-undo-header'),'dedicated top Undo style remains');
 const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
 assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
@@ -244,80 +243,42 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelector('header .home-settings svg').innerHTML,firstPaintGear,'hydrated header gear matches first paint');
  await click('settings');
  assert.ok(document.querySelector('.panel [data-action="sign-in"]'),'Settings retains signed-out Google sign-in');
- assert.ok(document.querySelector('.finance-reset-panel [data-action="finance-reset-prompt"]'),'Settings exposes finance-only reset');
+ assert.ok(document.querySelector('.finance-reset-panel h2')?.textContent==='Money archive','archive belongs only in Settings');
+ assert.equal(document.querySelector('[data-action="finance-reset-prompt"]'),null,'no delete control before export');
+ let archiveBlob;const archiveCreate=URL.createObjectURL;const archiveRevoke=URL.revokeObjectURL;
+ URL.createObjectURL=blob=>{archiveBlob=blob;return 'blob:finance-archive-test';};URL.revokeObjectURL=()=>{};
+ await click('section-export');
+ const financeArchive=JSON.parse(await archiveBlob.text());
+ assert.equal(financeArchive.section,'finances');
+ assert.deepEqual(Object.keys(financeArchive.data).sort(),['budgetPlan','classificationRules','transactions'],'complete Finance section exported');
+ assert.ok(document.querySelector('[data-action="finance-reset-prompt"]'),'explicit export unlocks optional delete');
  const financeBeforeReset=localStorage.getItem('everyday-fitness-v1');
  await click('finance-reset-prompt');
  const financeResetConfirm=document.querySelector('[data-action="finance-reset-confirm"]');
- assert.ok(financeResetConfirm?.disabled,'finance reset requires a 3-second countdown');
+ assert.ok(financeResetConfirm?.disabled,'archive delete requires countdown and verification');
+ document.querySelector('[data-finance-archive-verify]').checked=true;
+ document.querySelector('[data-finance-archive-verify]').dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+ assert.ok(financeResetConfirm.disabled,'checkbox alone cannot skip countdown');
  financeResetConfirm.click();await tick();
- assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'disabled Finance reset cannot delete records');
+ assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'export and disabled confirm never delete');
  await click('close');
- assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'canceling Finance reset changes nothing');
+ URL.createObjectURL=archiveCreate;URL.revokeObjectURL=archiveRevoke;
+ assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'canceling keeps archived records');
  await click('home');
  assert.ok(!document.querySelector('main .weight-strip'),'weight belongs in Progress, not Home');
 
   // v81 navigation regression: five bottom tabs and a header Settings gear.
   const tabs=[...document.querySelectorAll('nav.nav [data-action]')].map(el=>el.dataset.action);
-  assert.deepEqual(tabs,['home','food','gym','finances','progress'],'Progress moves to far right; Finances is fourth');
+  assert.deepEqual(tabs,['home','food','gym','progress'],'Money is gone and Progress is the fourth tab');
   assert.equal(document.querySelectorAll('nav.nav [data-action="settings"]').length,0,'no Settings bottom tab');
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
-  await click('finances');
-  assert.ok(document.querySelector('.money-top-control'),'Money opens with paycheck controls');
-  assert.ok(document.querySelector('.finance-section-nav [aria-current="page"]')?.textContent.includes('Overview'),'Money overview restores the shared three-tab selector');
-  assert.equal(document.querySelectorAll('.finance-section-nav button').length,3,'Overview, Transactions and Planning share the same selector');
-  assert.equal(document.querySelectorAll('.money-week-switch button').length,2,'Money offers one and two paycheck views');
-  document.querySelector('.shell > main').scrollTop=345;
-  await click('money-weeks');
-  assert.equal(document.querySelector('.shell > main').scrollTop,345,'changing Money view retains its scroll position');
   await click('settings');
-  assert.equal(document.querySelector('.shell > main').scrollTop,0,'switching pages starts with a new scroll container');
-  await click('finances');
-  assert.ok(document.querySelector('.money-setup'),'no paycheck figures invented without a payday schedule');
-  assert.ok(document.querySelector('[data-action="money-setup-payday"]'),'Money offers a dedicated payday setup');
-  await click('money-setup-payday');
-  const paydaySetup=document.querySelector('form[data-form="budget-schedule"]');
-  assert.ok(paydaySetup,'payday setup reuses the validated budget schedule form');
-  assert.equal(paydaySetup.elements.budgetKind.value,'income','new paycheck defaults to income');
-  assert.equal(paydaySetup.elements.budgetFrequency.value,'weekly','new paycheck defaults to weekly cadence');
-  assert.equal(paydaySetup.elements.budgetName.value,'Paycheck','new paycheck has a helpful name');
-  assert.ok(paydaySetup.textContent.includes('Payday date'),'payday date explicitly anchors pay periods');
-  await click('close');
-  assert.ok(document.querySelector('.money-account')?.textContent.includes('Not entered'),'manual cash balance stays optional below paycheck');
-  assert.ok(document.querySelector('.money-caps'),'monthly category caps are visible on Money');
-  assert.ok(document.querySelector('[data-action="finance-transactions-open"]'),'legacy Transactions workflow stays accessible');
-  assert.ok(!document.querySelector('.finances-page-head h1'),'Money does not reintroduce its old title');
-  await click('finance-transactions-open');
-  assert.ok(document.querySelector('form[data-form="finance"]'),'Transactions keeps quick logging');
-  assert.ok(document.querySelector('.finance-quick-kind [name="kind"]'),'Expense/Income/Transfer is immediately accessible');
-  assert.ok(!document.querySelector('.finance-quick-kind [name="kind"]').closest('.finance-more'),'type is outside advanced details');
-  assert.equal(document.querySelector('.finance-workflows').open,false,'bank import and classification tools are collapsed');
-  assert.ok(document.querySelector('.finance-workflows [data-action="finance-bofa-import"]'),'bank import is preserved');
-  assert.ok(document.querySelector('.finance-workflows [data-action="finance-enrichment-paste"]'),'enrichment is preserved');
-  await click('classification-rules-open');
-  await click('classification-new');
-  await submit('classification-rule',{name:'Test water',matchField:'bankDescription',matchText:'WAWA',
-    ruleAmount:'7.19',category:'Household Supplies',subcategory:'Bottled water',merchant:'Wawa'});
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).classificationRules.length,1,'rules persist in notebook');
-  await click('classification-toggle');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).classificationRules[0].enabled,false);
-  await click('classification-delete');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).classificationRules.length,0);
-  await click('classification-back');
-  assert.ok(document.querySelector('.finance-section-nav'),'Finances route works');
-  assert.ok(document.querySelector('form[data-form="finance"]'),'Finances quick transaction form is ready');
-  await click('finance-insights-open');
-  assert.ok(document.querySelector('.finance-insight-intro'),'insights open with empty ledger');
-  assert.ok(document.querySelector('.finance-insight-intro').textContent.includes('$0.00'),'empty insights display zero');
-  await click('finance-insights-back');
-  assert.ok(document.querySelector('form[data-form="finance"]'),'back returns to Finance quick logging');
-  assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finances selected');
-  await click('settings');
-  assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
+ assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
   const usageMeters=[...document.querySelectorAll('.google-sync-usage [role="progressbar"]')];
   assert.equal(usageMeters.length,4,'settings and three catalogs have their own files even without history');
   assert.deepEqual(usageMeters.map(node=>node.getAttribute('aria-label')),
    ['Account settings cloud payload usage','Food catalog cloud payload usage',
-    'Workout definitions cloud payload usage','Money configuration cloud payload usage']);
+    'Workout definitions cloud payload usage','Retired finance archive cloud payload usage']);
   assert.ok(document.querySelector('.google-sync-usage').textContent.includes('Each file has its own 800,000-byte safety limit'));
   assert.ok(!document.querySelector('.google-sync-usage').textContent.includes('Cloud data limit'),'no outdated combined-size meter');
 
@@ -348,11 +309,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(document.querySelectorAll('.home-meter').length,2,'both progress bars are preserved');
   assert.equal(document.querySelectorAll('.home-quick-button').length,0,'three redundant shortcut cards removed');
   assert.equal(document.querySelectorAll('.home-add-trigger').length,1,'one Add control shares dashboard tabs row');
-  assert.equal(document.querySelectorAll('.home-dashboard-controls .home-dash-tab').length,3,'one dashboard selection row');
-  assert.equal(document.querySelectorAll('nav.nav .nav-icon svg').length,5,'bottom navigation shares SVG family');
-   assert.equal(document.querySelector('nav.nav [data-action="finances"] small').textContent,'Money');
-   assert.ok(document.querySelector('nav.nav [data-action="finances"] svg').innerHTML.includes('M12 2v20'));
-   assert.equal(document.querySelector('.home-add-trigger').textContent.trim(),'＋');
+  assert.equal(document.querySelectorAll('.home-dashboard-controls .home-dash-tab').length,2,'only Eat and Workout remain');
+  assert.equal(document.querySelectorAll('nav.nav .nav-icon svg').length,4,'four body-only bottom tabs have SVG icons');
+      assert.equal(document.querySelector('.home-add-trigger').textContent.trim(),'＋');
    assert.ok(!document.querySelector('header .top-date[data-action]'));
   assert.equal(document.querySelector('header .home-settings svg')?.tagName.toLowerCase(),'svg','Settings uses a matched vector icon');
   assert.ok(document.querySelector('header .home-settings circle[cx="12"][cy="12"]'),'gear center remains concentric after navigation');
@@ -360,9 +319,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add launches Food entry directly');
  await click('close');
  assert.ok(!document.querySelector('main .loading-offline-option'),'normal loading never inserts a flex sibling that crushes Home');
-  assert.deepEqual([...document.querySelectorAll('.home-dashboard-tabs button')].map(e=>e.textContent),['Eat','Workout','Spend'],'Home uses action verbs');
-  document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
-  assert.ok(document.querySelector('.home-dash-finance'),'finance dashboard uses manual cash records without repetitive headings');
+  assert.deepEqual([...document.querySelectorAll('.home-dashboard-tabs button')].map(e=>e.textContent),['Eat','Workout'],'Home only includes Food and Workout dashboards');
+  assert.equal(document.querySelector('[data-view="finances"],[data-action="finances"]'),null,'Money is not exposed on Home or bottom navigation');
   assert.ok(!document.querySelector('.home-dashboard-heading,.home-dashboard-eyebrow'),'Home dashboard has only its tabs, not extra headings');
   const liftingTab=document.querySelector('[data-action="home-dashboard-select"][data-view="lifting"]');
   liftingTab.click();await tick();
@@ -422,268 +380,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('form[data-form="food"]'),'Nutrition Add skips chooser');
  assert.equal(document.querySelector('form[data-form="food"]').elements.date.value,todayCalendarDate(),'Home food shortcut uses today');
  await click('close');
- document.querySelector('[data-action="home-dashboard-select"][data-view="finances"]').click();await tick();
- await click('home-add-menu');
- assert.ok(document.querySelector('.home-finance-modal'),'Add > Spending opens shared Finance modal');
-  assert.ok(document.querySelector('form[data-form="finance"]'),'Spending reuses finance validation and fields');
-  assert.equal(document.querySelector('nav.nav [data-action="home"]').getAttribute('aria-current'),'page','modal does not navigate away from Home');
-  await click('close');
-  assert.ok(document.querySelector('.home-command-center'),'cancel restores the same Home');
-  assert.equal(document.querySelector('nav.nav [data-action="home"]').getAttribute('aria-current'),'page');
-  await click('home-add-menu');
-  await submit('finance',{amount:'3.50',description:'Quick modal test',date:todayCalendarDate(),category:'Convenience Food'});
-  assert.ok(document.querySelector('.home-command-center'),'saving spending returns to Home');
-  assert.ok(!document.querySelector('.home-finance-modal'),'saved spending overlay closes');
-  assert.ok(document.querySelector('.home-save-toast'),'a short confirmation is shown');
-  assert.ok(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.some(x=>x.description==='Quick modal test'),'modal reuses original transaction storage');
-  await click('finances');await click('finance-transactions-open');
-  await click('finance-edit');await click('finance-delete');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'quick modal test cleans up its record');
-  await click('home');
-
-  // v83: Quick Log uses exact cents; calendar date changes cannot navigate to Food.
-  await click('finances');await click('finance-transactions-open');
-  assert.ok(document.querySelector('[data-action="finance-paste-csv"]'),'prepared CSV entry point exists');
-  const financeForm=document.querySelector('form[data-form="finance"]');
-  assert.ok(financeForm.querySelector('[name="amount"]'));
-  financeForm.elements.kind.value='income';
-  assert.equal(financeForm.elements.kind.value,'income','income is selectable in quick entry');
-  financeForm.elements.kind.value='expense';
-  financeForm.elements.date.value='2026-10-26';
-  financeForm.elements.date.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  await tick();
-  assert.ok(document.querySelector('.finance-section-nav'),'changing finance date must not navigate away');
-  await submit('finance',{amount:'7.19',description:'Wawa water',date:'2026-10-26',category:'Household Supplies',merchant:'Wawa'});
-  let financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  assert.equal(financial.length,1);
-  assert.equal(financial[0].amountCents,719);
-  assert.equal(financial[0].kind,'expense');
-  assert.equal(financial[0].date,'2026-10-26');
-  assert.equal(financial[0].merchant,'Wawa');
-  assert.ok(document.querySelector('.finance-row'),'saved transaction appears immediately');
-  const beforeInsights=localStorage.getItem('everyday-fitness-v1');
-  await click('finance-insights-open');
-  assert.ok(document.querySelector('.finance-insight-metric').textContent.includes('$7.19'),'income and transfer totals do not inflate expenses');
-  assert.ok(document.querySelector('.finance-insight-breakdown').textContent.includes('Household Supplies'),'saved categories appear in breakdown');
-  const insightsSelect=document.querySelector('[data-finance-insight-period]');
-  insightsSelect.value='month:2026-10';insightsSelect.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
-  assert.ok(document.querySelector('.finance-insight-metric').textContent.includes('$7.19'),'specific month filtering works');
-  assert.equal(localStorage.getItem('everyday-fitness-v1'),beforeInsights,'read-only insights cannot modify notebook');
-  await click('finance-insights-back');
-  await click('finance-edit');
-  assert.ok(document.querySelector('form[data-form="finance-edit"]'));
-  await submit('finance-edit',{amount:'8.25',description:'Corrected Wawa water',category:'Household Supplies'});
-  financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  assert.equal(financial.length,1,'editing does not create a duplicate');
-  assert.equal(financial[0].amountCents,825);
-  assert.equal(financial[0].description,'Corrected Wawa water');
-  await click('finance-edit');await click('finance-delete');
-  financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  assert.equal(financial.length,0,'confirmed deletion removes the transaction');
-
-  await click('finance-csv-example');
-  assert.ok(document.querySelector('.finance-sample').value.includes('recordType,date,kind,amount,description,category'),'receipt CSV example leads with purchase columns');
-  assert.ok(document.querySelector('.finance-sample').value.includes('receiptItem'),'mixed-merchant receipt format is documented');
-  assert.ok([...document.querySelectorAll('.finance-sample')].some(el=>el.value.includes('recordType,date,time,kind,amount')),'legacy transaction CSV example remains available');
-  await click('finance-paste-csv');
-  assert.ok(document.querySelector('form[data-form="import"]'),'prepared CSV uses the reviewed import form');
-  const transactionCsv=[
-   'recordType,date,kind,amount,description,category,merchant',
-   'transaction,2026-10-26,expense,7.19,Water cases,Household Supplies,Wawa',
-   'transaction,2026-10-26,income,100.00,Reimbursement,Income,'
-  ].join('\n');
-  await submit('import',{text:transactionCsv});
-  assert.ok(document.querySelector('.import-dialog'),'batch has a review before save');
-  assert.ok(document.querySelector('.import-group-transactions'),'financial transaction changes are visible');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'CSV preview is nondestructive');
-  await click('commit-import');
-  financial=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  assert.equal(financial.length,2,'confirmed CSV imports two transactions atomically');
-  await click('finance-paste-csv');await submit('import',{text:transactionCsv});
-  assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'),'reimport warns of no new entries');
-  await click('close');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'repeat import cannot duplicate purchases');
-  await click('finance-edit');await click('finance-delete');
-  await click('finance-edit');await click('finance-delete');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0);
-
-  // v84: direct BofA statement plus human-friendly descriptions and ID-anchored corrections.
-  await click('finance-bofa-import');
-  const bankForm=document.querySelector('form[data-form="finance-bank-import"]');
-  assert.ok(bankForm);
-  bankForm.elements.accountLabel.value='BofA Checking';
-  assert.equal(bankForm.elements.statementLabel.value,'','statement label begins empty and is inferred from file');
-  const bankCsv=[
-   'Description,,Summary Amt.',
-   'Beginning balance as of 10/01/2026,,500.00',
-   'Total credits,,100.00',
-   '',
-   'Date,Description,Amount,Running Bal.',
-   '10/23/2026,Beginning balance as of 10/23/2026,,500.00',
-   '10/24/2026,365 MARKET 10994,-8.55,491.45',
-   '10/25/2026,WAWA STORE 44,-7.19,484.26'
-  ].join('\n');
-  const firstBankFile=bankForm.querySelector('[name="file"]');
-  Object.defineProperty(firstBankFile,'files',{
-   value:[{name:'bofa-october.csv',size:bankCsv.length,text:async()=>bankCsv}]
-  });
-  firstBankFile.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
-  assert.equal(bankForm.elements.statementLabel.value,'Oct 1–25, 2026','CSV selection automatically labels the statement');
-  assert.ok(bankForm.querySelector('[data-bank-label-status]').textContent.includes('Suggested from'),'inferred label explained in UI');
-  bankForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
-  assert.ok(document.querySelector('.finance-bank-review'),'Bank import opens reviewed preview');
-  assert.equal(document.querySelectorAll('.bank-review-group').length,3,'bank review is split into matched, needs review, and new');
-  assert.equal(document.querySelectorAll('.bank-review-row').length,2,'both new bank records are shown before confirmation');
-  assert.ok(document.querySelector('.bank-review-group').parentElement.textContent.includes('365 MARKET 10994'));
-  assert.ok(document.querySelector('.bank-review-controls'),'bank candidate sorting and searching remain available');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0,'preview cannot save bank entries');
-  await click('commit-import');
-  let ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  assert.equal(ledger.length,2);
-  assert.ok(ledger.every(tx=>tx.accountLabel==='BofA Checking'&&tx.statementLabel==='Oct 1–25, 2026'));
-  assert.ok(!document.querySelector('.finance-raw-description'),'do not duplicate an unchanged bank description beneath the identical personal title');
-  assert.ok(document.querySelector('.finance-row-date'),'posted date appears above the transaction title');
-  assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('BofA Checking'),'account label omitted from compact history rows');
-  assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('Oct 1–25, 2026'),'statement range omitted from compact history rows');
-  assert.ok(!document.querySelector('.finance-recent-list').textContent.includes('Uncategorized'),'empty classifications omitted from history');
-  // v90: full finance history uses all saved records without changing the ledger.
-  await click('finance-history-open');
-  assert.ok(document.querySelector('.finance-history'),'transaction-history page opens');
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
-  assert.equal(document.querySelector('[data-finance-history-summary]').textContent,'2 of 2 transactions');
-  assert.equal(document.querySelector('nav.nav [data-action="finances"]').getAttribute('aria-current'),'page','Finance nav remains selected in its subview');
-  assert.equal(document.querySelector('.finance-history-more').open,false,'advanced filters start collapsed');
-  assert.equal(document.querySelectorAll('.finance-filter-chip').length,5,'history offers quick filter chips');
-  document.querySelector('[data-preset="income"]').click();await tick();
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'income chip filters without advanced settings');
-  assert.equal(document.querySelector('[data-preset="income"]').getAttribute('aria-pressed'),'true','active chip state is accessible');
-  document.querySelector('[data-preset="review"]').click();await tick();
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'review chip lists flagged purchases');
-  assert.equal(document.querySelector('[data-finance-history-filter="review"]').value,'needs-review');
-  document.querySelector('[data-preset="all"]').click();await tick();
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'all chip clears quick review filter');
-  const priorMonth=document.querySelector('[data-finance-history-filter="month"]');
-  priorMonth.value='2026-10';priorMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(priorMonth.value,'2026-10','advanced month is selected');
-  document.querySelector('[data-preset="all"]').click();await tick();
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'quick All clears hidden advanced month');
-  assert.equal(priorMonth.value,'all','advanced dropdown syncs with quick chip');
-  const historySearch=document.querySelector('[data-finance-history-search]');
-  historySearch.value='365 MARKET';historySearch.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
-  await tick();assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,1,'search includes original bank description');
-  assert.equal(document.querySelector('[data-finance-history-summary]').textContent,'1 of 2 transactions');
-  historySearch.value='';historySearch.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
-  const historyType=document.querySelector('[data-finance-history-filter="kind"]');
-  historyType.value='income';historyType.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'type filter excludes other kinds');
-  assert.ok(document.querySelector('.finance-history-list .empty'));
-  historyType.value='all';historyType.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  const historyMonth=document.querySelector('[data-finance-history-filter="month"]');
-  assert.ok([...historyMonth.options].some(option=>option.value==='2026-10'),'saved transaction month appears in filter');
-  historyMonth.value='2026-10';historyMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'month filter keeps matching records');
-  historyMonth.value='all';historyMonth.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  const historyCategory=document.querySelector('[data-finance-history-filter="category"]');
-  historyCategory.value='Uncategorized';historyCategory.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2,'uncategorized filter works without displaying the label in rows');
-  historyCategory.value='all';historyCategory.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  const historySort=document.querySelector('[data-finance-history-filter="sort"]');
-  historySort.value='oldest';historySort.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.ok(document.querySelector('.finance-history-list .finance-row .finance-row-date').textContent.includes('Oct 24'),'sort oldest first');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'history filtering never mutates the ledger');
-  await click('finance-history-back');assert.ok(document.querySelector('.finance-section-nav'),'back restores finance overview');
-  // v91: review access and filters never mutate the ledger.
-  assert.ok(document.querySelector('[data-action="finance-review-open"]'),'review button appears for unclassified records');
-  await click('finance-review-open');
-  assert.equal(document.querySelector('[data-finance-history-filter="review"]').value,'needs-review');
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
-  assert.ok(document.querySelector('.finance-review-flag').textContent.includes('Category needed'));
-  const reviewFilter=document.querySelector('[data-finance-history-filter="review"]');
-  reviewFilter.value='transfer-check';reviewFilter.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,0,'no transfer hint for ordinary purchases');
-  reviewFilter.value='uncategorized';reviewFilter.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
-  assert.equal(document.querySelectorAll('.finance-history-list .finance-row').length,2);
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,2,'review queue is read-only');
-  await click('finance-history-back');
-
-  const sourceTx=ledger.find(tx=>tx.bankDescription==='365 MARKET 10994');
-  assert.ok(sourceTx);
-  const marketRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('365 MARKET 10994'));
-  assert.ok(marketRow,'365 Market row is available to edit');
-  marketRow.querySelector('[data-action="finance-edit"]').click();await tick();
-  const editBank=document.querySelector('form[data-form="finance-edit"]');
-  assert.ok(editBank.querySelector('.finance-bank-facts'),'bank values appear read-only');
-  assert.equal(editBank.querySelector('[name="date"]').type,'hidden');
-  assert.equal(editBank.querySelector('[name="amount"]').type,'hidden');
-  assert.equal(editBank.querySelector('[name="kind"]').tagName,'SELECT','classification remains editable');
-  await submit('finance-edit',{
-   description:'Energy drink and protein snack',kind:'transfer',category:'Convenience Food',subcategory:'Work snacks',
-   purchaseDate:'2026-10-23',time:'15:20',itemization:'Monster 3.00; protein chips 5.55'
-  });
-  ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  const personal=ledger.find(tx=>tx.id===sourceTx.id);
-  assert.equal(personal.description,'Energy drink and protein snack');
-  assert.equal(personal.bankDescription,'365 MARKET 10994');
-  assert.equal(personal.kind,'transfer','classification can change without altering bank debit');
-  assert.equal(personal.bankDirection,'debit','original bank sign survives classification change');
-  assert.equal(personal.amountCents,855);
-  assert.equal(personal.date,'2026-10-24');
-  assert.equal(personal.category,'Convenience Food');
-  assert.equal(personal.itemization,'Monster 3.00; protein chips 5.55');
-  const personalizedRow=[...document.querySelectorAll('.finance-row')].find(row=>row.textContent.includes('Energy drink and protein snack'));
-  assert.ok(personalizedRow.querySelector('.finance-raw-description'),'original bank name remains when personal name differs');
-  assert.ok(personalizedRow.querySelector('.finance-row-details').textContent.includes('365 MARKET 10994 · Convenience Food / Work snacks'));
-  assert.ok(personalizedRow.querySelector('.finance-row-date').textContent.includes('Oct 23, 2026'),'purchase date leads the transaction');
-  assert.ok(personalizedRow.querySelector('.finance-row-details').textContent.includes('Posted Oct 24, 2026'),'original bank posting date remains visible');
-  assert.ok(!personalizedRow.textContent.includes('Bank:'),'no verbose Bank prefix');
-
-  // Resubmitting the statement under a different batch name must not undo edits.
-  await click('finance-bofa-import');
-  const againBank=document.querySelector('form[data-form="finance-bank-import"]');
-  againBank.elements.accountLabel.value='BofA Checking';
-  againBank.elements.statementLabel.value='Overlapping October export';
-  const secondBankFile=againBank.querySelector('[name="file"]');
-  Object.defineProperty(secondBankFile,'files',{
-   value:[{name:'bofa-second.csv',size:bankCsv.length,text:async()=>bankCsv}]
-  });
-  secondBankFile.dispatchEvent(new dom.window.Event('change',{bubbles:true}));await tick();
-  assert.equal(againBank.elements.statementLabel.value,'Overlapping October export','manual batch label is never overwritten by inference');
-  againBank.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
-  assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'));
-  await click('close');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.find(tx=>tx.id===sourceTx.id).description,'Energy drink and protein snack');
-  // Submit still infers the batch label if a picker does not emit change before submit.
-  await click('finance-bofa-import');
-  const fallbackBank=document.querySelector('form[data-form="finance-bank-import"]');
-  fallbackBank.elements.accountLabel.value='BofA Checking';
-  assert.equal(fallbackBank.elements.statementLabel.value,'');
-  Object.defineProperty(fallbackBank.querySelector('[name="file"]'),'files',{
-   value:[{name:'bofa-third.csv',size:bankCsv.length,text:async()=>bankCsv}]
-  });
-  fallbackBank.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
-  assert.ok(document.querySelector('.import-dialog').textContent.includes('No data changes detected'),'blank batch label falls back to inferred range during submit');
-  await click('close');
-
-
-  assert.ok(document.querySelector('[data-action="finance-export-enrichment"]'),'export for ChatGPT available');
-  await click('finance-enrichment-paste');
-  assert.ok(document.querySelector('form[data-form="import"]'),'CSV enrichment form exists');
-  const toClarify=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  const clarification=financeEnrichmentCSV(toClarify).replace('Energy drink and protein snack','Monster and snack bundle');
-  await submit('import',{text:clarification});
-  assert.ok(document.querySelector('.import-dialog'),'clarification import is reviewed');
-  assert.equal(document.querySelectorAll('.finance-batch-row').length,1,'one existing transaction is selected for clarification');
-  assert.ok(document.querySelector('.finance-review-diff').textContent.includes('description'),'review shows exact previous and proposed fields');
-  await click('commit-import');
-  ledger=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions;
-  assert.equal(ledger.find(tx=>tx.id===sourceTx.id).description,'Monster and snack bundle');
-  assert.equal(ledger.find(tx=>tx.id===sourceTx.id).bankDescription,'365 MARKET 10994');
-  assert.equal(ledger.length,2,'enrichment updates existing IDs rather than creating duplicates');
-  await click('finance-edit');await click('finance-delete');
-  await click('finance-edit');await click('finance-delete');
-  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).transactions.length,0);
-  await click('home');
-
+ assert.equal(document.querySelector('.home-finance-modal'),null,'Home has no spending entry');
+ await click('home');
 
  // v63: anonymous demo cannot replace normal device data and can be reset on demand.
  const deviceBeforeDemo=localStorage.getItem('everyday-fitness-v1');
@@ -808,82 +506,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.full-food-log [data-action="food-relog"]'),'full Food log offers the same re-log action');
  await click('close');
 
- // v98–v99: Planning is action-first and never mutates the bank ledger.
- await click('finances');await click('budget-open');
- assert.ok(document.querySelector('.budget-overview'),'planner is reachable');
- assert.ok(document.querySelector('.budget-overview').textContent.includes('Not set'),'no bank balance is invented');
- assert.ok(document.querySelector('.budget-attention'),'unmarked due dates are prioritized');
- assert.equal(document.querySelector('.budget-manage-rules').open,false,'recurrence definitions are collapsed');
- assert.equal(document.querySelector('.budget-forecast-drawer').open,false,'optional forecast is collapsed');
- assert.ok(document.querySelector('.budget-category-caps'),'monthly spending caps remain available');
- await click('budget-balance');
- await submit('budget-balance',{balance:'148.14',balanceAsOf:todayCalendarDate()});
- let savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(savedBudget.balanceCents,14814,'manual available cash persists');
- await click('budget-schedule-new');
- const nextDay=new Date(Date.parse(todayCalendarDate()+'T00:00:00Z')+86400000).toISOString().slice(0,10);
- await submit('budget-schedule',{budgetName:'Car payment',budgetKind:'expense',budgetAmount:'366.00',
-  budgetStartDate:nextDay,budgetFrequency:'monthly'});
- assert.ok(document.querySelector('.budget-occurrences'),'unmarked planned dates appear');
- assert.ok(document.querySelector('.budget-action-event').textContent.includes('Car payment'));
- assert.ok(document.querySelector('.budget-event-primary').textContent.includes('Paid'),'expense action says Paid');
- assert.ok(document.querySelector('.budget-cash-glance').textContent.includes('$366.00'),'near-term planned bills summarized');
- assert.ok(document.querySelector('.budget-manage-rules').textContent.includes('Car payment'),'recurring schedule shown separately');
- await click('finances');
- assert.ok(document.querySelector('.money-account').textContent.includes('$148.14'),'manual cash remains visible independently of the paycheck');
- assert.ok(document.querySelector('.money-setup'),'no paycheck summary is invented before an income rule exists');
- assert.ok(document.querySelector('.money-caps'),'category caps remain available on Money');
- await click('budget-open');
- await click('budget-mark-paid');
- savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(Object.values(savedBudget.schedules[0].occurrences)[0],'paid','payment marker persists');
- assert.ok(document.querySelector('.budget-done-event').textContent.includes('Paid'),'completed expense labeled Paid');
- await click('budget-mark-pending');
- savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.deepEqual(savedBudget.schedules[0].occurrences,{},'Undo restores the unmarked occurrence, not the rule');
- await click('budget-mark-paid');
- await click('budget-schedule-new');
- await submit('budget-schedule',{budgetName:'Payday',budgetKind:'income',budgetAmount:'1200.00',
-  budgetStartDate:nextDay,budgetFrequency:'once'});
- savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- const payday=savedBudget.schedules.find(r=>r.name==='Payday');
- assert.ok(payday&&payday.kind==='income','income plan stored separately');
- assert.ok(document.querySelector('.budget-action-event').textContent.includes('Payday'));
- assert.ok(document.querySelector('.budget-event-primary').textContent.includes('Received'),'incoming money action says Received');
- const options=document.querySelector('[data-action="budget-event-options"][data-id="'+payday.id+'"]');
- options.click();await tick();
- assert.ok(document.querySelector('.modal').textContent.includes('Skip this date'),'contextual action menu opens');
- await click('budget-mark-skipped');
- savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(savedBudget.schedules.find(r=>r.id===payday.id).occurrences[nextDay],'skipped','Skip marks one date');
- assert.equal(document.querySelector('.modal'),null,'context menu closes after commit');
- document.querySelector('[data-action="budget-mark-pending"][data-id="'+payday.id+'"]').click();await tick();
- const receive=document.querySelector('[data-action="budget-mark-paid"][data-id="'+payday.id+'"]');
- assert.ok(receive?.textContent.includes('Received'));
- receive.click();await tick();
- savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(savedBudget.schedules.find(r=>r.id===payday.id).occurrences[nextDay],'paid','Received uses legacy paid marker');
- assert.ok([...document.querySelectorAll('.budget-done-event')].some(e=>e.textContent.includes('Received')),'income completion shown as Received');
- assert.ok(document.querySelector('.budget-forecast-drawer').textContent.includes('Not safe-to-spend'),'forecast is not an available-cash claim');
- await click('budget-limit-new');
- await submit('budget-limit',{category:'Convenience Food',budgetAmount:'100.00'});
- savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(savedBudget.categoryLimits[0].amountCents,10000);
- assert.ok(document.querySelector('.budget-inline-tools'),'limit management is contextual');
- const car=savedBudget.schedules.find(r=>r.name==='Car payment');
- await click('budget-schedule-edit');
- const endsOn=new Date(Date.parse(nextDay+'T00:00:00Z')+35*86400000).toISOString().slice(0,10);
- await submit('budget-schedule',{budgetId:car.id,budgetName:'Car payment',budgetKind:'expense',
-  budgetAmount:'366.00',budgetStartDate:nextDay,budgetFrequency:'monthly',budgetEndDate:endsOn});
- savedBudget=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).budgetPlan;
- assert.equal(savedBudget.schedules.find(r=>r.id===car.id).endDate,endsOn,'recurrence ending date persists');
- assert.equal(savedBudget.schedules.find(r=>r.id===car.id).occurrences[nextDay],'paid','editing schedule preserves marked dates');
- const originalTx=JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions);
- await submit('budget-scenario',{scenarioAmount:'15.00'});
- assert.ok(document.querySelector('.modal'),'what-if scenario remains available');
- await click('close');
- assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).transactions),originalTx,'plans and markers never edit transactions');
- await click('finances');await click('home');
+ // Money planning is no longer a visible feature.
+ await click('home');
 
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
  await click('gym');
@@ -1347,7 +971,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok((await readFile(new URL('app.js',root),'utf8')).includes('},5000);'),'Undo remains visible for five seconds');
  await click('settings');await click('sign-in');await click('home');
  assert.equal(document.querySelectorAll('.account-banner').length,0,'signed-in Home has no account banner');
- for(const action of ['food','gym','finances','progress','settings']){
+ for(const action of ['food','gym','progress','settings']){
    await click(action);
    assert.equal(document.querySelectorAll('.account-banner').length,0,'signed-in '+action+' uses the gear instead of an Account bubble');
    assert.ok(document.querySelector('header [data-action="settings"]'),'Settings remains reachable from '+action);
@@ -1375,12 +999,10 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('#overlay .save-warning'),'full recovery actions remain accessible in a modal');
  await click('close');
  await click('food');
- // v89: a pending cloud save must not silently disable unrelated forms after
- // returning from another app. A new finance entry is journaled on-device.
- await click('finances');await click('finance-transactions-open');
- await submit('finance',{amount:'4.25',description:'Logged while cloud unavailable',date:'2026-10-27',category:'Convenience Food'});
+ // Failed cloud saves still preserve Food entries in account-scoped recovery.
  const pendingNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-cloud-recovery-v1:bob')).data);
- assert.ok(pendingNotebook.transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'new finance log is retained in recovery while cloud pending');
+ assert.ok(pendingNotebook.foodEntries.some(e=>e.name==='Cloud meal'),'Food is retained in device recovery');
+
  // A slow cloud confirmation must not destroy a new screen or its active modal.
  state.fail=false;state.holdSave=true;await click('cloud-retry');
  await click('progress');await click('weight');
@@ -1391,10 +1013,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelector('.modal'),weightDialogDuringSync,'cloud acknowledgement does not replace a newer editor');
  await click('close');
  assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).foodEntries[0].name,'Cloud meal');
- assert.ok(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.some(tx=>tx.description==='Logged while cloud unavailable'),'local finance log syncs after retry');
- await click('finances');await click('finance-transactions-open');await click('finance-edit');await click('finance-delete');
- assert.equal(normalizeData(JSON.parse(state.records.get('bob').payload)).transactions.length,0,'test transaction cleanup leaves existing cloud fixture intact');
- assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
+  assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');
  // Home customization must actually upload, and an isolated new PWA without

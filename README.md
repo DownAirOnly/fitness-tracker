@@ -1,5 +1,12 @@
 # Everyday fitness tracker
 
+## v133 — Money retirement
+
+- Everyday now has four bottom tabs: Home, Food, Lifting, Progress. Home only switches between Eat and Workout; Money and Spend no longer appear as daily features.
+- Previously saved finance records are **not wiped** by installing v133. Settings → Money archive allows a complete Finance JSON export; **only after initiating export** does an optional delete path appear. The user must verify the independent download and replacement records, wait for the 3-second countdown, and confirm deletion.
+- Financial storage compatibility is intentionally retained for old archives/backups and cloud recovery. Archived finance data can remain in historical backups and migration snapshots. No silent migration, cloud wipe, or fitness-record modification.
+
+
 ## v132 — Beginner Workout Buddy and exercise notes
 
 - One-set routines still finish after one set by default; after that set you may **Start set 2** for today without changing the routine or being prompted for a third. Routine editor exposes the persistent planned-set target.
