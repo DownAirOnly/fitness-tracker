@@ -1,10 +1,10 @@
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=132';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=132';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=132';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=133';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=133';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=133';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=132';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=132';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=133';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=133';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
@@ -15,7 +15,7 @@ import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './accoun
 import {availableMonths,exportMonth} from './account-monthly.js?v=112';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=112';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=112';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=132';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=133';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=112';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=112';
@@ -61,7 +61,7 @@ function downloadMonthBackup(month){
 function monthExportPanel(){
  const months=availableMonths(data).reverse();
  return '<section class="panel spaced monthly-export-panel"><h2>Monthly backups</h2>'+
-  '<p class="body-copy">Export one calendar month of food logs, workouts, weigh-ins, body fat and purchases. Your full JSON backup still combines every month and your account settings.</p>'+
+  '<p class="body-copy">Export one calendar month of food logs, workouts, weigh-ins and body fat. Backups may still contain retired financial records until you explicitly erase them in Settings.</p>'+
   (months.length?'<label class="field"><span>Month</span><select data-month-export>'+
    months.map(month=>'<option value="'+esc(month)+'">'+esc(month)+'</option>').join('')+
    '</select></label>'+button('Export selected month','export-month','outline'):
@@ -113,7 +113,7 @@ let cloudConfirmed=null,cloudRecovery=null,cloudRecoveryConflict=null,cloudAutoR
 let storageProtection={supported:false,persisted:null,usage:null,quota:null,error:''};
 let healthState={enabled:false,status:''}, healthCheckedAt=0;
 let modalBack=null, importReadToken=0, importSaving=false, foodUndoTimer=null, foodUndoExitTimer=null, offlineExitTimer=null;
-let financeResetReadyAt=0, financeResetSaving=false, financeResetNotice='';
+let financeResetReadyAt=0, financeResetSaving=false, financeResetNotice='', financeExportArmed=false;
 let data=offlineWorkspace?structuredClone(offlineWorkspace.data):demoMode?structuredClone(existingDemo):startupAccountCache?structuredClone(startupAccountCache.record.data):deviceData, page='home', chosenDate=demoMode?DEMO_LAST_DATE:trackingDate(new Date(),(offlineWorkspace?.data||deviceData).settings?.dayResetMinutes??360), workout='Upper', pendingImport=null, pendingDeviceMigration=null;
 let foodSort='recent',foodLibrarySort='name',exerciseLibrarySort='name',foodSuggestionState=null,foodBatch=[],foodEntryReturnPage='food',foodPlanItems=[],foodPlanSearch='',foodProgressPeriod='week',foodProgressOffset=0,financeNotice='';
 let classificationReviewVisible=50,financeInsightPeriod='all',budgetMonth=localDate().slice(0,7),budgetFeedback='',moneyWeeks=1,bankCandidateSort='amount',bankCandidateSearch='';
@@ -290,9 +290,9 @@ function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boo
 function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
-  const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['finances','finance','Money'],['progress','progress','Progress']];
+  const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['progress','progress','Progress']];
   const activeTab=page==='history'?'progress':page;
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="brand-monogram" aria-hidden="true">e<span>.</span></span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${(activeTab===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${(activeTab===p||(p==='finances'&&['financeTransactions','financeHistory','classificationReview','classificationRules','financeInsights','financeBudget'].includes(page)))?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="brand-monogram" aria-hidden="true">e<span>.</span></span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${activeTab===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${activeTab===p?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
   applyCurrentAppearance();
@@ -318,7 +318,9 @@ function render() {
     }
     return;
   }
-  const views={home,food,gym,progress,finances,financeTransactions,financeHistory,classificationReview,classificationRules,financeInsights,financeBudget,history,settings};
+  // Legacy Money pages are unregistered. Only safe archive export/delete
+  // remains available in Settings, with financial data retained until opted in.
+  const views={home,food,gym,progress,history,settings};
   shell(views[page]?.()||home());restoreScroll();
   if(latestRelease)setTimeout(tryRefreshRelease,400);
 }
@@ -470,7 +472,7 @@ function workoutCalendar(){
 }
 const HOME_DASHBOARD_KEY='everyday-home-dashboard-v1'; // legacy migration only
 const HOME_FOOD_IDS_KEY='everyday-home-food-ids-v1'; // legacy migration only
-const HOME_DASHBOARD_VIEWS=['nutrition','lifting','finances'];
+const HOME_DASHBOARD_VIEWS=['nutrition','lifting'];
 function readHomeDashboard(){
  const saved=data.preferences?.homeDashboard;
  return HOME_DASHBOARD_VIEWS.includes(saved)?saved:'nutrition';
@@ -525,7 +527,7 @@ function selectHomeDashboard(next){
   item.classList.toggle('selected',selected);
  }
  const title=shell.querySelector('[data-home-dashboard-title]');
- if(title)title.textContent=({finances:'Spend',lifting:'Workout',nutrition:'Eat'})[next];
+ if(title)title.textContent=({lifting:'Workout',nutrition:'Eat'})[next];
  // Switching the card does not rerender Home's surrounding controls; update
  // the action too so active sessions always display Resume, not a stale '+'.
  const add=shell.querySelector('.home-add-trigger');
@@ -566,24 +568,6 @@ function homeIcon(name){
 }
 
 function homeDashboardCard(view){
- if(view==='finances'){
-  const snapshot=financeOverviewSnapshot(data.budgetPlan,localDate());
-  const balanceSet=snapshot.balanceCents!==null;
-  const needUpdate=!balanceSet||!snapshot.balanceCurrent;
-  const cash=balanceSet?budgetMoney(snapshot.balanceCents):'Not set';
-  const bill=snapshot.billsSoon.length?budgetMoney(snapshot.billsSoonCents):'No bills scheduled';
-  const message=!balanceSet?'Manually entered balance':!snapshot.balanceCurrent?
-   'Balance from '+esc(snapshot.balanceAsOf)+' · update needed':
-   'Updated '+esc(snapshot.balanceAsOf)+' · manually entered';
-  const outcome=snapshot.spendingEstimateCents===null?'':budgetMoney(snapshot.spendingEstimateCents);
-  return '<article class="home-dashboard-content home-dash-finance">'+
-    '<div class="home-dash-value">'+cash+'</div><p class="home-dash-caption">'+message+'</p>'+
-    '<div class="home-dashboard-stat"><span>Bills · next 14 days</span><strong>'+bill+'</strong></div>'+
-    (outcome?'<div class="home-dashboard-stat"><span>After planned bills</span><strong>'+outcome+'</strong></div>':'')+
-    '<div class="home-dashboard-footer">'+
-    (needUpdate?button(balanceSet?'Update balance':'Set balance','budget-balance','home-dash-link primary-link'):
-    button('Finances','finances','home-dash-link primary-link'))+'</div></article>';
- }
  if(view==='lifting')return workoutCalendar();
  // Keep six cards per page in exactly the order selected.
   const allPicks=homeFoodPicks(),pageCount=Math.max(1,Math.ceil(allPicks.length/6));
@@ -611,7 +595,7 @@ function home(loading=false) {
    (!account&&!demoMode&&!offlineWorkspace&&authChecked?'<div class="home-demo-entry">'+button('Try demo logs','demo-start','home-dash-link')+'</div>':'')+
   '<section class="home-dashboard" aria-label="Personal dashboard">'+
    '<div class="home-dashboard-controls"><nav class="home-dashboard-tabs" aria-label="Dashboard card">'+
-    HOME_DASHBOARD_VIEWS.map(view=>button(view==='finances'?'Spend':view==='lifting'?'Workout':'Eat','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
+    HOME_DASHBOARD_VIEWS.map(view=>button(view==='lifting'?'Workout':'Eat','home-dashboard-select','home-dash-tab'+(homeDashboardView===view?' selected':''),'data-view="'+view+'" aria-pressed="'+(homeDashboardView===view?'true':'false')+'"')).join('')+
    '</nav>'+button(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?'Resume':'<span class="home-add-plus" aria-hidden="true">＋</span>','home-add-menu','home-add-trigger'+(!loading&&homeDashboardView==='lifting'&&data.activeWorkout?' home-add-resume':''),(loading||isLoading())?'disabled':homeDashboardView==='lifting'&&data.activeWorkout?'aria-label="Resume workout"':'aria-label="Add to selected dashboard"')+'</div>'+
    '<div class="home-dashboard-stage" aria-live="polite">'+(loading?'<div class="home-dashboard-loading">Loading your dashboard…</div>':homeDashboardCard(homeDashboardView))+'</div>'+
   '</section></div>';
@@ -2367,7 +2351,7 @@ function googleSyncUsagePanel(){
   account?(cloudPending||cloudBusy?'Connected; changes may still be pending':'Connected; account storage estimates'):
    'Device-only: estimated payload sizes if synced';
  const names={settings:'Account settings',catalog:'Food catalog',routines:'Workout definitions',
-  financeConfig:'Money configuration'};
+  financeConfig:'Retired finance archive'};
  const keys=Object.keys(sections),staticKeys=['settings','catalog','routines','financeConfig'],
   monthly=keys.filter(name=>name.startsWith('month-')).sort().reverse(),
   displayed=[...staticKeys,...monthly.slice(0,12)];
@@ -2520,7 +2504,7 @@ async function financeResetConfirm(){
 
 function settings() {
   const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
-  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${monthExportPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}${financeResetPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Export Finances JSON','section-export','outline','data-section="finances"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts store preferences, saved definitions and financial rules separately from dated monthly history. Each Firebase file has an 800 KB limit. Older Firestore section documents remain as migration rollback references. Keep a complete JSON backup for independent recovery.</p></section>`;
+  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${monthExportPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}${financeResetPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts keep independent files. Retired finance records stay in your account archive until explicitly erased. Each Firebase file has an 800 KB limit. Older Firestore section documents remain as migration rollback references. Keep a complete JSON backup for independent recovery.</p></section>`;
 }
 function normalizeDocumentViewport(){
  // The app shell scrolls its own main content. The document itself must remain
@@ -2951,7 +2935,7 @@ document.addEventListener('click',async event=>{
   if(action==='home-log-finance'){financeQuickModal();return;}
   if(action==='home-add-menu'){
     if(homeDashboardView==='nutrition'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,null,{returnPage:'food'});return;}
-    if(homeDashboardView==='finances'){financeQuickModal();return;}
+    // Money is retired from Home.
     if(data.activeWorkout){buddyOpen();return;}
     buddyRoutinePicker();return;
    }
@@ -3876,7 +3860,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=132',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=133',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3978,7 +3962,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=132');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=133');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
