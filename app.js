@@ -4055,7 +4055,10 @@ function applyCurrentAppearance(){
   '--ap-raised':roles.raised
  };
  for(const [name,value]of Object.entries(props))root.style.setProperty(name,value);
- if(root.dataset.theme==='dark')document.querySelector('meta[name="theme-color"]')?.setAttribute('content',colors.background);
+ // Include Android's in-scope theme-color override (used by supported
+ // WebAPK/Chrome versions for system chrome, including some navigation bars).
+ // The manifest itself is static on GitHub Pages, so use a neutral fallback.
+ window.everydayTheme?.refresh?.();
 }
 function appearanceSwatches(colors){
  return '<span class="appearance-swatches" aria-hidden="true">'+['background','surface','primary','secondary'].map(key=>'<i style="background:'+colors[key]+'"></i>').join('')+'</span>';
