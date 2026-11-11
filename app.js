@@ -72,8 +72,8 @@ function monthExportPanel(){
 function sectionImportModal(){
  pendingImport=null;importReadToken++;
  modal('Import separate JSON files','<form class="form" data-form="section-import">'+
-  '<p class="body-copy">Choose one, two or all three Everyday section files. Selected sections replace only their own saved records; the others stay unchanged.</p>'+
-  '<label class="field"><span>Nutrition / Lifting / Finances JSON</span>'+
+  '<p class="body-copy">Choose Nutrition or Lifting JSON files to restore body records. Old Finance archive files are also supported for backward compatibility. Selected sections replace only their own saved records.</p>'+
+  '<label class="field"><span>Nutrition / Lifting / legacy Finance JSON</span>'+
   '<input type="file" name="files" accept=".json,application/json" multiple required></label>'+
   '<p class="hint">Use only versioned everyday-section-v1 files. Check the section names and replacement counts before confirming. Export a complete backup first.</p>'+
   '<button type="submit" class="primary">Preview selected sections</button></form><div id="preview" role="status"></div>');
@@ -2510,7 +2510,7 @@ async function financeResetConfirm(){
   close(true);render();
  }catch(error){
   if(owner&&(session!==active||account?.uid!==owner))return;
-  btn.disabled=false;btn.textContent='Delete Finance data';
+  btn.disabled=false;btn.textContent='Delete archived finances';
   const warning=document.querySelector('[data-finance-reset-error]');
   if(warning){warning.hidden=false;warning.textContent='Finance was not reset. '+(owner?describeCloudError(error):error.message);}
  }finally{
@@ -3096,7 +3096,7 @@ document.addEventListener('click',async event=>{
    else foodForm(null,null,{seed:item,date:localDate(),timeSlot:currentFoodSlot(),returnPage:'home'});
    return;
   }
-  if(['home','food','gym','progress','finances','history','settings'].includes(action)){page=action;render();return;}
+  if(['home','food','gym','progress','history','settings'].includes(action)){page=action;render();return;}
   if(action==='app-reload-latest'){
     if(!safeToUpdate()){alert('Finish saving or close an active workout or editor before refreshing the app. Your records have not been changed.');return;}
     try{
@@ -4088,7 +4088,7 @@ function appearancePlacementPreview(colors,isForest){
   '<div class="appearance-placement-header"><strong>Everyday<span>.</span></strong><span class="appearance-placement-gear" aria-hidden="true">⚙</span></div>'+
   '<div class="appearance-placement-card"><div class="appearance-placement-body"><strong>Favorite food</strong><span class="appearance-placement-menu" aria-hidden="true">⋯</span></div>'+
   '<div class="appearance-placement-macros"><span><small>CALORIES</small><b>230</b></span><span><small>PROTEIN</small><b>42 g</b></span></div></div>'+
-  '<div class="appearance-placement-nav"><span class="selected">Eat</span><span>Lift</span><span>Money</span></div>'+
+  '<div class="appearance-placement-nav"><span class="selected">Eat</span><span>Lift</span><span>Progress</span></div>'+
   '</div><div class="appearance-placement-legend">'+
   [['Page',roles.shell],['Cards',roles.panel],['Footer',roles.support],['Controls',roles.control],['Accent',colors.primary]].map(([label,color])=>'<span><i style="background:'+color+'"></i>'+label+'</span>').join('')+
   '</div>';
