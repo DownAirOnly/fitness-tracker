@@ -12,11 +12,18 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=131'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=132'),'palette coverage stylesheet is loaded');
 const liftingStyles=await readFile(new URL('lifting-routines.css',root),'utf8');
-assert.ok(launchHtml.includes('lifting-routines.css?v=131'),'new Lifting routine CSS is included');
+assert.ok(launchHtml.includes('lifting-routines.css?v=132'),'new Lifting routine CSS is included');
 const checkInCss=await readFile(new URL('weight-checkin.css',root),'utf8');
-assert.ok(launchHtml.includes('weight-checkin.css?v=131'),'daily check-in steppers CSS is loaded');
+const beginnerCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
+assert.ok(beginnerCss.includes('.buddy-second-set-offer button')&&beginnerCss.includes('min-height:44px'),'optional beginner action is accessible and palette-aware');
+const manifest=JSON.parse(await readFile(new URL('manifest.webmanifest',root),'utf8'));
+const themeSource=await readFile(new URL('theme.js',root),'utf8');
+assert.equal(manifest.theme_color,'#15171a','Android native chrome has a neutral static fallback rather than fixed forest green');
+assert.equal(manifest.background_color,'#15171a','installed PWA startup background uses the same neutral fallback');
+assert.ok(themeSource.includes('refresh: apply')&&themeSource.includes('--ap-bg'),'theme-color follows the selected dark palette after OS display-mode changes');
+assert.ok(launchHtml.includes('weight-checkin.css?v=132'),'daily check-in steppers CSS is loaded');
 assert.ok(checkInCss.includes('min-height:44px'),'daily adjustment controls have a 44px tap target');
 
 for(const selector of ['.gym-routine-tab.selected','.gym-selected-routine','.gym-routine-muscle-map'])
@@ -94,17 +101,17 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=131'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=132'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=131'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=132'),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=131'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=132'),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
 const undoCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
-assert.ok(launchHtml.includes('buddy-undo-guard.css?v=131'),'persistent header Undo CSS is loaded');
+assert.ok(launchHtml.includes('buddy-undo-guard.css?v=132'),'persistent header Undo CSS is loaded');
 assert.ok(undoCss.includes('.buddy-undo-header'),'dedicated top Undo style remains');
 const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
 assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
@@ -1196,6 +1203,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(matched.sets[1].reps,11);
  assert.equal(matched.sets[1].difficulty,5);
  assert.equal(matched.notes,'Two-set editor test');
+ const sharedNoteExerciseId=saved.activeWorkout.exercises.find(e=>e.name===matched.exercise)?.exerciseId;
+ assert.equal(saved.exerciseDefinitions.find(e=>e.id===sharedNoteExerciseId)?.notes,'Two-set editor test','completed editor also saves note on shared exercise definition');
+ assert.equal(normalizeData(encodeData(saved)).exerciseDefinitions.find(e=>e.id===sharedNoteExerciseId)?.notes,'Two-set editor test','shared notes survive cloud/export round trip');
  const editedCard=document.querySelector('.buddy-completed-exercise-strip [data-action=buddy-edit-completed]');
  editedCard.click();await tick();
  document.querySelector('.buddy-completed-edit-set [name=buddyWeight]').value='999';
@@ -1208,6 +1218,61 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.buddy-muscle-screen'),'completed card thumbnail independently opens muscle guide');
  await click('buddy-muscle-back');
  assert.ok(document.querySelector('.buddy-completed-exercise-strip'),'back to picker retains completed exercises');
+ await click('buddy-exit');
+
+ // v132: shared exercise note across two routine copies, plus a session-only
+ // transition from exactly one planned set to an optional second set.
+ const originalRoutineName=saved.activeWorkout.type;
+ await click('buddy-end');await click('buddy-save-end');
+ await click('routine-manage');
+ const sourceRoutineRow=[...document.querySelectorAll('.routine-library-row')]
+  .find(row=>row.querySelector('strong')?.textContent===originalRoutineName);
+ assert.ok(sourceRoutineRow,'original routine can be copied to test shared notes');
+ sourceRoutineRow.querySelector('[data-action="routine-copy"]').click();await tick();
+ const beginnerForm=document.querySelector('form[data-form="workout-template"]');
+ assert.ok(beginnerForm,'copied routine opens its own editor');
+ const beginnerName='Beginner set and note test';
+ beginnerForm.elements.workoutName.value=beginnerName;
+ const sharedExerciseDef=saved.exerciseDefinitions.find(d=>d.id===sharedNoteExerciseId);
+ const beginnerRow=[...beginnerForm.querySelectorAll('[data-workout-row]')]
+  .find(row=>row.querySelector('.workout-template-title strong')?.textContent===sharedExerciseDef.name);
+ assert.ok(beginnerRow,'copied routine contains the shared exercise');
+ beginnerRow.querySelector('[name="targetSets"]').value='1';
+ await submit('workout-template',{workoutName:beginnerName});
+ await click('buddy-launch');
+ const beginnerChoice=[...document.querySelectorAll('[data-action="buddy-start"]')]
+  .find(card=>card.textContent.includes(beginnerName));
+ assert.ok(beginnerChoice,'new routine appears in Buddy chooser');
+ beginnerChoice.click();await tick();await click('buddy-bike-done');
+ const beginnerExercise=[...document.querySelectorAll('.buddy-exercise-list [data-action="buddy-choose"]')]
+  .find(card=>card.querySelector('.exercise-name-row strong')?.textContent===sharedExerciseDef.name);
+ assert.ok(beginnerExercise,'same exercise appears in copied routine');
+ beginnerExercise.click();await tick();
+ assert.ok(document.querySelector('.buddy-notes-toggle')?.textContent.includes('Notes saved'),'shared exercise note is available in different routine');
+ await click('buddy-notes-toggle');
+ assert.equal(document.querySelector('[name="buddyNotes"]')?.value,'Two-set editor test','original note text follows exercise, not routine identity');
+ await click('buddy-notes-toggle');
+ await click('buddy-a');await click('buddy-a');
+ assert.equal(document.querySelector('.buddy-a[data-action="buddy-review-next"] b')?.textContent,'Next exercise','one planned set can still finish normally');
+ assert.equal(document.querySelectorAll('[data-action="buddy-add-second-set"]').length,1,'one planned set optionally offers set 2');
+ assert.ok(document.querySelector('.buddy-second-set-offer')?.textContent.includes('today only'),'opt-in does not silently change future plan');
+ await click('buddy-add-second-set');
+ assert.ok(document.querySelector('.buddy-set-active'),'beginner opt-in starts second timed set');
+ assert.equal(document.querySelectorAll('.buddy-set-bars i').length,2,'temporary session progress now shows two sets');
+ let beginnerData=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
+ const copiedPlan=beginnerData.workoutTemplates.find(w=>w.name===beginnerName)
+  .exercises.find(x=>x.exerciseId===sharedNoteExerciseId);
+ assert.equal(copiedPlan.targetSets,1,'adding a second set today does not change the routine default');
+ assert.equal(beginnerData.activeWorkout.exercises.find(e=>e.exerciseId===sharedNoteExerciseId).targetSets,2);
+ await click('buddy-undo');
+ assert.equal(document.querySelectorAll('.buddy-set-bars i').length,1,'Undo restores the one-set plan');
+ assert.ok(document.querySelector('[data-action="buddy-add-second-set"]'),'Undo restores optional second-set choice');
+ await click('buddy-add-second-set');await click('buddy-a');
+ assert.equal(document.querySelectorAll('[data-action="buddy-add-second-set"]').length,0,'no third-set offer after set two');
+ assert.equal(document.querySelector('.buddy-a[data-action="buddy-review-next"] b')?.textContent,'Next exercise');
+ await click('buddy-review-next');
+ beginnerData=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
+ assert.equal(beginnerData.lifts.find(l=>l.buddySessionId===beginnerData.activeWorkout.id&&l.exercise===sharedExerciseDef.name)?.sets.length,2,'both beginner sets are saved in workout history');
  await click('buddy-exit');
 
  assert.equal(localStorage.getItem('everyday-fitness-v1'),deviceBeforeDemo,'demo never writes normal device records');
