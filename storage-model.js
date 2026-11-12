@@ -20,7 +20,7 @@ const inferExercise=value=>{
 const exerciseKey=record=>`${cleanName(record.name).toLowerCase()}\u0000${record.equipment||'other'}`;
 function stableId(prefix,key){let hash=2166136261;for(let i=0;i<key.length;i++){hash^=key.charCodeAt(i);hash=Math.imul(hash,16777619);}return `${prefix}-${(hash>>>0).toString(36)}`;}
 function nextStableId(prefix,key,used){const base=stableId(prefix,key);let candidate=base,n=2;while(used.has(candidate))candidate=`${base}-${n++}`;return candidate;}
-import {normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=137';
+import {normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=138';
 
 export function decodeStoredData(input){
  if(!input||input.version!==2)return input;
