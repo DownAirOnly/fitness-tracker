@@ -3798,3 +3798,10 @@ html[data-theme="light"],html[data-theme="light"] body,html[data-theme="light"] 
  line-height:1.45;font-size:13px;
 }
 .finance-archive-verify input{width:20px;height:20px;min-width:20px;accent-color:var(--ap-primary,#446b54);}
+
+/* v141: compact time actions in Food Entry; preserve other time pickers. */
+form[data-form="food"] .time-step-control{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center}
+form[data-form="food"] .time-step-control>span{grid-column:1;grid-row:1}
+form[data-form="food"] .time-step-control>.time-step-options{grid-column:2;grid-row:1;margin:0;align-items:center}
+form[data-form="food"] .time-step-control>.time-step-row{grid-column:1/-1;grid-row:2;margin-top:3px}
+form[data-form="food"] .time-step-control>.time-step-options button{min-height:32px;padding:5px 8px;font-size:12px}
