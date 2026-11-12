@@ -6,7 +6,7 @@ import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=137';
 import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=137';
 import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=137';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=137';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=137';
 import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=137';
 import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=137';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=137';
@@ -1500,15 +1500,16 @@ function exerciseCardMarkup(e,{action,attrs='',modifier='',summary='',trailing='
 
 function exerciseCardWithMuscles(e,card){
  return '<div class="exercise-muscle-wrapper">'+card+
- '<button type="button" class="exercise-muscle-peek" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscle diagram for '+esc(e.name)+'" title="Muscle groups">'+muscleMiniMarkup(e.name)+'</button></div>';
+ '<button type="button" class="exercise-muscle-peek" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscle diagram for '+esc(e.name)+'" title="Muscle groups">'+muscleMiniMarkup(e)+'</button></div>';
 }
 function openMuscleGuide(name,equipment='other',onBack=null){
  if(!name)return;
- modal(name+' · Muscles',muscleGuideMarkup(name),onBack);
+ const exercise=data.exerciseDefinitions?.find(e=>e.name.toLowerCase()===name.toLowerCase()&&e.equipment===equipment)||data.exerciseDefinitions?.find(e=>e.name.toLowerCase()===name.toLowerCase());
+ modal(name+' · Muscles',muscleGuideMarkup(exercise||name),onBack);
 }
 function muscleRelatedExercises(group){
  return (data.exerciseDefinitions||[]).flatMap(e=>{
-  const profile=exerciseMuscleProfile(e.name);
+  const profile=exerciseMuscleProfile(e);
   const role=profile?.primary.includes(group)?'primary':profile?.secondary.includes(group)?'secondary':null;
   return role?[{name:e.name,equipment:e.equipment||'other',role}]:[];
  }).sort((a,b)=>a.name.localeCompare(b.name));
@@ -1619,7 +1620,7 @@ function workoutEditorCapture(){
 function workoutEditorRow(item,i,total){
  const e=resolveWorkoutExercise(item);if(!e)return'';
  const cue=e.cue?'<p class="routine-import-cue"><strong>Routine cue:</strong> '+esc(e.cue)+'</p>':'';
- return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e.name)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div>'+cue+'<div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
+ return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div>'+cue+'<div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
 }
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
@@ -1653,8 +1654,8 @@ function buddyPrior(e){return lastLift(e.name,'',e.equipment,currentTrackingDate
 function buddyMovement(e){
  if(['push','pull','neutral'].includes(e.meta?.movement))return e.meta.movement;
  const name=e.name.toLowerCase();
- if(/press|extension|tricep|push|kickback/.test(name))return 'push';
- if(/row|pulldown|pull down|curl|deadlift/.test(name))return 'pull';
+ if(/press|extension|tricep|push|kickback|fly|thrust/.test(name))return 'push';
+ if(/row|pulldown|pull down|curl|deadlift|face pull|reverse pec|shrug|back extension/.test(name))return 'pull';
  return 'neutral';
 }
 function buddyMovementCorner(e){const type=buddyMovement(e);if(type==='neutral')return '';return '<span class="buddy-movement-corner" aria-label="'+type+' movement"><b>'+(type==='push'?'↗':'↙')+'</b>'+type.toUpperCase()+'</span>';}
@@ -1769,12 +1770,12 @@ function buddyStart(type){const w=workoutByName(type);if(!w)return;buddyBikeUi=n
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
 function buddyExerciseHeading(e,showMini=true){
  return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div>'+
- (showMini?'<button type="button" class="buddy-muscle-mini" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscles for '+esc(e.name)+'">'+muscleMiniMarkup(e.name)+'</button>':'')+'</div>';
+ (showMini?'<button type="button" class="buddy-muscle-mini" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscles for '+esc(e.name)+'">'+muscleMiniMarkup(e)+'</button>':'')+'</div>';
 }
 function buddyExerciseMuscleStage(e){
  // Share Home's spaced front/back layout, using this exercise's existing
  // warm-primary / cool-secondary anatomy mapping rather than recent workload.
- return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e.name)+'</button>';
+ return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e)+'</button>';
 }
 // v108 — single analog clock, fully transient. Continue alone saves warm-up.
 let buddyBikeUi=null;
@@ -1809,7 +1810,7 @@ function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
  const head=`<header class="buddy-head"><span><small>${esc(s.type.toUpperCase())}</small><strong>Workout Buddy</strong></span><span class="buddy-head-actions"><span class="buddy-elapsed" data-buddy-elapsed>${buddyClock(buddySeconds(s.startedAt))}</span>${buddyUndoControl(s)}<button type="button" class="buddy-exit" data-action="buddy-exit">Exit</button></span></header>`;
  if(buddyMuscleView&&buddyMuscleGroupView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-group-back">‹ Back to muscles</button><h1>${esc(muscleGroupLabel(buddyMuscleGroupView))}</h1>${muscleGroupDetailsMarkup(buddyMuscleGroupView,muscleRelatedExercises(buddyMuscleGroupView))}</main></div>`;
- if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(buddyMuscleView)}</main></div>`;
+ if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(data.exerciseDefinitions?.find(e=>e.name.toLowerCase()===buddyMuscleView.toLowerCase())||buddyMuscleView)}</main></div>`;
  if(s.phase==='bike')return buddyBikeClockMarkup(head,s);
  if(buddyCompletedEditor?.key)return buddyCompletedEditorScreen(head,s);
  if(s.phase==='picker'){
