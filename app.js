@@ -4462,7 +4462,7 @@ async function syncHealth(force=false){
  if(demoMode)return;
   if(offlineWorkspace||!cloudApi?.health||!account||!session?.ready||cloudBusy||cloudPending||importSaving||document.querySelector('.modal'))return;
   if(!force&&(page==='settings'||document.activeElement?.matches('input,textarea,select')||Date.now()-healthCheckedAt<30000))return;
-  const active=session;healthCheckedAt=Date.now();cloudBusy=true;
+  const active=session,healthEpoch=userInteractionEpoch;healthCheckedAt=Date.now();cloudBusy=true;
   try{
     const result=await cloudApi.health.pull(active.uid,active.revision);
     if(session!==active)return;
@@ -4479,7 +4479,7 @@ async function syncHealth(force=false){
   }catch(error){if(session===active)healthState={...healthState,status:error.code==='permission-denied'?'Setup needs the updated Firebase rules. Existing tracking still works.':describeCloudError(error)};}
   finally{if(session===active){
     cloudBusy=false;
-    if(!document.querySelector('.modal'))render();
+    renderFromBackground(healthEpoch);
     if(cloudPending&&!cloudRecoveryConflict&&session?.ready)void persist();
     else promptWeight();
   }}
