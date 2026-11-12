@@ -49,6 +49,11 @@ test('cached Home food opens immediately and saves only after account readiness'
   card.click();await tick();
   const form=document.querySelector('form[data-form="food"]');
   assert.ok(form,'first tap opens Food Entry despite grayed-out Settings');
+  const dialog=form.closest('.modal');
+  assert.equal(dialog?.getAttribute('aria-label'),'Log saved food','titleless form keeps accessible dialog name');
+  assert.equal(dialog?.querySelector('.modal-top h2'),null,'saved-food heading is hidden');
+  assert.ok(dialog?.classList.contains('modal-titleless'),'saved-food quick log uses compact header');
+  assert.equal(form.querySelectorAll('.food-entry-actions>button').length,2,'add-another and save use equal-grid action row');
   assert.equal(form.elements.name.value,'Early breakfast');
   assert.equal(form.querySelector('[data-food-submit]').disabled,true,'save remains disabled until account confirmation');
   assert.equal(form.querySelector('[data-food-account-pending]'),null,'pending-save explanation is not shown');
