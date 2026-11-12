@@ -11,9 +11,6 @@ import {writeCloudConfirmed} from '../durability.js';
 test('cached Home food opens immediately and saves only after account readiness',async()=>{
  const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'everyday-first-food-'));
  const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
- const prior=new Map();
- for(const key of ['window','document','navigator','localStorage','FormData','alert','confirm','requestAnimationFrame','fetch'])
-  prior.set(key,Object.getOwnPropertyDescriptor(globalThis,key));
  try{
   for(const key of ['window','document','localStorage','navigator'])
    Object.defineProperty(globalThis,key,{value:dom.window[key],configurable:true});
@@ -76,9 +73,9 @@ test('cached Home food opens immediately and saves only after account readiness'
   assert.equal(saved.foodEntries.length,1,'log only saved after identity and revision confirmation');
   assert.equal(saved.foodEntries[0].quantity,0.5);
  }finally{
+  // The app deliberately keeps short-lived startup/update callbacks queued.
+  // This test runs in its own Node worker. Keep its test-browser globals
+  // available until those callbacks expire, as in tests/ui-smoke.mjs.
   dom.window.close();await rm(temp,{force:true,recursive:true});
-  for(const [key,description] of prior){
-   if(description)Object.defineProperty(globalThis,key,description);else delete globalThis[key];
-  }
  }
 });
