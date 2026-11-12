@@ -1,5 +1,6 @@
 import {normalizeServing} from './food-portion-model.js?v=136';
 import {normalizeRecipes} from './cooking-model.js?v=136';
+import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=137';
 import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=136';
 import {decodeStoredData,encodeStoredData} from './storage-model.js?v=136';
 import {normalizeClassificationRules} from './classification-model.js?v=136';
@@ -296,14 +297,16 @@ export function normalizeData(input) {
     if(input.exerciseDefinitions.length>10000)throw new Error('Backup has too many exercise definitions.');
     for(const e of input.exerciseDefinitions){
       const setup=e?.setup==null?'':String(e.setup),hasNotes=Object.prototype.hasOwnProperty.call(e||{},'notes'),notes=hasNotes?e.notes:'';
+      const meta=normalizeExerciseMeta(e?.meta);
       if(!e||typeof e.id!=='string'||!e.id.trim()||typeof e.name!=='string'||!e.name.trim()||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(e.equipment)||setup.length>200||(hasNotes&&(typeof notes!=='string'||notes.length>500)))throw new Error('Backup has an invalid exercise definition.');
       const key=e.name.toLowerCase()+'|'+e.equipment,existing=definitionByKey.get(key);
       if(existing){
         idAliases.set(e.id,existing.id);
         if(setup)existing.setup=setup;else delete existing.setup;
         if(hasNotes)existing.notes=notes;
+        if(meta)existing.meta=mergeMissingExerciseMeta(existing.meta,meta);
       }else{
-        const created={id:e.id,name:e.name,equipment:e.equipment,...(setup?{setup}:{}),...(hasNotes?{notes}:{})};
+        const created={id:e.id,name:e.name,equipment:e.equipment,...(setup?{setup}:{}),...(hasNotes?{notes}:{}),...(meta?{meta}:{})};
         data.exerciseDefinitions.push(created);definitionByKey.set(key,created);idAliases.set(e.id,e.id);
       }
     }
@@ -331,7 +334,8 @@ export function normalizeData(input) {
         if(!Number.isInteger(targetSets)||targetSets<1||targetSets>10)targetSets=fallbackItem?.targetSets||2;
         if(!Number.isInteger(restSeconds)||restSeconds<0||restSeconds>1800)restSeconds=fallbackItem?.restSeconds??90;
         if(typeof exerciseId!=='string'||!definitionIds.has(exerciseId))throw new Error('Backup has an invalid workout exercise reference.');
-        return{exerciseId,repMin,repMax,targetSets,restSeconds};
+        const cue=normalizeRoutineCue(e?.cue);
+        return{exerciseId,repMin,repMax,targetSets,restSeconds,...(cue?{cue}:{})};
       })};
     });
   }

@@ -20,6 +20,8 @@ const inferExercise=value=>{
 const exerciseKey=record=>`${cleanName(record.name).toLowerCase()}\u0000${record.equipment||'other'}`;
 function stableId(prefix,key){let hash=2166136261;for(let i=0;i<key.length;i++){hash^=key.charCodeAt(i);hash=Math.imul(hash,16777619);}return `${prefix}-${(hash>>>0).toString(36)}`;}
 function nextStableId(prefix,key,used){const base=stableId(prefix,key);let candidate=base,n=2;while(used.has(candidate))candidate=`${base}-${n++}`;return candidate;}
+import {normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=137';
+
 export function decodeStoredData(input){
  if(!input||input.version!==2)return input;
  if(!Array.isArray(input.foods)||!Array.isArray(input.foodEntries)||!Array.isArray(input.exercises)||!Array.isArray(input.lifts)||!Array.isArray(input.weights)||!input.settings||typeof input.settings!=='object')throw Error('This is not an Everyday backup.');
@@ -42,7 +44,8 @@ export function decodeStoredData(input){
   const hasNotes=Object.prototype.hasOwnProperty.call(exercise,'notes'),notes=hasNotes?exercise.notes:'';
   if(setup.length>200)throw Error('Backup has an invalid exercise setup.');
   if(hasNotes&&(typeof notes!=='string'||notes.length>500))throw Error('Backup has invalid shared exercise notes.');
-  const def={id:exercise.id,name:normalized.name,equipment,...(setup?{setup}:{}),...(hasNotes?{notes}:{})};
+  const meta=normalizeExerciseMeta(exercise.meta);
+  const def={id:exercise.id,name:normalized.name,equipment,...(setup?{setup}:{}),...(hasNotes?{notes}:{}),...(meta?{meta}:{})};
   exerciseMap.set(exercise.id,def);exerciseDefinitions.push(def);usedExerciseIds.add(exercise.id);
  }
  const exerciseIdByKey=new Map(exerciseDefinitions.map(e=>[exerciseKey(e),e.id]));
@@ -74,7 +77,8 @@ export function decodeStoredData(input){
    if(typeof item?.exerciseId==='string'&&item.exerciseId)exerciseId=item.exerciseId;
    else if(typeof item?.name==='string'&&item.name.trim())exerciseId=ensureExercise(item.name,item?.equipment||'other');
    const targetSets=Number(item?.targetSets),restSeconds=Number(item?.restSeconds);
-   return{exerciseId,repMin:Number(item?.repMin)||6,repMax:Number(item?.repMax)||12,targetSets:Number.isInteger(targetSets)&&targetSets>=1&&targetSets<=10?targetSets:2,restSeconds:Number.isInteger(restSeconds)&&restSeconds>=0&&restSeconds<=1800?restSeconds:90};
+   const cue=normalizeRoutineCue(item?.cue);
+   return{exerciseId,repMin:Number(item?.repMin)||6,repMax:Number(item?.repMax)||12,targetSets:Number.isInteger(targetSets)&&targetSets>=1&&targetSets<=10?targetSets:2,restSeconds:Number.isInteger(restSeconds)&&restSeconds>=0&&restSeconds<=1800?restSeconds:90,...(cue?{cue}:{})};
   })
  })):undefined;
  const lifts=input.lifts.map(lift=>{if(!lift||typeof lift.exerciseId!=='string'||!exerciseMap.has(lift.exerciseId))throw Error('Backup lift references a missing exercise.');const exercise=exerciseMap.get(lift.exerciseId),record={id:lift.id,date:lift.date,exercise:exercise.name,equipment:exercise.equipment,sets:structuredClone(lift.sets)};if(lift.difficulty!=null)record.difficulty=lift.difficulty;if(lift.notes!=null)record.notes=lift.notes;if(lift.buddySessionId!=null)record.buddySessionId=lift.buddySessionId;return record;});
@@ -93,11 +97,11 @@ export function encodeStoredData(data){
  const foodEntries=data.foodEntries.map(entry=>{const key=foodKey(entry);let foodId=foodByKey.get(key);if(!foodId){foodId=nextStableId('food',key,usedFoodIds);usedFoodIds.add(foodId);foods.push({id:foodId,name:entry.name,calories:entry.calories,protein:entry.protein,saved:false});foodByKey.set(key,foodId);}const record={id:entry.id,date:entry.date,foodId,quantity:entry.quantity};if(Number.isInteger(entry.t)&&entry.t>=0&&entry.t<=47)record.t=entry.t;return record;});
  const exercises=[],exerciseByKey=new Map(),exerciseById=new Map(),usedExerciseIds=new Set();
  for(const def of Array.isArray(data.exerciseDefinitions)?data.exerciseDefinitions:[]){
-  const normalized=inferExercise(def.name),exercise={id:def.id,name:normalized.name,equipment:equipmentTypes.has(def.equipment)?def.equipment:normalized.equipment,...(def.setup?{setup:def.setup}:{}),...(Object.prototype.hasOwnProperty.call(def,'notes')?{notes:def.notes}:{})},key=exerciseKey(exercise);
+  const normalized=inferExercise(def.name),exercise={id:def.id,name:normalized.name,equipment:equipmentTypes.has(def.equipment)?def.equipment:normalized.equipment,...(def.setup?{setup:def.setup}:{}),...(Object.prototype.hasOwnProperty.call(def,'notes')?{notes:def.notes}:{}),...(def.meta?{meta:structuredClone(def.meta)}:{})},key=exerciseKey(exercise);
   if(!exercise.id||usedExerciseIds.has(exercise.id))continue;
   exercises.push(exercise);usedExerciseIds.add(exercise.id);exerciseByKey.set(key,exercise.id);exerciseById.set(exercise.id,exercise);
  }
  const lifts=data.lifts.map(lift=>{const normalized=inferExercise(lift.exercise),exercise={name:normalized.name,equipment:equipmentTypes.has(lift.equipment)?lift.equipment:normalized.equipment},key=exerciseKey(exercise);let exerciseId=exerciseByKey.get(key);if(!exerciseId){exerciseId=nextStableId('exercise',key,usedExerciseIds);usedExerciseIds.add(exerciseId);const created={id:exerciseId,...exercise};exercises.push(created);exerciseByKey.set(key,exerciseId);exerciseById.set(exerciseId,created);}const record={id:lift.id,date:lift.date,exerciseId,sets:structuredClone(lift.sets)};if(lift.difficulty!=null)record.difficulty=lift.difficulty;if(lift.notes)record.notes=lift.notes;if(lift.buddySessionId)record.buddySessionId=lift.buddySessionId;return record;});
- const workoutTemplates=Array.isArray(data.workoutTemplates)?data.workoutTemplates.map(w=>({id:w.id,name:w.name,...(/^#[0-9a-f]{6}$/i.test(w.color||'')?{color:w.color}:{}),exercises:(Array.isArray(w.exercises)?w.exercises:[]).map(item=>{const record={exerciseId:item.exerciseId,repMin:item.repMin,repMax:item.repMax};if(item.targetSets!==2)record.targetSets=item.targetSets;if(item.restSeconds!==90)record.restSeconds=item.restSeconds;return record;})})):[];
+ const workoutTemplates=Array.isArray(data.workoutTemplates)?data.workoutTemplates.map(w=>({id:w.id,name:w.name,...(/^#[0-9a-f]{6}$/i.test(w.color||'')?{color:w.color}:{}),exercises:(Array.isArray(w.exercises)?w.exercises:[]).map(item=>{const record={exerciseId:item.exerciseId,repMin:item.repMin,repMax:item.repMax};if(item.targetSets!==2)record.targetSets=item.targetSets;if(item.restSeconds!==90)record.restSeconds=item.restSeconds;if(item.cue)record.cue=item.cue;return record;})})):[];
  return{version:2,settings:structuredClone(data.settings),preferences:structuredClone(data.preferences),foods,foodEntries,recipes:structuredClone(data.recipes||[]),exercises,lifts,weights:structuredClone(data.weights),bodyFat:Array.isArray(data.bodyFat)?structuredClone(data.bodyFat):[],workoutTemplates,activeWorkout:data.activeWorkout?structuredClone(data.activeWorkout):null,workoutHistory:Array.isArray(data.workoutHistory)?structuredClone(data.workoutHistory):[],workoutSchedule:Array.isArray(data.workoutSchedule)?structuredClone(data.workoutSchedule):[],transactions:structuredClone(data.transactions||[]),classificationRules:structuredClone(data.classificationRules||[]),budgetPlan:structuredClone(data.budgetPlan),promptDate:data.promptDate||''};
 }
