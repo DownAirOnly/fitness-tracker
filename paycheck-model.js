@@ -1,7 +1,7 @@
 // v111: paycheck periods are a ledger view, not a bank balance.
 // Each scheduled paycheck owns a period; paid bills remain allocated and bank
 // matches/receipts keep one stable purchase ID.
-import {normalizeBudgetPlan,budgetOccurrences} from './budget-model.js?v=138';
+import {normalizeBudgetPlan,budgetOccurrences} from './budget-model.js?v=139';
 
 const DAY=86400000;
 export const shiftPayday=(date,days)=>new Date(Date.parse(date+'T00:00:00Z')+days*DAY).toISOString().slice(0,10);

@@ -1,5 +1,5 @@
 // v99 — read-only cash overview. Never infer a bank balance from transactions.
-import {normalizeBudgetPlan,budgetOccurrences} from './budget-model.js?v=138';
+import {normalizeBudgetPlan,budgetOccurrences} from './budget-model.js?v=139';
 const addDays=(date,days)=>new Date(Date.parse(date+'T00:00:00Z')+days*86400000).toISOString().slice(0,10);
 export function financeOverviewSnapshot(input,today){
  const plan=normalizeBudgetPlan(input);
