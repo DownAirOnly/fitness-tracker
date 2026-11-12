@@ -1,3 +1,7 @@
+## v143 — Balanced Food Entry fields and actions
+
+Food Entry returns to lighter text-entry fields, with the Time display using the same background. **Now** and **No time** are now rounded, bordered secondary buttons. Secondary controls are slightly different in shade from text fields without the previous deep contrast. Save remains prominent, and the two bottom actions stay evenly sized.
+
 ## v142 — Saved Food quick-log cleanup
 
 The saved-food logging dialog no longer displays its large heading, but keeps an accessible dialog name. Food Entry text and date input backgrounds match the dark Time display. **Add another food** and **Save** take equal widths on new food logs; historical edit actions remain unchanged.
