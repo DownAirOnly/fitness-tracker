@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v136 (November 11, 2026)
+## Current release — v137 (November 12, 2026)
+
+- **Safe workout CSV import:** My routines → Import workout CSV, also available from Settings → Import data. Import program rows through a dedicated review screen that recognizes matching existing exercises by name+equipment and existing routines by name. Displays reusable definitions, new definitions, affected routines and imported weekday schedule before confirmation.
+- **Conservative conflict handling:** Existing exercises retain canonical ID, machine setup, personal notes, historical lifts, and logged sets. Differently named exercises may be explicitly mapped to an existing exercise of the same equipment. New exercises are created only when unmatched; records of different equipment are never silently merged. Existing routines default to **Keep unchanged**; user can choose Update (retains routine ID/name/color, replaces only programmed exercise slots), or Create a copy. Importing the same program again is idempotent by default.
+- **Training metadata and cues:** CSV columns movement, movementPattern, primaryMuscles, secondaryMuscles, safetyNote, setup, notes, routineCue are validated. Existing definitions may gain only missing structured training metadata; setup and shared notes never overwritten. New definitions receive imported notes/setup. Optional per-routine cues survive workout exports and compact backups. Imported movement profiles affect push/pull badges and display in Exercise Library.
+- **Schedule requires opt-in:** Imported weekday mapping 0=Sun…6=Sat is previewed but ignored unless independently checked; accepting it changes only imported weekdays, leaving other scheduled days alone. Existing active sessions, completed workouts, food, money archive, preferences, and goals are not part of an import candidate.
+- **Atomic preview:** A malformed file or ambiguous/dangerous mapping fails before saving. Import candidate is validated through normal notebook normalization and the usual account-safe commit path. The import model and UI smoke tests cover existing history preservation and repeated imports. Physical iPhone behavior requires user validation.
+
+## Previous release — v136 (November 11, 2026)
 
 - **Hotfix — restore v133 Food Entry:** Removed the v134 in-entry Calculate amount UI, preview, Apply action, and input/change listeners. The existing Food Entry form now matches v133: saved-food autofill, calorie/protein fields, servings shortcuts, date/time, copy/paste CSV, batch entry, and explicit Save.
 - **Cooking remains separate:** v135 Food → Summary/Cooking workspace, recipe creation, saved ingredient snapshots, JSON import/export, and cloud persistence are unchanged. Food Library keeps optional serving metadata from v134, for cooking and future food definitions, without exposing a calculator in the ordinary Food Entry screen.
