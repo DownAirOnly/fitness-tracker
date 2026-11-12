@@ -1,7 +1,7 @@
 // v112 — Firestore v3 account layout. Dated history is partitioned by calendar
 // month; global definitions and preferences are in small account-scoped files.
 // This module never mutates the user's normalized notebook.
-import {emptyData,normalizeData,validDate} from './data.js?v=134';
+import {emptyData,normalizeData,validDate} from './data.js?v=135';
 export const MONTHLY_KEYS=['foodEntries','weights','bodyFat','lifts','transactions','workoutHistory'];
 export const STATIC_PARTS=['settings','catalog','routines','financeConfig'];
 export const MONTH_FORMAT='everyday-month-v1';
@@ -30,7 +30,7 @@ export function monthlyParts(input){
  }
  const parts={
   settings:JSON.stringify({settings:data.settings,preferences:data.preferences,promptDate:data.promptDate}),
-  catalog:JSON.stringify({foods:data.foods}),
+  catalog:JSON.stringify({foods:data.foods,recipes:data.recipes}),
   routines:JSON.stringify({exerciseDefinitions:data.exerciseDefinitions,
    workoutTemplates:data.workoutTemplates,activeWorkout:data.activeWorkout,
    workoutSchedule:data.workoutSchedule,undatedWorkoutHistory:undated}),
@@ -53,7 +53,7 @@ export function readMonthlyParts(parts,months){
  if(!settings||!settings.settings||!catalog||!routines||!finance)throw Error('Cloud settings or catalog is malformed.');
  Object.assign(raw,{
   settings:settings.settings,preferences:settings.preferences,
-  promptDate:settings.promptDate||'',foods:catalog.foods,
+  promptDate:settings.promptDate||'',foods:catalog.foods,recipes:catalog.recipes??[],
   exerciseDefinitions:routines.exerciseDefinitions,workoutTemplates:routines.workoutTemplates,
   activeWorkout:routines.activeWorkout,workoutSchedule:routines.workoutSchedule,
   classificationRules:finance.classificationRules,budgetPlan:finance.budgetPlan

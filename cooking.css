@@ -1,0 +1,82 @@
+/* v135 — Food > Cooking. Shares palette surfaces and touch targets. */
+.food-workspace-tabs{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;
+ margin:5px 0 19px;padding:4px;border:1px solid #d5dfd8;border-radius:15px;
+ background:#eef3ee;
+}
+.food-workspace-tabs button{
+ border:0;border-radius:11px;background:transparent;color:#536657;
+ font-weight:800;font-size:13px;min-height:43px;
+}
+.food-workspace-tabs button.selected{
+ background:#fff;color:#254b34;box-shadow:0 1px 4px #1226141b;
+}
+.cooking-home{display:grid;gap:14px}
+.cooking-home .section-head{margin-bottom:0}
+.cooking-home h2{font:700 26px 'Outfit',sans-serif;letter-spacing:-.5px;margin:0 0 6px}
+.cooking-home .cooking-intro{margin:0;max-width:460px}
+.cooking-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.cooking-recipe-list{display:grid;gap:9px}
+.cooking-recipe-card{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ width:100%;border:1px solid #d8e3da;border-radius:16px;padding:17px 18px;
+ text-align:left;background:#fff;color:#213d2d;min-height:92px;
+}
+.cooking-recipe-card>span{display:grid;gap:4px;min-width:0}
+.cooking-recipe-card strong{font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.cooking-recipe-card small{font-size:11px;color:#748477}
+.cooking-recipe-card .cooking-card-macros{font-size:12px;font-weight:700;color:#3d7656}
+.cooking-recipe-card b{font-size:23px;font-weight:400;flex:0 0 auto}
+.cooking-editor{gap:15px}
+.cooking-editor .field input,.cooking-editor .field textarea{min-width:0;width:100%;font-size:16px}
+.cooking-editor .field textarea{resize:vertical;min-height:110px}
+.cooking-editor .cooking-totals{
+ padding:13px 15px;border:1px solid #d9e2dc;border-radius:13px;
+ background:#eff5ed;font-size:12px;line-height:1.55;font-weight:700;color:#285339;
+}
+.cooking-ingredients{display:grid;gap:11px;margin:0}
+.cooking-ingredients>h3{font:700 19px 'Outfit',sans-serif;margin:2px 0 1px}
+.cooking-ingredient{
+ border:1px solid #d9e2dc;border-radius:14px;padding:12px;
+ background:#f8faf6;display:grid;gap:10px;
+}
+.cooking-ingredient-heading{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.cooking-ingredient-heading strong{font-size:12px}
+.cooking-ingredient-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.cooking-ingredient-fields .field{min-width:0}
+.cooking-ingredient-fields .field span{font-size:10px}
+.cooking-ingredient-fields .field input{padding:10px 7px}
+.cooking-add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}
+.cooking-add-row select{
+ width:100%;min-width:0;min-height:44px;border-radius:10px;
+ border:1px solid #d9e2dc;padding:9px 10px;background:#fff;color:#213d2d;font-size:14px;
+}
+.cooking-add-row button{white-space:nowrap}
+:root[data-theme="dark"] .food-workspace-tabs{background:var(--ap-bg,#17231c);border-color:var(--ap-border,#395042)}
+:root[data-theme="dark"] .food-workspace-tabs button{color:var(--ap-muted,#a9b5ac)}
+:root[data-theme="dark"] .food-workspace-tabs button.selected{
+ background:var(--ap-surface,#25362b);color:var(--ap-primary,#c4df96);
+ box-shadow:0 0 0 1px var(--ap-border,#395042);
+}
+:root[data-theme="dark"] .cooking-recipe-card,
+:root[data-theme="dark"] .cooking-ingredient{
+ background:var(--ap-surface,#25362b);border-color:var(--ap-border,#395042);
+ color:var(--ap-on-surface,#eff5ee);
+}
+:root[data-theme="dark"] .cooking-recipe-card small{color:var(--ap-muted,#9bb1a0)}
+:root[data-theme="dark"] .cooking-recipe-card .cooking-card-macros{color:var(--ap-primary,#c4df96)}
+:root[data-theme="dark"] .cooking-editor .cooking-totals{
+ background:var(--ap-support,#2d4032);border-color:var(--ap-border,#395042);
+ color:var(--ap-on-surface,#eff5ee);
+}
+:root[data-theme="dark"] .cooking-add-row select,
+:root[data-theme="dark"] .cooking-editor :is(input,textarea){
+ background:var(--ap-input,#1c2b22);color:var(--ap-on-surface,#eff5ee);
+ border-color:var(--ap-border,#395042);
+}
+@media(max-width:370px){
+ .cooking-add-row{grid-template-columns:minmax(0,1fr)}
+ .cooking-ingredient{padding:10px}
+ .cooking-ingredient-fields{gap:5px}
+ .cooking-ingredient-fields .field input{padding:8px 5px}
+}
