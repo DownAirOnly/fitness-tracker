@@ -113,5 +113,6 @@ test('imported exercise and known new variations light up the correct broad SVG 
  assert.match(svg,/muscle-region primary/);
  const plan=plannedMuscleSets([{...imported,targetSets:2}]);
  assert.equal(plan.delts.direct,2);
- assert.equal(plan.upperBack.supporting,1);
+ assert.equal(plan.upperBack.supporting,2);
+ assert.equal(plan.upperBack.effective,1);
 });
