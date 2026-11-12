@@ -1498,9 +1498,13 @@ function exerciseCardMarkup(e,{action,attrs='',modifier='',summary='',trailing='
  return `<button type="button" class="exercise exercise-card ${esc(modifier)} equipment-${equipment} movement-${movement}" data-action="${esc(action)}" ${attrs}><span class="equipment-art" aria-hidden="true">${equipmentGlyph(e.equipment)}</span><span class="exercise-copy"><span class="exercise-card-type-row"><small class="equipment-label">${equipmentLabel(e.equipment)}</small>${buddyMovementLabel(e)}</span><span class="exercise-name-row"><strong>${name}</strong>${setup?`<small class="exercise-setup-inline">${esc(setup)}</small>`:''}</span>${summary?`<small class="exercise-card-summary">${summary}</small>`:''}</span>${right||`<b class="exercise-card-trailing" aria-hidden="true">${esc(trailing)}</b>`}</button>`;
 }
 
-function exerciseCardWithMuscles(e,card){
- return '<div class="exercise-muscle-wrapper">'+card+
- '<button type="button" class="exercise-muscle-peek" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscle diagram for '+esc(e.name)+'" title="Muscle groups">'+muscleMiniMarkup(e)+'</button></div>';
+function exerciseCardWithMuscles(e,card,{settings=false}={}){
+ const routine=settings?workoutByName(workout):null;
+ const item=routine?.exercises.find(x=>x.exerciseId===e.id);
+ const targets=item?'<button type="button" class="routine-exercise-settings" data-action="routine-exercise-settings" data-routine="'+esc(routine.id)+'" data-id="'+esc(e.id)+'" aria-label="Edit rep targets, equipment and muscles for '+esc(e.name)+'">'+
+  esc(item.targetSets||2)+' sets · '+esc(item.repMin||6)+'–'+esc(item.repMax||12)+' reps <span>EDIT</span></button>':'';
+ return '<div class="exercise-muscle-wrapper'+(targets?' has-target-settings':'')+'">'+card+
+ '<button type="button" class="exercise-muscle-peek" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscle diagram for '+esc(e.name)+'" title="Muscle groups">'+muscleMiniMarkup(e)+'</button>'+targets+'</div>';
 }
 function openMuscleGuide(name,equipment='other',onBack=null){
  if(!name)return;
@@ -1659,6 +1663,27 @@ function workoutTemplateForm(name=null,preserve=false){
  if(!workoutEditorState)return;
  const state=workoutEditorState;
  modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<label class="field routine-color-control"><span>Routine color</span><input type="color" name="workoutColor" value="${esc(state.color||routineDefaultColor(state.id,state.name))}" aria-label="Routine color"></label><p class="hint">Planned sets are your starting target. A one-set exercise can optionally add a second set during Workout Buddy without changing this routine. Previous sets stay in workout history.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
+}
+function routineExerciseSettings(routineId,exerciseId){
+ const routine=savedWorkouts().find(w=>w.id===routineId),def=exerciseDefinition(exerciseId);
+ const item=routine?.exercises.find(x=>x.exerciseId===exerciseId);
+ if(!routine||!def||!item)return;
+ const equipmentOptions=['machine','cable','dumbbell','bench','calisthenics','other'].map(type=>
+  '<option value="'+type+'"'+(type===def.equipment?' selected':'')+'>'+equipmentLabel(type)+'</option>').join('');
+ modal('Targets & exercise setup',
+  '<form class="form routine-exercise-settings-form" data-form="routine-exercise-settings">'+
+  '<input type="hidden" name="routineId" value="'+esc(routine.id)+'"><input type="hidden" name="exerciseId" value="'+esc(def.id)+'">'+
+  '<p class="body-copy"><strong>'+esc(def.name)+'</strong> · '+esc(routine.name)+'</p>'+
+  '<p class="hint">Targets belong to this routine; changing equipment or the muscle diagram changes the saved exercise shared by all routines. Completed sets and historical equipment are never rewritten.</p>'+
+  '<div class="workout-program-grid">'+
+  input('Min reps','repMin',item.repMin,'number','min="1" max="100" step="1" required')+
+  input('Max reps','repMax',item.repMax,'number','min="1" max="100" step="1" required')+
+  input('Planned sets','targetSets',item.targetSets||2,'number','min="1" max="10" step="1" required')+
+  input('Rest (sec)','restSeconds',item.restSeconds??90,'number','min="0" max="1800" step="15" required')+
+  '</div><label class="field"><span>Exercise equipment</span><select name="equipment">'+equipmentOptions+'</select></label>'+
+  '<p class="hint">For a Smith-machine incline press, choose Bench if that is how you categorize the setup. This does not relabel past Machine logs.</p>'+
+  exerciseProfileControls(def)+
+  '<div class="form-actions"><button type="submit" class="primary">Save targets & exercise</button></div></form>');
 }
 function workoutExercisePicker(){
  if(!workoutEditorState)return;
@@ -1994,7 +2019,7 @@ function gym() {
  return buddy+routineTabs+selectedCard+'<section class="routine-exercise-section"><div class="routine-exercise-tools">'+
   button('Exercises','exercise-library','outline small')+(selected?button('Edit workout','edit-workout','outline small'):'')+
   button('+ Custom','custom-lift','outline small')+'</div><div class="exercise-list">'+
-  (exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e))).join(''):empty('This routine is empty. Edit it to add exercises.'))+
+  (exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e),{settings:true})).join(''):empty('This routine is empty. Edit it to add exercises.'))+
   '</div></section>'+routineHistoryPanel();
 }
 
