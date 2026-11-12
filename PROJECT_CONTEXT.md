@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v134 (November 11, 2026)
+## Current release — v135 (November 11, 2026)
+
+- **Food → Summary / Cooking:** Two Food sub-tabs, preserving the existing food log, saved foods and food-entry editor unchanged in Summary. Cooking is a separate recipe workspace, not a fifth bottom tab.
+- **Recipe core:** Create, edit and delete reusable recipes. Ingredients can be chosen from saved foods or entered manually. Each ingredient snapshots its own name, nutrition, serving details and quantity so Food Library edits never silently rewrite recipes. Batch and per-portion calories/protein are calculated live from the recipe's stated portion count.
+- **Portable recipe JSON:** Export and import a single recipe with embedded ingredients. Source Food Library IDs are stripped from exported files; importing never logs food or replaces an existing recipe. No user identity or private log/financial data is included.
+- **Persistence:** Recipe records round-trip through full and compact JSON, Nutrition section backups, Firebase v3 catalog documents and device migration. Older backups/cloud catalogs without recipes load with an empty recipe list. Saved recipes do not change existing eating/lifting history.
+- **Scope:** This is the recipe foundation only. No food consumption is logged by saving recipes. Recoverable cooking sessions, finished batches/leftovers, explicit portion-to-Food-Entry transfer, pantry counts, and shared creator credits are next phases. iPhone layout and installed PWA behavior require real-device verification independently of automated checks.
+
+## Previous release — v134 (November 11, 2026)
 
 - **Food and portion foundation (phase 1):** Saved food editor has optional reference amount/unit, serving description, raw/cooked/drained/as-sold state, and known grams/milliliters equivalents. Both nutrition values always describe the same reference serving. Existing foods retain unspecified serving sizes and unchanged numeric values.
 - **Calculate amount inside food logging:** Inline expandable tool previews nutrition from known quantity, desired calories, or desired protein. Apply changes only the current draft's serving multiplier; the existing Save food log action commits consumption. No modal-to-modal wizard or new bottom tab. Unit conversions are restricted to compatible dimensions or explicit equivalents; no invented density or raw/cooked conversions. Missing nutrition and zero target denominators are rejected.
