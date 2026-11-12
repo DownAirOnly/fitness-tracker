@@ -1,25 +1,26 @@
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=116';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=133';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=133';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=133';
+import {normalizeServing,servingLabel,portionFor} from './food-portion-model.js?v=134';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=134';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=134';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=134';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=134';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=133';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=133';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=112';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=112';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=115';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=112';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=96';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=112';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=112';
-import {availableMonths,exportMonth} from './account-monthly.js?v=112';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=112';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=112';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=133';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=83';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=112';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=112';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=112';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=134';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=134';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=134';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=134';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=134';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=134';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=134';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=134';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=134';
+import {availableMonths,exportMonth} from './account-monthly.js?v=134';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=134';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=134';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=134';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=134';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=134';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=134';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=134';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -1287,7 +1288,7 @@ function foodLog(){
 
 const foodKindLabel=kind=>kind==='drink'?'Drink':'Food';
 const foodAccuracyLabel=accuracy=>accuracy==='label'?'Label exact':accuracy==='estimate'?'Estimated':'Unspecified';
-const foodMetaSummary=food=>[foodKindLabel(food.kind),hasFoodTag(food,'ingredient')?'Ingredient':'',food.accuracy?foodAccuracyLabel(food.accuracy):''].filter(Boolean).join(' · ');
+const foodMetaSummary=food=>[foodKindLabel(food.kind),food.serving?servingLabel(food):'',hasFoodTag(food,'ingredient')?'Ingredient':'',food.accuracy?foodAccuracyLabel(food.accuracy):''].filter(Boolean).join(' · ');
 function nutritionAccuracyIcon(food){
  const accuracy=food?.accuracy||'',label=foodAccuracyLabel(accuracy);
  if(accuracy==='label')return '<span class="nutrition-accuracy nutrition-accuracy-label" aria-label="'+esc(label)+'"><svg viewBox="0 0 18 20" aria-hidden="true"><rect x="2.5" y="1.5" width="13" height="17" rx="1.8"></rect><path d="M5 5h8M5 8h8M5 11h5M5 14h8"></path></svg></span>';
@@ -2579,9 +2580,37 @@ function refreshFoodLibraryList(){
 function foodLibrary(){
  modal('Food Library','<div class="food-library"><div class="library-intro"><p class="body-copy">Edit reusable food definitions here without adding anything to the selected day. Pin frequent items for one-tap access and mark whether nutrition is label-exact or estimated.</p><button type="button" class="primary small" data-action="new-food-def">+ New saved food</button></div><div class="library-search-row"><label class="library-search"><span>Search</span><input type="search" data-library-search="food" value="'+esc(foodLibrarySearch)+'" placeholder="Search saved foods"></label><label class="sort-control"><span>Filter</span><select data-library-filter="food"><option value="all" '+(foodLibraryFilter==='all'?'selected':'')+'>All</option><option value="pinned" '+(foodLibraryFilter==='pinned'?'selected':'')+'>Favorites</option><option value="food" '+(foodLibraryFilter==='food'?'selected':'')+'>Food</option><option value="drink" '+(foodLibraryFilter==='drink'?'selected':'')+'>Drink</option><option value="ingredient" '+(foodLibraryFilter==='ingredient'?'selected':'')+'>Ingredients</option><option value="label" '+(foodLibraryFilter==='label'?'selected':'')+'>Label exact</option><option value="estimate" '+(foodLibraryFilter==='estimate'?'selected':'')+'>Estimated</option></select></label>'+foodSortControl(foodLibrarySort,'food-library')+'</div><div class="library-result-count" data-food-library-count>'+filteredFoodLibrary().length+' shown</div><div class="food-library-list">'+foodLibraryRows()+'</div></div>');
 }
+function servingFields(food){
+ const s=food?.serving;
+ return '<details class="food-serving-details" '+(s?'open':'')+'><summary>Serving size & food state (optional)</summary><p class="hint">The calories and protein above both describe this amount. Leave blank to keep an unspecified serving.</p><div class="form-grid">'+input('Reference amount','servingAmount',s?.amount??'','number','min="0.000001" step="any"')+'<label class="field"><span>Unit</span><select name="servingUnit">'+['serving','item','g','kg','oz','lb','ml','l'].map(u=>'<option '+(s?.unit===u?'selected':'')+'>'+u+'</option>').join('')+'</select></label></div>'+input('Description, e.g. 1 cup or 1 egg','servingText',s?.text||'','text','maxlength="120"')+'<label class="field"><span>Food state</span><select name="servingState">'+[['','Unspecified'],['raw','Raw'],['cooked','Cooked'],['drained','Drained'],['as-sold','As sold']].map(([v,n])=>'<option value="'+v+'" '+(s?.state===v?'selected':'')+'>'+n+'</option>').join('')+'</select></label><div class="form-grid">'+input('Grams in this serving, if known','servingGrams',s?.grams??'','number','min="0.000001" step="any"')+input('Milliliters in this serving, if known','servingMl',s?.milliliters??'','number','min="0.000001" step="any"')+'</div><p class="hint">Use label or measured equivalents. Raw and cooked weights are not interchangeable.</p></details>';
+}
+function servingFromForm(v){
+ if(v.servingAmount===''){
+  if(v.servingText||v.servingState||v.servingGrams||v.servingMl)throw Error('Enter the reference amount for these serving details.');
+  return undefined;
+ }
+ return normalizeServing({amount:Number(v.servingAmount),unit:v.servingUnit,text:v.servingText,state:v.servingState,...(v.servingGrams!==''?{grams:Number(v.servingGrams)}:{}),...(v.servingMl!==''?{milliliters:Number(v.servingMl)}:{})});
+}
+function portionCalculatorMarkup(card){
+ return '<details class="food-portion-tool"><summary>Calculate amount</summary><p class="hint" data-portion-basis>'+esc(servingLabel(card||{}))+'</p><div class="form-grid"><label class="field"><span>Calculate from</span><select name="portionMode"><option value="quantity">Known quantity</option><option value="calories">Desired calories</option><option value="protein">Desired protein (g)</option></select></label>'+input('Amount or target','portionValue','','number','min="0.000001" step="any"')+'</div><label class="field" data-portion-unit><span>Quantity unit</span><select name="portionUnit">'+['serving','item','g','kg','oz','lb','ml','l'].map(u=>'<option>'+u+'</option>').join('')+'</select></label><p data-portion-result role="status" aria-live="polite">Enter an amount to preview.</p>'+button('Apply amount','food-portion-apply','outline','disabled')+'<p class="hint">Applying changes only this draft. Save the food log when ready.</p></details>';
+}
+function foodPortionPreview(form,apply=false){
+ const v=form.elements,source=data.foods.find(f=>f.id===v.cardId.value),result=form.querySelector('[data-portion-result]'),applyButton=form.querySelector('[data-action="food-portion-apply"]');
+ if(!result)return;
+ form.querySelector('[data-portion-basis]').textContent=servingLabel(source||{});
+ form.querySelector('[data-portion-unit]').hidden=v.portionMode.value!=='quantity';
+ try{
+  if(v.calories.value.trim()===''||v.protein.value.trim()==='')throw Error('Enter both calories and protein first.');
+  const portion=portionFor({calories:Number(v.calories.value),protein:Number(v.protein.value),serving:source?.serving},{mode:v.portionMode.value,value:Number(v.portionValue.value),unit:v.portionUnit.value});
+  result.textContent=fmt(portion.amount)+' '+portion.unit+' · '+fmt(portion.calories)+' cal · '+fmt(portion.protein)+'g protein';
+  applyButton.disabled=false;
+  if(apply){v.quantity.value=String(portion.quantity);form.querySelector('[data-food-quantity-display]').textContent=fmt(portion.quantity);result.textContent+=' · Applied to draft';}
+ }catch(error){result.textContent=error.message;applyButton.disabled=true;}
+}
+
 function foodDefinitionForm(food=null,origin='food'){
  const tags=new Set(food?.tags||[]),back=origin==='library'?()=>foodLibrary():null;
- modal(food?'Edit saved food':'New saved food','<form class="form" data-form="food-definition"><input type="hidden" name="foodId" value="'+esc(food?.id||'')+'"><input type="hidden" name="origin" value="'+esc(origin)+'">'+input('Food name','name',food?.name||'','text','maxlength="100" required')+'<div class="form-grid">'+input('Calories per serving','calories',food?.calories??'','number','min="0" step="0.1" required')+input('Protein (g) per serving','protein',food?.protein??'','number','min="0" step="0.1" required')+'</div><div class="form-grid"><label class="field"><span>Type</span><select name="kind"><option value="food" '+(food?.kind!=='drink'?'selected':'')+'>Food</option><option value="drink" '+(food?.kind==='drink'?'selected':'')+'>Drink</option></select></label><label class="field"><span>Nutrition accuracy</span><select name="accuracy"><option value="" '+(!food?.accuracy?'selected':'')+'>Unspecified</option><option value="label" '+(food?.accuracy==='label'?'selected':'')+'>Label exact</option><option value="estimate" '+(food?.accuracy==='estimate'?'selected':'')+'>Estimated</option></select></label></div><label class="tag-check"><input type="checkbox" name="pinned" value="yes" '+(food?.pinned?'checked':'')+'><span><strong>Favorite</strong><small>Shows this item in Favorites at the top of the Food page.</small></span></label><label class="tag-check"><input type="checkbox" name="ingredient" value="yes" '+(tags.has('ingredient')?'checked':'')+'><span><strong>Ingredient</strong><small>Useful as part of meals or recipes. This does not exclude it from suggestions.</small></span></label><div class="form-actions"><button class="primary" type="submit">Save definition</button>'+(food?button('Delete saved food','delete-food-def','danger','data-id="'+esc(food.id)+'" data-origin="'+esc(origin)+'"'):'')+'</div></form><p class="hint">Label exact means the nutrition came from a package, manufacturer, or restaurant listing. Estimated means the values are an approximation. Historical food-log entries keep their original nutrition.</p>',back);
+ modal(food?'Edit saved food':'New saved food','<form class="form" data-form="food-definition"><input type="hidden" name="foodId" value="'+esc(food?.id||'')+'"><input type="hidden" name="origin" value="'+esc(origin)+'">'+input('Food name','name',food?.name||'','text','maxlength="100" required')+'<div class="form-grid">'+input('Calories per serving','calories',food?.calories??'','number','min="0" step="0.1" required')+input('Protein (g) per serving','protein',food?.protein??'','number','min="0" step="0.1" required')+'</div>'+servingFields(food)+'<div class="form-grid"><label class="field"><span>Type</span><select name="kind"><option value="food" '+(food?.kind!=='drink'?'selected':'')+'>Food</option><option value="drink" '+(food?.kind==='drink'?'selected':'')+'>Drink</option></select></label><label class="field"><span>Nutrition accuracy</span><select name="accuracy"><option value="" '+(!food?.accuracy?'selected':'')+'>Unspecified</option><option value="label" '+(food?.accuracy==='label'?'selected':'')+'>Label exact</option><option value="estimate" '+(food?.accuracy==='estimate'?'selected':'')+'>Estimated</option></select></label></div><label class="tag-check"><input type="checkbox" name="pinned" value="yes" '+(food?.pinned?'checked':'')+'><span><strong>Favorite</strong><small>Shows this item in Favorites at the top of the Food page.</small></span></label><label class="tag-check"><input type="checkbox" name="ingredient" value="yes" '+(tags.has('ingredient')?'checked':'')+'><span><strong>Ingredient</strong><small>Useful as part of meals or recipes. This does not exclude it from suggestions.</small></span></label><div class="form-actions"><button class="primary" type="submit">Save definition</button>'+(food?button('Delete saved food','delete-food-def','danger','data-id="'+esc(food.id)+'" data-origin="'+esc(origin)+'"'):'')+'</div></form><p class="hint">Label exact means the nutrition came from a package, manufacturer, or restaurant listing. Estimated means the values are an approximation. Historical food-log entries keep their original nutrition.</p>',back);
 }
 
 const foodCSVColumns=['recordType','date','name','calories','protein','quantity','time','saveAsFood'];
@@ -2650,7 +2679,7 @@ function foodForm(entry=null,card=null,options={}) {
   if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
-  modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
+  modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${portionCalculatorMarkup(card)}${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
 }
 function showFoodUndo(entryId,name){
  clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
@@ -2757,6 +2786,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
+  if(action==='food-portion-apply'){foodPortionPreview(el.closest('form'),true);return;}
   if(action==='appearance-inspect'){
    const inspecting=document.documentElement.dataset.themeInspect!=='on';
    document.documentElement.dataset.themeInspect=inspecting?'on':'off';
@@ -3536,6 +3566,7 @@ document.addEventListener('click',async event=>{
   if(action==='choose-import'){importModal(el.dataset.kind,el.dataset.source||'file');return;}
   if(action==='commit-import'){await commitImport();return;}
 });
+for(const eventName of ['input','change'])app.addEventListener(eventName,event=>{const form=event.target.closest('form[data-form="food"]');if(form?.querySelector('[data-portion-result]'))foodPortionPreview(form);});
 app.addEventListener('submit',async event=>{
   const form=event.target;if(!form.dataset.form)return;event.preventDefault();
   // Ordinary food, workout and finance logs remain usable when iOS suspends an
@@ -3788,7 +3819,7 @@ app.addEventListener('submit',async event=>{
   }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
-  if(form.dataset.form==='food-definition'){const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
+  if(form.dataset.form==='food-definition'){let serving;try{serving=servingFromForm(v);}catch(error){alert(error.message);return;}const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||v.calories.trim()===''||v.protein.trim()===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,serving,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,...(serving?{serving}:{}),lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
     const draft=foodDraftFromForm(form,foodBatch.length>0);
     if(draft===false||(!draft&&!foodBatch.length))return;
@@ -3893,7 +3924,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=133',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=134',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -3995,7 +4026,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=133');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=134');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

@@ -1,3 +1,9 @@
+## v134 — Food serving sizes and portion calculations
+
+Food Library → edit a saved food → **Serving size & food state** records the amount described by its calories and protein, with optional measured equivalents. Log a saved food → **Calculate amount** previews a measured quantity or calorie/protein target; **Apply amount** changes the draft and **Save food log** confirms consumption.
+
+Existing foods and historical logs retain their values. JSON backups/account sync preserve optional serving details; the existing foodLog CSV header is unchanged. Missing protein is not zero; incompatible mass/volume conversions need an explicit equivalent. This release is the foundation for recipes within Food. Recipe/cooking workspaces and independently shared recipes/pantries remain upcoming, not shipped.
+
 # Everyday fitness tracker
 
 ## v133 — Money retirement

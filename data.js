@@ -1,7 +1,8 @@
-import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=116';
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=132';
-import {normalizeClassificationRules} from './classification-model.js?v=96';
-import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=112';
+import {normalizeServing} from './food-portion-model.js?v=134';
+import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=134';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=134';
+import {normalizeClassificationRules} from './classification-model.js?v=134';
+import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=134';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -280,7 +281,7 @@ export function normalizeData(input) {
     if(tx.source)clean.source=tx.source;
     return clean;
   });
-  for(const f of data.foods){if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0)throw new Error('Backup has an invalid saved food.');f.kind=['food','drink'].includes(f.kind)?f.kind:'food';f.tags=Array.isArray(f.tags)?[...new Set(f.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[];f.pinned=f.pinned===true;f.accuracy=['label','estimate'].includes(f.accuracy)?f.accuracy:'';if(f.tags.length>50||f.tags.some(tag=>tag.length>40))throw new Error('Backup has invalid food metadata.');}
+  for(const f of data.foods){if(f.serving!=null)f.serving=normalizeServing(f.serving);if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0)throw new Error('Backup has an invalid saved food.');f.kind=['food','drink'].includes(f.kind)?f.kind:'food';f.tags=Array.isArray(f.tags)?[...new Set(f.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[];f.pinned=f.pinned===true;f.accuracy=['label','estimate'].includes(f.accuracy)?f.accuracy:'';if(f.tags.length>50||f.tags.some(tag=>tag.length>40))throw new Error('Backup has invalid food metadata.');}
   for(const e of data.foodEntries){if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0)throw new Error('Backup has an invalid food entry.');if(e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47))throw new Error('Backup has an invalid food time.');}
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
   for(const b of data.bodyFat) if(typeof b.id!=='string'||!validDate(b.date)||!Number.isFinite(b.value)||b.value<=0||b.value>100||(b.recordedAt!=null&&typeof b.recordedAt!=='string')||(b.source!=null&&typeof b.source!=='string')) throw new Error('Backup has an invalid body-fat reading.');
