@@ -390,6 +390,22 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('demo-start');
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
 
+ // Safe routine CSV preview must recognize existing exercises without
+ // replacing any saved history or goals before confirmation.
+ await click('settings');await click('import-data');await click('routine-import-open');
+ const importedWorkoutBefore=JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data));
+ const routineForm=document.querySelector('form[data-form="routine-import"]');
+ assert.ok(routineForm,'workout CSV has a dedicated import form');
+ routineForm.elements.text.value='recordType,workout,exercise,equipment,order,targetSets,weekday\nworkout,Upper A,Seated Row,machine,1,2,6';
+ routineForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();
+ assert.ok(document.querySelector('.routine-import-review'),'workout CSV opens a review screen');
+ assert.match(document.querySelector('.routine-import-summary').textContent,/existing exercises recognized/);
+ assert.ok(document.querySelector('[data-routine-match-exercise]'),'existing exercises can be matched explicitly');
+ assert.ok(document.querySelector('[data-routine-import-schedule]')&&!document.querySelector('[data-routine-import-schedule]').checked,
+   'imported weekday changes are opt-in');
+ await click('close');
+ assert.equal(JSON.stringify(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data)),importedWorkoutBefore,
+   'canceling workout review changes no account data');
  await click('food');
  assert.ok(document.querySelector('.food-workspace-tabs [data-tab="summary"].selected'),'Food opens on Summary');
  document.querySelector('.food-workspace-tabs [data-tab="cooking"]').click();await tick();
