@@ -1,0 +1,34 @@
+/* v137 — guided, non-destructive routine import */
+.routine-import-buttons{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.routine-import-buttons button{min-height:42px}
+.routine-import-review{display:grid;gap:13px}
+.routine-import-summary{display:grid;gap:5px;padding:14px;border:1px solid #cbd9d0;border-radius:14px;background:#eef5ee}
+.routine-import-summary strong{font-size:17px}
+.routine-import-summary span{font-size:11px;line-height:1.55}
+.routine-import-scroll{display:grid;gap:13px;max-height:52vh;overflow:auto;min-height:0;overscroll-behavior:contain}
+.routine-import-scroll details{border:1px solid #d5e0d8;border-radius:12px;background:#fff;min-width:0}
+.routine-import-scroll details>summary{cursor:pointer;font-size:14px;font-weight:800;padding:13px 14px}
+.routine-import-scroll details>p{margin:0 14px 12px}
+.routine-import-match-list{display:grid;gap:0;border-top:1px solid #d5e0d8}
+.routine-import-match{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;padding:11px 13px;border-bottom:1px solid #d5e0d8}
+.routine-import-match:last-child{border-bottom:0}
+.routine-import-match span{display:grid;gap:4px;min-width:0}
+.routine-import-match strong{font-size:13px;overflow-wrap:anywhere}
+.routine-import-match small{font-size:11px;line-height:1.5;opacity:.77}
+.routine-import-match select{width:100%;min-height:44px;max-width:100%;font-size:13px;border:1px solid #cbd9d0;border-radius:9px;padding:9px;color:inherit;background:#f7faf6}
+.routine-import-schedule{display:flex;align-items:flex-start;gap:11px;padding:14px;border:1px solid #cbd9d0;border-radius:12px;background:#f7faf6}
+.routine-import-schedule input{width:20px;height:20px;min-width:20px;accent-color:var(--ap-primary,#4f805d)}
+.routine-import-schedule span{display:grid;gap:6px;min-width:0}
+.routine-import-schedule small{font-size:11px;line-height:1.55}
+.routine-import-footer{border-top:1px solid #d5e0d8;padding-top:10px}
+.routine-import-footer .form-actions{display:flex;flex-wrap:wrap;gap:8px}
+.routine-import-cue{margin:6px 12px 0;color:inherit;font-size:11px;line-height:1.5}
+.exercise-training-profile{border:1px solid #d5e0d8;border-radius:12px;padding:11px 13px;font-size:12px}
+.exercise-training-profile summary{font-weight:800;cursor:pointer}
+.exercise-training-profile p{margin:8px 0 0;line-height:1.5}
+:root[data-theme="dark"] .routine-import-summary,:root[data-theme="dark"] .routine-import-schedule{background:var(--ap-support,#2c4032);border-color:var(--ap-border,#354b3d)}
+:root[data-theme="dark"] .routine-import-scroll details{background:var(--ap-surface,#22382b);border-color:var(--ap-border,#354b3d)}
+:root[data-theme="dark"] .routine-import-match-list,.routine-import-match{border-color:var(--ap-border,#354b3d)}
+:root[data-theme="dark"] .routine-import-match select{background:var(--ap-input,#1b2d22);border-color:var(--ap-border,#354b3d);color:var(--ap-on-surface,#f1f6f1)}
+:root[data-theme="dark"] .routine-import-footer,:root[data-theme="dark"] .exercise-training-profile{border-color:var(--ap-border,#354b3d)}
+@media(max-width:385px){.routine-import-summary{padding:11px}.routine-import-match{padding:10px}.routine-import-review .form-actions button{flex:1 1 130px}}
