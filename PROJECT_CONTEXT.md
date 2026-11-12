@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v135 (November 11, 2026)
+## Current release — v136 (November 11, 2026)
+
+- **Hotfix — restore v133 Food Entry:** Removed the v134 in-entry Calculate amount UI, preview, Apply action, and input/change listeners. The existing Food Entry form now matches v133: saved-food autofill, calorie/protein fields, servings shortcuts, date/time, copy/paste CSV, batch entry, and explicit Save.
+- **Cooking remains separate:** v135 Food → Summary/Cooking workspace, recipe creation, saved ingredient snapshots, JSON import/export, and cloud persistence are unchanged. Food Library keeps optional serving metadata from v134, for cooking and future food definitions, without exposing a calculator in the ordinary Food Entry screen.
+- **Data safety:** No saved foods, nutrition records, recipes, serving metadata, account identities, or lifting data changed. Existing food log entries retain their values. No schema migration.
+- **Verification:** UI smoke covers absent calculator with preserved v133 serving shortcuts and food logging. Versioned assets and offline cache updated to v136. Physical iPhone UI remains user verification.
+
+## Previous release — v135 (November 11, 2026)
 
 - **Food → Summary / Cooking:** Two Food sub-tabs, preserving the existing food log, saved foods and food-entry editor unchanged in Summary. Cooking is a separate recipe workspace, not a fifth bottom tab.
 - **Recipe core:** Create, edit and delete reusable recipes. Ingredients can be chosen from saved foods or entered manually. Each ingredient snapshots its own name, nutrition, serving details and quantity so Food Library edits never silently rewrite recipes. Batch and per-portion calories/protein are calculated live from the recipe's stated portion count.
