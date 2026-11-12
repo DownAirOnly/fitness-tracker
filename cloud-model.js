@@ -33,7 +33,7 @@ export function nextRecord(current,expected,payload) {
   return {schemaVersion:1,revision:revision+1,payload};
 }
 
-export function hasRecords(data) { return ['foods','foodEntries','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
+export function hasRecords(data) { return ['foods','foodEntries','recipes','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
 export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
  return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
@@ -42,7 +42,7 @@ export function hasDeviceMigrationContent(data) {
   (data.workoutSchedule||[]).length>0;
 }
 
-const migrationKeys=['foods','foodEntries','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
+const migrationKeys=['foods','foodEntries','recipes','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
 const exerciseKey=e=>String(e.name||'').trim().toLowerCase()+'|'+(e.equipment||'other');
 const signature=value=>JSON.stringify(value,(key,value)=>{
  if(value&&typeof value==='object'&&!Array.isArray(value))
@@ -194,7 +194,7 @@ export function planDeviceMigration(cloud,device) {
   if(lift.buddySessionId&&sessionAliases.has(lift.buddySessionId))
    lift.buddySessionId=sessionAliases.get(lift.buddySessionId);
  }
- for(const key of ['foods','foodEntries','weights','bodyFat','lifts'])pushRecords(key);
+ for(const key of ['foods','foodEntries','recipes','weights','bodyFat','lifts'])pushRecords(key);
  // Financial entries are not content-deduplicated: two identical purchases can be real.
  // Repeated imports are idempotent by original ID and deterministic "-device" aliases.
  // Different records sharing an ID are preserved rather than overwritten.
