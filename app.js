@@ -1550,6 +1550,35 @@ function setSharedExerciseNotes(e){
  const def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);
  if(def)def.notes=String(e.notes||'').slice(0,500);
 }
+// Exercise-level guidance is shared across routines. Each visible anatomy
+// region can be marked primary, supporting, or unselected. Original detailed
+// imported metadata is preserved until the user actually edits this panel.
+function exerciseProfileControls(def){
+ const profile=exerciseMuscleProfile(def),primary=new Set(profile?.primary||[]),secondary=new Set(profile?.secondary||[]);
+ const movement=def?.meta?.movement||buddyMovement(def||{name:'',equipment:'other'});
+ const choices=[['neutral','Neutral / other'],['push','Push'],['pull','Pull']];
+ const rows=Object.entries(muscleRegionLabels).map(([region,label])=>{
+  const current=primary.has(region)?'primary':secondary.has(region)?'secondary':'';
+  return '<label class="exercise-map-region"><span>'+esc(label)+'</span><select data-muscle-region="'+esc(region)+'" aria-label="'+esc(label)+' muscle involvement">'+
+   [['','Not highlighted'],['primary','Primary'],['secondary','Supporting']].map(([value,title])=>
+    '<option value="'+value+'"'+(current===value?' selected':'')+'>'+title+'</option>').join('')+'</select></label>';
+ }).join('');
+ return '<details class="exercise-map-editor"><summary>Muscle diagram and movement</summary>'+
+  '<p class="hint">Choose the regions that should light up. These are broad SVG regions, not separate anatomical heads. Changes affect future diagrams, not past lifted sets.</p>'+
+  '<label class="field"><span>Movement type</span><select name="movement" data-training-profile-editor>'+
+  choices.map(([value,title])=>'<option value="'+value+'"'+(movement===value?' selected':'')+'>'+title+'</option>').join('')+'</select></label>'+
+  '<div class="exercise-map-regions">'+rows+'</div></details>';
+}
+function editedExerciseMeta(form,previous){
+ if(form.dataset.profileDirty!=='true')return previous;
+ const primaryMuscles=[],secondaryMuscles=[];
+ for(const select of form.querySelectorAll('select[data-muscle-region]')){
+  const region=select.dataset.muscleRegion;
+  if(select.value==='primary')primaryMuscles.push(region);
+  else if(select.value==='secondary')secondaryMuscles.push(region);
+ }
+ return {...(previous||{}),movement:form.elements.movement.value,primaryMuscles,secondaryMuscles};
+}
 function exerciseDefinitionForm(def=null,returnTo='library'){
  const profile=def?.meta;
  const profileLabel=profile?'<details class="exercise-training-profile"><summary>Imported training profile</summary>'+
@@ -1558,7 +1587,7 @@ function exerciseDefinitionForm(def=null,returnTo='library'){
   (profile.secondaryMuscles?.length?'<p><strong>Secondary:</strong> '+esc(profile.secondaryMuscles.join(', '))+'</p>':'')+
   (profile.safetyNote?'<p><strong>Safety:</strong> '+esc(profile.safetyNote)+'</p>':'')+'</details>':'';
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>'+profileLabel+'<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
+ modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>'+profileLabel+exerciseProfileControls(def)+'<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
 }
 
 const routinePresets=[
