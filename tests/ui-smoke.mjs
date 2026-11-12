@@ -571,6 +571,18 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
 
  // v92: a live Buddy session must prefer current completed sets over prior-workout set 2.
  await click('gym');
+ const targetChip=document.querySelector('.routine-exercise-section [data-action="routine-exercise-settings"]');
+ assert.ok(targetChip,'routine exercises expose an editable reps-and-sets target on the card');
+ assert.match(targetChip.textContent,/\d+ sets · \d+–\d+ reps/);
+ targetChip.click();await tick();
+ const targetForm=document.querySelector('form[data-form="routine-exercise-settings"]');
+ assert.ok(targetForm,'target modal opens from the exercise card');
+ assert.ok(targetForm.elements.repMin&&targetForm.elements.repMax&&targetForm.elements.targetSets);
+ assert.ok([...targetForm.elements.equipment.options].some(o=>o.value==='bench'),'Smith/bench equipment can be chosen');
+ assert.ok(targetForm.querySelector('.exercise-map-editor'),'same panel contains editable anatomy and push/pull');
+ await click('close');
+ assert.ok(document.querySelector('.routine-exercise-section [data-action="routine-exercise-settings"]'),
+   'closing target settings returns to the routine without changing history');
  assert.ok(!document.querySelector('.buddy-entry [data-action="custom-lift"]'),'Buddy has no duplicate manual lift button');
   assert.ok(document.querySelector('.routine-exercise-tools [data-action="custom-lift"]'),'manual lifting remains in exercise tools');
   const routineTabs=[...document.querySelectorAll('.gym-routine-tabs [data-action="gym-select-routine"]')];
