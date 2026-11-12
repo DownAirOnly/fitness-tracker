@@ -106,32 +106,41 @@ export function prepareRoutineImport(text,current,options={}){
  const byRoutineId=new Map(currentRoutines.map(w=>[w.id,w]));
  const usedRoutineNames=new Set(currentRoutines.map(w=>normalizeName(w.name)));
  const exerciseMap=new Map(),exercisePreview=[],routinePreview=[],schedulePreview=[];
- let createdExercises=0,reusedExercises=0,enrichedExercises=0,createdRoutines=0,updatedRoutines=0,unchangedRoutines=0;
+ let createdExercises=0,reusedExercises=0,enrichedExercises=0,reclassifiedExercises=0,createdRoutines=0,updatedRoutines=0,unchangedRoutines=0;
  const usedNewExerciseIds=new Set(),touchedRoutineIds=new Set();
  for(const def of source.definitions){
   const exact=byExerciseKey.get(def.key),choice=matches[def.key];
-  let prior=exact||null;
+  let prior=exact||null,reclassify=false,oldEquipment='';
   if(choice!==undefined){
    if(choice==='new'){if(exact)errors.push('Cannot create a duplicate '+def.name+' ('+def.equipment+').');prior=null;}
-   else{
+   else if(choice.startsWith('reclassify:')){
+    prior=byExerciseId.get(choice.slice('reclassify:'.length))||null;
+    if(!prior||normalizeName(prior.name)!==normalizeName(def.name)||exact&&exact.id!==prior.id)
+     errors.push('Equipment reclassification must target the same named exercise without a duplicate.');
+    else if(prior.equipment!==def.equipment){reclassify=true;oldEquipment=prior.equipment;}
+   }else{
     prior=byExerciseId.get(choice)||null;
     if(!prior||prior.equipment!==def.equipment)errors.push('Invalid exercise match for '+def.name+' ('+def.equipment+').');
    }
   }
   if(prior){
    exerciseMap.set(def.key,prior.id);reusedExercises++;
+   if(reclassify){
+    prior.equipment=def.equipment;reclassifiedExercises++;
+    warnings.push('Changing '+def.name+' from '+oldEquipment+' to '+def.equipment+' updates the saved exercise. Historical lift equipment and weights stay unchanged.');
+   }
    const merged=mergeMissingExerciseMeta(prior.meta,def.meta);
    let enriched=false;
    if(JSON.stringify(prior.meta||null)!==JSON.stringify(merged||null)){prior.meta=merged;enriched=true;enrichedExercises++;}
    // Never import over a person's machine setup or shared exercise notes.
-   exercisePreview.push({key:def.key,name:def.name,equipment:def.equipment,matchId:prior.id,matchName:prior.name,action:enriched?'enrich':'reuse',exact:prior.id===exact?.id});
+   exercisePreview.push({key:def.key,name:def.name,equipment:def.equipment,matchId:prior.id,matchName:prior.name,action:reclassify?'reclassify':enriched?'enrich':'reuse',exact:prior.id===exact?.id,oldEquipment,meta:merged||def.meta});
   }else{
    const requested=def.importedId||'';
    const fresh=requested&&!existingIds.has(requested)&&!usedNewExerciseIds.has(requested)?requested:id();
    usedNewExerciseIds.add(fresh);existingIds.add(fresh);
    const newDef={id:fresh,name:def.name,equipment:def.equipment,...(def.setup?{setup:def.setup}:{}),...(def.notes?{notes:def.notes}:{}),...(def.meta?{meta:def.meta}:{})};
    candidate.exerciseDefinitions.push(newDef);exerciseMap.set(def.key,fresh);createdExercises++;
-   exercisePreview.push({key:def.key,name:def.name,equipment:def.equipment,matchId:null,matchName:null,action:'create'});
+   exercisePreview.push({key:def.key,name:def.name,equipment:def.equipment,matchId:null,matchName:null,action:'create',meta:def.meta});
    if(currentDefs.some(x=>normalizeName(x.name)===normalizeName(def.name)&&x.equipment!==def.equipment))
     warnings.push(def.name+': existing exercise uses different equipment. Created a separate definition instead of merging them.');
   }
@@ -185,11 +194,11 @@ export function prepareRoutineImport(text,current,options={}){
  if(originalHistory!==candidateHistory)errors.push('Import attempted to change protected settings or workout history.');
  let normalized=null;
  if(!errors.length)try{normalized=normalizeData(candidate);}catch(error){errors.push(error.message);}
- const changeCount=createdExercises+enrichedExercises+createdRoutines+updatedRoutines+(applySchedule?schedulePreview.length:0);
+ const changeCount=createdExercises+enrichedExercises+reclassifiedExercises+createdRoutines+updatedRoutines+(applySchedule?schedulePreview.length:0);
  return{kind:'routine-csv',base:JSON.stringify(current),candidate:errors.length?null:normalized,groups:[],errors,warnings,
   exercisePreview,routinePreview,schedulePreview,options:{exerciseMatches:structuredClone(matches),routineActions:structuredClone(actions),applySchedule},
-  counts:{createdExercises,reusedExercises,enrichedExercises,createdRoutines,updatedRoutines,unchangedRoutines},
-  added:createdExercises+createdRoutines,replaced:updatedRoutines+enrichedExercises,unchanged:reusedExercises+unchangedRoutines,
+  counts:{createdExercises,reusedExercises,enrichedExercises,reclassifiedExercises,createdRoutines,updatedRoutines,unchangedRoutines},
+  added:createdExercises+createdRoutines,replaced:updatedRoutines+enrichedExercises+reclassifiedExercises,unchanged:reusedExercises+unchangedRoutines,
   changeCount,display:{count:changeCount,label:changeCount+' workout import change'+(changeCount===1?'':'s')},
   otherChanges:[],settingChanges:[],promptChanged:false,settings:structuredClone(current.settings),
   currentSettings:structuredClone(current.settings),promptDate:current.promptDate||'',currentPromptDate:current.promptDate||''};
