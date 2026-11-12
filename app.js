@@ -1,28 +1,28 @@
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=137';
-import {createCookingUI} from './cooking-ui.js?v=137';
-import {createRoutineImportUI} from './routine-import-ui.js?v=137';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=137';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=137';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=137';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=137';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=138';
+import {createCookingUI} from './cooking-ui.js?v=138';
+import {createRoutineImportUI} from './routine-import-ui.js?v=138';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=138';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=138';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=138';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=138';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup} from './muscle-map.js?v=137';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=137';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=137';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=137';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=137';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=137';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=137';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=137';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=137';
-import {availableMonths,exportMonth} from './account-monthly.js?v=137';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=137';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=137';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=137';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=137';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=137';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=137';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=137';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=138';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=138';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=138';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=138';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=138';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=138';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=138';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=138';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=138';
+import {availableMonths,exportMonth} from './account-monthly.js?v=138';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=138';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=138';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=138';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=138';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=138';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=138';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=138';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -1498,17 +1498,22 @@ function exerciseCardMarkup(e,{action,attrs='',modifier='',summary='',trailing='
  return `<button type="button" class="exercise exercise-card ${esc(modifier)} equipment-${equipment} movement-${movement}" data-action="${esc(action)}" ${attrs}><span class="equipment-art" aria-hidden="true">${equipmentGlyph(e.equipment)}</span><span class="exercise-copy"><span class="exercise-card-type-row"><small class="equipment-label">${equipmentLabel(e.equipment)}</small>${buddyMovementLabel(e)}</span><span class="exercise-name-row"><strong>${name}</strong>${setup?`<small class="exercise-setup-inline">${esc(setup)}</small>`:''}</span>${summary?`<small class="exercise-card-summary">${summary}</small>`:''}</span>${right||`<b class="exercise-card-trailing" aria-hidden="true">${esc(trailing)}</b>`}</button>`;
 }
 
-function exerciseCardWithMuscles(e,card){
- return '<div class="exercise-muscle-wrapper">'+card+
- '<button type="button" class="exercise-muscle-peek" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscle diagram for '+esc(e.name)+'" title="Muscle groups">'+muscleMiniMarkup(e.name)+'</button></div>';
+function exerciseCardWithMuscles(e,card,{settings=false}={}){
+ const routine=settings?workoutByName(workout):null;
+ const item=routine?.exercises.find(x=>x.exerciseId===e.id);
+ const targets=item?'<button type="button" class="routine-exercise-settings" data-action="routine-exercise-settings" data-routine="'+esc(routine.id)+'" data-id="'+esc(e.id)+'" aria-label="Edit rep targets, equipment and muscles for '+esc(e.name)+'">'+
+  esc(item.targetSets||2)+' sets · '+esc(item.repMin||6)+'–'+esc(item.repMax||12)+' reps <span>EDIT</span></button>':'';
+ return '<div class="exercise-muscle-wrapper'+(targets?' has-target-settings':'')+'">'+card+
+ '<button type="button" class="exercise-muscle-peek" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscle diagram for '+esc(e.name)+'" title="Muscle groups">'+muscleMiniMarkup(e)+'</button>'+targets+'</div>';
 }
 function openMuscleGuide(name,equipment='other',onBack=null){
  if(!name)return;
- modal(name+' · Muscles',muscleGuideMarkup(name),onBack);
+ const exercise=data.exerciseDefinitions?.find(e=>e.name.toLowerCase()===name.toLowerCase()&&e.equipment===equipment)||data.exerciseDefinitions?.find(e=>e.name.toLowerCase()===name.toLowerCase());
+ modal(name+' · Muscles',muscleGuideMarkup(exercise||name),onBack);
 }
 function muscleRelatedExercises(group){
  return (data.exerciseDefinitions||[]).flatMap(e=>{
-  const profile=exerciseMuscleProfile(e.name);
+  const profile=exerciseMuscleProfile(e);
   const role=profile?.primary.includes(group)?'primary':profile?.secondary.includes(group)?'secondary':null;
   return role?[{name:e.name,equipment:e.equipment||'other',role}]:[];
  }).sort((a,b)=>a.name.localeCompare(b.name));
@@ -1549,6 +1554,35 @@ function setSharedExerciseNotes(e){
  const def=data.exerciseDefinitions?.find(x=>x.id===e.exerciseId);
  if(def)def.notes=String(e.notes||'').slice(0,500);
 }
+// Exercise-level guidance is shared across routines. Each visible anatomy
+// region can be marked primary, supporting, or unselected. Original detailed
+// imported metadata is preserved until the user actually edits this panel.
+function exerciseProfileControls(def){
+ const profile=exerciseMuscleProfile(def),primary=new Set(profile?.primary||[]),secondary=new Set(profile?.secondary||[]);
+ const movement=def?.meta?.movement||buddyMovement(def||{name:'',equipment:'other'});
+ const choices=[['neutral','Neutral / other'],['push','Push'],['pull','Pull']];
+ const rows=Object.entries(muscleRegionLabels).map(([region,label])=>{
+  const current=primary.has(region)?'primary':secondary.has(region)?'secondary':'';
+  return '<label class="exercise-map-region"><span>'+esc(label)+'</span><select data-muscle-region="'+esc(region)+'" aria-label="'+esc(label)+' muscle involvement">'+
+   [['','Not highlighted'],['primary','Primary'],['secondary','Supporting']].map(([value,title])=>
+    '<option value="'+value+'"'+(current===value?' selected':'')+'>'+title+'</option>').join('')+'</select></label>';
+ }).join('');
+ return '<details class="exercise-map-editor"><summary>Muscle diagram and movement</summary>'+
+  '<p class="hint">Choose the regions that should light up. These are broad SVG regions, not separate anatomical heads. Changes affect future diagrams, not past lifted sets.</p>'+
+  '<label class="field"><span>Movement type</span><select name="movement" data-training-profile-editor>'+
+  choices.map(([value,title])=>'<option value="'+value+'"'+(movement===value?' selected':'')+'>'+title+'</option>').join('')+'</select></label>'+
+  '<div class="exercise-map-regions">'+rows+'</div></details>';
+}
+function editedExerciseMeta(form,previous){
+ if(form.dataset.profileDirty!=='true')return previous;
+ const primaryMuscles=[],secondaryMuscles=[];
+ for(const select of form.querySelectorAll('select[data-muscle-region]')){
+  const region=select.dataset.muscleRegion;
+  if(select.value==='primary')primaryMuscles.push(region);
+  else if(select.value==='secondary')secondaryMuscles.push(region);
+ }
+ return {...(previous||{}),movement:form.elements.movement.value,primaryMuscles,secondaryMuscles};
+}
 function exerciseDefinitionForm(def=null,returnTo='library'){
  const profile=def?.meta;
  const profileLabel=profile?'<details class="exercise-training-profile"><summary>Imported training profile</summary>'+
@@ -1557,7 +1591,7 @@ function exerciseDefinitionForm(def=null,returnTo='library'){
   (profile.secondaryMuscles?.length?'<p><strong>Secondary:</strong> '+esc(profile.secondaryMuscles.join(', '))+'</p>':'')+
   (profile.safetyNote?'<p><strong>Safety:</strong> '+esc(profile.safetyNote)+'</p>':'')+'</details>':'';
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>'+profileLabel+'<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
+ modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>${profileLabel}${exerciseProfileControls(def)}<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
 }
 
 const routinePresets=[
@@ -1619,7 +1653,7 @@ function workoutEditorCapture(){
 function workoutEditorRow(item,i,total){
  const e=resolveWorkoutExercise(item);if(!e)return'';
  const cue=e.cue?'<p class="routine-import-cue"><strong>Routine cue:</strong> '+esc(e.cue)+'</p>':'';
- return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e.name)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div>'+cue+'<div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
+ return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div>'+cue+'<div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
 }
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
@@ -1629,6 +1663,27 @@ function workoutTemplateForm(name=null,preserve=false){
  if(!workoutEditorState)return;
  const state=workoutEditorState;
  modal(state.isNew?'Create routine':'Edit routine',`<form class="form workout-template-form" data-form="workout-template">${input('Routine name','workoutName',state.name,'text','maxlength="80" required')}<label class="field routine-color-control"><span>Routine color</span><input type="color" name="workoutColor" value="${esc(state.color||routineDefaultColor(state.id,state.name))}" aria-label="Routine color"></label><p class="hint">Planned sets are your starting target. A one-set exercise can optionally add a second set during Workout Buddy without changing this routine. Previous sets stay in workout history.</p><div class="workout-template-list">${state.exercises.length?state.exercises.map((item,i)=>workoutEditorRow(item,i,state.exercises.length)).join(''):'<p class="empty">This workout has no exercises yet.</p>'}</div><div class="workout-editor-actions"><button type="button" class="outline" data-action="workout-add-picker">+ Add exercise</button><button class="primary" type="submit">${state.isNew?'Create routine':'Save routine'}</button></div></form>`);
+}
+function routineExerciseSettings(routineId,exerciseId){
+ const routine=savedWorkouts().find(w=>w.id===routineId),def=exerciseDefinition(exerciseId);
+ const item=routine?.exercises.find(x=>x.exerciseId===exerciseId);
+ if(!routine||!def||!item)return;
+ const equipmentOptions=['machine','cable','dumbbell','bench','calisthenics','other'].map(type=>
+  '<option value="'+type+'"'+(type===def.equipment?' selected':'')+'>'+equipmentLabel(type)+'</option>').join('');
+ modal('Targets & exercise setup',
+  '<form class="form routine-exercise-settings-form" data-form="routine-exercise-settings">'+
+  '<input type="hidden" name="routineId" value="'+esc(routine.id)+'"><input type="hidden" name="exerciseId" value="'+esc(def.id)+'">'+
+  '<p class="body-copy"><strong>'+esc(def.name)+'</strong> · '+esc(routine.name)+'</p>'+
+  '<p class="hint">Targets belong to this routine; changing equipment or the muscle diagram changes the saved exercise shared by all routines. Completed sets and historical equipment are never rewritten.</p>'+
+  '<div class="workout-program-grid">'+
+  input('Min reps','repMin',item.repMin,'number','min="1" max="100" step="1" required')+
+  input('Max reps','repMax',item.repMax,'number','min="1" max="100" step="1" required')+
+  input('Planned sets','targetSets',item.targetSets||2,'number','min="1" max="10" step="1" required')+
+  input('Rest (sec)','restSeconds',item.restSeconds??90,'number','min="0" max="1800" step="15" required')+
+  '</div><label class="field"><span>Exercise equipment</span><select name="equipment">'+equipmentOptions+'</select></label>'+
+  '<p class="hint">For a Smith-machine incline press, choose Bench if that is how you categorize the setup. This does not relabel past Machine logs.</p>'+
+  exerciseProfileControls(def)+
+  '<div class="form-actions"><button type="submit" class="primary">Save targets & exercise</button></div></form>');
 }
 function workoutExercisePicker(){
  if(!workoutEditorState)return;
@@ -1653,8 +1708,8 @@ function buddyPrior(e){return lastLift(e.name,'',e.equipment,currentTrackingDate
 function buddyMovement(e){
  if(['push','pull','neutral'].includes(e.meta?.movement))return e.meta.movement;
  const name=e.name.toLowerCase();
- if(/press|extension|tricep|push|kickback/.test(name))return 'push';
- if(/row|pulldown|pull down|curl|deadlift/.test(name))return 'pull';
+ if(/press|extension|tricep|push|kickback|fly|thrust/.test(name))return 'push';
+ if(/row|pulldown|pull down|curl|deadlift|face pull|reverse pec|shrug|back extension/.test(name))return 'pull';
  return 'neutral';
 }
 function buddyMovementCorner(e){const type=buddyMovement(e);if(type==='neutral')return '';return '<span class="buddy-movement-corner" aria-label="'+type+' movement"><b>'+(type==='push'?'↗':'↙')+'</b>'+type.toUpperCase()+'</span>';}
@@ -1769,12 +1824,12 @@ function buddyStart(type){const w=workoutByName(type);if(!w)return;buddyBikeUi=n
 function buddyReadEditor(){const s=data.activeWorkout,root=document.querySelector('.buddy-set-editor');if(!s||!root||!s.selected)return;const e=buddyFind(s,s.selected);if(!e)return;const reviewing=Number.isInteger(e.reviewSetIndex),d=reviewing?e.sets[e.reviewSetIndex]:e.draft||buddyDraft(e,e.sets.length);if(!d)return;d.weight=Math.max(0,Number(root.querySelector('[name=buddyWeight]')?.value)||0);d.reps=Math.max(1,Number(root.querySelector('[name=buddyReps]')?.value)||1);d.difficulty=Number(root.querySelector('[name=buddyDifficulty]')?.value)||0;if(!reviewing)e.draft=d;}
 function buddyExerciseHeading(e,showMini=true){
  return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div>'+
- (showMini?'<button type="button" class="buddy-muscle-mini" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscles for '+esc(e.name)+'">'+muscleMiniMarkup(e.name)+'</button>':'')+'</div>';
+ (showMini?'<button type="button" class="buddy-muscle-mini" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Show muscles for '+esc(e.name)+'">'+muscleMiniMarkup(e)+'</button>':'')+'</div>';
 }
 function buddyExerciseMuscleStage(e){
  // Share Home's spaced front/back layout, using this exercise's existing
  // warm-primary / cool-secondary anatomy mapping rather than recent workload.
- return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e.name)+'</button>';
+ return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e)+'</button>';
 }
 // v108 — single analog clock, fully transient. Continue alone saves warm-up.
 let buddyBikeUi=null;
@@ -1809,7 +1864,7 @@ function buddyRender(){
  const s=data.activeWorkout;if(!s)return'';const done=s.exercises.filter(e=>e.status==='done').length,total=s.exercises.length;
  const head=`<header class="buddy-head"><span><small>${esc(s.type.toUpperCase())}</small><strong>Workout Buddy</strong></span><span class="buddy-head-actions"><span class="buddy-elapsed" data-buddy-elapsed>${buddyClock(buddySeconds(s.startedAt))}</span>${buddyUndoControl(s)}<button type="button" class="buddy-exit" data-action="buddy-exit">Exit</button></span></header>`;
  if(buddyMuscleView&&buddyMuscleGroupView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-group-back">‹ Back to muscles</button><h1>${esc(muscleGroupLabel(buddyMuscleGroupView))}</h1>${muscleGroupDetailsMarkup(buddyMuscleGroupView,muscleRelatedExercises(buddyMuscleGroupView))}</main></div>`;
- if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(buddyMuscleView)}</main></div>`;
+ if(buddyMuscleView)return `<div class="buddy-screen">${head}<main class="buddy-main buddy-muscle-screen"><button type="button" class="buddy-back" data-action="buddy-muscle-back">‹ Back to workout</button><h1>${esc(buddyMuscleView)}</h1>${muscleGuideMarkup(data.exerciseDefinitions?.find(e=>e.name.toLowerCase()===buddyMuscleView.toLowerCase())||buddyMuscleView)}</main></div>`;
  if(s.phase==='bike')return buddyBikeClockMarkup(head,s);
  if(buddyCompletedEditor?.key)return buddyCompletedEditorScreen(head,s);
  if(s.phase==='picker'){
@@ -1964,7 +2019,7 @@ function gym() {
  return buddy+routineTabs+selectedCard+'<section class="routine-exercise-section"><div class="routine-exercise-tools">'+
   button('Exercises','exercise-library','outline small')+(selected?button('Edit workout','edit-workout','outline small'):'')+
   button('+ Custom','custom-lift','outline small')+'</div><div class="exercise-list">'+
-  (exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e))).join(''):empty('This routine is empty. Edit it to add exercises.'))+
+  (exercises.length?exercises.map(e=>exerciseCardWithMuscles(e,exerciseCard(e),{settings:true})).join(''):empty('This routine is empty. Edit it to add exercises.'))+
   '</div></section>'+routineHistoryPanel();
 }
 
@@ -2689,8 +2744,15 @@ function showFoodUndo(entryId,name){
  },5000);
 }
 function liftForm(lift=null,name='',equipment='other') {
- const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type),sets=lift?.sets||prior?.sets||[{weight:0,reps:8},{weight:0,reps:8}],options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(lift?'Edit lift':'Log lift',`<form class="form lift-form" data-form="lift"><input type="hidden" name="liftId" value="${esc(lift?.id||'')}">${input('Exercise','exercise',exercise,'text','maxlength="100" autocomplete="off" required')}${!lift?'<div class="exercise-matches" role="listbox" aria-label="Matching exercises"></div>':''}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label>${input('Date','date',lift?.date||(page==='gym'?currentTrackingDate():chosenDate),'date','required')}${prior?`<p class="prior">Last time · ${niceDate(prior.date)}<br><strong>${describeLift(prior)}</strong></p>`:''}<div class="section-head"><h3>Sets</h3>${button('+ Add set','add-set','text-btn')}</div><div id="sets">${sets.map((s,i)=>setRow(i,s)).join('')}</div><div class="form-grid"><label class="field lift-notes"><span>Notes (optional)</span><textarea name="notes" rows="1" maxlength="500" placeholder="Form, setup, pain, anything worth remembering">${esc(lift?.notes||'')}</textarea></label></div><div class="form-actions"><button class="primary" type="submit">Save lift</button>${lift?button('Delete lift','delete-lift','danger',`data-id="${esc(lift.id)}"`):''}</div></form>`);document.querySelector('.modal')?.classList.add('lift-dialog');
+ const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type);
+ const def=data.exerciseDefinitions?.find(x=>x.name.toLowerCase()===exercise.toLowerCase()&&x.equipment===type);
+ const program=def?workoutByName(workout)?.exercises.find(x=>x.exerciseId===def.id):null;
+ const count=Math.max(1,Math.min(10,program?.targetSets||2)),recommended=program?.repMin||8;
+ const sets=lift?.sets||prior?.sets||Array.from({length:count},()=>({weight:0,reps:recommended}));
+ const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===type?'selected':''}>${equipmentLabel(x)}</option>`).join('');
+ const targetHint=program?'<p class="lift-target-hint"><strong>Routine target: '+program.repMin+'–'+program.repMax+' reps · '+count+' sets</strong><span>Rest '+(program.restSeconds??90)+' sec · Edit targets and equipment from the exercise card.</span></p>':
+  '<p class="lift-target-hint">This lift has no saved target in the selected routine. Set one from its routine card.</p>';
+ modal(lift?'Edit lift':'Log lift',`<form class="form lift-form" data-form="lift"><input type="hidden" name="liftId" value="${esc(lift?.id||'')}">${input('Exercise','exercise',exercise,'text','maxlength="100" autocomplete="off" required')}${!lift?'<div class="exercise-matches" role="listbox" aria-label="Matching exercises"></div>':''}<label class="field"><span>Equipment for this log</span><select name="equipment">${options}</select></label><p class="hint">Equipment changes here apply only to this entry, not the saved exercise or past lifts.</p>${input('Date','date',lift?.date||(page==='gym'?currentTrackingDate():chosenDate),'date','required')}${prior?`<p class="prior">Last time · ${niceDate(prior.date)}<br><strong>${describeLift(prior)}</strong></p>`:''}${targetHint}<div class="section-head"><h3>Sets</h3>${button('+ Add set','add-set','text-btn')}</div><div id="sets">${sets.map((s,i)=>setRow(i,s)).join('')}</div><div class="form-grid"><label class="field lift-notes"><span>Notes (optional)</span><textarea name="notes" rows="1" maxlength="500" placeholder="Form, setup, pain, anything worth remembering">${esc(lift?.notes||'')}</textarea></label></div><div class="form-actions"><button class="primary" type="submit">Save lift</button>${lift?button('Delete lift','delete-lift','danger',`data-id="${esc(lift.id)}"`):''}</div></form>`);document.querySelector('.modal')?.classList.add('lift-dialog');
 }
 function setRow(i,s={weight:'',reps:'',difficulty:''}) {return `<div class="set-row"><span>${i+1}</span>${input('Weight ('+data.settings.unit+')','weight',s.weight,'number','min="0" step="0.5" inputmode="decimal" required')}${input('Reps','reps',s.reps,'number','min="1" step="1" inputmode="numeric" required')}<label class="field effort-field"><span>Effort</span><select name="difficulty" class="effort-select effort-${Number(s.difficulty)||0}" aria-label="Set ${i+1} effort">${effortOptions(s.difficulty)}</select></label>${button('−','remove-set','remove-set','aria-label="Remove set"')}</div>`;}
 function checkInMetric(label,name,value,reading,day,kind,optional=false){
@@ -2738,6 +2800,8 @@ function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{
  if(routineImport.onChange(event.target))return;
+ const editor=event.target.closest('form[data-form="exercise-definition"],form[data-form="routine-exercise-settings"]');
+ if(editor&&event.target.matches('[data-muscle-region],[data-training-profile-editor]'))editor.dataset.profileDirty='true';
  if(event.target.matches('[data-enrichment-choice]')&&pendingImport?.kind==='enrichment'){
   const txId=event.target.dataset.id;
   if(event.target.checked)pendingImport.selectedIds.add(txId);else pendingImport.selectedIds.delete(txId);
@@ -3200,6 +3264,7 @@ document.addEventListener('click',async event=>{
   if(action==='routine-import-open'){routineImport.open();return;}
   if(action==='routine-new'){routineStarterPicker();return;}
   if(action==='routine-starter'){const preset=routinePresets.find(p=>p.key===el.dataset.key);if(!preset)return;newRoutineEditor(preset.name,routinePresetExercises(preset));return;}
+  if(action==='routine-exercise-settings'){routineExerciseSettings(el.dataset.routine,el.dataset.id);return;}
   if(action==='routine-edit'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workoutTemplateForm(w.name);return;}
   if(action==='routine-copy'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;newRoutineEditor(w.name+' copy',w.exercises);return;}
   if(action==='routine-delete-prompt'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(w)routineDeletePrompt(w);return;}
@@ -3762,6 +3827,24 @@ app.addEventListener('submit',async event=>{
     }catch(error){if(preview){preview.textContent=error instanceof SyntaxError?'This file is not valid JSON.':error.message;preview.setAttribute('role','alert');}}
     return;
   }
+  if(form.dataset.form==='routine-exercise-settings'){
+    const name=String(v.equipment||'other'),minimum=Number(v.repMin),maximum=Number(v.repMax),sets=Number(v.targetSets),rest=Number(v.restSeconds);
+    if(!['machine','cable','dumbbell','bench','calisthenics','other'].includes(name)||
+       !Number.isInteger(minimum)||minimum<1||!Number.isInteger(maximum)||maximum<minimum||maximum>100||
+       !Number.isInteger(sets)||sets<1||sets>10||!Number.isInteger(rest)||rest<0||rest>1800)
+      return alert('Check reps, sets, rest time and equipment.');
+    const candidate=structuredClone(data),routine=candidate.workoutTemplates.find(w=>w.id===v.routineId),
+      item=routine?.exercises.find(e=>e.exerciseId===v.exerciseId),def=candidate.exerciseDefinitions.find(e=>e.id===v.exerciseId);
+    if(!item||!def)return alert('Exercise or routine not found. Reopen its settings.');
+    if(candidate.exerciseDefinitions.some(e=>e.id!==def.id&&e.name.trim().toLowerCase()===def.name.trim().toLowerCase()&&e.equipment===name))
+      return alert('An exercise with this name and equipment already exists. Use it in the routine instead of duplicating it.');
+    Object.assign(item,{repMin:minimum,repMax:maximum,targetSets:sets,restSeconds:rest});
+    def.equipment=name;
+    const profile=editedExerciseMeta(form,def.meta);
+    if(form.dataset.profileDirty==='true')def.meta=profile;
+    try{data=normalizeData(candidate);}catch(error){return alert(error.message);}
+    close(true);render();void persist();return;
+  }
   if(form.dataset.form==='exercise-definition'){
     const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),notes=String(v.notes||''),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);
     if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200||notes.length>500)return alert('Check the exercise definition.');
@@ -3769,12 +3852,15 @@ app.addEventListener('submit',async event=>{
     if(duplicate)return alert('That exercise already exists with this equipment.');
     let created=null;
     if(existing){
-      const oldName=existing.name,oldEquipment=existing.equipment;Object.assign(existing,{name,equipment});
+      Object.assign(existing,{name,equipment});
       if(setup)existing.setup=setup;else delete existing.setup;
       existing.notes=notes;
-      data.lifts.forEach(l=>{if(l.exercise.toLowerCase()===oldName.toLowerCase()&&(l.equipment||'other')===oldEquipment){l.exercise=name;l.equipment=equipment;}});
+      if(form.dataset.profileDirty==='true')existing.meta=editedExerciseMeta(form,existing.meta);
+      // Preserve historical lift names and equipment; a definition edit is not a rewrite of past workouts.
     }else{
-      created={id:id(),name,equipment,...(setup?{setup}:{}),notes};data.exerciseDefinitions.push(created);
+      created={id:id(),name,equipment,...(setup?{setup}:{}),notes};
+      if(form.dataset.profileDirty==='true')created.meta=editedExerciseMeta(form,null);
+      data.exerciseDefinitions.push(created);
     }
     if(v.returnTo==='routine'&&created&&workoutEditorState&&!workoutEditorState.exercises.some(e=>e.exerciseId===created.id)){
       workoutEditorState.exercises.push({exerciseId:created.id,repMin:6,repMax:12,targetSets:2,restSeconds:90});
@@ -3924,7 +4010,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=137',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=138',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4026,7 +4112,7 @@ async function loadAccount(){
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
   try{
-    const cloud=await import('./cloud.js?v=137');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=138');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);

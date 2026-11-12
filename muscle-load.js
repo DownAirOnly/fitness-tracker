@@ -1,6 +1,6 @@
 /* Read-only muscle workload estimates. A primary set counts as 1 direct set;
    supporting muscles count as 0.5 equivalent sets. No training targets inferred. */
-import {exerciseMuscleProfile} from './muscle-map.js?v=137';
+import {exerciseMuscleProfile} from './muscle-map.js?v=138';
 const normalize=(value)=>String(value||'').trim().toLowerCase();
 export function addMuscleSets(target,name,sets=0){
  const profile=exerciseMuscleProfile(name),number=Number(sets);
@@ -36,18 +36,18 @@ export function completedMuscleSets(lifts,active=null,from='',through=''){
   for(const e of active.exercises||[]){
    const base=active.id+'|'+normalize(e.name);
    if(recorded.has(base+'|'+normalize(e.equipment||'other'))||recorded.has(base+'|*'))continue;
-   addMuscleSets(result,e.name,confirmedSetCount(e));
+   addMuscleSets(result,e,confirmedSetCount(e));
   }
  }
  return result;
 }
 export function plannedMuscleSets(exercises=[]){
  const result={};
- for(const e of exercises)addMuscleSets(result,e.name,Math.max(0,Number(e.targetSets)||0));
+ for(const e of exercises)addMuscleSets(result,e,Math.max(0,Number(e.targetSets)||0));
  return result;
 }
 export function activeMuscleSets(active){
  const result={};
- for(const e of active?.exercises||[])addMuscleSets(result,e.name,confirmedSetCount(e));
+ for(const e of active?.exercises||[])addMuscleSets(result,e,confirmedSetCount(e));
  return result;
 }

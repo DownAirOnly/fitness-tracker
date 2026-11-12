@@ -1,12 +1,13 @@
 /* Original v122 anatomy geometry with separate read-only set-level overlays.
    Not a medical/anatomical atlas.
    Muscle groups are reference metadata, not derived from user records. */
-const labels={
+export const muscleRegionLabels={
  chest:'Chest / pectorals',delts:'Shoulders / deltoids',triceps:'Triceps',
  biceps:'Biceps',forearms:'Forearms',lats:'Latissimus dorsi',upperBack:'Upper back / rhomboids',
  traps:'Trapezius',abs:'Abdominals',obliques:'Obliques',lowerBack:'Lower back',
  glutes:'Glutes',quads:'Quadriceps',adductors:'Hip adductors',hamstrings:'Hamstrings',calves:'Calves'
 };
+const labels=muscleRegionLabels;
 const exercises={
  'chest press':{primary:['chest'],secondary:['triceps','delts']},
  'lat pulldown':{primary:['lats'],secondary:['biceps','upperBack']},
@@ -29,6 +30,19 @@ const exercises={
   'lateral raise':{primary:['delts'],secondary:[]},
   'dumbbell lateral raise':{primary:['delts'],secondary:[]},
  'tricep extension':{primary:['triceps'],secondary:[]},
+ 'incline chest press':{primary:['chest'],secondary:['triceps','delts']},
+ 'smith incline bench press':{primary:['chest'],secondary:['triceps','delts']},
+ 'pec deck fly':{primary:['chest'],secondary:['delts']},
+ 'reverse pec deck':{primary:['delts'],secondary:['upperBack']},
+ 'cable face pull':{primary:['delts'],secondary:['upperBack','traps']},
+ 'face pull':{primary:['delts'],secondary:['upperBack','traps']},
+ 'dumbbell shrug':{primary:['traps'],secondary:['forearms']},
+ 'shrug':{primary:['traps'],secondary:['forearms']},
+ 'hammer curl':{primary:['biceps','forearms'],secondary:[]},
+ 'romanian deadlift':{primary:['hamstrings','glutes'],secondary:['lowerBack']},
+ 'back extension':{primary:['lowerBack'],secondary:['glutes','hamstrings']},
+ 'hip thrust':{primary:['glutes'],secondary:['hamstrings']},
+ 'overhead triceps extension':{primary:['triceps'],secondary:[]},
   'deadlift':{primary:['glutes','hamstrings'],secondary:['lowerBack','traps','upperBack']},
   'squat':{primary:['quads','glutes'],secondary:['adductors']},
  'push up':{primary:['chest'],secondary:['triceps','delts']},
@@ -52,9 +66,37 @@ const nameAliases={
  'glute press':'glute kickback','hip abduction machine':'hip abduction',
  'hip adduction machine':'hip adduction'
 };
-export function exerciseMuscleProfile(name){
- const key=String(name||'').toLowerCase().replace(/^(machine|cable|dumbbell|db)\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
+// The imported vocabulary is more detailed than the simplified 16-region
+// SVG. Map only known synonyms; do not guess unknown anatomy terms.
+const importedMuscleRegions={
+ chest:'chest',pectorals:'chest',pecs:'chest',
+ delts:'delts',frontDelts:'delts',sideDelts:'delts',rearDelts:'delts',
+ traps:'traps',trapezius:'traps',upperBack:'upperBack',midBack:'upperBack',rhomboids:'upperBack',
+ lats:'lats',biceps:'biceps',brachialis:'biceps',triceps:'triceps',forearms:'forearms',
+ abs:'abs',deepCore:'abs',obliques:'obliques',lowerBack:'lowerBack',erectors:'lowerBack',
+ glutes:'glutes',abductors:'glutes',quads:'quads',adductors:'adductors',
+ hamstrings:'hamstrings',calves:'calves'
+};
+const svgRegions=(values,excluded=new Set())=>{
+ const seen=new Set(excluded),regions=[];
+ for(const value of Array.isArray(values)?values:[]){
+  const region=importedMuscleRegions[value];
+  if(region&&!seen.has(region)){regions.push(region);seen.add(region);}
+ }
+ return regions;
+};
+export function exerciseMuscleProfile(input){
+ const name=typeof input==='string'?input:input?.name||'';
+ const meta=typeof input==='object'&&input?input.meta:null;
+ const key=String(name).toLowerCase().replace(/^(machine|cable|dumbbell|db)\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
  const found=exercises[nameAliases[key]||key];
+ const primary=svgRegions(meta?.primaryMuscles);
+ const secondary=svgRegions(meta?.secondaryMuscles,new Set(primary));
+ if(primary.length||secondary.length){
+  // Explicit imported/custom muscle assignments take precedence over the
+  // fallback name lookup; an unknown profile does not erase a known map.
+  return{primary,secondary};
+ }
  return found?{primary:[...found.primary],secondary:[...found.secondary]}:null;
 }
 // Natural baseline from the approved Anatomy Lab: curved head/neck, original balanced torso and legs.
@@ -113,8 +155,8 @@ function bodySvg(view,profile){
   '<path class="muscle-contours" d="'+contours[view]+'" aria-hidden="true"/>'+
   '</svg>';
 }
-export function muscleMiniMarkup(name){
- const profile=exerciseMuscleProfile(name);
+export function muscleMiniMarkup(exercise){
+ const profile=exerciseMuscleProfile(exercise);
  return '<span class="muscle-mini-pair" aria-hidden="true"><span class="muscle-mini-view">'+bodySvg('front',profile)+'</span><span class="muscle-mini-view">'+bodySvg('back',profile)+'</span></span>';
 }
 const muscleInfo={"chest":["Chest muscles move the upper arm forward and across the body.","Chest presses, push-ups and fly movements."],"delts":["Deltoids help lift and position the upper arm in multiple directions.","Shoulder presses and lateral raises."],"triceps":["Triceps extend the elbow and support pressing movements.","Pushdowns, extensions and presses."],"biceps":["Biceps assist elbow flexion and turning the forearm palm-up.","Curls, pulldowns and chin-up variations."],"forearms":["Forearm muscles move the wrist and contribute to gripping and forearm rotation.","Gripping weights, curls and rows."],"lats":["The latissimus dorsi pulls the upper arm down and toward the torso.","Lat pulldowns, pull-ups and rows."],"upperBack":["Upper-back muscles retract and stabilize the shoulder blades.","Rows and reverse fly movements."],"traps":["The trapezius helps position and stabilize the shoulder blades.","Shrugs, overhead work and rows."],"abs":["Abdominals help flex and stabilize the trunk.","Crunches, planks and bracing."],"obliques":["Obliques rotate and stabilize the torso.","Rotations, side planks and anti-rotation exercises."],"lowerBack":["Spinal extensor muscles help maintain and extend the torso.","Deadlifts, hinges and back extensions."],"glutes":["Gluteal muscles extend and stabilize the hip; some fibers help abduct it.","Squats, leg presses, kickbacks and hip abduction."],"adductors":["The hip adductors draw the thigh inward and help stabilize the hips.","Hip adduction and some squatting movements."],"quads":["Quadriceps extend the knee, with one part assisting hip flexion.","Leg extensions, squats and leg presses."],"hamstrings":["Hamstrings bend the knee and assist hip extension.","Leg curls, deadlifts and hip hinges."],"calves":["Calf muscles help push the foot downward at the ankle.","Seated and standing calf raises."]};
@@ -126,8 +168,9 @@ export function muscleGroupDetailsMarkup(id,related=[]){
  (related.length?'<div class="muscle-related-list">'+related.map(e=>'<button type="button" data-action="muscle-related-exercise" data-name="'+escape(e.name)+'" data-equipment="'+escape(e.equipment||'other')+'"><span><strong>'+escape(e.name)+'</strong><small>'+(e.role==='primary'?'Primary muscle':'Supporting muscle')+'</small></span><b>›</b></button>').join('')+'</div>':'<p class="muscle-info-empty">No mapped exercises for this group in your Exercise Library.</p>')+
  '</div><p class="muscle-disclaimer">Muscle involvement varies with exercise variation, equipment and technique.</p></div>';
 }
-export function muscleGuideMarkup(name){
- const profile=exerciseMuscleProfile(name),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export function muscleGuideMarkup(exercise){
+ const name=typeof exercise==='string'?exercise:exercise?.name||'';
+ const profile=exerciseMuscleProfile(exercise),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const pills=ids=>ids.map(x=>'<button type="button" class="muscle-name" data-action="muscle-group-detail" data-group="'+escape(x)+'" data-exercise="'+escape(name)+'" aria-label="Read about '+escape(labels[x]||x)+'">'+escape(labels[x]||x)+' <span aria-hidden="true">›</span></button>').join('');
  return '<div class="muscle-guide"><div class="muscle-figures"><div class="muscle-figure"><span>FRONT</span>'+bodySvg('front',profile)+'</div><div class="muscle-figure"><span>BACK</span>'+bodySvg('rear',profile)+'</div></div>'+
  (profile?'<div class="muscle-legend"><div><i class="muscle-dot muscle-primary"></i><strong>Primary</strong><div class="muscle-names">'+pills(profile.primary)+'</div></div>'+
@@ -162,8 +205,8 @@ export function muscleRecoveryMarkup(statuses={}){
 /** Exercise-only anatomy using the same front/back sizing structure as Home.
  * Unlike recovery, this uses the warm/cool/quiet SVG already used by Buddy.
  * Unmapped muscles are still rendered, never removed. */
-export function muscleExercisePairMarkup(name){
- const profile=exerciseMuscleProfile(name);
+export function muscleExercisePairMarkup(exercise){
+ const profile=exerciseMuscleProfile(exercise);
  return '<div class="muscle-recovery-pair muscle-exercise-pair">'+
   '<span class="muscle-recovery-view">'+bodySvg('front',profile)+'</span>'+
   '<span class="muscle-recovery-view">'+bodySvg('back',profile)+'</span></div>';

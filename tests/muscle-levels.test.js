@@ -95,3 +95,24 @@ test('v122 anatomy contours and major muscle shapes restored, with new overlay i
  assert.equal((markup.match(/class="muscle-body"/g)||[]).length,2,'original front and rear views remain');
  assert.ok(!markup.includes('data-muscle="adductors"'),'extra adductor overlay does not change original chest geometry');
 });
+
+
+test('imported exercise and known new variations light up the correct broad SVG regions',()=>{
+ const imported={name:'Face Pull',meta:{
+  movement:'pull',primaryMuscles:['rearDelts'],secondaryMuscles:['midBack','rotatorCuff']
+ }};
+ assert.deepEqual(exerciseMuscleProfile(imported),{primary:['delts'],secondary:['upperBack']});
+ assert.deepEqual(exerciseMuscleProfile('Reverse Pec Deck'),{primary:['delts'],secondary:['upperBack']});
+ assert.deepEqual(exerciseMuscleProfile('Incline Chest Press'),{primary:['chest'],secondary:['triceps','delts']});
+ assert.deepEqual(exerciseMuscleProfile('Pec Deck Fly'),{primary:['chest'],secondary:['delts']});
+ assert.deepEqual(exerciseMuscleProfile('Cable Lateral Raise'),{primary:['delts'],secondary:[]});
+ assert.deepEqual(exerciseMuscleProfile('Back Extension'),{primary:['lowerBack'],secondary:['glutes','hamstrings']});
+ const svg=muscleMiniMarkup(imported);
+ assert.match(svg,/data-muscle="delts"/);
+ assert.match(svg,/data-muscle="upperBack"/);
+ assert.match(svg,/muscle-region primary/);
+ const plan=plannedMuscleSets([{...imported,targetSets:2}]);
+ assert.equal(plan.delts.direct,2);
+ assert.equal(plan.upperBack.supporting,2);
+ assert.equal(plan.upperBack.effective,1);
+});

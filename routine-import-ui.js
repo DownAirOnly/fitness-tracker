@@ -1,4 +1,5 @@
-import {prepareRoutineImport} from './routine-import-model.js?v=137';
+import {prepareRoutineImport} from './routine-import-model.js?v=138';
+import {muscleMiniMarkup} from './muscle-map.js?v=138';
 
 const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 export function createRoutineImportUI({getData,modal,esc,setPending}){
@@ -26,14 +27,18 @@ export function createRoutineImportUI({getData,modal,esc,setPending}){
   const exerciseRows=plan.exercisePreview.map(row=>{
    const matched=defs.find(d=>d.id===row.matchId),choice=options.exerciseMatches[row.key]||'auto';
    const candidates=defs.filter(d=>d.equipment===row.equipment).sort((a,b)=>a.name.localeCompare(b.name));
-   const status=row.action==='create'?'Will create':row.action==='enrich'?'Reuse + add missing training profile':'Reuse existing';
+   const reclassifiable=defs.filter(d=>d.equipment!==row.equipment&&normalizeName(d.name)===normalizeName(row.name));
+   const status=row.action==='create'?'Will create':row.action==='reclassify'?'Keep existing ID · change equipment':row.action==='enrich'?'Reuse + add missing training profile':'Reuse existing';
    const select='<select data-routine-match-exercise data-key="'+e(row.key)+'" aria-label="Match '+e(row.name)+'">'+
     option('auto',matched?'Automatically match '+matched.name:'Create a new exercise',choice==='auto')+
     (!matched?option('new','Create new exercise',choice==='new'):'')+
     candidates.filter(d=>d.id!==matched?.id).map(d=>option(d.id,'Use existing: '+d.name,choice===d.id)).join('')+
+    reclassifiable.map(d=>option('reclassify:'+d.id,'Change '+d.name+' from '+d.equipment+' → '+row.equipment+' (keep history)',choice==='reclassify:'+d.id)).join('')+
     '</select>';
+   const thumbnail='<div class="routine-import-muscle-preview">'+muscleMiniMarkup({name:row.name,meta:row.meta})+
+     '<small>Planned muscle highlights · broad SVG regions</small></div>';
    return '<div class="routine-import-match"><span><strong>'+e(row.name)+'</strong><small>'+e(row.equipment)+' · '+e(status)+
-    (matched&&matched.name!==row.name?' → '+e(matched.name):'')+'</small></span>'+select+'</div>';
+    (matched&&matched.name!==row.name?' → '+e(matched.name):'')+'</small>'+thumbnail+'</span>'+select+'</div>';
   }).join('');
   const routineRows=plan.routinePreview.map(row=>{
    const exact=routines.find(w=>w.id===row.existingId);
@@ -61,12 +66,12 @@ export function createRoutineImportUI({getData,modal,esc,setPending}){
   modal('Review routine import','<div class="routine-import-review"><p class="import-filename">'+e(filename)+'</p>'+
    '<div class="routine-import-summary"><strong>'+e(plan.changeCount)+' proposed changes</strong><span>'+
     e(summary.reusedExercises||0)+' existing exercises recognized · '+e(summary.createdExercises||0)+' new exercises · '+
-    e(summary.createdRoutines||0)+' new routines · '+e(summary.updatedRoutines||0)+' updated routines</span></div>'+
+    e(summary.createdRoutines||0)+' new routines · '+e(summary.updatedRoutines||0)+' updated routines · '+e(summary.reclassifiedExercises||0)+' equipment changes</span></div>'+
    '<p class="hint">Exercise IDs, existing machine setup, personal notes, all logged sets and workout history are kept. Imported coaching notes apply only to newly created exercises; existing exercise profiles gain missing metadata only.</p>'+
    warnings+errors+
    '<div class="routine-import-scroll" tabindex="0">'+
     '<details open><summary>Routines · '+plan.routinePreview.length+'</summary><div class="routine-import-match-list">'+routineRows+'</div></details>'+
-    '<details><summary>Exercise matching · '+plan.exercisePreview.length+'</summary><p class="hint">Matches are based on exercise name and equipment. Choose an existing exercise manually for differently named variations; different equipment types are intentionally kept separate.</p><div class="routine-import-match-list">'+exerciseRows+'</div></details>'+
+    '<details><summary>Exercise matching · '+plan.exercisePreview.length+'</summary><p class="hint">Matches are based on exercise name and equipment. You can reuse a differently named exercise or explicitly change a matching saved exercise’s equipment while keeping past lift logs unchanged. No equipment changes occur automatically.</p><div class="routine-import-match-list">'+exerciseRows+'</div></details>'+
     scheduleChoice+
    '</div><div class="routine-import-footer"><p class="hint">Import only applies after confirmation. No historical lifts or saved workouts are removed.</p>'+
    '<div class="form-actions">'+(plan.candidate&&plan.changeCount>0?'<button type="button" class="primary" data-action="commit-import">Confirm workout import</button>':'<span class="hint">No changes to apply with these choices.</span>')+
