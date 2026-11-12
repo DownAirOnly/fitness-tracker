@@ -1,7 +1,7 @@
 // v112 — Firestore v3 account layout. Dated history is partitioned by calendar
 // month; global definitions and preferences are in small account-scoped files.
 // This module never mutates the user's normalized notebook.
-import {emptyData,normalizeData,validDate} from './data.js?v=141';
+import {emptyData,normalizeData,validDate} from './data.js?v=142';
 export const MONTHLY_KEYS=['foodEntries','weights','bodyFat','lifts','transactions','workoutHistory'];
 export const STATIC_PARTS=['settings','catalog','routines','financeConfig'];
 export const MONTH_FORMAT='everyday-month-v1';
