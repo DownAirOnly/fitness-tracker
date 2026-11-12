@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v139 (November 12, 2026)
+## Current release — v140 (November 12, 2026)
+
+- **Immediate cached Food-card preview:** The v139 startup fix preserved opened dialogs but pre-auth click gating still ignored taps on saved food cards until the Settings gear unlocked. If the device has a validated last-confirmed account snapshot, the main saved-food card now opens its Log saved food form immediately, even before Firebase completes authentication. Basic form controls (servings, CSV clipboard, time, close) work during this read-only preview.
+- **Safe save boundary:** Until authentication confirms the cached owner and the account notebook is ready (or safely recovered), the Save food log button is disabled and a short status note explains why. Keyboard submission is also rejected during that period. Cloud completion enables Save *in place*, without replacing the form or losing typed values. A genuine user/account mismatch still dismisses the old cached form; no preview can write against another account.
+- **Loading shell upgrade without repaint:** On same-owner startup, the existing Home/modal DOM stays intact. Once ready, the loading aria state, Settings icon, nav, Add button and Save state are updated directly, rather than resetting the shell. No food data schema change and no automatic logs.
+- **Focused regression:** Added tests/startup-food-preview.test.js to exercise cached food first tap while Settings is disabled, prove that Save cannot write before authentication, then release delayed account load and confirm the form/servings persist and the log saves once. The existing signed-out boot and account isolation checks remain.
+- **Prior v139 protections retained:** Background cloud/Health responses and app updates never forcibly dismiss an in-progress food entry.
+
+## Previous release — v139 (November 12, 2026)
 
 - **Startup Food Entry interruption fixed:** Cloud account loading previously called the full `render()` at the start and end of the network request, destroying any modal opened using a local snapshot and returning a user visually to the underlying page. Background hydration now keeps active modals and current pages intact whenever the user has interacted during the request, while still rendering the first usable screen if initially loading.
 - **Safe same-account hydration:** A background response updates the notebook and sync indicators without recreating a visible form or discarding typed food, date, calories or protein. On genuine account-owner changes, the app still clears older owner UI instead of preserving a cross-account draft. A late load does not reset a date chosen during a user's interaction.
