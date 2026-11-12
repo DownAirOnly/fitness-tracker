@@ -1,5 +1,5 @@
-import {prepareRoutineImport} from './routine-import-model.js?v=140';
-import {muscleMiniMarkup} from './muscle-map.js?v=140';
+import {prepareRoutineImport} from './routine-import-model.js?v=141';
+import {muscleMiniMarkup} from './muscle-map.js?v=141';
 
 const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 export function createRoutineImportUI({getData,modal,esc,setPending}){
