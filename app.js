@@ -1,5 +1,6 @@
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=136';
 import {createCookingUI} from './cooking-ui.js?v=136';
+import {createRoutineImportUI} from './routine-import-ui.js?v=137';
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=136';
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=136';
 import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=136';
@@ -130,6 +131,7 @@ const button=(label,action,cls='',attrs='')=>`<button type="button" class="${cls
 const input=(label,name,value='',type='text',extra='')=>`<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const empty=message=>`<p class="empty">${message}</p>`;
 const cooking=createCookingUI({getData:()=>data,replaceData:next=>{data=next;},normalizeData,id,esc,fmt,modal,close,render,persist:()=>persist()});
+const routineImport=createRoutineImportUI({getData:()=>data,modal,esc,setPending:plan=>{pendingImport=plan;}});
 const currentCloudRevision=()=>session?.ready&&Number.isSafeInteger(session.revision)?session.revision:Number.isSafeInteger(cloudConfirmed?.revision)?cloudConfirmed.revision:Number.isSafeInteger(cloudRecovery?.revision)?cloudRecovery.revision:0;
 function saveCloudRecoveryLocally(markMessage=true){
   if(!account?.uid)return null;
@@ -1469,7 +1471,7 @@ function food() {
 function savedWorkouts(){return Array.isArray(data.workoutTemplates)?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
 function workoutByName(name){const list=savedWorkouts();return list.find(w=>w.name===name)||list[0];}
 function exerciseDefinition(exerciseId){return data.exerciseDefinitions?.find(e=>e.id===exerciseId);}
-function resolveWorkoutExercise(item){const def=exerciseDefinition(item.exerciseId);return def?{...def,repMin:item.repMin,repMax:item.repMax,targetSets:item.targetSets||2,restSeconds:item.restSeconds??90}:null;}
+function resolveWorkoutExercise(item){const def=exerciseDefinition(item.exerciseId);return def?{...def,repMin:item.repMin,repMax:item.repMax,targetSets:item.targetSets||2,restSeconds:item.restSeconds??90,...(item.cue?{cue:item.cue}:{})}:null;}
 function workoutExercises(w){return (w?.exercises||[]).map(resolveWorkoutExercise).filter(Boolean);}
 function exerciseCatalog(){const map=new Map();for(const e of data.exerciseDefinitions||[])map.set(e.name.toLowerCase()+'|'+e.equipment,e);for(const l of data.lifts){const e={name:l.exercise,equipment:l.equipment||'other'},key=e.name.toLowerCase()+'|'+e.equipment;if(!map.has(key))map.set(key,e);}return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name)||a.equipment.localeCompare(b.equipment));}
 function equipmentLabel(type){return ({machine:'Machine',cable:'Cable',dumbbell:'Dumbbell',bench:'Bench',calisthenics:'Calisthenics',other:'Other'})[type]||'Other';}
@@ -1548,8 +1550,14 @@ function setSharedExerciseNotes(e){
  if(def)def.notes=String(e.notes||'').slice(0,500);
 }
 function exerciseDefinitionForm(def=null,returnTo='library'){
+ const profile=def?.meta;
+ const profileLabel=profile?'<details class="exercise-training-profile"><summary>Imported training profile</summary>'+
+  '<p>'+[profile.movement,profile.pattern].filter(Boolean).map(x=>esc(x)).join(' · ')+'</p>'+
+  (profile.primaryMuscles?.length?'<p><strong>Primary:</strong> '+esc(profile.primaryMuscles.join(', '))+'</p>':'')+
+  (profile.secondaryMuscles?.length?'<p><strong>Secondary:</strong> '+esc(profile.secondaryMuscles.join(', '))+'</p>':'')+
+  (profile.safetyNote?'<p><strong>Safety:</strong> '+esc(profile.safetyNote)+'</p>':'')+'</details>':'';
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label><p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
+ modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>'+profileLabel+'<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
 }
 
 const routinePresets=[
@@ -1579,7 +1587,7 @@ function routineStarterPicker(){
 function routineManager(){
  const items=savedWorkouts(),last=routineDeletedStack.at(-1);
  const undo=last?'<div class="routine-undo" role="status"><span><strong>'+esc(last.routine.name)+' deleted</strong><small>Undo is available until this tab is reloaded.</small></span><button type="button" data-action="routine-undo-delete">Undo</button></div>':'';
- modal('My routines','<div class="routine-library"><p class="body-copy">Edit, duplicate, or delete routines here. Choose a routine from the Lifting dropdown. Completed workout history is kept.</p><button type="button" class="primary routine-create" data-action="routine-new">+ Create routine</button>'+undo+'<div class="routine-list">'+(items.length?items.map(w=>'<div class="routine-library-row"><span><strong>'+esc(w.name)+'</strong><small>'+w.exercises.length+' exercise'+(w.exercises.length===1?'':'s')+'</small></span><div class="routine-row-actions"><button type="button" data-action="routine-edit" data-id="'+esc(w.id)+'">Edit</button><button type="button" data-action="routine-copy" data-id="'+esc(w.id)+'">Copy</button><button type="button" class="routine-delete" data-action="routine-delete-prompt" data-id="'+esc(w.id)+'">Delete</button></div></div>').join(''):'<p class="empty">No routines yet. Create one from a starter framework or a blank list.</p>')+'</div></div>');
+ modal('My routines','<div class="routine-library"><p class="body-copy">Edit, duplicate, or delete routines here. Choose a routine from the Lifting dropdown. Completed workout history is kept.</p><div class="routine-import-buttons"><button type="button" class="primary routine-create" data-action="routine-new">+ Create routine</button><button type="button" class="outline" data-action="routine-import-open">Import workout CSV</button></div>'+undo+'<div class="routine-list">'+(items.length?items.map(w=>'<div class="routine-library-row"><span><strong>'+esc(w.name)+'</strong><small>'+w.exercises.length+' exercise'+(w.exercises.length===1?'':'s')+'</small></span><div class="routine-row-actions"><button type="button" data-action="routine-edit" data-id="'+esc(w.id)+'">Edit</button><button type="button" data-action="routine-copy" data-id="'+esc(w.id)+'">Copy</button><button type="button" class="routine-delete" data-action="routine-delete-prompt" data-id="'+esc(w.id)+'">Delete</button></div></div>').join(''):'<p class="empty">No routines yet. Create one from a starter framework or a blank list.</p>')+'</div></div>');
 }
 function routineDeletePrompt(routine){
  if(!routine)return;
@@ -1610,7 +1618,8 @@ function workoutEditorCapture(){
 }
 function workoutEditorRow(item,i,total){
  const e=resolveWorkoutExercise(item);if(!e)return'';
- return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e.name)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div><div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
+ const cue=e.cue?'<p class="routine-import-cue"><strong>Routine cue:</strong> '+esc(e.cue)+'</p>':'';
+ return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e.name)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div>'+cue+'<div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
 }
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
@@ -1642,6 +1651,7 @@ const buddyFind=(s,key)=>s.exercises.find(e=>buddyKey(e)===key);
 function buddyPrior(e){return lastLift(e.name,'',e.equipment,currentTrackingDate());}
 
 function buddyMovement(e){
+ if(['push','pull','neutral'].includes(e.meta?.movement))return e.meta.movement;
  const name=e.name.toLowerCase();
  if(/press|extension|tricep|push|kickback/.test(name))return 'push';
  if(/row|pulldown|pull down|curl|deadlift/.test(name))return 'pull';
@@ -2709,7 +2719,7 @@ function weightForm(w=null,prompt=false) {
 }
 function bodyFatForm(b=null){modal(b?'Edit body fat':'Log body fat',`<form class="form" data-form="body-fat"><input type="hidden" name="bodyFatId" value="${esc(b?.id||'')}">${input('Body fat %','value',b?.value??'','number','min="0.1" max="100" step="0.1" required')}${input('Date','date',b?.date||currentTrackingDate(),'date','required')}<div class="form-actions"><button class="primary" type="submit">Save body fat</button>${b?button('Delete','delete-body-fat','danger',`data-id="${esc(b.id)}"`):''}</div></form><p class="hint">Body fat is its own measurement stream. It does not require or modify a weight record.</p>`);}
 function importHub(){
- modal('Import data','<div class="import-source-grid"><button type="button" class="outline" data-action="import-csv"><strong>CSV file</strong><small>Mixed Everyday records or legacy food CSV</small></button><button type="button" class="outline" data-action="paste-csv"><strong>Paste CSV</strong><small>Paste CSV text directly</small></button><button type="button" class="outline" data-action="restore"><strong>JSON backup</strong><small>Preview a full backup replacement</small></button><button type="button" class="outline" data-action="paste-json"><strong>Paste JSON</strong><small>Paste a complete Everyday backup</small></button></div><p class="hint">Universal CSV supports saved foods, food logs, exercises, workout templates, lift sets, weights, body fat, and prepared financial transactions. Every import still goes through the same review screen. Separate section JSON imports are available in Settings.</p>');
+ modal('Import data','<div class="import-source-grid"><button type="button" class="outline" data-action="routine-import-open"><strong>Workout routine CSV</strong><small>Review exercise matches and safely update programs</small></button><button type="button" class="outline" data-action="import-csv"><strong>CSV file</strong><small>Mixed Everyday records or legacy food CSV</small></button><button type="button" class="outline" data-action="paste-csv"><strong>Paste CSV</strong><small>Paste CSV text directly</small></button><button type="button" class="outline" data-action="restore"><strong>JSON backup</strong><small>Preview a full backup replacement</small></button><button type="button" class="outline" data-action="paste-json"><strong>Paste JSON</strong><small>Paste a complete Everyday backup</small></button></div><p class="hint">Universal CSV supports saved foods, food logs, exercises, workout templates, lift sets, weights, body fat, and prepared financial transactions. Every import still goes through the same review screen. Separate section JSON imports are available in Settings.</p>');
 }
 function importModal(kind,source='file') {
  pendingImport=null;importReadToken++;const paste=source==='paste',title=(paste?'Paste ':'Import ')+(kind==='csv'?'CSV':'JSON');
@@ -2727,6 +2737,7 @@ app.addEventListener('input',event=>{
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{
+ if(routineImport.onChange(event.target))return;
  if(event.target.matches('[data-enrichment-choice]')&&pendingImport?.kind==='enrichment'){
   const txId=event.target.dataset.id;
   if(event.target.checked)pendingImport.selectedIds.add(txId);else pendingImport.selectedIds.delete(txId);
@@ -3186,6 +3197,7 @@ document.addEventListener('click',async event=>{
   if(action==='edit-exercise-def'){exerciseDefinitionForm(data.exerciseDefinitions?.find(x=>x.id===el.dataset.id));return;}
   if(action==='gym-select-routine'){const selected=savedWorkouts().find(r=>r.id===el.dataset.id);if(selected){workout=selected.name;render();}return;}
   if(action==='routine-manage'){routineManager();return;}
+  if(action==='routine-import-open'){routineImport.open();return;}
   if(action==='routine-new'){routineStarterPicker();return;}
   if(action==='routine-starter'){const preset=routinePresets.find(p=>p.key===el.dataset.key);if(!preset)return;newRoutineEditor(preset.name,routinePresetExercises(preset));return;}
   if(action==='routine-edit'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workoutTemplateForm(w.name);return;}
@@ -3558,7 +3570,7 @@ app.addEventListener('submit',async event=>{
   // Ordinary food, workout and finance logs remain usable when iOS suspends an
   // in-flight cloud request. persist() journals them to device recovery first.
   // Full-file imports still require a stable cloud revision for safe previewing.
-  const stableCloudForms=new Set(['finance-bank-import','import','section-import']);
+  const stableCloudForms=new Set(['finance-bank-import','import','section-import','routine-import']);
   if(importSaving||(!offlineWorkspace&&account&&stableCloudForms.has(form.dataset.form)&&
       (cloudBusy||cloudPending||!session?.ready||cloudRecoveryConflict))){
     let status=form.querySelector('[data-save-blocked]');
@@ -3568,6 +3580,7 @@ app.addEventListener('submit',async event=>{
     return;
   }
   const v=Object.fromEntries(new FormData(form));
+  if(form.dataset.form==='routine-import'){await routineImport.onSubmit(form);return;}
   if(form.dataset.form==='section-import'){
    const files=[...(form.querySelector('[name=files]')?.files||[])],preview=form.parentElement.querySelector('#preview');
    if(!files.length)return;
