@@ -1,7 +1,7 @@
 // v111: receipt-first bank reconciliation. A confirmed match upgrades the
 // original purchase, never adds a second charge. Ambiguous rows stay in a
 // persistent review queue without blocking the rest of the statement.
-import {normalizeData} from './data.js?v=143';
+import {normalizeData} from './data.js?v=143.1';
 const day=date=>Date.parse(date+'T00:00:00Z')/86400000;
 const clean=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
 const merchantMatch=(bank,receipt)=>{

@@ -2,7 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v143 (November 12, 2026)
+## Current release — v143.1 (November 12, 2026)
+
+- **Requested UI hotfix:** Restore the saved-food logging modal's visible heading with the text **Food Entry** (not the older **Log saved food**), retaining the existing Close button, color palette, equal-width bottom actions, and all logging behavior. The dialog's accessible label matches the visible title.
+- **Hotfix naming convention:** When the user explicitly says **hotfix**, publish a narrow patch of the current version as `vMAJOR.1` (or the next patch decimal if needed) instead of advancing to the next whole-number release. This is an occasional exception to the usual whole-number release policy; normal features continue with `v144` after v143.1.
+- **Release protection:** Version pins and service worker cache move to v143.1 to ensure the change is visible in the installed PWA. Automated tests and publication are checked separately.
+
+## Previous release — v143 (November 12, 2026)
 
 - **Balanced Food Entry surfaces:** Restore the lighter, theme-derived Food name, calories, protein, and date fields from before v142. The central Time display now shares their exact `--ap-input` background and palette-based border, rather than `--ap-deep`.
 - **Cohesive buttons:** Now and No time have the same bordered, rounded, readable secondary styling as other Food Entry buttons, without the previous square/unstyled appearance. Secondary controls (Copy/Paste CSV, add another, time ±, serving controls) use a subtle blend of `--ap-input` and `--ap-raised`: visually distinct from fields but not overly contrasted. The primary Save button remains the theme's stronger action.

@@ -1,3 +1,7 @@
+## v143.1 — Food Entry title hotfix
+
+Saved-food quick logging once again displays a heading, now **Food Entry**, without changing the form or its data handling. This is a user-requested decimal hotfix to v143 rather than the next regular release. Normal future releases remain whole-numbered.
+
 ## v143 — Balanced Food Entry fields and actions
 
 Food Entry returns to lighter text-entry fields, with the Time display using the same background. **Now** and **No time** are now rounded, bordered secondary buttons. Secondary controls are slightly different in shade from text fields without the previous deep contrast. Save remains prominent, and the two bottom actions stay evenly sized.
