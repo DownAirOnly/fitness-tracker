@@ -1,28 +1,28 @@
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=138';
-import {createCookingUI} from './cooking-ui.js?v=138';
-import {createRoutineImportUI} from './routine-import-ui.js?v=138';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=138';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=138';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=138';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=138';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=139';
+import {createCookingUI} from './cooking-ui.js?v=139';
+import {createRoutineImportUI} from './routine-import-ui.js?v=139';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=139';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=139';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=139';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=139';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=138';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=138';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=138';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=138';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=138';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=138';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=138';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=138';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=138';
-import {availableMonths,exportMonth} from './account-monthly.js?v=138';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=138';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=138';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=138';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=138';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=138';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=138';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=138';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=139';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=139';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=139';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=139';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=139';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=139';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=139';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=139';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=139';
+import {availableMonths,exportMonth} from './account-monthly.js?v=139';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=139';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=139';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=139';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=139';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=139';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=139';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=139';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -238,8 +238,9 @@ function checkLatestRelease(){
       if('serviceWorker' in navigator){
         void navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});
       }
-      tryRefreshRelease();
-      if(!releaseReloading)setTimeout(tryRefreshRelease,6000);
+      // Never replace a freshly opened screen simply because a new deploy arrived.
+      // Updating remains a deliberate choice in the non-blocking notice / Settings.
+      showReleaseNotice();
     }catch{ /* Offline, slow, or blocked checks leave the local app running. */ }
     finally{clearTimeout(timer);releaseProbe=null;}
   })();
@@ -328,7 +329,27 @@ function render() {
   // remains available in Settings, with financial data retained until opted in.
   const views={home,food,gym,progress,history,settings};
   shell(views[page]?.()||home());restoreScroll();
-  if(latestRelease)setTimeout(tryRefreshRelease,400);
+  if(latestRelease)showReleaseNotice();
+}
+
+// Async account hydration must never destroy an open entry form, its keyboard
+// focus, or a page the user navigated to while Firebase was responding.
+// UI actions still use render() explicitly. This path is only for background
+// account / startup changes, and never writes a draft on the user's behalf.
+function renderFromBackground(startEpoch=null){
+  const hasDraft=Boolean(document.querySelector('#overlay .modal'));
+  const changedSinceStart=startEpoch!==null&&userInteractionEpoch!==startEpoch;
+  const editing=document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]');
+  const displayedMain=app.querySelector('.shell > main');
+  // Initial loading UI has disabled controls: it must always transition
+  // to a usable page, even if iOS dispatched incidental scroll/focus events.
+  const alreadyInteractive=displayedMain?.getAttribute('aria-busy')==='false';
+  if(!isLoading()&&alreadyInteractive&&(hasDraft||editing||changedSinceStart)){
+    refreshSyncIndicators();
+    if(latestRelease)showReleaseNotice();
+    return;
+  }
+  render();
 }
 
 let homeCalendarMonth=currentTrackingDate().slice(0,7),homeFoodPage=0,weightChartDays=90;
@@ -2626,7 +2647,7 @@ document.addEventListener('focusout',event=>{
 },true);
 function modal(title,body,onBack=null) {modalBack=onBack;document.querySelector('#overlay').innerHTML=`<div class="scrim" data-action="close"></div><div class="modal" tabindex="-1" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-top"><h2>${esc(title)}</h2>${button('✕','close','close-btn','aria-label="Close"')}</div>${body}</div>`;document.querySelector('.modal')?.focus({preventScroll:true});}
 function close(all=false) {if(financeResetSaving&&!all)return;pendingDeviceMigration=null;financeResetReadyAt=0;
- const focused=document.activeElement;if(focused?.closest?.('.modal'))focused.blur();if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';normalizeDocumentViewport();pendingImport=null;if(!all&&back)back();if(latestRelease)setTimeout(tryRefreshRelease,400);}
+ const focused=document.activeElement;if(focused?.closest?.('.modal'))focused.blur();if(!all&&foodBatch.length&&document.querySelector('form[data-form="food"]')&&!confirm('Discard '+foodBatch.length+' unsaved food'+(foodBatch.length===1?'':'s')+'?'))return;foodBatch=[];document.body.classList.remove('exercise-progress-modal-open');importReadToken++;clearInterval(offlineExitTimer);offlineExitTimer=null;const back=modalBack;modalBack=null;document.querySelector('#overlay').innerHTML='';normalizeDocumentViewport();pendingImport=null;if(!all&&back)back();if(latestRelease)showReleaseNotice();}
 function filteredFoodLibrary(){
  let foods=sortFoods(data.foods,foodLibrarySort),q=foodLibrarySearch.trim().toLowerCase();
  if(q)foods=foods.filter(f=>f.name.toLowerCase().includes(q)||foodKindLabel(f.kind).toLowerCase().includes(q)||foodAccuracyLabel(f.accuracy).toLowerCase().includes(q)||(f.tags||[]).some(tag=>tag.includes(q))||(f.pinned&&'pinned'.includes(q)));
@@ -4010,7 +4031,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=138',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)tryRefreshRelease();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=139',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4070,7 +4091,7 @@ function applyCurrentAccountPreferences(){
 }
 async function loadAccount(){
   let migratePreferences=false;
-  if(offlineWorkspace||demoMode)return;const active=session;if(!active)return;cloudBusy=true;cloudMessage='Loading your cloud logs…';render();
+  if(offlineWorkspace||demoMode)return;const active=session;if(!active)return;const loadingEpoch=userInteractionEpoch;cloudBusy=true;cloudMessage='Loading your cloud logs…';renderFromBackground(loadingEpoch);
   try{
     const loaded=await active.load();if(session!==active)return;
     const recovery=readCloudRecovery(active.uid);cloudRecovery=recovery;cloudRecoveryConflict=null;
@@ -4086,18 +4107,18 @@ async function loadAccount(){
     }
     if(!cloudRecoveryConflict)migratePreferences=adoptLegacyDevicePreferences();
     applyCurrentAccountPreferences();
-    chosenDate=currentTrackingDate();
+    if(userInteractionEpoch===loadingEpoch)chosenDate=currentTrackingDate();
   }
   catch(error){
     if(session===active){
       const recovery=readCloudRecovery(active.uid),confirmed=readCloudConfirmed(active.uid),fallback=recovery||confirmed;
       cloudRecovery=recovery;cloudConfirmed=confirmed;cloudRecoveryConflict=null;
-      if(fallback){data=structuredClone(fallback.data);applyCurrentAccountPreferences();chosenDate=currentTrackingDate();cloudPending=Boolean(recovery);cloudMessage=recovery?'Cloud unavailable · recovered unsaved device changes':'Cloud unavailable · using last confirmed device copy';}
+      if(fallback){data=structuredClone(fallback.data);applyCurrentAccountPreferences();if(userInteractionEpoch===loadingEpoch)chosenDate=currentTrackingDate();cloudPending=Boolean(recovery);cloudMessage=recovery?'Cloud unavailable · recovered unsaved device changes':'Cloud unavailable · using last confirmed device copy';}
       else cloudMessage=describeCloudError(error);
     }
   }
   finally{if(session===active){
-   cloudBusy=false;render();
+   cloudBusy=false;renderFromBackground(loadingEpoch);
    if(migratePreferences&&active.ready&&!cloudRecoveryConflict){
     void persist().then(saved=>{if(saved&&!cloudPending)clearLegacyPreferenceKeys();});
    }else if(active.ready&&cloudPending&&!cloudRecoveryConflict){
@@ -4111,10 +4132,16 @@ async function loadAccount(){
 }
 function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(shouldPrompt(data)&&!weightPromptSeen(day))setTimeout(()=>{const currentDay=currentTrackingDate();if(!shouldPrompt(data)||weightPromptSeen(currentDay)||cloudBusy||cloudPending||!(offlineWorkspace||!account||session?.ready)||document.querySelector('.modal'))return;markWeightPromptSeen(currentDay);weightForm(null,true);},300);}
 async function startCloud(){
+  const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=138');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=139');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
-      const previousUid=account?.uid;session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
+      const previousUid=account?.uid;
+      const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);
+      const ownerChanged=previouslyShownUid!==(user?.uid||null);
+      session?.close();session=nextSession;account=user;authChecked=true;cloudPending=false;cloudBusy=false;pendingImport=null;
+      // A genuine account switch invalidates old drafts. A same-owner refresh
+      // must instead preserve the currently open form and screen.
       if(previousUid&&previousUid!==user?.uid)clearCloudLocal(previousUid);
       cloudConfirmed=null;cloudRecovery=null;cloudRecoveryConflict=null;
       // Never carry another account's snapshot into the new session.
@@ -4131,9 +4158,10 @@ async function startCloud(){
       if(demoMode&&!user){cloudMessage='Demo mode · saved separately on this device';render();return;}
       data=user?(cached?structuredClone(cached.data):emptyData()):structuredClone(deviceData);
       applyCurrentAccountPreferences();
-      if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';render();promptWeight();}
+      if(ownerChanged)render();
+      if(user)await loadAccount();else{cloudMessage='Only on this device · sign in for cloud saving';renderFromBackground(startupEpoch);promptWeight();}
     });
-    cloudReady=true;render();if(!offlineWorkspace&&!demoMode)void syncHealth();
+    cloudReady=true;renderFromBackground(startupEpoch);if(!offlineWorkspace&&!demoMode)void syncHealth();
   }catch(error){authChecked=true;cloudMessage=offlineWorkspace?'Offline JSON workspace · cloud unavailable, local editing still works':'Cloud login unavailable. Device logs still work. Reload to retry.';render();promptWeight();}
 }
 window.addEventListener('beforeunload',event=>{captureCriticalLocalState();if(!offlineWorkspace&&(cloudPending||cloudBusy)){event.preventDefault();event.returnValue='';}});
@@ -4434,7 +4462,7 @@ async function syncHealth(force=false){
  if(demoMode)return;
   if(offlineWorkspace||!cloudApi?.health||!account||!session?.ready||cloudBusy||cloudPending||importSaving||document.querySelector('.modal'))return;
   if(!force&&(page==='settings'||document.activeElement?.matches('input,textarea,select')||Date.now()-healthCheckedAt<30000))return;
-  const active=session;healthCheckedAt=Date.now();cloudBusy=true;
+  const active=session,healthEpoch=userInteractionEpoch;healthCheckedAt=Date.now();cloudBusy=true;
   try{
     const result=await cloudApi.health.pull(active.uid,active.revision);
     if(session!==active)return;
@@ -4451,7 +4479,7 @@ async function syncHealth(force=false){
   }catch(error){if(session===active)healthState={...healthState,status:error.code==='permission-denied'?'Setup needs the updated Firebase rules. Existing tracking still works.':describeCloudError(error)};}
   finally{if(session===active){
     cloudBusy=false;
-    if(!document.querySelector('.modal'))render();
+    renderFromBackground(healthEpoch);
     if(cloudPending&&!cloudRecoveryConflict&&session?.ready)void persist();
     else promptWeight();
   }}

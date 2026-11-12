@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v138 (November 12, 2026)
+## Current release — v139 (November 12, 2026)
+
+- **Startup Food Entry interruption fixed:** Cloud account loading previously called the full `render()` at the start and end of the network request, destroying any modal opened using a local snapshot and returning a user visually to the underlying page. Background hydration now keeps active modals and current pages intact whenever the user has interacted during the request, while still rendering the first usable screen if initially loading.
+- **Safe same-account hydration:** A background response updates the notebook and sync indicators without recreating a visible form or discarding typed food, date, calories or protein. On genuine account-owner changes, the app still clears older owner UI instead of preserving a cross-account draft. A late load does not reset a date chosen during a user's interaction.
+- **Non-disruptive updates:** New deployments no longer cause immediate automatic `location.replace` or a delayed forced reload just because version.json was updated. Instead a small update notice offers an explicit Refresh action once idle; Settings can still reload manually. Updates remain blocked while a modal, active workout or cloud save is in progress.
+- **Background Health sync:** Completed Health pulls follow the same UI-preserving path instead of repainting a page after user input or navigation.
+- **Regression coverage:** UI smoke artificially holds the cloud response, opens Food Entry, enters unsaved data and resumes the response; verifies identical dialog, field contents and page remain. Also checks Lifting navigation while a cloud request is delayed. No finance, Food Entry schema, or other data migrations in this release.
+
+## Previous release — v138 (November 12, 2026)
 
 - **Muscle diagrams repaired for imported exercises:** The existing front/back SVG now highlights named movements including Incline Chest Press, Pec Deck Fly, Reverse Pec Deck, Face Pull, Shrug, Hammer Curl, Romanian Deadlift, Hip Thrust and Back Extension; cable lateral raises map to deltoids. The importer’s detailed muscle vocabulary (e.g. rearDelts, midBack, erectors, abductors) maps only to known broad SVG groups. Stored training profiles take precedence; unknown muscle names are not invented.
 - **Editable anatomy and movement:** Exercise Library → Edit exercise includes a collapsed 16-region primary/supporting/none map and a push/pull/neutral movement selector. Edits preserve imported safety and pattern notes unless explicitly revised. Push/pull fallback labels cover imported exercise names and imported movement metadata.

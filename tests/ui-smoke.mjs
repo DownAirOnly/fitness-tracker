@@ -11,9 +11,9 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=138'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=139'),'palette coverage stylesheet is loaded');
 const liftingStyles=await readFile(new URL('lifting-routines.css',root),'utf8');
-assert.ok(launchHtml.includes('lifting-routines.css?v=138'),'new Lifting routine CSS is included');
+assert.ok(launchHtml.includes('lifting-routines.css?v=139'),'new Lifting routine CSS is included');
 const checkInCss=await readFile(new URL('weight-checkin.css',root),'utf8');
 const beginnerCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
 assert.ok(beginnerCss.includes('.buddy-second-set-offer button')&&beginnerCss.includes('min-height:44px'),'optional beginner action is accessible and palette-aware');
@@ -22,7 +22,7 @@ const themeSource=await readFile(new URL('theme.js',root),'utf8');
 assert.equal(manifest.theme_color,'#15171a','Android native chrome has a neutral static fallback rather than fixed forest green');
 assert.equal(manifest.background_color,'#15171a','installed PWA startup background uses the same neutral fallback');
 assert.ok(themeSource.includes('refresh: apply')&&themeSource.includes('--ap-bg'),'theme-color follows the selected dark palette after OS display-mode changes');
-assert.ok(launchHtml.includes('weight-checkin.css?v=138'),'daily check-in steppers CSS is loaded');
+assert.ok(launchHtml.includes('weight-checkin.css?v=139'),'daily check-in steppers CSS is loaded');
 assert.ok(checkInCss.includes('min-height:44px'),'daily adjustment controls have a 44px tap target');
 
 for(const selector of ['.gym-routine-tab.selected','.gym-selected-routine','.gym-routine-muscle-map'])
@@ -100,17 +100,17 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=138'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=139'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=138'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=139'),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=138'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=139'),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
 const undoCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
-assert.ok(launchHtml.includes('buddy-undo-guard.css?v=138'),'persistent header Undo CSS is loaded');
+assert.ok(launchHtml.includes('buddy-undo-guard.css?v=139'),'persistent header Undo CSS is loaded');
 assert.ok(undoCss.includes('.buddy-undo-header'),'dedicated top Undo style remains');
 const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
 assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
@@ -175,10 +175,10 @@ globalThis.requestAnimationFrame=callback=>setTimeout(callback,0);
 const fixture=join(temp,'cloud.mjs');
 await writeFile(fixture,`
  import {CloudSession,nextRecord} from '${new URL('cloud-model.js',root)}';
- export const state={user:'alice',records:new Map(),fail:false,callback:null};
- const store={read:async uid=>state.records.get(uid)||null,write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');if(state.holdSave){state.holdSave=false;await new Promise(resolve=>{state.releaseSave=resolve;});}const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
+ export const state={user:'alice',records:new Map(),fail:false,callback:null,holdLoad:false,releaseLoad:null,reloadSame:null};
+ const store={read:async uid=>{if(state.holdLoad){state.holdLoad=false;await new Promise(resolve=>{state.releaseLoad=resolve;});}return state.records.get(uid)||null;},write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');if(state.holdSave){state.holdSave=false;await new Promise(resolve=>{state.releaseSave=resolve;});}const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
  export const cloudError=e=>e.message;
- export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
+ export async function connectCloud(callback){state.callback=callback;state.reloadSame=()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store));await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
@@ -1057,6 +1057,39 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(document.querySelector('[data-action="migrate-device-confirm"]'),'device migration requires explicit review');
   await click('migrate-device-confirm');
  assert.equal(JSON.parse(state.records.get('alice').payload).foodEntries.length,1);
+ // Real startup race: user opens Food Entry while the same account's cloud
+ // refresh is still waiting. Completing hydration must never recreate the
+ // shell or discard the draft/keyboard-visible form.
+ await click('food');
+ state.holdLoad=true;
+ const sameAccountReload=state.reloadSame();
+ await tick();
+ await click('new-food');
+ const activeFoodForm=document.querySelector('form[data-form="food"]');
+ assert.ok(activeFoodForm,'food form opens while account refresh is waiting');
+ activeFoodForm.elements.name.value='Quick breakfast';
+ activeFoodForm.elements.calories.value='215';
+ activeFoodForm.elements.protein.value='19';
+ const foodFormPage=document.querySelector('main');
+ state.releaseLoad();await sameAccountReload;await tick();
+ assert.equal(document.querySelector('main'),foodFormPage,'late cloud response does not replace the current page');
+ assert.equal(document.querySelector('main')?.dataset.page,'food','late cloud response keeps the Food screen');
+ assert.equal(document.querySelector('form[data-form="food"]'),activeFoodForm,'entry dialog is the original DOM node');
+ assert.equal(activeFoodForm.elements.name.value,'Quick breakfast','unsaved name is still there');
+ assert.equal(activeFoodForm.elements.calories.value,'215','unsaved calories are still there');
+ assert.equal(activeFoodForm.elements.protein.value,'19','unsaved protein is still there');
+ await click('close');
+ // Even without a modal, navigation during a delayed cloud refresh must not
+ // jump back to Home or replace the active page just as a tap arrives.
+ state.holdLoad=true;
+ const navReload=state.reloadSame();
+ await tick();
+ await click('gym');
+ const currentGymPage=document.querySelector('main');
+ state.releaseLoad();await navReload;await tick();
+ assert.equal(document.querySelector('main'),currentGymPage,'late refresh does not replace an interacted-with Lifting page');
+ assert.equal(document.querySelector('main')?.dataset.page,'gym');
+ await click('settings');
  await click('sign-out');state.user='bob';await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'account separation');
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
