@@ -293,6 +293,26 @@ const persist=async()=>{
 const progressBar=(value,goal,color)=>`<div class="bar"><span style="width:${Math.min(100,Math.max(0,value/goal*100))}%;background:${color}"></span></div>`;
 
 function hasLocalCloudFallback(){return Boolean(account&&(cloudRecovery||cloudConfirmed));}
+// Cached food cards may be opened before Firebase confirms the last account.
+// Do not write a log until account identity and the notebook have reconciled.
+function canOpenCachedFood(){return !authChecked&&!demoMode&&!offlineWorkspace&&Boolean(startupAccountCache?.uid);}
+function canCommitFoodEntry(){
+ return demoMode||Boolean(offlineWorkspace)||Boolean(authChecked&&(!account||session?.ready||(!cloudBusy&&hasLocalCloudFallback())));
+}
+function updatePendingFoodForm(){
+ const form=app.querySelector('#overlay form[data-form="food"]');if(!form)return;
+ const enabled=canCommitFoodEntry(),submit=form.querySelector('[data-food-submit]'),notice=form.querySelector('[data-food-account-pending]');
+ if(submit)submit.disabled=!enabled;
+ if(notice)notice.hidden=enabled;
+}
+function canPreviewCachedFoodAction(action,el){
+ if(!canOpenCachedFood())return false;
+ if(action==='add-saved')return Boolean(el.closest('.food-card')&&data.foods.some(food=>food.id===el.dataset.id));
+ if(action==='close')return Boolean(app.querySelector('#overlay form[data-form="food"]'));
+ const safeActions=new Set(['food-quantity-step','food-quantity','food-add-another','food-batch-remove',
+  'food-csv-copy','food-csv-paste','time-step','time-now','time-clear','choose-food-match','clear-food-match']);
+ return safeActions.has(action)&&Boolean(el.closest('form[data-form="food"]'));
+}
 function isLoading(){return demoMode||offlineWorkspace?false:!authChecked || Boolean(account && !session?.ready && !hasLocalCloudFallback());}
 function shell(content) {
   // Returning from tall pages must not retain their vertical offset on Home.
@@ -344,7 +364,15 @@ function renderFromBackground(startEpoch=null){
   // Initial loading UI has disabled controls: it must always transition
   // to a usable page, even if iOS dispatched incidental scroll/focus events.
   const alreadyInteractive=displayedMain?.getAttribute('aria-busy')==='false';
-  if(!isLoading()&&alreadyInteractive&&(hasDraft||editing||changedSinceStart)){
+  // An open cached-food dialog survives a same-account authentication.
+  const verifiedPreview=hasDraft&&account?.uid&&startupAccountCache?.uid===account.uid;
+  if((!isLoading()&&(hasDraft||alreadyInteractive&&(editing||changedSinceStart)))||verifiedPreview){
+    const ready=!isLoading()&&(!account||session?.ready||(!cloudBusy&&hasLocalCloudFallback()));
+    if(ready){
+      displayedMain?.setAttribute('aria-busy','false');
+      for(const control of app.querySelectorAll('.top-actions .home-settings,.nav button,.home-add-trigger'))control.disabled=false;
+    }
+    updatePendingFoodForm();
     refreshSyncIndicators();
     if(latestRelease)showReleaseNotice();
     return;
@@ -2751,7 +2779,7 @@ function foodForm(entry=null,card=null,options={}) {
   if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
-  modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
+  modal(entry?'Edit food log':card?'Log saved food':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><p class="hint" data-food-account-pending role="status" ${canCommitFoodEntry()?'hidden':''}>Checking your account before saving. You can prepare this entry now.</p><div class="form-actions">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${!canCommitFoodEntry()?'disabled ':''}${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save food log'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form><p class="hint">Saved-food details are copied into this log. A one-off food can stay out of the Food Library while remaining fully preserved in this day’s log and JSON backup.</p>`,onBack);
 }
 function showFoodUndo(entryId,name){
  clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
@@ -2868,7 +2896,7 @@ document.addEventListener('input',event=>{
  for(const row of document.querySelectorAll('.home-food-pick'))row.hidden=!row.dataset.search.includes(query);
 });
 document.addEventListener('click',async event=>{
-  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start')||importSaving)return;
+  const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start'&&!canPreviewCachedFoodAction(action,el))||importSaving)return;
   if(action==='food-workspace'||action.startsWith('recipe-')){await cooking.handleAction(action,el);return;}
   if(action==='appearance-inspect'){
    const inspecting=document.documentElement.dataset.themeInspect!=='on';
@@ -3653,6 +3681,12 @@ document.addEventListener('click',async event=>{
 });
 app.addEventListener('submit',async event=>{
   const form=event.target;if(!form.dataset.form)return;event.preventDefault();
+  // A cached food preview is read-only until the account has finished loading.
+  // Enter-key form submissions must obey the same protection as Save.
+  if((!authChecked&&!demoMode&&!offlineWorkspace)||(form.dataset.form==='food'&&!canCommitFoodEntry())){
+    if(form.dataset.form==='food')updatePendingFoodForm();
+    return;
+  }
   // Ordinary food, workout and finance logs remain usable when iOS suspends an
   // in-flight cloud request. persist() journals them to device recovery first.
   // Full-file imports still require a stable cloud revision for safe previewing.
