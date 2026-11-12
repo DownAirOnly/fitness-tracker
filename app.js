@@ -340,7 +340,11 @@ function renderFromBackground(startEpoch=null){
   const hasDraft=Boolean(document.querySelector('#overlay .modal'));
   const changedSinceStart=startEpoch!==null&&userInteractionEpoch!==startEpoch;
   const editing=document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]');
-  if(!isLoading()&&(hasDraft||editing||changedSinceStart)){
+  const displayedMain=app.querySelector('.shell > main');
+  // Initial loading UI has disabled controls: it must always transition
+  // to a usable page, even if iOS dispatched incidental scroll/focus events.
+  const alreadyInteractive=displayedMain?.getAttribute('aria-busy')==='false';
+  if(!isLoading()&&alreadyInteractive&&(hasDraft||editing||changedSinceStart)){
     refreshSyncIndicators();
     if(latestRelease)showReleaseNotice();
     return;
