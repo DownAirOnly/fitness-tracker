@@ -109,3 +109,32 @@ test('invalid CSV blocks the entire import instead of applying partial rows',()=
  assert.equal(current.workoutTemplates.some(w=>w.name==='Bad'),false);
  assert.throws(()=>parseRoutineCSV('recordType,workout\nworkout,Bad'),/recordType, workout, exercise/);
 });
+
+
+test('explicit equipment reclassification keeps canonical ID, old lifts and compact-backup history',()=>{
+ const current=base(),sourceId='saved-incline-press';
+ current.exerciseDefinitions.push({id:sourceId,name:'Incline Chest Press',equipment:'machine',setup:'Current seat 3',notes:'Personal setup'});
+ current.lifts.push({id:'old-incline-lift',date:'2026-11-09',exercise:'Incline Chest Press',equipment:'machine',sets:[{weight:50,reps:8}]});
+ const text=csv([
+  {recordType:'exercise',exercise:'Incline Chest Press',equipment:'bench',movement:'push',primaryMuscles:'chest',secondaryMuscles:'triceps|frontDelts',setup:'Imported Smith setup'},
+  {recordType:'workout',workout:'Upper B',exercise:'Incline Chest Press',equipment:'bench',order:1,repMin:8,repMax:12,targetSets:2}
+ ]);
+ const automatic=prepareRoutineImport(text,current);
+ assert.deepEqual(automatic.errors,[]);
+ assert.equal(automatic.counts.createdExercises,1,'cross-equipment changes are never automatic');
+ const plan=prepareRoutineImport(text,current,{exerciseMatches:{'incline chest press|bench':'reclassify:'+sourceId}});
+ assert.deepEqual(plan.errors,[]);
+ assert.equal(plan.counts.reclassifiedExercises,1);
+ assert.equal(plan.counts.createdExercises,0);
+ assert.equal(plan.candidate.exerciseDefinitions.filter(x=>x.name==='Incline Chest Press').length,1);
+ assert.equal(plan.candidate.exerciseDefinitions.find(x=>x.id===sourceId).equipment,'bench');
+ assert.equal(plan.candidate.exerciseDefinitions.find(x=>x.id===sourceId).setup,'Current seat 3');
+ assert.equal(plan.candidate.exerciseDefinitions.find(x=>x.id===sourceId).notes,'Personal setup');
+ assert.deepEqual(plan.candidate.lifts,current.lifts,'historical lifts never silently reclassified');
+ assert.equal(plan.candidate.workoutTemplates.find(x=>x.name==='Upper B').exercises[0].exerciseId,sourceId);
+ const restored=normalizeData(encodeData(plan.candidate));
+ assert.equal(restored.exerciseDefinitions.filter(x=>x.name==='Incline Chest Press').length,1);
+ assert.equal(restored.exerciseDefinitions.find(x=>x.id===sourceId).equipment,'bench');
+ assert.equal(restored.lifts.find(x=>x.id==='old-incline-lift').equipment,'machine');
+ assert.equal(restored.lifts.find(x=>x.id==='old-incline-lift').sets[0].weight,50);
+});
