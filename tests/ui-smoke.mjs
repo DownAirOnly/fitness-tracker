@@ -10,10 +10,11 @@ const root=new URL('../',import.meta.url),temp=await mkdtemp(join(tmpdir(),'ever
 const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http://localhost/fitness-tracker/'});
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
+const releaseRevision=JSON.parse(await readFile(new URL('version.json',root),'utf8')).version.slice(1);
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=140'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v='+releaseRevision),'palette coverage stylesheet is loaded');
 const liftingStyles=await readFile(new URL('lifting-routines.css',root),'utf8');
-assert.ok(launchHtml.includes('lifting-routines.css?v=140'),'new Lifting routine CSS is included');
+assert.ok(launchHtml.includes('lifting-routines.css?v='+releaseRevision),'new Lifting routine CSS is included');
 const checkInCss=await readFile(new URL('weight-checkin.css',root),'utf8');
 const beginnerCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
 assert.ok(beginnerCss.includes('.buddy-second-set-offer button')&&beginnerCss.includes('min-height:44px'),'optional beginner action is accessible and palette-aware');
@@ -22,7 +23,7 @@ const themeSource=await readFile(new URL('theme.js',root),'utf8');
 assert.equal(manifest.theme_color,'#15171a','Android native chrome has a neutral static fallback rather than fixed forest green');
 assert.equal(manifest.background_color,'#15171a','installed PWA startup background uses the same neutral fallback');
 assert.ok(themeSource.includes('refresh: apply')&&themeSource.includes('--ap-bg'),'theme-color follows the selected dark palette after OS display-mode changes');
-assert.ok(launchHtml.includes('weight-checkin.css?v=140'),'daily check-in steppers CSS is loaded');
+assert.ok(launchHtml.includes('weight-checkin.css?v='+releaseRevision),'daily check-in steppers CSS is loaded');
 assert.ok(checkInCss.includes('min-height:44px'),'daily adjustment controls have a 44px tap target');
 
 for(const selector of ['.gym-routine-tab.selected','.gym-selected-routine','.gym-routine-muscle-map'])
@@ -100,17 +101,17 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=140'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v='+releaseRevision),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=140'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v='+releaseRevision),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=140'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v='+releaseRevision),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
 const undoCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
-assert.ok(launchHtml.includes('buddy-undo-guard.css?v=140'),'persistent header Undo CSS is loaded');
+assert.ok(launchHtml.includes('buddy-undo-guard.css?v='+releaseRevision),'persistent header Undo CSS is loaded');
 assert.ok(undoCss.includes('.buddy-undo-header'),'dedicated top Undo style remains');
 const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
 assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');

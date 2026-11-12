@@ -1,3 +1,7 @@
+## v141 — Compact food-entry controls
+
+Food logging now uses **Save**, omits the account-loading and JSON-backup blurbs, and places **Now** / **No time** beside the Time label. Account authentication still blocks actual saving until the correct notebook is ready; only the explanatory hint was removed.
+
 ## v134 — Food serving sizes and portion calculations
 
 Food Library → edit a saved food → **Serving size & food state** records the amount described by its calories and protein, with optional measured equivalents. Log a saved food → **Calculate amount** previews a measured quantity or calorie/protein target; **Apply amount** changes the draft and **Save food log** confirms consumption.

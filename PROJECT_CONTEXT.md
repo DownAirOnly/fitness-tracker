@@ -2,7 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v140 (November 12, 2026)
+## Current release — v141 (November 12, 2026)
+
+- **Compact Food Entry:** The submit action reads **Save** (instead of Save food log). The pre-auth account-checking hint and the redundant bottom explanation about saved foods/JSON backups are removed. The **Now** and **No time** shortcuts move onto the Time label row, above the existing 30-minute stepper, scoped to Food Entry only.
+- **Safety preserved:** Cached saved-food cards can still open before account authentication, and their Save button stays disabled until account identity and notebook load are confirmed. The removed hint is only presentation; same-owner hydration and form preservation remain intact. Batch saves retain their descriptive **Save foods** label.
+- **Regression:** Updated the focused startup preview assertion for no pending message and the shorter Save label. Versioned assets and service worker advance to v141; device verification is separate from code changes.
+
+## Previous release — v140 (November 12, 2026)
 
 - **Immediate cached Food-card preview:** The v139 startup fix preserved opened dialogs but pre-auth click gating still ignored taps on saved food cards until the Settings gear unlocked. If the device has a validated last-confirmed account snapshot, the main saved-food card now opens its Log saved food form immediately, even before Firebase completes authentication. Basic form controls (servings, CSV clipboard, time, close) work during this read-only preview.
 - **Safe save boundary:** Until authentication confirms the cached owner and the account notebook is ready (or safely recovered), the Save food log button is disabled and a short status note explains why. Keyboard submission is also rejected during that period. Cloud completion enables Save *in place*, without replacing the form or losing typed values. A genuine user/account mismatch still dismisses the old cached form; no preview can write against another account.

@@ -1,6 +1,6 @@
 // v97 — read-only Finance Insights. Never updates source records or infers transfers.
 // Expenses reflect saved classifications, not necessarily itemized consumption.
-import {financeReviewFlags} from './bank-import.js?v=140';
+import {financeReviewFlags} from './bank-import.js?v=141';
 
 const DAY=86400000;
 const validDay=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''))&&!Number.isNaN(Date.parse(value+'T00:00:00Z'));

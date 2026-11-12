@@ -51,7 +51,8 @@ test('cached Home food opens immediately and saves only after account readiness'
   assert.ok(form,'first tap opens Food Entry despite grayed-out Settings');
   assert.equal(form.elements.name.value,'Early breakfast');
   assert.equal(form.querySelector('[data-food-submit]').disabled,true,'save remains disabled until account confirmation');
-  assert.equal(form.querySelector('[data-food-account-pending]').hidden,false);
+  assert.equal(form.querySelector('[data-food-account-pending]'),null,'pending-save explanation is not shown');
+  assert.equal(form.querySelector('[data-food-submit]').textContent,'Save','food submit has compact label');
   const before=JSON.parse(dom.window.localStorage.getItem('everyday-cloud-confirmed-v1:alice'));
   assert.equal(normalizeData(before.data).foodEntries.length,0);
   form.elements.name.value='Early breakfast adjusted';
@@ -66,7 +67,7 @@ test('cached Home food opens immediately and saves only after account readiness'
   assert.equal(form.elements.name.value,'Early breakfast adjusted');
   assert.equal(form.elements.quantity.value,'0.5');
   assert.equal(form.querySelector('[data-food-submit]').disabled,false,'save enabled in place');
-  assert.equal(form.querySelector('[data-food-account-pending]').hidden,true);
+  assert.equal(form.querySelector('[data-food-submit]').textContent,'Save');
   assert.equal(document.querySelector('.home-settings').disabled,false,'Settings enables without shell rebuild');
   form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();
   const saved=JSON.parse(state.records.get('alice').payload);
