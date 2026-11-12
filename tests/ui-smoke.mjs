@@ -175,10 +175,10 @@ globalThis.requestAnimationFrame=callback=>setTimeout(callback,0);
 const fixture=join(temp,'cloud.mjs');
 await writeFile(fixture,`
  import {CloudSession,nextRecord} from '${new URL('cloud-model.js',root)}';
- export const state={user:'alice',records:new Map(),fail:false,callback:null};
- const store={read:async uid=>state.records.get(uid)||null,write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');if(state.holdSave){state.holdSave=false;await new Promise(resolve=>{state.releaseSave=resolve;});}const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
+ export const state={user:'alice',records:new Map(),fail:false,callback:null,holdLoad:false,releaseLoad:null,reloadSame:null};
+ const store={read:async uid=>{if(state.holdLoad){state.holdLoad=false;await new Promise(resolve=>{state.releaseLoad=resolve;});}return state.records.get(uid)||null;},write:async(uid,revision,payload)=>{if(state.fail)throw Error('offline');if(state.holdSave){state.holdSave=false;await new Promise(resolve=>{state.releaseSave=resolve;});}const next=nextRecord(state.records.get(uid)||null,revision,payload);state.records.set(uid,next);return next;}};
  export const cloudError=e=>e.message;
- export async function connectCloud(callback){state.callback=callback;await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
+ export async function connectCloud(callback){state.callback=callback;state.reloadSame=()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store));await new Promise(resolve=>{state.releaseAuth=resolve;});await callback(null,null);return {signIn:async()=>callback({uid:state.user,email:state.user+'@example.com'},new CloudSession(state.user,store)),signOut:async()=>callback(null,null)};}
 `);
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
@@ -1057,6 +1057,39 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(document.querySelector('[data-action="migrate-device-confirm"]'),'device migration requires explicit review');
   await click('migrate-device-confirm');
  assert.equal(JSON.parse(state.records.get('alice').payload).foodEntries.length,1);
+ // Real startup race: user opens Food Entry while the same account's cloud
+ // refresh is still waiting. Completing hydration must never recreate the
+ // shell or discard the draft/keyboard-visible form.
+ await click('food');
+ state.holdLoad=true;
+ const sameAccountReload=state.reloadSame();
+ await tick();
+ await click('new-food');
+ const activeFoodForm=document.querySelector('form[data-form="food"]');
+ assert.ok(activeFoodForm,'food form opens while account refresh is waiting');
+ activeFoodForm.elements.name.value='Quick breakfast';
+ activeFoodForm.elements.calories.value='215';
+ activeFoodForm.elements.protein.value='19';
+ const foodFormPage=document.querySelector('main');
+ state.releaseLoad();await sameAccountReload;await tick();
+ assert.equal(document.querySelector('main'),foodFormPage,'late cloud response does not replace the current page');
+ assert.equal(document.querySelector('main')?.dataset.page,'food','late cloud response keeps the Food screen');
+ assert.equal(document.querySelector('form[data-form="food"]'),activeFoodForm,'entry dialog is the original DOM node');
+ assert.equal(activeFoodForm.elements.name.value,'Quick breakfast','unsaved name is still there');
+ assert.equal(activeFoodForm.elements.calories.value,'215','unsaved calories are still there');
+ assert.equal(activeFoodForm.elements.protein.value,'19','unsaved protein is still there');
+ await click('close');
+ // Even without a modal, navigation during a delayed cloud refresh must not
+ // jump back to Home or replace the active page just as a tap arrives.
+ state.holdLoad=true;
+ const navReload=state.reloadSame();
+ await tick();
+ await click('gym');
+ const currentGymPage=document.querySelector('main');
+ state.releaseLoad();await navReload;await tick();
+ assert.equal(document.querySelector('main'),currentGymPage,'late refresh does not replace an interacted-with Lifting page');
+ assert.equal(document.querySelector('main')?.dataset.page,'gym');
+ await click('settings');
  await click('sign-out');state.user='bob';await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'account separation');
  state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
