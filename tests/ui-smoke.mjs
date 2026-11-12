@@ -11,9 +11,9 @@ const dom=new JSDOM(await readFile(new URL('index.html',root),'utf8'),{url:'http
 const stylesheet=await readFile(new URL('styles.css',root),'utf8');
 const launchHtml=await readFile(new URL('index.html',root),'utf8');
 const appearanceCoverage=await readFile(new URL('appearance-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-coverage.css?v=133'),'palette coverage stylesheet is loaded');
+assert.ok(launchHtml.includes('appearance-coverage.css?v=134'),'palette coverage stylesheet is loaded');
 const liftingStyles=await readFile(new URL('lifting-routines.css',root),'utf8');
-assert.ok(launchHtml.includes('lifting-routines.css?v=133'),'new Lifting routine CSS is included');
+assert.ok(launchHtml.includes('lifting-routines.css?v=134'),'new Lifting routine CSS is included');
 const checkInCss=await readFile(new URL('weight-checkin.css',root),'utf8');
 const beginnerCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
 assert.ok(beginnerCss.includes('.buddy-second-set-offer button')&&beginnerCss.includes('min-height:44px'),'optional beginner action is accessible and palette-aware');
@@ -22,7 +22,7 @@ const themeSource=await readFile(new URL('theme.js',root),'utf8');
 assert.equal(manifest.theme_color,'#15171a','Android native chrome has a neutral static fallback rather than fixed forest green');
 assert.equal(manifest.background_color,'#15171a','installed PWA startup background uses the same neutral fallback');
 assert.ok(themeSource.includes('refresh: apply')&&themeSource.includes('--ap-bg'),'theme-color follows the selected dark palette after OS display-mode changes');
-assert.ok(launchHtml.includes('weight-checkin.css?v=133'),'daily check-in steppers CSS is loaded');
+assert.ok(launchHtml.includes('weight-checkin.css?v=134'),'daily check-in steppers CSS is loaded');
 assert.ok(checkInCss.includes('min-height:44px'),'daily adjustment controls have a 44px tap target');
 
 for(const selector of ['.gym-routine-tab.selected','.gym-selected-routine','.gym-routine-muscle-map'])
@@ -100,17 +100,17 @@ assert.ok(stylesheet.includes('[data-skin="high-seas"]'),'the immersive skin sty
 assert.ok(bootSource.includes('if(hand)hand.style.transform'),'bike hand position is driven by elapsed time');
 assert.ok(bootSource.includes('((300-left)*6)'),'second hand rotates 360 degrees every minute');
 assert.ok(bootSource.includes('firstWeightDay=shiftDate(today,-(weightChartDays-1))'),'weight trend uses rolling 7/30/90 calendar-day windows');
-assert.ok(launchHtml.includes('muscle-levels.css?v=133'),'set-level and routine-color stylesheet is loaded');
+assert.ok(launchHtml.includes('muscle-levels.css?v=134'),'set-level and routine-color stylesheet is loaded');
 const uiPolish=await readFile(new URL('ui-polish.css',root),'utf8');
-assert.ok(launchHtml.includes('ui-polish.css?v=133'),'mobile layout fixes load after the theme styles');
+assert.ok(launchHtml.includes('ui-polish.css?v=134'),'mobile layout fixes load after the theme styles');
 const typeCoverage=await readFile(new URL('appearance-text-coverage.css',root),'utf8');
-assert.ok(launchHtml.includes('appearance-text-coverage.css?v=133'),'new typography coverage loads after existing theme and UI styles');
+assert.ok(launchHtml.includes('appearance-text-coverage.css?v=134'),'new typography coverage loads after existing theme and UI styles');
 assert.ok(typeCoverage.includes('var(--ap-text-secondary)'),'neutral copy uses palette-derived muted text, not fixed forest colors');
 for(const role of ['.home-metric .nutrition-total-value .nutrition-total-target','.suggestion-card-macros','.home-food-count','.food-csv-panel small','.finance-recent>.empty']){
  assert.ok(typeCoverage.includes(role),'leftover neutral green role covered: '+role);
 }
 const undoCss=await readFile(new URL('buddy-undo-guard.css',root),'utf8');
-assert.ok(launchHtml.includes('buddy-undo-guard.css?v=133'),'persistent header Undo CSS is loaded');
+assert.ok(launchHtml.includes('buddy-undo-guard.css?v=134'),'persistent header Undo CSS is loaded');
 assert.ok(undoCss.includes('.buddy-undo-header'),'dedicated top Undo style remains');
 const clipboardCss=await readFile(new URL('ui-notifications-clipboard.css',root),'utf8');
 assert.ok(clipboardCss.includes('.food-csv-actions'),'Copy and Paste are separate visible buttons');
@@ -183,7 +183,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
@@ -389,6 +389,30 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('[data-action="demo-start"]'),'demo entry point for signed-out visitors');
  await click('demo-start');
  assert.ok(document.querySelector('.demo-banner'),'demo mode is visibly identified');
+
+ await click('food');await click('food-library');await click('new-food-def');
+ const beforePortion=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).foodEntries;
+ await submit('food-definition',{name:'Portion test ingredient',calories:'120',protein:'24',servingAmount:'100',servingUnit:'g',servingState:'cooked'});
+ let portionNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
+ const portionFood=portionNotebook.foods.find(f=>f.name==='Portion test ingredient');
+ assert.equal(portionFood.serving.amount,100,'serving saved through real editor');
+ assert.deepEqual(portionNotebook.foodEntries,beforePortion,'saving a definition never logs food');
+ await click('close');await click('food');
+ document.querySelector('[data-action="add-saved"][data-id="'+portionFood.id+'"]').click();await tick();
+ const portionForm=document.querySelector('form[data-form="food"]');
+ portionForm.elements.portionValue.value='250';portionForm.elements.portionUnit.value='g';
+ portionForm.elements.portionValue.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ assert.match(portionForm.querySelector('[data-portion-result]').textContent,/300 cal/);
+ await click('food-portion-apply');assert.equal(portionForm.elements.quantity.value,'2.5');
+ portionForm.elements.portionUnit.value='ml';portionForm.elements.portionUnit.dispatchEvent(new dom.window.Event('change',{bubbles:true}));
+ assert.ok(portionForm.querySelector('[data-action="food-portion-apply"]').disabled,'volume conversion blocked');
+ assert.equal(portionForm.elements.quantity.value,'2.5','bad preview does not overwrite applied amount');
+ await click('close');
+ assert.deepEqual(normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).foodEntries,beforePortion,'preview and cancel never log');
+ await click('food-library');
+ document.querySelector('[data-action="edit-food-def"][data-id="'+portionFood.id+'"]').click();await tick();
+ assert.equal(document.querySelector('[name="servingAmount"]').value,'100','editor restores serving');
+ await click('delete-food-def');await click('close');await click('home');
  let sample=JSON.parse(localStorage.getItem('everyday-demo-workspace-v1'));
  assert.ok(sample.active&&sample.data.foodEntries.length>100&&sample.data.workoutHistory.length>=10);
  await click('progress');

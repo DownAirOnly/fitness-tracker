@@ -1057,3 +1057,11 @@
 :root[data-theme="dark"] .weight-trend-dot{
  fill:var(--ap-secondary);
 }
+
+/* Food serving details and draft-only portion tool. */
+.food-serving-details,.food-portion-tool{border:1px solid var(--ap-border);border-radius:14px;padding:12px;min-width:0;background:var(--ap-surface);color:var(--ap-on-surface)}
+.food-serving-details summary,.food-portion-tool summary{min-height:44px;display:flex;align-items:center;color:var(--ap-on-surface);font-weight:600;cursor:pointer}
+.food-serving-details input,.food-serving-details select,.food-portion-tool input,.food-portion-tool select{min-width:0;width:100%;font-size:16px}
+.food-serving-details .hint,.food-portion-tool .hint{color:var(--ap-muted)}
+.food-portion-tool [data-portion-result]{overflow-wrap:anywhere;color:var(--ap-on-surface)}
+.food-portion-tool button{min-height:44px}

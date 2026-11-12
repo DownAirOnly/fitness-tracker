@@ -31,7 +31,7 @@ export function decodeStoredData(input){
   if(foodMap.has(food.id))throw Error('Backup has duplicate food dictionary IDs.');
   const normalized={...food,kind,tags:[...new Set(tags.map(tag=>tag.trim().toLowerCase()))],pinned,accuracy};
   foodMap.set(food.id,normalized);
-  if(food.saved!==false){const card={id:food.id,name:food.name,calories:food.calories,protein:food.protein,kind:normalized.kind,tags:structuredClone(normalized.tags)};if(normalized.pinned)card.pinned=true;if(normalized.accuracy)card.accuracy=normalized.accuracy;if(food.lastUsed!=null)card.lastUsed=food.lastUsed;foods.push(card);}
+  if(food.saved!==false){const card={id:food.id,name:food.name,calories:food.calories,protein:food.protein,kind:normalized.kind,tags:structuredClone(normalized.tags)};if(normalized.pinned)card.pinned=true;if(normalized.accuracy)card.accuracy=normalized.accuracy;if(food.lastUsed!=null)card.lastUsed=food.lastUsed;if(food.serving!=null)card.serving=structuredClone(food.serving);foods.push(card);}
  }
  const foodEntries=input.foodEntries.map(entry=>{if(!entry||typeof entry.foodId!=='string'||!foodMap.has(entry.foodId))throw Error('Backup food entry references a missing food.');if(entry.t!=null&&(!Number.isInteger(entry.t)||entry.t<0||entry.t>47))throw Error('Backup food entry has an invalid time.');const food=foodMap.get(entry.foodId),record={id:entry.id,date:entry.date,name:food.name,calories:food.calories,protein:food.protein,quantity:entry.quantity};if(entry.t!=null)record.t=entry.t;return record;});
  const exerciseMap=new Map(),exerciseDefinitions=[],usedExerciseIds=new Set();
@@ -84,6 +84,7 @@ export function encodeStoredData(data){
  const foods=[],foodByKey=new Map(),usedFoodIds=new Set();
  for(const food of data.foods){
   const def={id:food.id,name:food.name,calories:food.calories,protein:food.protein,kind:['food','drink'].includes(food.kind)?food.kind:'food',tags:Array.isArray(food.tags)?[...new Set(food.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[]};
+  if(food.serving!=null)def.serving=structuredClone(food.serving);
   if(food.pinned===true)def.pinned=true;
   if(['label','estimate'].includes(food.accuracy))def.accuracy=food.accuracy;
   if(food.lastUsed!=null)def.lastUsed=food.lastUsed;

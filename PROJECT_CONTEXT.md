@@ -2,7 +2,24 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v133 (November 11, 2026)
+## Current release — v134 (November 11, 2026)
+
+- **Food and portion foundation (phase 1):** Saved food editor has optional reference amount/unit, serving description, raw/cooked/drained/as-sold state, and known grams/milliliters equivalents. Both nutrition values always describe the same reference serving. Existing foods retain unspecified serving sizes and unchanged numeric values.
+- **Calculate amount inside food logging:** Inline expandable tool previews nutrition from known quantity, desired calories, or desired protein. Apply changes only the current draft's serving multiplier; the existing Save food log action commits consumption. No modal-to-modal wizard or new bottom tab. Unit conversions are restricted to compatible dimensions or explicit equivalents; no invented density or raw/cooked conversions. Missing nutrition and zero target denominators are rejected.
+- **Data preservation:** Optional serving metadata round-trips through v2 dictionary backups, section exports and account payloads. Existing log nutrition remains immutable when definitions change. CSV header unchanged; CSV remains a simple logging format, while JSON preserves serving metadata. No Firebase rule changes or new cloud entities.
+- **Verification:** Targeted calculation, backup/section/account round-trip tests and the existing DOM smoke workflow include editor save/reopen, preview/apply, incompatible conversion, cancel without logging, and historical preservation. Physical iPhone appearance remains user validation. CI and Pages must be verified separately before claiming live.
+
+### Accepted cooking direction and remaining phases
+
+- Cooking lives **inside Food**, not a separate bottom tab. Use one editable workspace with ingredients, live batch totals and expandable instructions; no mandatory page-by-page cooking sequence. Finish batch → choose portions/optional finished weight → explicitly log consumption → retain leftovers is the desired end flow.
+- Next coherent delivery: recipe core with embedded ingredient snapshots, instructions, batch totals and portable JSON. Then recoverable cooking sessions and immutable prepared batches. Saving/cooking never silently logs food or rewrites the reusable recipe.
+- Recipe sharing and pantry sharing are independent opt-ins. Recipe files include a chosen sender/creator credit; importer chooses whether to display it. Keep credit in details when hidden, and exclude emails/account IDs/private pantry and logs. This is approved direction, **not implemented in v134**.
+- Pantry should eventually track available ingredients and prepared leftovers, potentially shared with a brother; current mockup was only a starting point. Whether this is one shared household or independently visible supplies is still open. Do not infer shared access or send invitations.
+- Fried rice anchors the future walkthrough. Do not seed unverified sample nutrition into a user's real library.
+- Later phases: reviewed food database/barcode/label acquisition; selected planning/pantry behavior; informational expenditure research. No providers selected; no meal-photo interpretation promised; no automatic calorie targets, weekly rollover, coaching or lifting-program expansion.
+- v134 deliberately implements the serving/portion prerequisite only. Recipe UI, portable recipe schema, actual cooking/leftovers, shared pantry access, provider integrations and expenditure are still pending. Develop one coherent phase at a time, with targeted checks.
+
+## Previous release — v133 (November 11, 2026)
 
 - **Money retired from Everyday UI:** Four bottom tabs only — Home, Food, Lifting, Progress. Home's Eat/Workout switch and + control use a three-column row; the Spend dashboard and Money page/subroutes are unregistered. Old saved Home dashboard preference `finances` falls back to Eat without erasing prior records.
 - **Settings-only Money archive:** The existing full Finance-section JSON export survives in **Settings → Money archive**, including all transactions/bank metadata, classification rules, scheduled bills/paydays, budgets, and balance. Finance data is **not deleted by upgrading**. Export initiates a download, then exposes an *optional* erase control for that same account/data snapshot; users must check that the file is saved and Command/another replacement is verified, wait through the three-second disabled confirmation, and explicitly click to erase. Cloud deletion reuses the existing candidate-first safe-save logic so failed saves do not appear successful. No automated erasure or migration.
