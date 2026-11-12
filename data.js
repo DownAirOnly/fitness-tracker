@@ -1,10 +1,10 @@
-import {normalizeServing} from './food-portion-model.js?v=136';
-import {normalizeRecipes} from './cooking-model.js?v=136';
+import {normalizeServing} from './food-portion-model.js?v=137';
+import {normalizeRecipes} from './cooking-model.js?v=137';
 import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=137';
-import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=136';
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=136';
-import {normalizeClassificationRules} from './classification-model.js?v=136';
-import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=136';
+import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=137';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=137';
+import {normalizeClassificationRules} from './classification-model.js?v=137';
+import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=137';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [

@@ -3,9 +3,9 @@
 // index. Only changed documents are rewritten on a normal save.
 // A v2 manifest is read as-is and converted atomically on the first write.
 // Legacy state/main and v2 section docs are intentionally never deleted.
-import {decodeState,CloudConflict,MAX_CLOUD_BYTES} from './cloud-model.js?v=136';
-import {sectionPayloads,readSectionPayloads,ACCOUNT_SECTIONS} from './account-sections.js?v=136';
-import {monthlyParts,readMonthlyParts,STATIC_PARTS} from './account-monthly.js?v=136';
+import {decodeState,CloudConflict,MAX_CLOUD_BYTES} from './cloud-model.js?v=137';
+import {sectionPayloads,readSectionPayloads,ACCOUNT_SECTIONS} from './account-sections.js?v=137';
+import {monthlyParts,readMonthlyParts,STATIC_PARTS} from './account-monthly.js?v=137';
 
 const MAX_MONTHS=350,MAX_WRITES=420;
 const validRevision=value=>Number.isSafeInteger(value)&&value>=1;
