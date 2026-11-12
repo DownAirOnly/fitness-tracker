@@ -1,6 +1,6 @@
-import {encodeState,CloudConflict} from './cloud-model.js?v=139';
-import {sectionRefs,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=139';
-import {planHealthWeight,shortcutURL} from './health-model.js?v=139';
+import {encodeState,CloudConflict} from './cloud-model.js?v=140';
+import {sectionRefs,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=140';
+import {planHealthWeight,shortcutURL} from './health-model.js?v=140';
 
 export function healthBridge({db,auth,sdk,projectId}) {
   const config=uid=>sdk.doc(db,'users',uid,'integrations','appleHealth');
