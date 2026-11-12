@@ -2793,6 +2793,8 @@ function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{
  if(routineImport.onChange(event.target))return;
+ const editor=event.target.closest('form[data-form="exercise-definition"],form[data-form="routine-exercise-settings"]');
+ if(editor&&event.target.matches('[data-muscle-region],[data-training-profile-editor]'))editor.dataset.profileDirty='true';
  if(event.target.matches('[data-enrichment-choice]')&&pendingImport?.kind==='enrichment'){
   const txId=event.target.dataset.id;
   if(event.target.checked)pendingImport.selectedIds.add(txId);else pendingImport.selectedIds.delete(txId);
@@ -3255,6 +3257,7 @@ document.addEventListener('click',async event=>{
   if(action==='routine-import-open'){routineImport.open();return;}
   if(action==='routine-new'){routineStarterPicker();return;}
   if(action==='routine-starter'){const preset=routinePresets.find(p=>p.key===el.dataset.key);if(!preset)return;newRoutineEditor(preset.name,routinePresetExercises(preset));return;}
+  if(action==='routine-exercise-settings'){routineExerciseSettings(el.dataset.routine,el.dataset.id);return;}
   if(action==='routine-edit'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workoutTemplateForm(w.name);return;}
   if(action==='routine-copy'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;newRoutineEditor(w.name+' copy',w.exercises);return;}
   if(action==='routine-delete-prompt'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(w)routineDeletePrompt(w);return;}
@@ -3817,6 +3820,24 @@ app.addEventListener('submit',async event=>{
     }catch(error){if(preview){preview.textContent=error instanceof SyntaxError?'This file is not valid JSON.':error.message;preview.setAttribute('role','alert');}}
     return;
   }
+  if(form.dataset.form==='routine-exercise-settings'){
+    const name=String(v.equipment||'other'),minimum=Number(v.repMin),maximum=Number(v.repMax),sets=Number(v.targetSets),rest=Number(v.restSeconds);
+    if(!['machine','cable','dumbbell','bench','calisthenics','other'].includes(name)||
+       !Number.isInteger(minimum)||minimum<1||!Number.isInteger(maximum)||maximum<minimum||maximum>100||
+       !Number.isInteger(sets)||sets<1||sets>10||!Number.isInteger(rest)||rest<0||rest>1800)
+      return alert('Check reps, sets, rest time and equipment.');
+    const candidate=structuredClone(data),routine=candidate.workoutTemplates.find(w=>w.id===v.routineId),
+      item=routine?.exercises.find(e=>e.exerciseId===v.exerciseId),def=candidate.exerciseDefinitions.find(e=>e.id===v.exerciseId);
+    if(!item||!def)return alert('Exercise or routine not found. Reopen its settings.');
+    if(candidate.exerciseDefinitions.some(e=>e.id!==def.id&&e.name.trim().toLowerCase()===def.name.trim().toLowerCase()&&e.equipment===name))
+      return alert('An exercise with this name and equipment already exists. Use it in the routine instead of duplicating it.');
+    Object.assign(item,{repMin:minimum,repMax:maximum,targetSets:sets,restSeconds:rest});
+    def.equipment=name;
+    const profile=editedExerciseMeta(form,def.meta);
+    if(form.dataset.profileDirty==='true')def.meta=profile;
+    try{data=normalizeData(candidate);}catch(error){return alert(error.message);}
+    close(true);render();void persist();return;
+  }
   if(form.dataset.form==='exercise-definition'){
     const name=v.name.trim(),equipment=v.equipment||'other',setup=(v.setup||'').trim(),notes=String(v.notes||''),existing=data.exerciseDefinitions?.find(x=>x.id===v.exerciseId);
     if(!name||name.length>100||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(equipment)||setup.length>200||notes.length>500)return alert('Check the exercise definition.');
@@ -3824,12 +3845,15 @@ app.addEventListener('submit',async event=>{
     if(duplicate)return alert('That exercise already exists with this equipment.');
     let created=null;
     if(existing){
-      const oldName=existing.name,oldEquipment=existing.equipment;Object.assign(existing,{name,equipment});
+      Object.assign(existing,{name,equipment});
       if(setup)existing.setup=setup;else delete existing.setup;
       existing.notes=notes;
-      data.lifts.forEach(l=>{if(l.exercise.toLowerCase()===oldName.toLowerCase()&&(l.equipment||'other')===oldEquipment){l.exercise=name;l.equipment=equipment;}});
+      if(form.dataset.profileDirty==='true')existing.meta=editedExerciseMeta(form,existing.meta);
+      // Preserve historical lift names and equipment; a definition edit is not a rewrite of past workouts.
     }else{
-      created={id:id(),name,equipment,...(setup?{setup}:{}),notes};data.exerciseDefinitions.push(created);
+      created={id:id(),name,equipment,...(setup?{setup}:{}),notes};
+      if(form.dataset.profileDirty==='true')created.meta=editedExerciseMeta(form,null);
+      data.exerciseDefinitions.push(created);
     }
     if(v.returnTo==='routine'&&created&&workoutEditorState&&!workoutEditorState.exercises.some(e=>e.exerciseId===created.id)){
       workoutEditorState.exercises.push({exerciseId:created.id,repMin:6,repMax:12,targetSets:2,restSeconds:90});
