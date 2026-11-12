@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v141 (November 12, 2026)
+## Current release — v142 (November 12, 2026)
+
+- **Food-log visual cleanup:** On the **Log saved food** form, hide the large visible modal heading while retaining the descriptive dialog label for accessibility and the existing Close button. Other food form titles (Add food, Edit food log) remain.
+- **Matched dark input surfaces:** Food name, calorie, protein and date text-entry controls use the same palette-derived deep background as the central Time display. No hardcoded theme colors; editing, keyboard and date behavior unchanged.
+- **Equal bottom actions:** Add another food and Save / Save foods use two equal grid columns on new/saved-food forms, with wrapped labels permitted on narrow screens. Edit/delete dialogs retain their original action layout.
+- **Safety and regression:** Authentication gating still blocks premature saves. Versioned PWA assets and transitive imports advance to v142; automated tests and physical iPhone verification are distinct milestones.
+
+## Previous release — v141 (November 12, 2026)
 
 - **Compact Food Entry:** The submit action reads **Save** (instead of Save food log). The pre-auth account-checking hint and the redundant bottom explanation about saved foods/JSON backups are removed. The **Now** and **No time** shortcuts move onto the Time label row, above the existing 30-minute stepper, scoped to Food Entry only.
 - **Safety preserved:** Cached saved-food cards can still open before account authentication, and their Save button stays disabled until account identity and notebook load are confirmed. The removed hint is only presentation; same-owner hydration and form preservation remain intact. Batch saves retain their descriptive **Save foods** label.

@@ -1,3 +1,7 @@
+## v142 — Saved Food quick-log cleanup
+
+The saved-food logging dialog no longer displays its large heading, but keeps an accessible dialog name. Food Entry text and date input backgrounds match the dark Time display. **Add another food** and **Save** take equal widths on new food logs; historical edit actions remain unchanged.
+
 ## v141 — Compact food-entry controls
 
 Food logging now uses **Save**, omits the account-loading and JSON-backup blurbs, and places **Now** / **No time** beside the Time label. Account authentication still blocks actual saving until the correct notebook is ready; only the explanatory hint was removed.

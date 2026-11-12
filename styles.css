@@ -3805,3 +3805,11 @@ form[data-form="food"] .time-step-control>span{grid-column:1;grid-row:1}
 form[data-form="food"] .time-step-control>.time-step-options{grid-column:2;grid-row:1;margin:0;align-items:center}
 form[data-form="food"] .time-step-control>.time-step-row{grid-column:1/-1;grid-row:2;margin-top:3px}
 form[data-form="food"] .time-step-control>.time-step-options button{min-height:32px;padding:5px 8px;font-size:12px}
+
+/* v142: quick food logging is compact and keeps the deep Time surface. */
+.modal-titleless .modal-top{justify-content:flex-end;margin-bottom:10px}
+form[data-form="food"] .food-entry-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+form[data-form="food"] .food-entry-actions>button{width:100%;min-width:0;white-space:normal}
+:root[data-theme="dark"] form[data-form="food"] .field input:not([type="hidden"]){
+ background:var(--ap-deep);border-color:var(--ap-border);color:var(--ap-on-surface)
+}
