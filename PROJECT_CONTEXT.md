@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v142 (November 12, 2026)
+## Current release — v143 (November 12, 2026)
+
+- **Balanced Food Entry surfaces:** Restore the lighter, theme-derived Food name, calories, protein, and date fields from before v142. The central Time display now shares their exact `--ap-input` background and palette-based border, rather than `--ap-deep`.
+- **Cohesive buttons:** Now and No time have the same bordered, rounded, readable secondary styling as other Food Entry buttons, without the previous square/unstyled appearance. Secondary controls (Copy/Paste CSV, add another, time ±, serving controls) use a subtle blend of `--ap-input` and `--ap-raised`: visually distinct from fields but not overly contrasted. The primary Save button remains the theme's stronger action.
+- **Scoped change:** Form semantics, pre-auth save gating, startup modal persistence, time controls, quantities, CSV, and equal-width bottom actions are unchanged. The styles are scoped to Food Entry; other screens retain their own surfaces.
+- **Release:** Versioned PWA and transitive modules advance to v143. Automated checks, Pages rollout and iPhone appearance require independent verification.
+
+## Previous release — v142 (November 12, 2026)
 
 - **Food-log visual cleanup:** On the **Log saved food** form, hide the large visible modal heading while retaining the descriptive dialog label for accessibility and the existing Close button. Other food form titles (Add food, Edit food log) remain.
 - **Matched dark input surfaces:** Food name, calorie, protein and date text-entry controls use the same palette-derived deep background as the central Time display. No hardcoded theme colors; editing, keyboard and date behavior unchanged.

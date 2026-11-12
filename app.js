@@ -1,28 +1,28 @@
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=142';
-import {createCookingUI} from './cooking-ui.js?v=142';
-import {createRoutineImportUI} from './routine-import-ui.js?v=142';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=142';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=142';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=142';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=142';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=143';
+import {createCookingUI} from './cooking-ui.js?v=143';
+import {createRoutineImportUI} from './routine-import-ui.js?v=143';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=143';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=143';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=143';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=143';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=142';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=142';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=142';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=142';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=142';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=142';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=142';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=142';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=142';
-import {availableMonths,exportMonth} from './account-monthly.js?v=142';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=142';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=142';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=142';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=142';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=142';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=142';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=142';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=143';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=143';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=143';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=143';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=143';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=143';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=143';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=143';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=143';
+import {availableMonths,exportMonth} from './account-monthly.js?v=143';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=143';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=143';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=143';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=143';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=143';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=143';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=143';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -4064,7 +4064,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=142',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=143',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4167,7 +4167,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=142');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=143');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

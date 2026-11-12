@@ -3806,10 +3806,27 @@ form[data-form="food"] .time-step-control>.time-step-options{grid-column:2;grid-
 form[data-form="food"] .time-step-control>.time-step-row{grid-column:1/-1;grid-row:2;margin-top:3px}
 form[data-form="food"] .time-step-control>.time-step-options button{min-height:32px;padding:5px 8px;font-size:12px}
 
-/* v142: quick food logging is compact and keeps the deep Time surface. */
+/* v142: saved-food quick-log layout and equal actions. */
 .modal-titleless .modal-top{justify-content:flex-end;margin-bottom:10px}
 form[data-form="food"] .food-entry-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 form[data-form="food"] .food-entry-actions>button{width:100%;min-width:0;white-space:normal}
-:root[data-theme="dark"] form[data-form="food"] .field input:not([type="hidden"]){
- background:var(--ap-deep);border-color:var(--ap-border);color:var(--ap-on-surface)
+/* v143: inputs and the Time display share one surface; actions sit slightly above it.
+   Keep these styles local to Food Entry so other forms and timer controls retain their hierarchy. */
+form[data-form="food"] .time-step-control>.time-step-options button{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-height:36px;padding:7px 12px;
+ border:1px solid #d8e1d5;border-radius:12px;
+ font-size:12px;font-weight:800;line-height:1.1;
+}
+:root[data-theme="dark"] form[data-form="food"]{
+ --food-secondary-fill:color-mix(in srgb,var(--ap-input) 60%,var(--ap-raised));
+}
+:root[data-theme="dark"] form[data-form="food"] .time-step-row>strong{
+ background:var(--ap-input);border-color:var(--ap-border);color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] form[data-form="food"] :is(
+ .outline,.time-step-row>button,.time-step-options button,
+ .food-quantity-quick button,.food-quantity-presets button
+){
+ background:var(--food-secondary-fill);border:1px solid var(--ap-border);color:var(--ap-on-surface);
 }

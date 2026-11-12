@@ -1,6 +1,6 @@
 // A recipe snapshots the nutrition basis of each ingredient independently of the
 // food library. Changing saved foods later must not silently rewrite a recipe.
-import {normalizeServing} from './food-portion-model.js?v=142';
+import {normalizeServing} from './food-portion-model.js?v=143';
 const positive=(n,label)=>{if(typeof n!=='number'||!Number.isFinite(n)||n<=0||n>100000)throw Error(label+' must be a positive number.');return n;};
 const title=(value,max,label)=>{if(typeof value!=='string'||!value.trim()||value.trim().length>max)throw Error('Check '+label+'.');return value.trim();};
 export function ingredientSnapshot(food,identity,quantity=1){
