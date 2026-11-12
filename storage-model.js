@@ -81,7 +81,7 @@ export function decodeStoredData(input){
    return{exerciseId,repMin:Number(item?.repMin)||6,repMax:Number(item?.repMax)||12,targetSets:Number.isInteger(targetSets)&&targetSets>=1&&targetSets<=10?targetSets:2,restSeconds:Number.isInteger(restSeconds)&&restSeconds>=0&&restSeconds<=1800?restSeconds:90,...(cue?{cue}:{})};
   })
  })):undefined;
- const lifts=input.lifts.map(lift=>{if(!lift||typeof lift.exerciseId!=='string'||!exerciseMap.has(lift.exerciseId))throw Error('Backup lift references a missing exercise.');const exercise=exerciseMap.get(lift.exerciseId),record={id:lift.id,date:lift.date,exercise:exercise.name,equipment:exercise.equipment,sets:structuredClone(lift.sets)};if(lift.difficulty!=null)record.difficulty=lift.difficulty;if(lift.notes!=null)record.notes=lift.notes;if(lift.buddySessionId!=null)record.buddySessionId=lift.buddySessionId;return record;});
+ const lifts=input.lifts.map(lift=>{if(!lift||typeof lift.exerciseId!=='string'||!exerciseMap.has(lift.exerciseId))throw Error('Backup lift references a missing exercise.');const exercise=exerciseMap.get(lift.exerciseId);if(lift.equipment!=null&&!equipmentTypes.has(lift.equipment))throw Error('Backup lift has invalid historical equipment.');const record={id:lift.id,date:lift.date,exercise:exercise.name,equipment:lift.equipment||exercise.equipment,sets:structuredClone(lift.sets)};if(lift.difficulty!=null)record.difficulty=lift.difficulty;if(lift.notes!=null)record.notes=lift.notes;if(lift.buddySessionId!=null)record.buddySessionId=lift.buddySessionId;return record;});
  return{version:1,settings:structuredClone(input.settings),preferences:input.preferences?structuredClone(input.preferences):undefined,foods,foodEntries,recipes:input.recipes===undefined?[]:structuredClone(input.recipes),lifts,weights:structuredClone(input.weights),bodyFat:Array.isArray(input.bodyFat)?structuredClone(input.bodyFat):[],exerciseDefinitions,workoutTemplates,activeWorkout:input.activeWorkout?structuredClone(input.activeWorkout):null,workoutHistory:Array.isArray(input.workoutHistory)?structuredClone(input.workoutHistory):[],workoutSchedule:Array.isArray(input.workoutSchedule)?structuredClone(input.workoutSchedule):[],transactions:input.transactions===undefined?[]:structuredClone(input.transactions),classificationRules:input.classificationRules===undefined?[]:structuredClone(input.classificationRules),budgetPlan:input.budgetPlan===undefined?undefined:structuredClone(input.budgetPlan),promptDate:input.promptDate??''};
 }
 export function encodeStoredData(data){
@@ -101,7 +101,26 @@ export function encodeStoredData(data){
   if(!exercise.id||usedExerciseIds.has(exercise.id))continue;
   exercises.push(exercise);usedExerciseIds.add(exercise.id);exerciseByKey.set(key,exercise.id);exerciseById.set(exercise.id,exercise);
  }
- const lifts=data.lifts.map(lift=>{const normalized=inferExercise(lift.exercise),exercise={name:normalized.name,equipment:equipmentTypes.has(lift.equipment)?lift.equipment:normalized.equipment},key=exerciseKey(exercise);let exerciseId=exerciseByKey.get(key);if(!exerciseId){exerciseId=nextStableId('exercise',key,usedExerciseIds);usedExerciseIds.add(exerciseId);const created={id:exerciseId,...exercise};exercises.push(created);exerciseByKey.set(key,exerciseId);exerciseById.set(exerciseId,created);}const record={id:lift.id,date:lift.date,exerciseId,sets:structuredClone(lift.sets)};if(lift.difficulty!=null)record.difficulty=lift.difficulty;if(lift.notes)record.notes=lift.notes;if(lift.buddySessionId)record.buddySessionId=lift.buddySessionId;return record;});
+ const lifts=data.lifts.map(lift=>{
+  const normalized=inferExercise(lift.exercise),exercise={name:normalized.name,equipment:equipmentTypes.has(lift.equipment)?lift.equipment:normalized.equipment},key=exerciseKey(exercise);
+  let exerciseId=exerciseByKey.get(key),equipmentSnapshot='';
+  if(!exerciseId){
+   // A saved exercise can have a new equipment type without rewriting old
+   // completed lifts. Keep its stable ID and store the old equipment on the
+   // historical lift, rather than manufacturing a duplicate library exercise.
+   const sameName=exercises.filter(e=>e.name.toLowerCase()===exercise.name.toLowerCase());
+   if(sameName.length===1){exerciseId=sameName[0].id;equipmentSnapshot=exercise.equipment;}
+   else{
+    exerciseId=nextStableId('exercise',key,usedExerciseIds);usedExerciseIds.add(exerciseId);
+    const created={id:exerciseId,...exercise};exercises.push(created);exerciseByKey.set(key,exerciseId);exerciseById.set(exerciseId,created);
+   }
+  }
+  const record={id:lift.id,date:lift.date,exerciseId,...(equipmentSnapshot?{equipment:equipmentSnapshot}:{}),sets:structuredClone(lift.sets)};
+  if(lift.difficulty!=null)record.difficulty=lift.difficulty;
+  if(lift.notes)record.notes=lift.notes;
+  if(lift.buddySessionId)record.buddySessionId=lift.buddySessionId;
+  return record;
+ });
  const workoutTemplates=Array.isArray(data.workoutTemplates)?data.workoutTemplates.map(w=>({id:w.id,name:w.name,...(/^#[0-9a-f]{6}$/i.test(w.color||'')?{color:w.color}:{}),exercises:(Array.isArray(w.exercises)?w.exercises:[]).map(item=>{const record={exerciseId:item.exerciseId,repMin:item.repMin,repMax:item.repMax};if(item.targetSets!==2)record.targetSets=item.targetSets;if(item.restSeconds!==90)record.restSeconds=item.restSeconds;if(item.cue)record.cue=item.cue;return record;})})):[];
  return{version:2,settings:structuredClone(data.settings),preferences:structuredClone(data.preferences),foods,foodEntries,recipes:structuredClone(data.recipes||[]),exercises,lifts,weights:structuredClone(data.weights),bodyFat:Array.isArray(data.bodyFat)?structuredClone(data.bodyFat):[],workoutTemplates,activeWorkout:data.activeWorkout?structuredClone(data.activeWorkout):null,workoutHistory:Array.isArray(data.workoutHistory)?structuredClone(data.workoutHistory):[],workoutSchedule:Array.isArray(data.workoutSchedule)?structuredClone(data.workoutSchedule):[],transactions:structuredClone(data.transactions||[]),classificationRules:structuredClone(data.classificationRules||[]),budgetPlan:structuredClone(data.budgetPlan),promptDate:data.promptDate||''};
 }
