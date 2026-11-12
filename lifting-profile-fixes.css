@@ -1,0 +1,66 @@
+/* v138: Exercise controls inherit the selected Everyday palette. */
+.lift-dialog .lift-form .form-actions,
+[data-theme="dark"] .lift-dialog .lift-form .form-actions{
+ background:var(--ap-surface,#fbfcf7)!important;
+ border-color:var(--ap-border,transparent);
+}
+.lift-target-hint{
+ display:grid;gap:4px;margin:0;padding:11px 13px;
+ background:var(--ap-raised,rgba(120,120,120,.08));
+ border:1px solid var(--ap-border,#cbd4cc);border-radius:12px;
+ color:var(--ap-on-surface,inherit);font-size:12px;line-height:1.45;
+}
+.lift-target-hint span{color:var(--ap-muted,inherit);font-size:11px}
+.routine-exercise-section .exercise-muscle-wrapper.has-target-settings>.exercise-card{
+ min-height:142px;padding-bottom:50px;
+}
+.routine-exercise-settings{
+ position:absolute;z-index:5;bottom:11px;left:15px;
+ max-width:calc(100% - 170px);min-height:29px;
+ display:inline-flex;align-items:center;gap:7px;
+ font:750 10px/1.2 'DM Sans',sans-serif;text-align:left;
+ padding:6px 9px;border-radius:10px;
+ color:var(--ap-on-surface,inherit);
+ border:1px solid var(--ap-border,#52665a);
+ background:var(--ap-raised,#3b4a41);
+}
+.routine-exercise-settings span{
+ font-size:9px;letter-spacing:.08em;color:var(--ap-muted,inherit);
+}
+.routine-exercise-settings:hover,.routine-exercise-settings:focus-visible{border-color:var(--ap-primary,#c2d7a0)}
+.routine-exercise-settings-form .workout-program-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;
+}
+.routine-exercise-settings-form .workout-program-grid .field{min-width:0}
+.exercise-map-editor{
+ border:1px solid var(--ap-border,#52665a);
+ border-radius:12px;padding:11px 13px;
+ background:var(--ap-raised,rgba(120,120,120,.07));
+ color:var(--ap-on-surface,inherit);
+}
+.exercise-map-editor>summary{font-size:13px;font-weight:800;cursor:pointer}
+.exercise-map-editor .hint{margin:10px 0;font-size:11px;line-height:1.6}
+.exercise-map-editor>.field{margin:10px 0}
+.exercise-map-regions{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin-top:8px}
+.exercise-map-region{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(108px,44%);align-items:center;
+ gap:8px;padding:8px 0;
+ border-top:1px solid var(--ap-border,#52665a);
+}
+.exercise-map-region>span{font-size:11px;line-height:1.4;font-weight:700}
+.exercise-map-region>select{
+ width:100%;min-height:36px;padding:5px 7px;
+ background:var(--ap-input,var(--ap-surface,#fff));
+ color:var(--ap-on-surface,inherit);border:1px solid var(--ap-border,#52665a);
+ border-radius:8px;font-size:11px;
+}
+.routine-import-muscle-preview{display:flex;align-items:center;justify-content:flex-start;gap:8px;margin-top:5px}
+.routine-import-muscle-preview .muscle-mini-pair{height:50px;display:flex;width:70px;gap:4px}
+.routine-import-muscle-preview .muscle-mini-view{max-height:50px;max-width:32px}
+.routine-import-muscle-preview .muscle-mini-view svg{max-height:50px}
+.routine-import-muscle-preview small{font-size:10px;color:var(--ap-muted,inherit)}
+@media(max-width:390px){
+ .routine-exercise-settings{font-size:9px;padding:5px 6px;left:12px;max-width:calc(100% - 158px)}
+ .routine-exercise-settings span{display:none}
+ .routine-exercise-section .exercise-muscle-wrapper.has-target-settings>.exercise-card{min-height:145px;padding-bottom:46px}
+}
