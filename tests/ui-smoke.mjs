@@ -1093,7 +1093,13 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('settings');
  await click('sign-out');state.user='bob';await click('sign-in');await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'account separation');
- state.fail=true;await click('new-food');await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
+ state.fail=true;await click('new-food');
+ const cloudFoodForm=document.querySelector('form[data-form="food"]');
+ cloudFoodForm.elements.name.value='Cloud meal';cloudFoodForm.elements.calories.value='100';cloudFoodForm.elements.protein.value='8';
+ cloudFoodForm.elements.name.dispatchEvent(new dom.window.Event('input',{bubbles:true}));
+ assert.equal(cloudFoodForm.elements.saveAsFood.closest('.save-new-food-option').hidden,false,'new definition is opt-in when macros are known');
+ cloudFoodForm.elements.saveAsFood.checked=true;
+ await submit('food',{name:'Cloud meal',calories:'100',protein:'8'});
  assert.ok(document.querySelector('.save-warning'),'unsaved error is visible');
  assert.equal(JSON.parse(state.records.get('bob')?.payload||'{"foodEntries":[]}').foodEntries.length,0,
   'the failed purchase was not written to the other signed-in account');
