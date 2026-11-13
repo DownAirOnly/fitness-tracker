@@ -1449,7 +1449,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(secondQueued.querySelector('[data-time-value]').value,'','queued No time is stored independently');
  await submit('food',{});
  assert.equal(JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries.length,snapshotBeforeBatch+3,'Save foods commits all reviewed queue entries together');
- const batchStored=JSON.parse(localStorage.getItem('everyday-fitness-v1')).foodEntries.slice(-4);
+ const batchStored=normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries.slice(-4);
  assert.ok(batchStored.some(f=>f.name==='Manual cereal'&&f.calories===185),'queued edit persists on save: '+JSON.stringify(batchStored));
  console.log('UI smoke passed: human-first import review, food-library effects, pagination, validation, cancellation, delayed reads, atomic cloud/device failures and confirmation; Food empty/1–3/many entries, full log, historic add/edit/delete, today action; home hierarchy, dialog focus, dates, food, lifting, scrubbable nutrition periods, weigh-in see-all, progress, universal CSV/file+paste and JSON import/export, saved-food undo, body fat, cruise notes, account transitions, migration and save recovery.');
 }finally{dom.window.close();await rm(temp,{recursive:true,force:true});}
