@@ -308,7 +308,7 @@ function canPreviewCachedFoodAction(action,el){
  if(!canOpenCachedFood())return false;
  if(action==='add-saved')return Boolean(el.closest('.food-card')&&data.foods.some(food=>food.id===el.dataset.id));
  if(action==='close')return Boolean(app.querySelector('#overlay form[data-form="food"]'));
- const safeActions=new Set(['food-quantity-step','food-quantity','food-add-another','food-batch-remove',
+ const safeActions=new Set(['food-quantity-step','food-quantity','food-add-another','food-batch-remove','food-batch-quantity','food-batch-quantity-step',
   'food-csv-copy','food-csv-paste','time-step','time-now','time-clear','choose-food-match','clear-food-match']);
  return safeActions.has(action)&&Boolean(el.closest('form[data-form="food"]'));
 }
@@ -2866,7 +2866,9 @@ function foodForm(entry=null,card=null,options={}) {
   if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
-  modal(entry?'Edit food log':card?'Food Entry':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions${!entry?' food-entry-actions':''}">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${!canCommitFoodEntry()?'disabled ':''}${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form>`,onBack);
+  modal(entry?'Edit food log':card?'Food Entry':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-line"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div></div><div class="food-datetime-grid">${input('Date','date',dateValue,'date','required')}${timeControl("foodTime",timeValue)}</div>${newManual?'<label class="save-new-food-option" hidden><input type="checkbox" name="saveAsFood"><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions${!entry?' food-entry-actions':''}">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${!canCommitFoodEntry()?'disabled ':''}${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form>`,onBack);
+  updateFoodSaveOption(document.querySelector('form[data-form="food"]'));
+  syncFoodServingPresets(document.querySelector('form[data-form="food"] .food-quantity-field'));
 }
 function showFoodUndo(entryId,name){
  clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
@@ -2926,15 +2928,17 @@ function importModal(kind,source='file') {
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{
+ if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
  if(event.target.closest('form[data-form="recipe"]')){cooking.onInput(event.target.form);return;}
  if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
  if(event.target.matches('[data-finance-history-search]')){
   financeHistoryQuery=event.target.value;financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
- if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
+ if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.closest('form[data-form="food"]')&&event.target.matches('[name="name"],[name="calories"],[name="protein"]'))updateFoodSaveOption(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{
+ if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
  if(routineImport.onChange(event.target))return;
  const editor=event.target.closest('form[data-form="exercise-definition"],form[data-form="routine-exercise-settings"]');
  if(editor&&event.target.matches('[data-muscle-region],[data-training-profile-editor]'))editor.dataset.profileDirty='true';
@@ -3645,7 +3649,7 @@ document.addEventListener('click',async event=>{
       const current=input.value===''?(isMinutes?data.settings.dayResetMinutes??360:currentFoodSlot()):Number(input.value),delta=Number(el.dataset.delta);
       if(isMinutes)next=String((current+delta*step+max)%max);
       else{
-        const dateField=input.form?.elements.date,date=dateField?.value;
+        const dateField=input.closest('[data-food-batch-item]')?.querySelector('[data-food-batch-field="date"]')||input.form?.elements.date,date=dateField?.value;
         if(date){const stepped=stepFoodDateTime(date,current,delta);next=String(stepped.t);
           if(dateField)dateField.value=stepped.date;
           }
@@ -3653,15 +3657,24 @@ document.addEventListener('click',async event=>{
       }
     }
     input.value=next;syncTimeControl(input);
+    if(input.closest('[data-food-batch-item]'))syncFoodBatchRow(input.closest('[data-food-batch-item]'),input);
     if(action==='time-now'){
-      if(input.form?.elements.date)input.form.elements.date.value=localDate();
+      const dateField=input.closest('[data-food-batch-item]')?.querySelector('[data-food-batch-field="date"]')||input.form?.elements.date;
+      if(dateField)dateField.value=localDate();
       
     }
     /* Clipboard CSV generated only on Copy. */
     
     return;
   }
-  if(action==='food-quantity'||action==='food-quantity-step'){const form=el.closest('form[data-form="food"]');if(!form)return;const hidden=form.elements.quantity,old=Number(hidden.value)||1,value=action==='food-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);if(!Number.isFinite(value)||value<=0)return;hidden.value=String(value);form.querySelector('[data-food-quantity-display]').textContent=fmt(value);return;}
+  if(action==='food-quantity'||action==='food-quantity-step'){const form=el.closest('form[data-form="food"]');if(!form)return;const hidden=form.elements.quantity,old=Number(hidden.value)||1,value=action==='food-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);if(!Number.isFinite(value)||value<=0)return;hidden.value=String(value);form.querySelector('[data-food-quantity-display]').textContent=fmt(value);syncFoodServingPresets(form.querySelector('.food-quantity-field'));return;}
+  if(action==='food-batch-quantity'||action==='food-batch-quantity-step'){
+    const row=el.closest('[data-food-batch-item]');if(!row)return;
+    const hidden=row.querySelector('[data-food-batch-field="quantity"]'),old=Number(hidden.value)||1,value=action==='food-batch-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);
+    if(!Number.isFinite(value)||value<=0)return;
+    hidden.value=String(value);row.querySelector('[data-food-batch-quantity-display]').textContent=fmt(value);
+    syncFoodServingPresets(row.querySelector('.food-quantity-field'));syncFoodBatchRow(row,hidden);return;
+  }
   if(action==='food-csv-copy'||action==='food-csv-paste'){
     const form=el.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');
     if(!form)return;
@@ -3683,8 +3696,8 @@ document.addEventListener('click',async event=>{
       // Clipboard read starts synchronously within the user tap.
       const raw=await clipboard.readText();
       if(!raw.trim())throw Error('Clipboard is empty. Copy a foodLog CSV row first.');
-      pasteFoodFormCSV(form,raw);
-      notify('CSV pasted. Review the details, then save.');
+      const count=pasteFoodFormCSV(form,raw);
+      notify(count>1||foodBatch.length?count+' food'+(count===1?'':'s')+' added to the unsaved list. Expand any food to edit.':'CSV pasted. Review the details, then save.');
      }
     }catch(error){
      notify(error?.name==='NotAllowedError'?
@@ -3710,8 +3723,8 @@ document.addEventListener('click',async event=>{
     timeSlot:chosenDate===currentTrackingDate()?currentFoodSlot():null});
    return;
   }
-  if(action==='choose-food-match'){const form=el.closest('form[data-form="food"]'),food=data.foods.find(x=>x.id===el.dataset.id);if(!form||!food)return;form.elements.cardId.value=food.id;form.elements.name.value=food.name;form.elements.calories.value=food.calories;form.elements.protein.value=food.protein;const saveOption=form.querySelector('.save-new-food-option');if(saveOption)saveOption.hidden=true;form.querySelector('.food-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(food.name)+'</strong><small>Using saved food · '+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><button type="button" class="text-btn" data-action="clear-food-match">Change</button></div>';return;}
-  if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';const saveOption=form.querySelector('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}renderFoodMatches(form);form.elements.name.focus();return;}
+  if(action==='choose-food-match'){const form=el.closest('form[data-form="food"]'),food=data.foods.find(x=>x.id===el.dataset.id);if(!form||!food)return;form.elements.cardId.value=food.id;form.elements.name.value=food.name;form.elements.calories.value=food.calories;form.elements.protein.value=food.protein;const saveOption=form.querySelector('.save-new-food-option');if(saveOption)saveOption.hidden=true;form.querySelector('.food-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(food.name)+'</strong><small>Using saved food · '+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><button type="button" class="text-btn" data-action="clear-food-match">Change</button></div>';updateFoodSaveOption(form);return;}
+  if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';const saveOption=form.querySelector('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}renderFoodMatches(form);updateFoodSaveOption(form);form.elements.name.focus();return;}
   if(action==='edit-card'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'food');return;}
   if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;render();void persist();return;}
   if(action==='undo-food-add'){clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';render();void persist();return;}
@@ -4057,7 +4070,9 @@ app.addEventListener('submit',async event=>{
       if(draft.record.t==null)delete edited.t;
       chosenDate=currentFoodTrackingDate(edited);close(true);page=foodEntryReturnPage;render();void persist();return;
     }
-    const prepared=foodBatch.map(item=>{
+    let validated;
+    try{validated=foodBatch.map(validateQueuedFood);}catch(error){alert(error.message);return;}
+    const prepared=validated.map(item=>{
       if(!item.inheritTime)return item;
       const next={...item,record:{...item.record,date:v.date}};
       if(v.foodTime!=='')next.record.t=Number(v.foodTime);else delete next.record.t;
