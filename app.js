@@ -3657,12 +3657,11 @@ document.addEventListener('click',async event=>{
       }
     }
     input.value=next;syncTimeControl(input);
-    if(input.closest('[data-food-batch-item]'))syncFoodBatchRow(input.closest('[data-food-batch-item]'),input);
     if(action==='time-now'){
       const dateField=input.closest('[data-food-batch-item]')?.querySelector('[data-food-batch-field="date"]')||input.form?.elements.date;
       if(dateField)dateField.value=localDate();
-      
     }
+    if(input.closest('[data-food-batch-item]'))syncFoodBatchRow(input.closest('[data-food-batch-item]'),input);
     /* Clipboard CSV generated only on Copy. */
     
     return;
