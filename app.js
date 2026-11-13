@@ -1,28 +1,28 @@
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=143.1';
-import {createCookingUI} from './cooking-ui.js?v=143.1';
-import {createRoutineImportUI} from './routine-import-ui.js?v=143.1';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=143.1';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=143.1';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=143.1';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=143.1';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=144';
+import {createCookingUI} from './cooking-ui.js?v=144';
+import {createRoutineImportUI} from './routine-import-ui.js?v=144';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=144';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=144';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=144';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=144';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=143.1';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=143.1';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=143.1';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=143.1';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=143.1';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=143.1';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=143.1';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=143.1';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=143.1';
-import {availableMonths,exportMonth} from './account-monthly.js?v=143.1';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=143.1';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=143.1';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=143.1';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=143.1';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=143.1';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=143.1';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=143.1';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=144';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=144';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=144';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=144';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=144';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=144';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=144';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=144';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=144';
+import {availableMonths,exportMonth} from './account-monthly.js?v=144';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=144';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=144';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=144';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=144';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=144';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=144';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=144';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -308,7 +308,7 @@ function canPreviewCachedFoodAction(action,el){
  if(!canOpenCachedFood())return false;
  if(action==='add-saved')return Boolean(el.closest('.food-card')&&data.foods.some(food=>food.id===el.dataset.id));
  if(action==='close')return Boolean(app.querySelector('#overlay form[data-form="food"]'));
- const safeActions=new Set(['food-quantity-step','food-quantity','food-add-another','food-batch-remove',
+ const safeActions=new Set(['food-quantity-step','food-quantity','food-add-another','food-batch-remove','food-batch-quantity','food-batch-quantity-step',
   'food-csv-copy','food-csv-paste','time-step','time-now','time-clear','choose-food-match','clear-food-match']);
  return safeActions.has(action)&&Boolean(el.closest('form[data-form="food"]'));
 }
@@ -1309,7 +1309,7 @@ function foodMatches(name){
 }
 function renderFoodMatches(form){
  const box=form.querySelector('.food-matches'),matches=foodMatches(form.elements.name.value);form.elements.cardId.value='';
- const saveOption=form.querySelector('.save-new-food-option');if(saveOption)saveOption.hidden=false;
+ const saveOption=form.elements.saveAsFood?.closest('.save-new-food-option');if(saveOption)saveOption.hidden=false;
  box.innerHTML=matches.length?'<span class="food-match-label">Saved foods</span>'+matches.map(food=>'<button type="button" class="food-match" data-action="choose-food-match" data-id="'+esc(food.id)+'"><span><strong>'+esc(food.name)+'</strong><small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><b>Use</b></button>').join(''):'';
 }
 // Repeat a food by copying nutritional values into a new editable log draft.
@@ -2714,35 +2714,87 @@ function foodDefinitionForm(food=null,origin='food'){
 
 const foodCSVColumns=['recordType','date','name','calories','protein','quantity','time','saveAsFood'];
 const csvQuote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
+const foodMatchKey=value=>String(value||'').trim().replace(/\s+/g,' ').toLowerCase();
+function foodHasExactDefinition(name,calories,protein){
+ if(!foodMatchKey(name)||String(calories??'').trim()===''||String(protein??'').trim()==='')return false;
+ const cal=Number(calories),pro=Number(protein);
+ if(!Number.isFinite(cal)||cal<0||!Number.isFinite(pro)||pro<0)return false;
+ return [...data.foods,...data.foodEntries].some(item=>foodMatchKey(item.name)===foodMatchKey(name)&&Number(item.calories)===cal&&Number(item.protein)===pro);
+}
+function foodCanSaveNew(name,calories,protein){
+ return Boolean(foodMatchKey(name)&&String(calories??'').trim()!==''&&String(protein??'').trim()!==''&&
+ Number.isFinite(Number(calories))&&Number(calories)>=0&&Number.isFinite(Number(protein))&&Number(protein)>=0&&
+ !foodHasExactDefinition(name,calories,protein));
+}
+function updateFoodSaveOption(form){
+ const option=form?.querySelector('.save-new-food-option');if(!option)return;
+ const fields=form.elements,name=fields.name.value,calories=fields.calories.value,protein=fields.protein.value;
+ if(fields.cardId.value){
+  const original=data.foods.find(item=>item.id===fields.cardId.value);
+  if(!original||foodMatchKey(original.name)!==foodMatchKey(name)||Number(original.calories)!==Number(calories)||Number(original.protein)!==Number(protein))fields.cardId.value='';
+ }
+ const eligible=foodCanSaveNew(name,calories,protein);
+ option.hidden=!eligible;
+ if(!eligible)fields.saveAsFood.checked=false;
+}
 function foodFormCSV(form){
- const v=form.elements,time=v.foodTime.value,minutes=time===''?null:Number(time)*30;
- const hhmm=minutes===null?'':String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
- const save=v.saveAsFood?v.saveAsFood.checked:true;
- const values=['foodLog',v.date.value,v.name.value,v.calories.value,v.protein.value,v.quantity.value,hhmm,save?'true':'false'];
- return foodCSVColumns.join(',')+'\n'+values.map(csvQuote).join(',');
+ const v=form.elements,entries=foodBatch.map(item=>({record:item.record,saveAsFood:item.saveAsFood&&!foodHasExactDefinition(item.record.name,item.record.calories,item.record.protein)}));
+ const hasMain=String(v.name.value||'').trim()||String(v.calories.value||'').trim()||String(v.protein.value||'').trim();
+ if(hasMain||!entries.length){
+  const record={name:v.name.value,calories:v.calories.value,protein:v.protein.value,quantity:v.quantity.value,date:v.date.value};
+  if(v.foodTime.value!=='')record.t=Number(v.foodTime.value);
+  entries.push({record,saveAsFood:Boolean(v.saveAsFood?.checked&&!v.saveAsFood.closest('[hidden]')&&foodCanSaveNew(record.name,record.calories,record.protein))});
+ }
+ const rows=entries.map(item=>{
+  const v=item.record,t=v.t,hhmm=t==null?'':String(Math.floor(Number(t)*30/60)).padStart(2,'0')+':'+String(Number(t)*30%60).padStart(2,'0');
+  return ['foodLog',v.date,v.name,v.calories,v.protein,v.quantity,hhmm,item.saveAsFood?'true':'false'].map(csvQuote).join(',');
+ });
+ return foodCSVColumns.join(',')+'\n'+rows.join('\n');
+}
+function parseFoodFormCSV(raw){
+ const rows=parseCSV(raw.replace(/^\uFEFF/,''));if(!rows.length)throw Error('The CSV is empty.');
+ const first=rows[0].map(x=>x.trim().toLowerCase()),header=first.includes('name')&&first.includes('calories')&&first.includes('protein');
+ const names=header?first:foodCSVColumns.map(x=>x.toLowerCase()),values=header?rows.slice(1):rows;
+ if(!values.length)throw Error('Paste at least one food row after the header.');
+ if(values.length>50)throw Error('Paste at most 50 foods at a time.');
+ return values.map((row,i)=>{
+  const get=k=>String(row[names.indexOf(k)]??'').trim(),type=get('recordtype').toLowerCase();
+  if(type&&!['foodlog','foodentry','meal'].includes(type))throw Error('Row '+(i+1)+': expected a foodLog CSV row.');
+  const name=get('name'),date=get('date'),calText=get('calories'),proText=get('protein'),qtyText=get('quantity'),cal=Number(calText),protein=Number(proText),quantity=qtyText?Number(qtyText):1,tm=get('time')||get('foodtime');
+  if(!name||name.length>100||!/^\d{4}-\d{2}-\d{2}$/.test(date)||calText===''||proText===''||!Number.isFinite(cal)||cal<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0)
+   throw Error('Row '+(i+1)+': check the date, food name, calories, protein and positive servings.');
+  let t=null;
+  if(tm){
+   const m=/^(\d{1,2}):(00|30)$/.exec(tm);
+   t=m?Number(m[1])*2+(m[2]==='30'?1:0):Number(tm);
+   if(!Number.isInteger(t)||t<0||t>47)throw Error('Row '+(i+1)+': time must be HH:00, HH:30 or a slot 0–47.');
+  }
+  const saveText=get('saveasfood').toLowerCase();
+  if(saveText&&!['true','false'].includes(saveText))throw Error('Row '+(i+1)+': saveAsFood must be true or false.');
+  const record={name,calories:cal,protein,quantity,date};if(t!==null)record.t=t;
+  const card=data.foods.find(f=>foodMatchKey(f.name)===foodMatchKey(name)&&Number(f.calories)===cal&&Number(f.protein)===protein);
+  return {record,cardId:card?.id||'',saveAsFood:saveText==='true'&&foodCanSaveNew(name,cal,protein)};
+ });
 }
 function pasteFoodFormCSV(form,raw){
- const rows=parseCSV(raw.replace(/^\uFEFF/,''));if(!rows.length)return;
- const first=rows[0].map(x=>x.trim().toLowerCase()),header=first.includes('name')&&first.includes('calories')&&first.includes('protein');
- const names=header?first:foodCSVColumns.map(x=>x.toLowerCase()),values=header?rows[1]:rows[0];
- if(!values)throw Error('Paste one food row after the header.');
- if((header&&rows.length!==2)||(!header&&rows.length!==1))throw Error('Paste one food entry at a time.');
- const get=k=>String(values[names.indexOf(k)]??'').trim(),type=get('recordtype').toLowerCase();
- if(type&&!['foodlog','foodentry','meal'].includes(type))throw Error('Expected a foodLog CSV row.');
- const name=get('name'),date=get('date'),cal=Number(get('calories')),protein=Number(get('protein')),quantity=get('quantity')?Number(get('quantity')):1,tm=get('time')||get('foodtime');
- if(!name||name.length>100||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)||!get('calories')||!get('protein')||!Number.isFinite(cal)||cal<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0)throw Error('CSV needs a date, food name, calories, protein and positive quantity.');
- let slot='';
- if(tm){
-  const m=/^(\d{1,2}):(00|30)$/.exec(tm);
-  slot=m?Number(m[1])*2+(m[2]==='30'?1:0):Number(tm);
-  if(!Number.isInteger(slot)||slot<0||slot>47)throw Error('Time must be HH:00, HH:30, or a slot from 0 to 47.');
+ const items=parseFoodFormCSV(raw);
+ if(items.length===1&&!foodBatch.length){
+  const item=items[0],r=item.record,fields=form.elements;
+  fields.cardId.value=item.cardId;fields.name.value=r.name;fields.calories.value=String(r.calories);fields.protein.value=String(r.protein);fields.date.value=r.date;fields.foodTime.value=r.t==null?'':String(r.t);
+  fields.quantity.value=String(r.quantity);syncTimeControl(fields.foodTime);form.querySelector('[data-food-quantity-display]').textContent=fmt(r.quantity);
+  if(fields.saveAsFood)fields.saveAsFood.checked=item.saveAsFood;
+  if(form.querySelector('.food-matches'))renderFoodMatches(form);
+  updateFoodSaveOption(form);syncFoodServingPresets(form.querySelector(':scope > .food-quantity-field'));
+ }else{
+  foodBatch.push(...items);refreshFoodBatchView();
  }
- const fields=form.elements;fields.name.value=name;fields.calories.value=String(cal);fields.protein.value=String(protein);fields.date.value=date;fields.foodTime.value=String(slot);
- fields.quantity.value=String(quantity);syncTimeControl(fields.foodTime);form.querySelector('[data-food-quantity-display]').textContent=fmt(quantity);
- if(fields.saveAsFood&&['true','false'].includes(get('saveasfood').toLowerCase()))fields.saveAsFood.checked=get('saveasfood').toLowerCase()==='true';
- if(form.querySelector('.food-matches'))renderFoodMatches(form);
+ return items.length;
 }
-
+function syncFoodServingPresets(container){
+ if(!container)return;
+ const value=Number(container.querySelector('[name="quantity"],[data-food-batch-field="quantity"]')?.value);
+ container.querySelectorAll('.food-quantity-presets button').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.amount)===value)));
+}
 function foodDraftFromForm(form,optional=false){
  const v=Object.fromEntries(new FormData(form)),name=String(v.name||'').trim(),calText=String(v.calories??'').trim(),proteinText=String(v.protein??'').trim();
  if(optional&&!name&&!calText&&!proteinText)return null;
@@ -2752,19 +2804,55 @@ function foodDraftFromForm(form,optional=false){
  }
  const record={name,calories,protein,quantity,date:v.date};
  if(time!=null)record.t=time;
- return {record,cardId:v.cardId||'',saveAsFood:v.saveAsFood==='on'};
+ return {record,cardId:v.cardId||'',saveAsFood:v.saveAsFood==='on'&&foodCanSaveNew(name,calories,protein)};
 }
 function foodBatchMarkup(){
  if(!foodBatch.length)return '';
- const total=foodBatch.reduce((sum,item)=>sum+item.record.calories*item.record.quantity,0);
- return '<section class="food-batch-list" aria-label="Foods ready to save"><div class="food-batch-heading"><strong>Ready to save · '+foodBatch.length+'</strong><small>'+fmt(total)+' cal · not saved yet</small></div>'+
-  foodBatch.map((item,i)=>'<div class="food-batch-row"><span><strong>'+esc(item.record.name)+'</strong><small>'+fmt(item.record.quantity)+' × '+fmt(item.record.calories)+' cal · '+fmt(item.record.protein*item.record.quantity)+'g protein'+(item.inheritTime?' · Uses time below':'')+'</small></span><button type="button" data-action="food-batch-remove" data-index="'+i+'" aria-label="Remove '+esc(item.record.name)+' from batch">×</button></div>').join('')+
- '</section>';
+ const total=foodBatch.reduce((sum,item)=>sum+(Number(item.record.calories)||0)*(Number(item.record.quantity)||0),0);
+ return '<section class="food-batch-list" aria-label="Foods ready to save"><div class="food-batch-heading"><strong>Foods to log ('+foodBatch.length+')</strong><small>'+fmt(total)+' cal · unsaved</small></div>'+
+ foodBatch.map((item,i)=>{
+  const r=item.record,cal=Number(r.calories)||0,pro=Number(r.protein)||0,qty=Number(r.quantity)||0,eligible=foodCanSaveNew(r.name,r.calories,r.protein);
+  const amountButtons=[0.5,1,2].map(n=>'<button type="button" data-action="food-batch-quantity" data-amount="'+n+'" aria-pressed="'+(qty===n)+'">'+(n===.5?'½':n)+'</button>').join('');
+  return '<details class="food-batch-item" data-food-batch-item data-index="'+i+'">'+
+   '<summary class="food-batch-summary"><span><strong data-food-batch-summary-name>'+esc(r.name||'Unnamed food')+'</strong><small data-food-batch-summary-macros>'+fmt(qty)+' serving'+(qty===1?'':'s')+' · '+fmt(cal*qty)+' cal · '+fmt(pro*qty)+'g protein'+(item.inheritTime?' · Uses time below':'')+'</small></span><span class="food-batch-chevron" aria-hidden="true">⌄</span></summary>'+
+   '<div class="food-batch-editor"><label class="field"><span>Food name</span><input data-food-batch-field="name" type="text" maxlength="100" value="'+esc(r.name)+'"></label>'+
+   '<div class="form-grid"><label class="field"><span>Calories per serving</span><input data-food-batch-field="calories" type="number" min="0" step="0.1" value="'+esc(r.calories)+'"></label><label class="field"><span>Protein (g) per serving</span><input data-food-batch-field="protein" type="number" min="0" step="0.1" value="'+esc(r.protein)+'"></label></div>'+
+   '<div class="field food-quantity-field"><span>Servings</span><div class="food-quantity-line"><div class="food-quantity-quick"><button type="button" data-action="food-batch-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-batch-quantity-display>'+fmt(qty)+'</strong><button type="button" data-action="food-batch-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets">'+amountButtons+'</div></div><input type="hidden" data-food-batch-field="quantity" value="'+esc(r.quantity)+'"></div>'+
+   '<div class="food-datetime-grid"><label class="field"><span>Date</span><input type="date" data-food-batch-field="date" value="'+esc(r.date)+'"></label>'+
+   timeControl('foodBatchTime'+i,r.t??null)+'</div>'+
+   '<label class="save-new-food-option" data-food-batch-save-option '+(eligible?'':'hidden')+'><input data-food-batch-save type="checkbox" '+(eligible&&item.saveAsFood?'checked':'')+'><span><strong>Save as new food</strong><small>Also add this definition to the Food Library.</small></span></label>'+
+   '<button type="button" class="outline food-batch-delete" data-action="food-batch-remove" data-index="'+i+'">Remove food</button></div></details>';
+ }).join('')+'</section>';
 }
 function refreshFoodBatchView(){
  const form=document.querySelector('form[data-form="food"]');if(!form)return;
  const holder=form.querySelector('[data-food-batch]');if(holder)holder.innerHTML=foodBatchMarkup();
  const save=form.querySelector('[data-food-submit]');if(save){save.textContent=foodBatch.length?'Save foods':'Save';save.formNoValidate=foodBatch.length>0;}
+}
+function syncFoodBatchRow(row,changed){
+ const i=Number(row.dataset.index),item=foodBatch[i];if(!item)return;
+ const field=k=>row.querySelector('[data-food-batch-field="'+k+'"]'),r=item.record;
+ r.name=field('name').value;r.calories=field('calories').value;r.protein=field('protein').value;r.quantity=field('quantity').value;r.date=field('date').value;
+ const time=row.querySelector('[data-time-value]').value;if(time==='')delete r.t;else r.t=Number(time);
+ if(changed?.matches('[data-food-batch-field="date"],[data-time-value]'))item.inheritTime=false;
+ const eligible=foodCanSaveNew(r.name,r.calories,r.protein),check=row.querySelector('[data-food-batch-save]'),option=row.querySelector('[data-food-batch-save-option]');
+ option.hidden=!eligible;if(!eligible)check.checked=false;item.saveAsFood=eligible&&check.checked;
+ if(item.cardId){
+  const card=data.foods.find(f=>f.id===item.cardId);
+  if(!card||foodMatchKey(card.name)!==foodMatchKey(r.name)||Number(card.calories)!==Number(r.calories)||Number(card.protein)!==Number(r.protein))item.cardId='';
+ }
+ const qty=Number(r.quantity)||0,cal=Number(r.calories)||0,pro=Number(r.protein)||0;
+ row.querySelector('[data-food-batch-summary-name]').textContent=r.name||'Unnamed food';
+ row.querySelector('[data-food-batch-summary-macros]').textContent=fmt(qty)+' serving'+(qty===1?'':'s')+' · '+fmt(qty*cal)+' cal · '+fmt(qty*pro)+'g protein'+(item.inheritTime?' · Uses time below':'');
+ const summary=row.closest('[data-food-batch]')?.querySelector('.food-batch-heading small');
+ if(summary)summary.textContent=fmt(foodBatch.reduce((sum,x)=>sum+(Number(x.record.calories)||0)*(Number(x.record.quantity)||0),0))+' cal · unsaved';
+}
+function validateQueuedFood(item,i){
+ const r=item.record,name=String(r.name||'').trim(),calText=String(r.calories??'').trim(),proText=String(r.protein??'').trim(),qtyText=String(r.quantity??'').trim(),cal=Number(calText),protein=Number(proText),quantity=Number(qtyText);
+ if(!name||name.length>100||calText===''||proText===''||qtyText===''||!Number.isFinite(cal)||cal<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||!/^\d{4}-\d{2}-\d{2}$/.test(r.date)||r.t!=null&&(!Number.isInteger(Number(r.t))||Number(r.t)<0||Number(r.t)>47))
+  throw Error('Food '+(i+1)+' in the queue needs a valid name, calories, protein, servings, date and time.');
+ const record={name,calories:cal,protein,quantity,date:r.date};if(r.t!=null)record.t=Number(r.t);
+ return {...item,record,saveAsFood:Boolean(item.saveAsFood&&foodCanSaveNew(name,cal,protein))};
 }
 function commitFoodDraft(target,draft){
  const {record,cardId,saveAsFood}=draft;
@@ -2778,7 +2866,9 @@ function foodForm(entry=null,card=null,options={}) {
   if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
-  modal(entry?'Edit food log':card?'Food Entry':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="form-grid"><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div>${input('Date','date',dateValue,'date','required')}</div>${timeControl("foodTime",timeValue)}${newManual?'<label class="save-new-food-option"><input type="checkbox" name="saveAsFood" '+(seed?'':'checked')+'><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions${!entry?' food-entry-actions':''}">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${!canCommitFoodEntry()?'disabled ':''}${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form>`,onBack);
+  modal(entry?'Edit food log':card?'Food Entry':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-line"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div></div><div class="food-datetime-grid">${input('Date','date',dateValue,'date','required')}${timeControl("foodTime",timeValue)}</div>${newManual?'<label class="save-new-food-option" hidden><input type="checkbox" name="saveAsFood"><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions${!entry?' food-entry-actions':''}">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${!canCommitFoodEntry()?'disabled ':''}${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form>`,onBack);
+  updateFoodSaveOption(document.querySelector('form[data-form="food"]'));
+  syncFoodServingPresets(document.querySelector('form[data-form="food"] > .food-quantity-field'));
 }
 function showFoodUndo(entryId,name){
  clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
@@ -2838,15 +2928,17 @@ function importModal(kind,source='file') {
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{
+ if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
  if(event.target.closest('form[data-form="recipe"]')){cooking.onInput(event.target.form);return;}
  if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
  if(event.target.matches('[data-finance-history-search]')){
   financeHistoryQuery=event.target.value;financeHistoryVisible=50;refreshFinanceHistoryList();return;
  }
- if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
+ if(event.target.matches('[data-suggestion-search]')){refreshSuggestionSearch();return;}if(event.target.matches('[data-library-search]')){if(event.target.dataset.librarySearch==='food'){foodLibrarySearch=event.target.value;refreshFoodLibraryList();}else{exerciseLibrarySearch=event.target.value;refreshExerciseLibraryList();}return;}if(event.target.matches('[data-workout-add-search]')){const q=event.target.value.trim().toLowerCase();document.querySelectorAll('.workout-add-item').forEach(row=>row.hidden=q&&!row.dataset.search.includes(q));return;}if(event.target.matches('.lift-notes textarea')){const field=event.target;field.style.height='0px';field.style.height=field.scrollHeight+'px';requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}if(event.target.name==='name'&&event.target.closest('form[data-form="food"]')?.querySelector('.food-matches'))renderFoodMatches(event.target.form);if(event.target.closest('form[data-form="food"]')&&event.target.matches('[name="name"],[name="calories"],[name="protein"]'))updateFoodSaveOption(event.target.form);if(event.target.name==='exercise'&&event.target.closest('form[data-form="lift"]')?.querySelector('.exercise-matches'))renderExerciseMatches(event.target.form);});
 function syncLiftViewport(){const dialog=document.querySelector('.lift-dialog');if(!dialog)return;const vv=window.visualViewport;if(vv)dialog.style.maxHeight=Math.max(260,vv.height-8)+'px';const field=document.activeElement;if(field?.closest?.('.lift-dialog')&&field.matches('input,textarea,select'))requestAnimationFrame(()=>field.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 app.addEventListener('focusin',event=>{if(!event.target.closest('.lift-dialog')||!event.target.matches('input,textarea,select'))return;setTimeout(syncLiftViewport,220);});
 app.addEventListener('change',event=>{
+ if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
  if(routineImport.onChange(event.target))return;
  const editor=event.target.closest('form[data-form="exercise-definition"],form[data-form="routine-exercise-settings"]');
  if(editor&&event.target.matches('[data-muscle-region],[data-training-profile-editor]'))editor.dataset.profileDirty='true';
@@ -3557,7 +3649,7 @@ document.addEventListener('click',async event=>{
       const current=input.value===''?(isMinutes?data.settings.dayResetMinutes??360:currentFoodSlot()):Number(input.value),delta=Number(el.dataset.delta);
       if(isMinutes)next=String((current+delta*step+max)%max);
       else{
-        const dateField=input.form?.elements.date,date=dateField?.value;
+        const dateField=input.closest('[data-food-batch-item]')?.querySelector('[data-food-batch-field="date"]')||input.form?.elements.date,date=dateField?.value;
         if(date){const stepped=stepFoodDateTime(date,current,delta);next=String(stepped.t);
           if(dateField)dateField.value=stepped.date;
           }
@@ -3566,14 +3658,22 @@ document.addEventListener('click',async event=>{
     }
     input.value=next;syncTimeControl(input);
     if(action==='time-now'){
-      if(input.form?.elements.date)input.form.elements.date.value=localDate();
-      
+      const dateField=input.closest('[data-food-batch-item]')?.querySelector('[data-food-batch-field="date"]')||input.form?.elements.date;
+      if(dateField)dateField.value=localDate();
     }
+    if(input.closest('[data-food-batch-item]'))syncFoodBatchRow(input.closest('[data-food-batch-item]'),input);
     /* Clipboard CSV generated only on Copy. */
     
     return;
   }
-  if(action==='food-quantity'||action==='food-quantity-step'){const form=el.closest('form[data-form="food"]');if(!form)return;const hidden=form.elements.quantity,old=Number(hidden.value)||1,value=action==='food-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);if(!Number.isFinite(value)||value<=0)return;hidden.value=String(value);form.querySelector('[data-food-quantity-display]').textContent=fmt(value);return;}
+  if(action==='food-quantity'||action==='food-quantity-step'){const form=el.closest('form[data-form="food"]');if(!form)return;const hidden=form.elements.quantity,old=Number(hidden.value)||1,value=action==='food-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);if(!Number.isFinite(value)||value<=0)return;hidden.value=String(value);form.querySelector('[data-food-quantity-display]').textContent=fmt(value);syncFoodServingPresets(form.querySelector(':scope > .food-quantity-field'));return;}
+  if(action==='food-batch-quantity'||action==='food-batch-quantity-step'){
+    const row=el.closest('[data-food-batch-item]');if(!row)return;
+    const hidden=row.querySelector('[data-food-batch-field="quantity"]'),old=Number(hidden.value)||1,value=action==='food-batch-quantity'?Number(el.dataset.amount):Math.max(.25,Math.round((old+Number(el.dataset.delta))*100)/100);
+    if(!Number.isFinite(value)||value<=0)return;
+    hidden.value=String(value);row.querySelector('[data-food-batch-quantity-display]').textContent=fmt(value);
+    syncFoodServingPresets(row.querySelector('.food-quantity-field'));syncFoodBatchRow(row,hidden);return;
+  }
   if(action==='food-csv-copy'||action==='food-csv-paste'){
     const form=el.closest('form[data-form="food"]'),status=form?.querySelector('[data-food-csv-status]');
     if(!form)return;
@@ -3595,8 +3695,8 @@ document.addEventListener('click',async event=>{
       // Clipboard read starts synchronously within the user tap.
       const raw=await clipboard.readText();
       if(!raw.trim())throw Error('Clipboard is empty. Copy a foodLog CSV row first.');
-      pasteFoodFormCSV(form,raw);
-      notify('CSV pasted. Review the details, then save.');
+      const count=pasteFoodFormCSV(form,raw);
+      notify(count>1||foodBatch.length?count+' food'+(count===1?'':'s')+' added to the unsaved list. Expand any food to edit.':'CSV pasted. Review the details, then save.');
      }
     }catch(error){
      notify(error?.name==='NotAllowedError'?
@@ -3622,8 +3722,8 @@ document.addEventListener('click',async event=>{
     timeSlot:chosenDate===currentTrackingDate()?currentFoodSlot():null});
    return;
   }
-  if(action==='choose-food-match'){const form=el.closest('form[data-form="food"]'),food=data.foods.find(x=>x.id===el.dataset.id);if(!form||!food)return;form.elements.cardId.value=food.id;form.elements.name.value=food.name;form.elements.calories.value=food.calories;form.elements.protein.value=food.protein;const saveOption=form.querySelector('.save-new-food-option');if(saveOption)saveOption.hidden=true;form.querySelector('.food-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(food.name)+'</strong><small>Using saved food · '+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><button type="button" class="text-btn" data-action="clear-food-match">Change</button></div>';return;}
-  if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';const saveOption=form.querySelector('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}renderFoodMatches(form);form.elements.name.focus();return;}
+  if(action==='choose-food-match'){const form=el.closest('form[data-form="food"]'),food=data.foods.find(x=>x.id===el.dataset.id);if(!form||!food)return;form.elements.cardId.value=food.id;form.elements.name.value=food.name;form.elements.calories.value=food.calories;form.elements.protein.value=food.protein;const saveOption=form.elements.saveAsFood?.closest('.save-new-food-option');if(saveOption)saveOption.hidden=true;form.querySelector('.food-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(food.name)+'</strong><small>Using saved food · '+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</small></span><button type="button" class="text-btn" data-action="clear-food-match">Change</button></div>';updateFoodSaveOption(form);return;}
+  if(action==='clear-food-match'){const form=el.closest('form[data-form="food"]');form.elements.cardId.value='';const saveOption=form.elements.saveAsFood?.closest('.save-new-food-option');if(saveOption){saveOption.hidden=false;form.elements.saveAsFood.checked=true;}renderFoodMatches(form);updateFoodSaveOption(form);form.elements.name.focus();return;}
   if(action==='edit-card'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'food');return;}
   if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;render();void persist();return;}
   if(action==='undo-food-add'){clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';render();void persist();return;}
@@ -3969,7 +4069,9 @@ app.addEventListener('submit',async event=>{
       if(draft.record.t==null)delete edited.t;
       chosenDate=currentFoodTrackingDate(edited);close(true);page=foodEntryReturnPage;render();void persist();return;
     }
-    const prepared=foodBatch.map(item=>{
+    let validated;
+    try{validated=foodBatch.map(validateQueuedFood);}catch(error){alert(error.message);return;}
+    const prepared=validated.map(item=>{
       if(!item.inheritTime)return item;
       const next={...item,record:{...item.record,date:v.date}};
       if(v.foodTime!=='')next.record.t=Number(v.foodTime);else delete next.record.t;
@@ -4064,7 +4166,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=143.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=144',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4167,7 +4269,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=143.1');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=144');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

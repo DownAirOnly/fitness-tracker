@@ -1,3 +1,7 @@
+## v144 — Editable multi-food queue in Food Entry
+
+The familiar Food Entry interface now offers collapsible editing for queued foods from Add another food, recommended batches, or multi-row Paste CSV. Save foods commits the reviewed list together. The existing single-row paste continues filling the main form. The compact 50/50 serving presets and paired Date/Time layout use the current theme. New Food Library definitions remain opt-in only when a food does not already match saved or logged nutrition.
+
 ## v143.1 — Food Entry title hotfix
 
 Saved-food quick logging once again displays a heading, now **Food Entry**, without changing the form or its data handling. This is a user-requested decimal hotfix to v143 rather than the next regular release. Normal future releases remain whole-numbered.

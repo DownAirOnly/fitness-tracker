@@ -3830,3 +3830,124 @@ form[data-form="food"] .time-step-control>.time-step-options button{
 ){
  background:var(--food-secondary-fill);border:1px solid var(--ap-border);color:var(--ap-on-surface);
 }
+
+
+/* v144: Food Entry's shared batch queue and compact paired controls. */
+/* Use existing palette roles; no new hardcoded dark-theme colors. */
+form[data-form="food"] .food-quantity-line,
+form[data-form="food"] .food-datetime-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;min-width:0;
+}
+form[data-form="food"] .food-quantity-line>*,
+form[data-form="food"] .food-datetime-grid>*{min-width:0}
+form[data-form="food"] .food-quantity-line .food-quantity-quick{margin:0;min-width:0;min-height:48px}
+form[data-form="food"] .food-quantity-line .food-quantity-presets{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;
+ min-width:0;min-height:48px;margin:0;padding:4px;border:1px solid var(--ap-border,#dce4d8);
+ border-radius:12px;background:var(--ap-input,#fff);
+}
+form[data-form="food"] .food-quantity-line .food-quantity-presets button{
+ display:grid;place-items:center;min-width:0;min-height:37px;
+ padding:4px 2px;border:1px solid var(--ap-border,#dce4d8);
+ border-radius:9px;font-size:13px;
+}
+form[data-form="food"] .food-quantity-line .food-quantity-presets button[aria-pressed="true"]{
+ background:var(--ap-control,var(--ap-raised,#eaf1e9));
+ border-color:var(--ap-secondary,#789382);
+ color:var(--ap-on-surface,#172c23);
+}
+form[data-form="food"] .food-datetime-grid>.field input[type="date"]{
+ display:block;min-width:0;width:100%;max-width:100%;height:48px;
+ padding:9px 8px;font-size:13px;line-height:1.3;
+}
+form[data-form="food"] .food-datetime-grid>.field input[type="date"]::-webkit-date-and-time-value{
+ min-width:0;text-align:left;
+}
+form[data-form="food"] .food-datetime-grid>.time-step-control{
+ display:flex;flex-direction:column;align-items:stretch;gap:0;min-width:0;
+}
+form[data-form="food"] .food-datetime-grid .time-step-row{
+ display:grid;grid-template-columns:32px minmax(0,1fr) 32px;
+ align-items:center;gap:3px;min-width:0;min-height:48px;
+ margin:0;padding:4px;border:1px solid var(--ap-border,#dce4d8);
+ border-radius:12px;background:var(--ap-input,#fff);
+}
+form[data-form="food"] .food-datetime-grid .time-step-row>button{
+ min-width:0;width:100%;height:38px;border-radius:9px;font-size:21px;
+}
+form[data-form="food"] .food-datetime-grid .time-step-row>strong{
+ min-width:0;height:38px;border:0;border-radius:0;background:transparent;
+ font-size:13px;letter-spacing:-.2px;white-space:nowrap;
+}
+form[data-form="food"] .food-datetime-grid .time-step-options{
+ display:flex;align-self:flex-end;justify-content:flex-end;gap:5px;
+ margin:7px 0 0;min-width:0;
+}
+form[data-form="food"] .food-datetime-grid .time-step-options button{
+ min-height:31px;padding:5px 9px;border-radius:11px;font-size:11px;
+}
+form[data-form="food"] .save-new-food-option[hidden]{display:none!important}
+form[data-form="food"] .food-batch-list{
+ display:grid;gap:7px;min-width:0;padding:10px;margin-bottom:3px;
+ border:1px solid var(--ap-border,#dce4d8);border-radius:14px;
+ background:var(--ap-surface,#f7faf6);
+}
+form[data-form="food"] .food-batch-heading{
+ display:flex;justify-content:space-between;align-items:center;gap:8px;
+}
+form[data-form="food"] .food-batch-heading strong{font-size:13px}
+form[data-form="food"] .food-batch-heading small{font-size:10px;text-align:right}
+form[data-form="food"] .food-batch-item{
+ min-width:0;border:1px solid var(--ap-border,#dce4d8);
+ border-radius:12px;background:var(--ap-input,#fff);overflow:hidden;
+}
+form[data-form="food"] .food-batch-summary{
+ display:flex;justify-content:space-between;align-items:center;
+ gap:8px;min-height:54px;padding:10px 12px;cursor:pointer;
+ list-style:none;
+}
+form[data-form="food"] .food-batch-summary::-webkit-details-marker{display:none}
+form[data-form="food"] .food-batch-summary>span:first-child{min-width:0;display:grid;gap:3px}
+form[data-form="food"] .food-batch-summary strong{
+ display:block;overflow-wrap:anywhere;font-size:13px;font-weight:750;
+}
+form[data-form="food"] .food-batch-summary small{
+ display:block;font-size:11px;line-height:1.35;color:var(--ap-muted,#758779);
+}
+form[data-form="food"] .food-batch-chevron{
+ font-size:18px;transition:transform .15s ease;color:var(--ap-muted,#758779);
+}
+form[data-form="food"] .food-batch-item[open] .food-batch-chevron{transform:rotate(180deg)}
+form[data-form="food"] .food-batch-summary:focus-visible{
+ outline:2px solid var(--ap-primary,#759a80);outline-offset:-3px;
+}
+form[data-form="food"] .food-batch-editor{
+ display:grid;gap:12px;padding:12px;border-top:1px solid var(--ap-border,#dce4d8);
+}
+form[data-form="food"] .food-batch-editor .field{min-width:0}
+form[data-form="food"] .food-batch-delete{
+ justify-self:end;min-height:36px;padding:8px 12px;font-size:11px;
+}
+:root[data-theme="dark"] form[data-form="food"] .food-batch-list,
+:root[data-theme="dark"] form[data-form="food"] .food-batch-item{
+ background:var(--ap-surface);border-color:var(--ap-border);color:var(--ap-on-surface);
+}
+:root[data-theme="dark"] form[data-form="food"] .food-batch-item{background:var(--ap-input)}
+:root[data-theme="dark"] form[data-form="food"] .food-quantity-line .food-quantity-presets{
+ background:var(--ap-input);border-color:var(--ap-border);
+}
+:root[data-theme="dark"] form[data-form="food"] .food-datetime-grid .time-step-row{
+ background:var(--ap-input);border-color:var(--ap-border);
+}
+:root[data-theme="dark"] form[data-form="food"] .food-datetime-grid .time-step-row>strong{
+ background:transparent;border:0;color:var(--ap-on-surface);
+}
+@media(max-width:350px){
+ form[data-form="food"] .food-quantity-line,
+ form[data-form="food"] .food-datetime-grid{gap:6px}
+ form[data-form="food"] .food-datetime-grid .time-step-row{
+  grid-template-columns:29px minmax(0,1fr) 29px;gap:2px;padding:3px;
+ }
+ form[data-form="food"] .food-datetime-grid .time-step-row>strong{font-size:12px}
+ form[data-form="food"] .food-datetime-grid>.field input[type="date"]{font-size:12px;padding:7px 5px}
+}

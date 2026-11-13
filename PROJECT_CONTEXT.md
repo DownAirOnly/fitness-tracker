@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v143.1 (November 12, 2026)
+## Current release — v144 (November 13, 2026)
+
+- **Unified editable Food Entry queue:** The existing **+ Add another food** flow now generates collapsible, individually editable queued-food cards. Each card supports food name, calories/protein per serving, serving amount and presets, date/time, optional Food Library saving, and removal. Summaries update while editing; the queue is unsaved until the final Save foods action. Existing suggestions with inherited date/time remain supported unless their dates/times are edited.
+- **Batch CSV paste without a second importer:** Paste CSV accepts up to 50 validated foodLog rows and adds multi-row contents to the same queued-card collection without replacing an in-progress main form. For backward compatibility, a single pasted row when the queue is empty still fills the main Food Entry fields. Errors reject the entire pasted batch. Copy CSV includes queue rows and the current complete draft, if any, using the established Everyday CSV format.
+- **Compact balanced layout:** Servings uses equally sized stepper and ½/1/2 preset controls, with the selected preset indicated. Date and Time share a 50/50 row; Now and No time sit below Time on the right. The existing palette, action styling, and equal-width bottom buttons are retained.
+- **Conditional Food Library opt-in:** Save as new food appears only for complete name/calories/protein combinations that do not exactly match the Food Library or previously logged foods. No new food definition is silently added; new prompts default unchecked. Pasted CSV retains an explicitly requested saveAsFood flag only for genuinely new definitions.
+- **Save safety:** Queued rows are validated before any write; batch save remains one user-confirmed operation. Account ownership and pre-auth Save gating remain unchanged; no data migrations or backend schema changes. CI and on-device appearance require separate verification.
+
+## Previous release — v143.1 (November 12, 2026)
 
 - **Requested UI hotfix:** Restore the saved-food logging modal's visible heading with the text **Food Entry** (not the older **Log saved food**), retaining the existing Close button, color palette, equal-width bottom actions, and all logging behavior. The dialog's accessible label matches the visible title.
 - **Hotfix naming convention:** When the user explicitly says **hotfix**, publish a narrow patch of the current version as `vMAJOR.1` (or the next patch decimal if needed) instead of advancing to the next whole-number release. This is an occasional exception to the usual whole-number release policy; normal features continue with `v144` after v143.1.
