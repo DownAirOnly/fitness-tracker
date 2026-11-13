@@ -2714,35 +2714,87 @@ function foodDefinitionForm(food=null,origin='food'){
 
 const foodCSVColumns=['recordType','date','name','calories','protein','quantity','time','saveAsFood'];
 const csvQuote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
+const foodMatchKey=value=>String(value||'').trim().replace(/\s+/g,' ').toLowerCase();
+function foodHasExactDefinition(name,calories,protein){
+ if(!foodMatchKey(name)||String(calories??'').trim()===''||String(protein??'').trim()==='')return false;
+ const cal=Number(calories),pro=Number(protein);
+ if(!Number.isFinite(cal)||cal<0||!Number.isFinite(pro)||pro<0)return false;
+ return [...data.foods,...data.foodEntries].some(item=>foodMatchKey(item.name)===foodMatchKey(name)&&Number(item.calories)===cal&&Number(item.protein)===pro);
+}
+function foodCanSaveNew(name,calories,protein){
+ return Boolean(foodMatchKey(name)&&String(calories??'').trim()!==''&&String(protein??'').trim()!==''&&
+ Number.isFinite(Number(calories))&&Number(calories)>=0&&Number.isFinite(Number(protein))&&Number(protein)>=0&&
+ !foodHasExactDefinition(name,calories,protein));
+}
+function updateFoodSaveOption(form){
+ const option=form?.querySelector('.save-new-food-option');if(!option)return;
+ const fields=form.elements,name=fields.name.value,calories=fields.calories.value,protein=fields.protein.value;
+ if(fields.cardId.value){
+  const original=data.foods.find(item=>item.id===fields.cardId.value);
+  if(!original||foodMatchKey(original.name)!==foodMatchKey(name)||Number(original.calories)!==Number(calories)||Number(original.protein)!==Number(protein))fields.cardId.value='';
+ }
+ const eligible=foodCanSaveNew(name,calories,protein);
+ option.hidden=!eligible;
+ if(!eligible)fields.saveAsFood.checked=false;
+}
 function foodFormCSV(form){
- const v=form.elements,time=v.foodTime.value,minutes=time===''?null:Number(time)*30;
- const hhmm=minutes===null?'':String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
- const save=v.saveAsFood?v.saveAsFood.checked:true;
- const values=['foodLog',v.date.value,v.name.value,v.calories.value,v.protein.value,v.quantity.value,hhmm,save?'true':'false'];
- return foodCSVColumns.join(',')+'\n'+values.map(csvQuote).join(',');
+ const v=form.elements,entries=foodBatch.map(item=>({record:item.record,saveAsFood:item.saveAsFood&&!foodHasExactDefinition(item.record.name,item.record.calories,item.record.protein)}));
+ const hasMain=String(v.name.value||'').trim()||String(v.calories.value||'').trim()||String(v.protein.value||'').trim();
+ if(hasMain||!entries.length){
+  const record={name:v.name.value,calories:v.calories.value,protein:v.protein.value,quantity:v.quantity.value,date:v.date.value};
+  if(v.foodTime.value!=='')record.t=Number(v.foodTime.value);
+  entries.push({record,saveAsFood:Boolean(v.saveAsFood?.checked&&!v.saveAsFood.closest('[hidden]')&&foodCanSaveNew(record.name,record.calories,record.protein))});
+ }
+ const rows=entries.map(item=>{
+  const v=item.record,t=v.t,hhmm=t==null?'':String(Math.floor(Number(t)*30/60)).padStart(2,'0')+':'+String(Number(t)*30%60).padStart(2,'0');
+  return ['foodLog',v.date,v.name,v.calories,v.protein,v.quantity,hhmm,item.saveAsFood?'true':'false'].map(csvQuote).join(',');
+ });
+ return foodCSVColumns.join(',')+'\n'+rows.join('\n');
+}
+function parseFoodFormCSV(raw){
+ const rows=parseCSV(raw.replace(/^\uFEFF/,''));if(!rows.length)throw Error('The CSV is empty.');
+ const first=rows[0].map(x=>x.trim().toLowerCase()),header=first.includes('name')&&first.includes('calories')&&first.includes('protein');
+ const names=header?first:foodCSVColumns.map(x=>x.toLowerCase()),values=header?rows.slice(1):rows;
+ if(!values.length)throw Error('Paste at least one food row after the header.');
+ if(values.length>50)throw Error('Paste at most 50 foods at a time.');
+ return values.map((row,i)=>{
+  const get=k=>String(row[names.indexOf(k)]??'').trim(),type=get('recordtype').toLowerCase();
+  if(type&&!['foodlog','foodentry','meal'].includes(type))throw Error('Row '+(i+1)+': expected a foodLog CSV row.');
+  const name=get('name'),date=get('date'),calText=get('calories'),proText=get('protein'),qtyText=get('quantity'),cal=Number(calText),protein=Number(proText),quantity=qtyText?Number(qtyText):1,tm=get('time')||get('foodtime');
+  if(!name||name.length>100||!/^\d{4}-\d{2}-\d{2}$/.test(date)||calText===''||proText===''||!Number.isFinite(cal)||cal<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0)
+   throw Error('Row '+(i+1)+': check the date, food name, calories, protein and positive servings.');
+  let t=null;
+  if(tm){
+   const m=/^(\d{1,2}):(00|30)$/.exec(tm);
+   t=m?Number(m[1])*2+(m[2]==='30'?1:0):Number(tm);
+   if(!Number.isInteger(t)||t<0||t>47)throw Error('Row '+(i+1)+': time must be HH:00, HH:30 or a slot 0–47.');
+  }
+  const saveText=get('saveasfood').toLowerCase();
+  if(saveText&&!['true','false'].includes(saveText))throw Error('Row '+(i+1)+': saveAsFood must be true or false.');
+  const record={name,calories:cal,protein,quantity,date};if(t!==null)record.t=t;
+  const card=data.foods.find(f=>foodMatchKey(f.name)===foodMatchKey(name)&&Number(f.calories)===cal&&Number(f.protein)===protein);
+  return {record,cardId:card?.id||'',saveAsFood:saveText==='true'&&foodCanSaveNew(name,cal,protein)};
+ });
 }
 function pasteFoodFormCSV(form,raw){
- const rows=parseCSV(raw.replace(/^\uFEFF/,''));if(!rows.length)return;
- const first=rows[0].map(x=>x.trim().toLowerCase()),header=first.includes('name')&&first.includes('calories')&&first.includes('protein');
- const names=header?first:foodCSVColumns.map(x=>x.toLowerCase()),values=header?rows[1]:rows[0];
- if(!values)throw Error('Paste one food row after the header.');
- if((header&&rows.length!==2)||(!header&&rows.length!==1))throw Error('Paste one food entry at a time.');
- const get=k=>String(values[names.indexOf(k)]??'').trim(),type=get('recordtype').toLowerCase();
- if(type&&!['foodlog','foodentry','meal'].includes(type))throw Error('Expected a foodLog CSV row.');
- const name=get('name'),date=get('date'),cal=Number(get('calories')),protein=Number(get('protein')),quantity=get('quantity')?Number(get('quantity')):1,tm=get('time')||get('foodtime');
- if(!name||name.length>100||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)||!get('calories')||!get('protein')||!Number.isFinite(cal)||cal<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0)throw Error('CSV needs a date, food name, calories, protein and positive quantity.');
- let slot='';
- if(tm){
-  const m=/^(\d{1,2}):(00|30)$/.exec(tm);
-  slot=m?Number(m[1])*2+(m[2]==='30'?1:0):Number(tm);
-  if(!Number.isInteger(slot)||slot<0||slot>47)throw Error('Time must be HH:00, HH:30, or a slot from 0 to 47.');
+ const items=parseFoodFormCSV(raw);
+ if(items.length===1&&!foodBatch.length){
+  const item=items[0],r=item.record,fields=form.elements;
+  fields.cardId.value=item.cardId;fields.name.value=r.name;fields.calories.value=String(r.calories);fields.protein.value=String(r.protein);fields.date.value=r.date;fields.foodTime.value=r.t==null?'':String(r.t);
+  fields.quantity.value=String(r.quantity);syncTimeControl(fields.foodTime);form.querySelector('[data-food-quantity-display]').textContent=fmt(r.quantity);
+  if(fields.saveAsFood)fields.saveAsFood.checked=item.saveAsFood;
+  if(form.querySelector('.food-matches'))renderFoodMatches(form);
+  updateFoodSaveOption(form);syncFoodServingPresets(form.querySelector('.food-quantity-field'));
+ }else{
+  foodBatch.push(...items);refreshFoodBatchView();
  }
- const fields=form.elements;fields.name.value=name;fields.calories.value=String(cal);fields.protein.value=String(protein);fields.date.value=date;fields.foodTime.value=String(slot);
- fields.quantity.value=String(quantity);syncTimeControl(fields.foodTime);form.querySelector('[data-food-quantity-display]').textContent=fmt(quantity);
- if(fields.saveAsFood&&['true','false'].includes(get('saveasfood').toLowerCase()))fields.saveAsFood.checked=get('saveasfood').toLowerCase()==='true';
- if(form.querySelector('.food-matches'))renderFoodMatches(form);
+ return items.length;
 }
-
+function syncFoodServingPresets(container){
+ if(!container)return;
+ const value=Number(container.querySelector('[name="quantity"],[data-food-batch-field="quantity"]')?.value);
+ container.querySelectorAll('.food-quantity-presets button').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.amount)===value)));
+}
 function foodDraftFromForm(form,optional=false){
  const v=Object.fromEntries(new FormData(form)),name=String(v.name||'').trim(),calText=String(v.calories??'').trim(),proteinText=String(v.protein??'').trim();
  if(optional&&!name&&!calText&&!proteinText)return null;
@@ -2752,7 +2804,7 @@ function foodDraftFromForm(form,optional=false){
  }
  const record={name,calories,protein,quantity,date:v.date};
  if(time!=null)record.t=time;
- return {record,cardId:v.cardId||'',saveAsFood:v.saveAsFood==='on'};
+ return {record,cardId:v.cardId||'',saveAsFood:v.saveAsFood==='on'&&foodCanSaveNew(name,calories,protein)};
 }
 function foodBatchMarkup(){
  if(!foodBatch.length)return '';
