@@ -1,5 +1,5 @@
-import {emptyData,id,normalizeData,parseCSV} from './data.js?v=143.1';
-import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=143.1';
+import {emptyData,id,normalizeData,parseCSV} from './data.js?v=144';
+import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=144';
 
 const equipmentTypes=new Set(['machine','cable','dumbbell','bench','calisthenics','other']);
 const normalizeName=value=>String(value||'').trim().replace(/\s+/g,' ').toLowerCase();
