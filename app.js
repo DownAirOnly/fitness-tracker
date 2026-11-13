@@ -2808,15 +2808,51 @@ function foodDraftFromForm(form,optional=false){
 }
 function foodBatchMarkup(){
  if(!foodBatch.length)return '';
- const total=foodBatch.reduce((sum,item)=>sum+item.record.calories*item.record.quantity,0);
- return '<section class="food-batch-list" aria-label="Foods ready to save"><div class="food-batch-heading"><strong>Ready to save · '+foodBatch.length+'</strong><small>'+fmt(total)+' cal · not saved yet</small></div>'+
-  foodBatch.map((item,i)=>'<div class="food-batch-row"><span><strong>'+esc(item.record.name)+'</strong><small>'+fmt(item.record.quantity)+' × '+fmt(item.record.calories)+' cal · '+fmt(item.record.protein*item.record.quantity)+'g protein'+(item.inheritTime?' · Uses time below':'')+'</small></span><button type="button" data-action="food-batch-remove" data-index="'+i+'" aria-label="Remove '+esc(item.record.name)+' from batch">×</button></div>').join('')+
- '</section>';
+ const total=foodBatch.reduce((sum,item)=>sum+(Number(item.record.calories)||0)*(Number(item.record.quantity)||0),0);
+ return '<section class="food-batch-list" aria-label="Foods ready to save"><div class="food-batch-heading"><strong>Foods to log ('+foodBatch.length+')</strong><small>'+fmt(total)+' cal · unsaved</small></div>'+
+ foodBatch.map((item,i)=>{
+  const r=item.record,cal=Number(r.calories)||0,pro=Number(r.protein)||0,qty=Number(r.quantity)||0,eligible=foodCanSaveNew(r.name,r.calories,r.protein);
+  const amountButtons=[0.5,1,2].map(n=>'<button type="button" data-action="food-batch-quantity" data-amount="'+n+'" aria-pressed="'+(qty===n)+'">'+(n===.5?'½':n)+'</button>').join('');
+  return '<details class="food-batch-item" data-food-batch-item data-index="'+i+'">'+
+   '<summary class="food-batch-summary"><span><strong data-food-batch-summary-name>'+esc(r.name||'Unnamed food')+'</strong><small data-food-batch-summary-macros>'+fmt(qty)+' serving'+(qty===1?'':'s')+' · '+fmt(cal*qty)+' cal · '+fmt(pro*qty)+'g protein'+(item.inheritTime?' · Uses time below':'')+'</small></span><span class="food-batch-chevron" aria-hidden="true">⌄</span></summary>'+
+   '<div class="food-batch-editor"><label class="field"><span>Food name</span><input data-food-batch-field="name" type="text" maxlength="100" value="'+esc(r.name)+'"></label>'+
+   '<div class="form-grid"><label class="field"><span>Calories per serving</span><input data-food-batch-field="calories" type="number" min="0" step="0.1" value="'+esc(r.calories)+'"></label><label class="field"><span>Protein (g) per serving</span><input data-food-batch-field="protein" type="number" min="0" step="0.1" value="'+esc(r.protein)+'"></label></div>'+
+   '<div class="field food-quantity-field"><span>Servings</span><div class="food-quantity-line"><div class="food-quantity-quick"><button type="button" data-action="food-batch-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-batch-quantity-display>'+fmt(qty)+'</strong><button type="button" data-action="food-batch-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets">'+amountButtons+'</div></div><input type="hidden" data-food-batch-field="quantity" value="'+esc(r.quantity)+'"></div>'+
+   '<div class="food-datetime-grid"><label class="field"><span>Date</span><input type="date" data-food-batch-field="date" value="'+esc(r.date)+'"></label>'+
+   timeControl('foodBatchTime'+i,r.t??null)+'</div>'+
+   '<label class="save-new-food-option" data-food-batch-save-option '+(eligible?'':'hidden')+'><input data-food-batch-save type="checkbox" '+(eligible&&item.saveAsFood?'checked':'')+'><span><strong>Save as new food</strong><small>Also add this definition to the Food Library.</small></span></label>'+
+   '<button type="button" class="outline food-batch-delete" data-action="food-batch-remove" data-index="'+i+'">Remove food</button></div></details>';
+ }).join('')+'</section>';
 }
 function refreshFoodBatchView(){
  const form=document.querySelector('form[data-form="food"]');if(!form)return;
  const holder=form.querySelector('[data-food-batch]');if(holder)holder.innerHTML=foodBatchMarkup();
  const save=form.querySelector('[data-food-submit]');if(save){save.textContent=foodBatch.length?'Save foods':'Save';save.formNoValidate=foodBatch.length>0;}
+}
+function syncFoodBatchRow(row,changed){
+ const i=Number(row.dataset.index),item=foodBatch[i];if(!item)return;
+ const field=k=>row.querySelector('[data-food-batch-field="'+k+'"]'),r=item.record;
+ r.name=field('name').value;r.calories=field('calories').value;r.protein=field('protein').value;r.quantity=field('quantity').value;r.date=field('date').value;
+ const time=row.querySelector('[data-time-value]').value;if(time==='')delete r.t;else r.t=Number(time);
+ if(changed?.matches('[data-food-batch-field="date"],[data-time-value]'))item.inheritTime=false;
+ const eligible=foodCanSaveNew(r.name,r.calories,r.protein),check=row.querySelector('[data-food-batch-save]'),option=row.querySelector('[data-food-batch-save-option]');
+ option.hidden=!eligible;if(!eligible)check.checked=false;item.saveAsFood=eligible&&check.checked;
+ if(item.cardId){
+  const card=data.foods.find(f=>f.id===item.cardId);
+  if(!card||foodMatchKey(card.name)!==foodMatchKey(r.name)||Number(card.calories)!==Number(r.calories)||Number(card.protein)!==Number(r.protein))item.cardId='';
+ }
+ const qty=Number(r.quantity)||0,cal=Number(r.calories)||0,pro=Number(r.protein)||0;
+ row.querySelector('[data-food-batch-summary-name]').textContent=r.name||'Unnamed food';
+ row.querySelector('[data-food-batch-summary-macros]').textContent=fmt(qty)+' serving'+(qty===1?'':'s')+' · '+fmt(qty*cal)+' cal · '+fmt(qty*pro)+'g protein'+(item.inheritTime?' · Uses time below':'');
+ const summary=row.closest('[data-food-batch]')?.querySelector('.food-batch-heading small');
+ if(summary)summary.textContent=fmt(foodBatch.reduce((sum,x)=>sum+(Number(x.record.calories)||0)*(Number(x.record.quantity)||0),0))+' cal · unsaved';
+}
+function validateQueuedFood(item,i){
+ const r=item.record,name=String(r.name||'').trim(),calText=String(r.calories??'').trim(),proText=String(r.protein??'').trim(),qtyText=String(r.quantity??'').trim(),cal=Number(calText),protein=Number(proText),quantity=Number(qtyText);
+ if(!name||name.length>100||calText===''||proText===''||qtyText===''||!Number.isFinite(cal)||cal<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||!/^\d{4}-\d{2}-\d{2}$/.test(r.date)||r.t!=null&&(!Number.isInteger(Number(r.t))||Number(r.t)<0||Number(r.t)>47))
+  throw Error('Food '+(i+1)+' in the queue needs a valid name, calories, protein, servings, date and time.');
+ const record={name,calories:cal,protein,quantity,date:r.date};if(r.t!=null)record.t=Number(r.t);
+ return {...item,record,saveAsFood:Boolean(item.saveAsFood&&foodCanSaveNew(name,cal,protein))};
 }
 function commitFoodDraft(target,draft){
  const {record,cardId,saveAsFood}=draft;
