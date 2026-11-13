@@ -1,5 +1,5 @@
 // Food > Cooking: a recipe workspace, intentionally separate from eating logs.
-import {ingredientSnapshot,normalizeRecipes,recipeTotals} from './cooking-model.js?v=143.1';
+import {ingredientSnapshot,normalizeRecipes,recipeTotals} from './cooking-model.js?v=144';
 
 export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,modal,close,render,persist}){
  let tab='summary',draft=null;
