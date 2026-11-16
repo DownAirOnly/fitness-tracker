@@ -1,29 +1,30 @@
-import {RELEASE_HISTORY} from './release-history.js?v=145';
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=145';
-import {createCookingUI} from './cooking-ui.js?v=145';
-import {createRoutineImportUI} from './routine-import-ui.js?v=145';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=145';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=145';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=145';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=145';
+import {RELEASE_HISTORY} from './release-history.js?v=146';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=146';
+import {createCookingUI} from './cooking-ui.js?v=146';
+import {createRoutineImportUI} from './routine-import-ui.js?v=146';
+import {exportRoutineCSV} from './routine-import-model.js?v=146';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=146';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=146';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=146';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=146';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=145';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=145';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=145';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=145';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=145';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=145';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=145';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=145';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=145';
-import {availableMonths,exportMonth} from './account-monthly.js?v=145';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=145';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=145';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=145';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=145';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=145';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=145';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=145';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=146';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=146';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=146';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=146';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=146';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=146';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=146';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=146';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=146';
+import {availableMonths,exportMonth} from './account-monthly.js?v=146';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=146';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=146';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=146';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=146';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=146';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=146';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=146';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -1668,7 +1669,18 @@ function routineStarterPicker(){
 function routineManager(){
  const items=savedWorkouts(),last=routineDeletedStack.at(-1);
  const undo=last?'<div class="routine-undo" role="status"><span><strong>'+esc(last.routine.name)+' deleted</strong><small>Undo is available until this tab is reloaded.</small></span><button type="button" data-action="routine-undo-delete">Undo</button></div>':'';
- modal('My routines','<div class="routine-library"><p class="body-copy">Edit, duplicate, or delete routines here. Choose a routine from the Lifting dropdown. Completed workout history is kept.</p><div class="routine-import-buttons"><button type="button" class="primary routine-create" data-action="routine-new">+ Create routine</button><button type="button" class="outline" data-action="routine-import-open">Import workout CSV</button></div>'+undo+'<div class="routine-list">'+(items.length?items.map(w=>'<div class="routine-library-row"><span><strong>'+esc(w.name)+'</strong><small>'+w.exercises.length+' exercise'+(w.exercises.length===1?'':'s')+'</small></span><div class="routine-row-actions"><button type="button" data-action="routine-edit" data-id="'+esc(w.id)+'">Edit</button><button type="button" data-action="routine-copy" data-id="'+esc(w.id)+'">Copy</button><button type="button" class="routine-delete" data-action="routine-delete-prompt" data-id="'+esc(w.id)+'">Delete</button></div></div>').join(''):'<p class="empty">No routines yet. Create one from a starter framework or a blank list.</p>')+'</div></div>');
+ modal('My routines','<div class="routine-library"><p class="body-copy">Edit, duplicate, or delete routines here. Choose a routine from the Lifting dropdown. Completed workout history is kept.</p><div class="routine-import-buttons"><button type="button" class="primary routine-create" data-action="routine-new">+ Create routine</button><button type="button" class="outline" data-action="routine-import-open">Import workout CSV</button><button type="button" class="outline" data-action="routine-export-all">Export all CSV</button></div>'+undo+'<div class="routine-list">'+(items.length?items.map(w=>'<div class="routine-library-row"><span><strong>'+esc(w.name)+'</strong><small>'+w.exercises.length+' exercise'+(w.exercises.length===1?'':'s')+'</small></span><div class="routine-row-actions"><button type="button" data-action="routine-edit" data-id="'+esc(w.id)+'">Edit</button><button type="button" data-action="routine-copy" data-id="'+esc(w.id)+'">Copy</button><button type="button" data-action="routine-export-one" data-id="'+esc(w.id)+'">Export</button><button type="button" class="routine-delete" data-action="routine-delete-prompt" data-id="'+esc(w.id)+'">Delete</button></div></div>').join(''):'<p class="empty">No routines yet. Create one from a starter framework or a blank list.</p>')+'</div></div>');
+}
+function downloadRoutineCSV(selectedId=null){
+ try{
+  const ids=selectedId?[selectedId]:null;
+  const csv=exportRoutineCSV(data,ids);
+  const routine=selectedId?(data.workoutTemplates||[]).find(w=>w.id===selectedId):null;
+  const slug=(routine?.name||'all-routines').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'routine';
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}),link=document.createElement('a');
+  link.href=URL.createObjectURL(blob);link.download='everyday-'+slug+'-'+localDate()+'.csv';link.click();
+  setTimeout(()=>URL.revokeObjectURL(link.href),1000);
+ }catch(error){alert(error.message);}
 }
 function routineDeletePrompt(routine){
  if(!routine)return;
@@ -3430,6 +3442,8 @@ document.addEventListener('click',async event=>{
   if(action==='gym-select-routine'){const selected=savedWorkouts().find(r=>r.id===el.dataset.id);if(selected){const tabs=document.querySelector('.gym-routine-tabs'),left=tabs?.scrollLeft??0;workout=selected.name;render();const next=document.querySelector('.gym-routine-tabs');if(next)next.scrollLeft=left;}return;}
   if(action==='routine-manage'){routineManager();return;}
   if(action==='routine-import-open'){routineImport.open();return;}
+   if(action==='routine-export-all'){downloadRoutineCSV();return;}
+   if(action==='routine-export-one'){downloadRoutineCSV(el.dataset.id);return;}
   if(action==='routine-new'){routineStarterPicker();return;}
   if(action==='routine-starter'){const preset=routinePresets.find(p=>p.key===el.dataset.key);if(!preset)return;newRoutineEditor(preset.name,routinePresetExercises(preset));return;}
   if(action==='routine-exercise-settings'){routineExerciseSettings(el.dataset.routine,el.dataset.id);return;}
@@ -4194,7 +4208,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=145',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=146',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4297,7 +4311,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=145');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=146');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);
