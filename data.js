@@ -291,6 +291,10 @@ export function normalizeData(input) {
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');
   // Transitional tolerance: old cloud records may still carry an exercise-level numeric difficulty.
   for(const l of data.lifts) if(l.difficulty!=null && (!Number.isFinite(l.difficulty)||l.difficulty<1)) throw new Error('Backup has an invalid difficulty.');
+  // Modern notebooks explicitly own their canonical exercise list. Do not
+  // reinsert default exercises after a user removes a duplicate or built-in.
+  // Legacy backups lacking a full definition/template pair still receive defaults.
+  if(Array.isArray(input.exerciseDefinitions)&&Array.isArray(input.workoutTemplates))data.exerciseDefinitions=[];
   const definitionByKey=new Map(data.exerciseDefinitions.map(e=>[e.name.toLowerCase()+'|'+e.equipment,e]));
   const idAliases=new Map(data.exerciseDefinitions.map(e=>[e.id,e.id]));
   if(Array.isArray(input.exerciseDefinitions)){
