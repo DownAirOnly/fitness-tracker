@@ -249,3 +249,14 @@ test('changing weight units converts all persistent Buddy Undo stack snapshots',
  assert.equal(kg.activeWorkout.undoStack[1].exercises[0].draft.weight,expected(120));
  assert.equal(data.activeWorkout.undoStack[0].exercises[0].sets[0].weight,110,'original record stays untouched');
 });
+
+test('v145 explicit exercise list can delete a built-in without normalization recreating it',()=>{
+ const data=emptyData(),removed=data.exerciseDefinitions.find(e=>e.name==='Leg Curl');
+ assert.ok(removed);
+ data.exerciseDefinitions=data.exerciseDefinitions.filter(e=>e.id!==removed.id);
+ for(const routine of data.workoutTemplates)routine.exercises=routine.exercises.filter(e=>e.exerciseId!==removed.id);
+ const normalized=normalizeData(encodeData(data));
+ assert.equal(normalized.exerciseDefinitions.some(e=>e.id===removed.id),false);
+ assert.equal(normalized.workoutTemplates.some(r=>r.exercises.some(e=>e.exerciseId===removed.id)),false);
+ assert.deepEqual(normalized.lifts,data.lifts,'history is left intact');
+});
