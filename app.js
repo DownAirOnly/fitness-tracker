@@ -1,28 +1,29 @@
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=144';
-import {createCookingUI} from './cooking-ui.js?v=144';
-import {createRoutineImportUI} from './routine-import-ui.js?v=144';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=144';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=144';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=144';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=144';
+import {RELEASE_HISTORY} from './release-history.js?v=145';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=145';
+import {createCookingUI} from './cooking-ui.js?v=145';
+import {createRoutineImportUI} from './routine-import-ui.js?v=145';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=145';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=145';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=145';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=145';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=144';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=144';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=144';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=144';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=144';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=144';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=144';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=144';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=144';
-import {availableMonths,exportMonth} from './account-monthly.js?v=144';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=144';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=144';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=144';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=144';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=144';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=144';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=144';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=145';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=145';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=145';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=145';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=145';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=145';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=145';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=145';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=145';
+import {availableMonths,exportMonth} from './account-monthly.js?v=145';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=145';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=145';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=145';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=145';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=145';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=145';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=145';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -318,7 +319,7 @@ function shell(content) {
   if(page==='home'){document.documentElement.scrollTop=0;document.body.scrollTop=0;}
   const navItems=[['home','home','Home'],['food','food','Food'],['gym','lifting','Lifting'],['progress','progress','Progress']];
   const activeTab=page==='history'?'progress':page;
-  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="brand-monogram" aria-hidden="true">e<span>.</span></span> everyday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${activeTab===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${activeTab===p?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
+  app.innerHTML=`<div class="shell"><header class="top"><button class="brand" data-action="home"><span class="brand-monogram" aria-hidden="true">e</span>veryday<span class="brand-dot">.</span></button><div class="top-actions"><span class="top-date" aria-label="Tracking date">${niceDate(page==='food'?chosenDate:currentTrackingDate())}</span><button type="button" class="home-settings${page==='settings'?' active':''}" data-action="settings" aria-label="Settings" title="Settings" ${isLoading()?'disabled':''} ${page==='settings'?'aria-current="page"':''}><span class="nav-icon settings-icon">${homeIcon('settings')}</span></button></div></header>${page==='home'?'':accountBanner()}${page==='home'?homeSyncWarning():cloudSaveWarning()}<main data-page="${esc(page)}" aria-busy="${isLoading()}">${content}</main>${page==='home'&&(demoMode||offlineWorkspace)?accountBanner():''}</div><nav class="nav" aria-label="Main navigation">${navItems.map(([p,icon,label])=>`<button class="${activeTab===p?'active':''}" data-action="${p}" ${isLoading()?'disabled':''} aria-label="${label}" ${activeTab===p?'aria-current="page"':''}><span class="nav-icon">${homeIcon(icon)}</span><small>${label}</small></button>`).join('')}</nav><div id="overlay"></div>`;
 }
 function render() {
   applyCurrentAppearance();
@@ -536,14 +537,13 @@ function readHomeFoodIds(){
  return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'))]:null;
 }
 function defaultHomeFoodIds(){
- const all=sortFoods(data.foods||[],'recent');
- return all.filter(f=>f.pinned).concat(all.filter(f=>!f.pinned)).slice(0,6).map(f=>f.id);
+ return sortFoods((data.foods||[]).filter(f=>f.pinned===true),'recent').map(f=>f.id);
 }
 function homeFoodPicks(){
- const all=data.foods||[];let ids=readHomeFoodIds();
- // Persist the first selected order. Logging a food must not move its Home card.
- if(ids===null)ids=defaultHomeFoodIds();
- return ids.map(foodId=>all.find(f=>f.id===foodId)).filter(Boolean);
+ const favorites=sortFoods((data.foods||[]).filter(f=>f.pinned===true),'recent');
+ const byId=new Map(favorites.map(f=>[f.id,f]));
+ const order=readHomeFoodIds()||[];
+ return [...order.map(id=>byId.get(id)).filter(Boolean),...favorites.filter(f=>!order.includes(f.id))];
 }
 let homeFoodDraft=[],homeFoodSaveBusy=false;
 function updateHomeFoodNumbers(){
@@ -557,13 +557,13 @@ function updateHomeFoodNumbers(){
  if(count)count.textContent=homeFoodDraft.length+' selected · in selection order';
 }
 function homeFoodCustomize(){
- const choices=sortFoods(data.foods||[],'recent');
+ const choices=sortFoods((data.foods||[]).filter(f=>f.pinned===true),'recent');
  homeFoodDraft=homeFoodPicks().map(f=>f.id);
- modal('Customize Home foods','<p class="body-copy">Tap foods in the order you want them displayed. Positions 1–6 are page one, 7–12 are page two, and so on.</p>'+
-  '<label class="field"><span>Find a saved food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
+ modal('Customize Home favorites','<p class="body-copy">Tap favorites in the order you want them displayed. Unselected favorites follow the custom order; page one shows six foods.</p>'+
+  '<label class="field"><span>Find a favorite food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
   '<p class="home-food-count" role="status"></p>'+
   '<div class="home-food-picker">'+choices.map(f=>'<button type="button" class="home-food-pick" data-action="home-food-pick-toggle" data-id="'+esc(f.id)+'" data-search="'+esc(f.name.toLowerCase())+'" aria-pressed="false"><span class="home-food-position" aria-hidden="true">+</span><span class="home-food-pick-copy"><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span></button>').join('')+'</div>'+
-  '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Use favorites & recent','home-food-customize-reset','outline')+'</div>'+ '<p class="home-food-save-status" data-home-food-save-status role="status" aria-live="polite">'+(account?'Card order syncs with your Google account once saved.':'Only on this device until you sign in with Google.')+'</p>');
+  '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Reset favorite order','home-food-customize-reset','outline')+'</div>'+ '<p class="home-food-save-status" data-home-food-save-status role="status" aria-live="polite">'+(account?'Card order syncs with your Google account once saved.':'Only on this device until you sign in with Google.')+'</p>');
  updateHomeFoodNumbers();
 }
 let homeDashboardView=readHomeDashboard();
@@ -628,8 +628,8 @@ function homeDashboardCard(view){
   homeFoodPage=Math.min(homeFoodPage,pageCount-1);
   const picks=allPicks.slice(homeFoodPage*6,(homeFoodPage+1)*6);
  return '<article class="home-dashboard-content home-dash-nutrition">'+
-  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
-   '<p class="home-dashboard-empty">No saved foods</p>')+
+  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,true,true)).join('')+'</div>':
+   '<p class="home-dashboard-empty">No favorites yet. Mark a food Favorite in Food Library.</p>')+
   '<div class="home-dashboard-footer home-food-footer">'+button('Customize','home-food-customize','home-dash-link')+(pageCount>1?'<div class="home-food-pager" role="group" aria-label="Quick food pages">'+
     '<button type="button" data-action="home-food-page" data-step="-1" aria-label="Previous food page">‹</button>'+
     '<span class="home-food-page-position" aria-label="Page '+(homeFoodPage+1)+' of '+pageCount+'">'+
@@ -1335,7 +1335,7 @@ function recentFoodRelogSection(){
 }
 function foodLog(){
   const entries=foodEntriesNewestFirst(data.foodEntries.filter(e=>currentFoodTrackingDate(e)===chosenDate));
-  modal('All food entries',`<div class="date-row tracking-date food-log-date">${input('Viewing date','date',chosenDate,'date','required aria-label="Food log date"')}${button('Today','food-log-today','outline small','aria-label="View today"')}</div><div class="food-log-totals">${foodTotals(foodDayTotals(chosenDate))}</div><p class="hint">${esc(chosenDate)} · ${entries.length} entr${entries.length===1?'y':'ies'} · untimed entries first · then newest recorded time</p><div class="full-food-log">${entries.length?entries.map(e=>`<div class="list-row"><span><strong>${esc(e.name)}</strong><small>${foodEntryDetail(e)}</small></span>${button('Log again','food-relog','outline small',`data-id="${esc(e.id)}" aria-label="Log ${esc(e.name)} again"`)}${button('Edit','edit-entry','text-btn',`data-id="${esc(e.id)}" aria-label="Edit ${esc(e.name)}"`)}</div>`).join(''):empty('Nothing logged for this date yet.')}</div><div class="form-actions spaced">${button('+ Add food','new-food','primary')}</div>`);
+  modal('All food entries',`<div class="date-row tracking-date food-log-date">${input('Viewing date','date',chosenDate,'date','required aria-label="Food log date"')}${button('Today','food-log-today','outline small','aria-label="View today"')}</div><div class="food-log-totals">${foodTotals(foodDayTotals(chosenDate))}</div><p class="hint">${esc(chosenDate)} · ${entries.length} entr${entries.length===1?'y':'ies'}</p><div class="full-food-log">${entries.length?entries.map(e=>`<div class="list-row"><span><strong>${esc(e.name)}</strong><small>${foodEntryDetail(e)}</small></span>${button('Log again','food-relog','outline small',`data-id="${esc(e.id)}" aria-label="Log ${esc(e.name)} again"`)}${button('Edit','edit-entry','text-btn',`data-id="${esc(e.id)}" aria-label="Edit ${esc(e.name)}"`)}</div>`).join(''):empty('Nothing logged for this date yet.')}</div><div class="form-actions spaced">${button('+ Add food','new-food','primary')}</div>`);
 }
 
 const foodKindLabel=kind=>kind==='drink'?'Drink':'Food';
@@ -1512,9 +1512,8 @@ function foodSuggestionAvoidPicker(index){
 function food() {
   if(cooking.tab==='cooking')return cooking.tabs()+cooking.home();
   const totals=foodDayTotals(chosenDate),entries=foodEntriesNewestFirst(data.foodEntries.filter(x=>currentFoodTrackingDate(x)===chosenDate));
-  const pinned=sortFoods(data.foods.filter(f=>f.pinned===true),foodSort),foods=sortFoods(data.foods.filter(f=>f.pinned!==true),foodSort);
-  const pinnedSection=pinned.length?'<section class="pinned-foods"><div class="section-head food-section-title"><h2>Favorites</h2></div><div class="food-grid pinned-food-grid">'+pinned.map(f=>foodQuickCard(f,true)).join('')+'</div></section>':'';
-  return cooking.tabs()+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+'Edit food log'+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Plan','food-plan-open','outline small')+'</div></section>'+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
+  const foods=sortFoods(data.foods,foodSort);
+  return cooking.tabs()+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+'Edit food log'+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Plan','food-plan-open','outline small')+'</div></section>'+'<section><div class="section-head food-section-title"><h2>Saved foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
 }
 function savedWorkouts(){return Array.isArray(data.workoutTemplates)?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
 function workoutByName(name){const list=savedWorkouts();return list.find(w=>w.name===name)||list[0];}
@@ -1639,7 +1638,7 @@ function exerciseDefinitionForm(def=null,returnTo='library'){
   (profile.secondaryMuscles?.length?'<p><strong>Secondary:</strong> '+esc(profile.secondaryMuscles.join(', '))+'</p>':'')+
   (profile.safetyNote?'<p><strong>Safety:</strong> '+esc(profile.safetyNote)+'</p>':'')+'</details>':'';
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>${profileLabel}${exerciseProfileControls(def)}<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
+ modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>${profileLabel}${exerciseProfileControls(def)}<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button>${def?button('Delete exercise','exercise-def-delete-prompt','danger','data-id="'+esc(def.id)+'"'):''}</div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
 }
 
 const routinePresets=[
@@ -2555,6 +2554,11 @@ function financeArchiveMatchesExport(){
  catch{return false;}
 }
 function financeResetPanel(){
+ // A successfully erased Finance archive should no longer appear in Settings.
+ // Compare the complete canonical section to the exact reset baseline, not
+ // merely its transaction count (old settings/rules can still contain data).
+ const cleared=resetFinanceData(data);
+ if(JSON.stringify(exportSection(data,'finances').data)===JSON.stringify(exportSection(cleared,'finances').data))return '';
  const txCount=data.transactions?.length||0,ruleCount=data.classificationRules?.length||0;
  const plan=data.budgetPlan||{},scheduleCount=plan.schedules?.length||0,limitCount=plan.categoryLimits?.length||0;
  const exported=financeArchiveMatchesExport();
@@ -2637,9 +2641,13 @@ async function financeResetConfirm(){
  }
 }
 
+function releaseHistoryPanel(){
+ const entries=RELEASE_HISTORY.map(item=>'<details class="release-history-entry"><summary><strong>v'+esc(item.version)+'</strong>'+(item.title&&item.title!=='v'+item.version?'<span>'+esc(item.title.replace(/^v[\d.]+\s*[—–:-]?\s*/,''))+'</span>':'')+'</summary>'+
+  (item.summary?'<p>'+esc(item.summary)+'</p>':'<p>Additional details were not preserved in the recorded release notes.</p>')+'</details>').join('');
+ return '<section class="panel spaced release-history-panel"><h2>Changelog</h2><details class="release-history-root"><summary>Full version history <small>'+RELEASE_HISTORY.length+' documented releases</small></summary><div class="release-history-list">'+entries+'</div></details></section>';
+}
 function settings() {
-  const intro=demoMode?'Demo mode is active. These are fictional test records stored separately from your own logs.':offlineWorkspace?'Offline JSON workspace is active. Changes are local to this workspace until you export a new JSON.':account?'Your logs are saved to your Google account’s private cloud space.':'Device mode: these logs are only in this browser. Sign in to save them online.';
-  return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><span class="version-badge">${APP_VERSION}</span></div></div>${accountPanel()}<section class="panel app-update-controls"><h2>App version and updates</h2><p class="body-copy">Installed version: <strong>${APP_VERSION}</strong>. If the Home Screen app still shows an old layout, refresh the app without clearing any saved data.</p>${button('Reload latest app','app-reload-latest','outline')}<p class="hint">This requires an internet connection and a completed save. It does not delete app storage or sign you out.</p></section>${googleSyncUsagePanel()}${monthExportPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}${financeResetPanel()}<section class="panel spaced"><h2>Import & backup</h2><p class="body-copy">Import Everyday data from a file or pasted text. CSV imports are additive; JSON restore is a full replacement. Both use the review screen before saving.</p>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Import separate JSON files','section-import-open','outline')}<p class="hint">Universal CSV can add saved foods, food logs, exercises, workout templates, lift logs, and independent weight and body-fat records. Legacy food CSVs still work.</p></section><section class="panel spaced"><div class="section-head"><h2>About this version</h2><span class="version-badge">${APP_VERSION}</span></div><p class="body-copy">Google sign-in saves account records to private Firebase space and keeps account-scoped recovery copies on this device while you are signed in. Offline JSON workspace data remains separate and never syncs automatically. Export backups for an independent copy. Cloud accounts keep independent files. Retired finance records stay in your account archive until explicitly erased. Each Firebase file has an 800 KB limit. Older Firestore section documents remain as migration rollback references. Keep a complete JSON backup for independent recovery.</p></section>`;
+ return `<div class="page-head settings-page-head"><div class="settings-title-row"><div><h1>Settings<span class="accent">.</span></h1></div><div class="settings-version-controls"><span class="version-badge">${APP_VERSION}</span><button type="button" class="settings-refresh" data-action="app-reload-latest" aria-label="Reload latest app" title="Reload latest app">↻</button></div></div></div>${accountPanel()}${googleSyncUsagePanel()}${monthExportPanel()}${offlineWorkspacePanel()}${storageProtectionPanel()}${healthPanel()}${appearancePanel()}${weekSettingsPanel()}<section class="panel"><h2>Your goals</h2><form data-form="settings" class="form"><div class="form-grid">${input('Daily calories','calories',data.settings.calories,'number','min="1" step="1" required')}${input('Daily protein (g)','protein',data.settings.protein,'number','min="1" step="1" required')}${input('Height (inches)','heightInches',data.settings.heightInches,'number','min="1" step="0.01" required')}<label class="field"><span>Weight unit</span><select name="unit"><option value="lb" ${data.settings.unit==='lb'?'selected':''}>Pounds (lb)</option><option value="kg" ${data.settings.unit==='kg'?'selected':''}>Kilograms (kg)</option></select></label></div><button class="primary" type="submit">Save goals</button></form><p class="hint">Changing weight units converts weigh-ins, lift logs, active Workout Buddy sets and saved workout history. BMI uses height in inches.</p></section>${dataHealthPanel()}${financeResetPanel()}<section class="panel spaced"><h2>Import & backup</h2>${button('Import data','import-data','outline')}${button(offlineWorkspace?'Export workspace JSON':'Export JSON backup','export','outline')}${button('Export Nutrition JSON','section-export','outline','data-section="nutrition"')}${button('Export Lifting JSON','section-export','outline','data-section="lifting"')}${button('Import separate JSON files','section-import-open','outline')}</section>${releaseHistoryPanel()}`;
 }
 function normalizeDocumentViewport(){
  // The app shell scrolls its own main content. The document itself must remain
@@ -2709,7 +2717,7 @@ function servingFromForm(v){
 }
 function foodDefinitionForm(food=null,origin='food'){
  const tags=new Set(food?.tags||[]),back=origin==='library'?()=>foodLibrary():null;
- modal(food?'Edit saved food':'New saved food','<form class="form" data-form="food-definition"><input type="hidden" name="foodId" value="'+esc(food?.id||'')+'"><input type="hidden" name="origin" value="'+esc(origin)+'">'+input('Food name','name',food?.name||'','text','maxlength="100" required')+'<div class="form-grid">'+input('Calories per serving','calories',food?.calories??'','number','min="0" step="0.1" required')+input('Protein (g) per serving','protein',food?.protein??'','number','min="0" step="0.1" required')+'</div>'+servingFields(food)+'<div class="form-grid"><label class="field"><span>Type</span><select name="kind"><option value="food" '+(food?.kind!=='drink'?'selected':'')+'>Food</option><option value="drink" '+(food?.kind==='drink'?'selected':'')+'>Drink</option></select></label><label class="field"><span>Nutrition accuracy</span><select name="accuracy"><option value="" '+(!food?.accuracy?'selected':'')+'>Unspecified</option><option value="label" '+(food?.accuracy==='label'?'selected':'')+'>Label exact</option><option value="estimate" '+(food?.accuracy==='estimate'?'selected':'')+'>Estimated</option></select></label></div><label class="tag-check"><input type="checkbox" name="pinned" value="yes" '+(food?.pinned?'checked':'')+'><span><strong>Favorite</strong><small>Shows this item in Favorites at the top of the Food page.</small></span></label><label class="tag-check"><input type="checkbox" name="ingredient" value="yes" '+(tags.has('ingredient')?'checked':'')+'><span><strong>Ingredient</strong><small>Useful as part of meals or recipes. This does not exclude it from suggestions.</small></span></label><div class="form-actions"><button class="primary" type="submit">Save definition</button>'+(food?button('Delete saved food','delete-food-def','danger','data-id="'+esc(food.id)+'" data-origin="'+esc(origin)+'"'):'')+'</div></form><p class="hint">Label exact means the nutrition came from a package, manufacturer, or restaurant listing. Estimated means the values are an approximation. Historical food-log entries keep their original nutrition.</p>',back);
+ modal(food?'Edit saved food':'New saved food','<form class="form" data-form="food-definition"><input type="hidden" name="foodId" value="'+esc(food?.id||'')+'"><input type="hidden" name="origin" value="'+esc(origin)+'">'+input('Food name','name',food?.name||'','text','maxlength="100" required')+'<div class="form-grid">'+input('Calories per serving','calories',food?.calories??'','number','min="0" step="0.1" required')+input('Protein (g) per serving','protein',food?.protein??'','number','min="0" step="0.1" required')+'</div>'+servingFields(food)+'<div class="form-grid"><label class="field"><span>Type</span><select name="kind"><option value="food" '+(food?.kind!=='drink'?'selected':'')+'>Food</option><option value="drink" '+(food?.kind==='drink'?'selected':'')+'>Drink</option></select></label><label class="field"><span>Nutrition accuracy</span><select name="accuracy"><option value="" '+(!food?.accuracy?'selected':'')+'>Unspecified</option><option value="label" '+(food?.accuracy==='label'?'selected':'')+'>Label exact</option><option value="estimate" '+(food?.accuracy==='estimate'?'selected':'')+'>Estimated</option></select></label></div><label class="tag-check"><input type="checkbox" name="pinned" value="yes" '+(food?.pinned?'checked':'')+'><span><strong>Favorite</strong><small>Displays this food in the Home Eat favorites.</small></span></label><label class="tag-check"><input type="checkbox" name="ingredient" value="yes" '+(tags.has('ingredient')?'checked':'')+'><span><strong>Ingredient</strong><small>Useful as part of meals or recipes. This does not exclude it from suggestions.</small></span></label><div class="form-actions"><button class="primary" type="submit">Save definition</button>'+(food?button('Delete saved food','delete-food-def','danger','data-id="'+esc(food.id)+'" data-origin="'+esc(origin)+'"'):'')+'</div></form><p class="hint">Label exact means the nutrition came from a package, manufacturer, or restaurant listing. Estimated means the values are an approximation. Historical food-log entries keep their original nutrition.</p>',back);
 }
 
 const foodCSVColumns=['recordType','date','name','calories','protein','quantity','time','saveAsFood'];
@@ -3204,7 +3212,7 @@ document.addEventListener('click',async event=>{
    if(action==='home-food-customize-reset'||action==='home-food-customize-save'){
      if(homeFoodSaveBusy)return;
      const ids=action==='home-food-customize-reset'?defaultHomeFoodIds():[...homeFoodDraft];
-     if(!ids.length){alert('Choose at least one Home food.');return;}
+     // Empty favorites are valid: Home shows an invitation to mark saved foods.
      const status=document.querySelector('[data-home-food-save-status]');
      const controls=[...document.querySelectorAll('[data-action="home-food-customize-save"],[data-action="home-food-customize-reset"]')];
      homeFoodSaveBusy=true;
@@ -3399,7 +3407,27 @@ document.addEventListener('click',async event=>{
   if(action==='new-exercise-def'){exerciseDefinitionForm();return;}
   if(action==='routine-new-exercise'){if(!workoutEditorState)return;exerciseDefinitionForm(null,'routine');return;}
   if(action==='edit-exercise-def'){exerciseDefinitionForm(data.exerciseDefinitions?.find(x=>x.id===el.dataset.id));return;}
-  if(action==='gym-select-routine'){const selected=savedWorkouts().find(r=>r.id===el.dataset.id);if(selected){workout=selected.name;render();}return;}
+  if(action==='exercise-def-delete-prompt'){
+   const definition=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!definition)return;
+   const usages=(data.workoutTemplates||[]).filter(r=>r.exercises?.some(e=>e.exerciseId===definition.id));
+   const active=Boolean(data.activeWorkout?.exercises?.some(e=>e.exerciseId===definition.id));
+   modal('Delete exercise?', '<p class="body-copy">Delete <strong>'+esc(definition.name)+'</strong> ('+esc(equipmentLabel(definition.equipment))+') from the Exercise Library?</p>'+
+    '<p class="hint">'+(usages.length?usages.length+' routine'+(usages.length===1?'':'s')+' will have this exercise removed. ':'')+'Past lift logs and completed workout history will not be deleted.'+(active?' End the active workout before deleting this exercise.':'')+'</p>'+
+    '<div class="form-actions">'+button('Delete exercise','exercise-def-delete-confirm','danger','data-id="'+esc(definition.id)+'" '+(active?'disabled':''))+button('Cancel','close','outline')+'</div>',
+    ()=>exerciseDefinitionForm(definition));
+   return;
+  }
+  if(action==='exercise-def-delete-confirm'){
+   const definition=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!definition)return;
+   if(data.activeWorkout?.exercises?.some(e=>e.exerciseId===definition.id))return alert('End your active workout before removing this exercise.');
+   const candidate=structuredClone(data);
+   candidate.exerciseDefinitions=candidate.exerciseDefinitions.filter(x=>x.id!==definition.id);
+   for(const routine of candidate.workoutTemplates||[])routine.exercises=routine.exercises.filter(x=>x.exerciseId!==definition.id);
+   try{data=normalizeData(candidate);}catch(error){alert('Exercise could not be deleted: '+error.message);return;}
+   if(workoutEditorState)workoutEditorState.exercises=workoutEditorState.exercises.filter(x=>x.exerciseId!==definition.id);
+   close(true);render();exerciseLibrary();void persist();return;
+  }
+  if(action==='gym-select-routine'){const selected=savedWorkouts().find(r=>r.id===el.dataset.id);if(selected){const tabs=document.querySelector('.gym-routine-tabs'),left=tabs?.scrollLeft??0;workout=selected.name;render();const next=document.querySelector('.gym-routine-tabs');if(next)next.scrollLeft=left;}return;}
   if(action==='routine-manage'){routineManager();return;}
   if(action==='routine-import-open'){routineImport.open();return;}
   if(action==='routine-new'){routineStarterPicker();return;}
@@ -4166,7 +4194,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=144',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=145',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4194,7 +4222,7 @@ function accountPanel(){
     return '<section class="panel"><h2>Cloud account paused</h2><p class="body-copy">'+esc(cloudLine)+'</p><p class="hint">Workspace edits cannot overwrite Firebase by accident. Export the workspace JSON, exit offline mode, then use the normal restore preview to apply it deliberately.</p></section>';
   }
   let migrated=false;try{migrated=localStorage.getItem('everyday-migrated:'+account?.uid)==='yes';}catch{}
-  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasDeviceMigrationContent(deviceData)?`<p class="body-copy">${migrated?'Original device data was copied before. Review again to find routines or Workout Buddy sessions older migrations may have missed.':'Original device notebook found. Review additions before copying logs, routines and Workout Buddy sessions into this account. The device notebook remains separate.'}</p>${button(migrated?'Review original device notebook':'Review & copy device notebook','migrate-device',migrated?'outline':'primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p>${!account?button('Load demo data','demo-start','outline'):''}</section>`;
+  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasDeviceMigrationContent(deviceData)?`<p class="body-copy">${migrated?'Original device data was copied before. Review again to find routines or Workout Buddy sessions older migrations may have missed.':'Original device notebook found. Review additions before copying logs, routines and Workout Buddy sessions into this account. The device notebook remains separate.'}</p>${button(migrated?'Review original device notebook':'Review & copy device notebook','migrate-device',migrated?'outline':'primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}${!account?button('Load demo data','demo-start','outline'):''}</section>`;
 }
 function adoptLegacyDevicePreferences(){
  if(data.preferences?.legacyImported===true)return false;
@@ -4269,7 +4297,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=144');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=145');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

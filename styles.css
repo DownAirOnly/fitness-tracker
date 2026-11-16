@@ -3951,3 +3951,46 @@ form[data-form="food"] .food-batch-delete{
  form[data-form="food"] .food-datetime-grid .time-step-row>strong{font-size:12px}
  form[data-form="food"] .food-datetime-grid>.field input[type="date"]{font-size:12px;padding:7px 5px}
 }
+
+/* v145: one e wordmark, preserving e.'s DM Sans and Everyday's Outfit styling. */
+.top .brand{display:inline-flex;align-items:baseline;gap:0;white-space:nowrap}
+.top .brand .brand-monogram{
+ width:auto;height:auto;flex:0 0 auto;align-items:baseline;
+ justify-content:initial;padding:0 .07em 0 0;line-height:1;
+ font-size:1.2em;
+}
+.top .brand .brand-dot{margin-left:0}
+
+/* Compact version refresh replaces the large update panel. */
+.settings-version-controls{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto}
+.settings-version-controls .settings-refresh{
+ width:32px;height:32px;min-width:32px;border-radius:50%;
+ display:grid;place-items:center;padding:0;font-size:23px;line-height:1;
+ border:1px solid var(--ap-border,#c9d7c9);
+ background:var(--ap-raised,#e8efe5);color:var(--ap-on-surface,#315440);
+}
+.settings-version-controls .settings-refresh:active{transform:rotate(20deg)}
+.release-history-panel .release-history-root>summary{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ cursor:pointer;font-weight:750;padding:11px 12px;
+ border:1px solid var(--ap-border,#d1dcd1);border-radius:12px;
+ background:var(--ap-raised,#ecf2e9);
+}
+.release-history-root>summary small{font-size:11px;font-weight:600;color:var(--ap-muted,#688071)}
+.release-history-list{
+ display:grid;gap:7px;max-height:min(62dvh,600px);overflow:auto;
+ margin-top:10px;padding:3px 2px 9px;
+}
+.release-history-entry{border:1px solid var(--ap-border,#d1dcd1);border-radius:10px;overflow:hidden}
+.release-history-entry>summary{
+ display:flex;align-items:baseline;gap:9px;padding:10px 12px;cursor:pointer;
+ list-style:none;background:var(--ap-input,#fff);
+}
+.release-history-entry>summary::-webkit-details-marker{display:none}
+.release-history-entry summary strong{flex:0 0 auto;font-size:12px}
+.release-history-entry summary span{font-size:12px;min-width:0;color:var(--ap-muted,#698072)}
+.release-history-entry p{
+ margin:0;padding:10px 12px;font-size:12px;line-height:1.6;
+ border-top:1px solid var(--ap-border,#d1dcd1);
+ color:var(--ap-on-surface,inherit);
+}

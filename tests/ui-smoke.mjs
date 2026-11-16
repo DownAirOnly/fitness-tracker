@@ -184,7 +184,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(release-history|routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
@@ -201,7 +201,7 @@ try{
 const initialGear=document.querySelector('header .home-settings svg');
 assert.ok(initialGear?.querySelector('circle[cx="12"][cy="12"][r="3.25"]'),'gear center concentric with viewBox');
 const firstPaintGear=initialGear.innerHTML;
-assert.equal(document.querySelector('header .brand .brand-monogram')?.textContent,'e.','header uses the portfolio-aligned e. monogram');
+assert.equal(document.querySelector('header .brand .brand-monogram')?.textContent,'e','header uses the existing e monogram as the wordmark letter');
 const initialHome=document.querySelector('.home-command-center');
 assert.ok(initialHome,'first app render uses the compact Home layout');
 assert.equal(initialHome.querySelectorAll('.home-add-trigger').length,1,'one Add action before auth');
@@ -244,27 +244,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelector('header .home-settings svg').innerHTML,firstPaintGear,'hydrated header gear matches first paint');
  await click('settings');
  assert.ok(document.querySelector('.panel [data-action="sign-in"]'),'Settings retains signed-out Google sign-in');
- assert.ok(document.querySelector('.finance-reset-panel h2')?.textContent==='Money archive','archive belongs only in Settings');
- assert.equal(document.querySelector('[data-action="finance-reset-prompt"]'),null,'no delete control before export');
- let archiveBlob;const archiveCreate=URL.createObjectURL;const archiveRevoke=URL.revokeObjectURL;
- URL.createObjectURL=blob=>{archiveBlob=blob;return 'blob:finance-archive-test';};URL.revokeObjectURL=()=>{};
- await click('section-export');
- const financeArchive=JSON.parse(await archiveBlob.text());
- assert.equal(financeArchive.section,'finances');
- assert.deepEqual(Object.keys(financeArchive.data).sort(),['budgetPlan','classificationRules','transactions'],'complete Finance section exported');
- assert.ok(document.querySelector('[data-action="finance-reset-prompt"]'),'explicit export unlocks optional delete');
- const financeBeforeReset=localStorage.getItem('everyday-fitness-v1');
- await click('finance-reset-prompt');
- const financeResetConfirm=document.querySelector('[data-action="finance-reset-confirm"]');
- assert.ok(financeResetConfirm?.disabled,'archive delete requires countdown and verification');
- document.querySelector('[data-finance-archive-verify]').checked=true;
- document.querySelector('[data-finance-archive-verify]').dispatchEvent(new dom.window.Event('change',{bubbles:true}));
- assert.ok(financeResetConfirm.disabled,'checkbox alone cannot skip countdown');
- financeResetConfirm.click();await tick();
- assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'export and disabled confirm never delete');
- await click('close');
- URL.createObjectURL=archiveCreate;URL.revokeObjectURL=archiveRevoke;
- assert.equal(localStorage.getItem('everyday-fitness-v1'),financeBeforeReset,'canceling keeps archived records');
+ assert.equal(document.querySelector('.finance-reset-panel'),null,'an empty retired Finance archive does not appear in Settings');
  await click('home');
  assert.ok(!document.querySelector('main .weight-strip'),'weight belongs in Progress, not Home');
 
@@ -275,6 +255,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(document.querySelector('header.top .home-settings[data-action="settings"]'),'accessible Settings gear');
   await click('settings');
  assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
+  assert.equal(document.querySelector('.app-update-controls'),null,'large app update panel removed');
+  assert.ok(document.querySelector('.release-history-panel .release-history-entry'),'full documented changelog renders in Settings');
   const usageMeters=[...document.querySelectorAll('.google-sync-usage [role="progressbar"]')];
   assert.equal(usageMeters.length,4,'settings and three catalogs have their own files even without history');
   assert.deepEqual(usageMeters.map(node=>node.getAttribute('aria-label')),
@@ -285,7 +267,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
 
   assert.ok(document.querySelector('[data-action="section-export"][data-section="nutrition"]'));
   assert.ok(document.querySelector('[data-action="section-export"][data-section="lifting"]'));
-  assert.ok(document.querySelector('[data-action="section-export"][data-section="finances"]'));
+  assert.equal(document.querySelector('[data-action="section-export"][data-section="finances"]'),null,'Finance export appears only when retired finance records exist');
   await click('section-import-open');
   const sectionForm=document.querySelector('form[data-form="section-import"]');
   const sectionJson=JSON.stringify(exportSection(emptyData(),'nutrition'));
@@ -497,7 +479,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelectorAll('[data-action="home-food-page"]').length,2,'pager has previous and next');
  assert.ok(document.querySelector('.home-food-page-position i.active'),'pager uses page dots');
  await click('home-food-page');
- assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,1,'second page starts at card seven');
+ assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card').length,2,'second page includes eighth favorite automatically');
  assert.equal(document.querySelector('.home-dashboard-food-grid [data-action="add-saved"]').dataset.id,seven[6].dataset.id,'seventh selection begins page two');
  assert.ok(document.querySelector('[data-action="home-food-plan"]'),'Plan remains available on additional pages');
  await click('home-food-page');
@@ -513,9 +495,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('home-food-customize-save');
  const orderedFoodIds=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data).preferences.homeFoodIds;
  assert.deepEqual(orderedFoodIds,[choices[2].dataset.id,choices[0].dataset.id,choices[1].dataset.id]);
- assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(el=>el.dataset.id),orderedFoodIds,'cards use fixed stored order');
+ assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].slice(0,3).map(el=>el.dataset.id),orderedFoodIds,'saved ordering leads all favorite cards');
  await click('home');
- assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].map(el=>el.dataset.id),orderedFoodIds,'cards retain fixed order on rerender');
+ assert.deepEqual([...document.querySelectorAll('.home-dashboard-food-grid [data-action="add-saved"]')].slice(0,3).map(el=>el.dataset.id),orderedFoodIds,'favorites retain custom leading order on rerender');
 
  assert.ok(document.querySelector('.home-dashboard-food-grid .food-card'),'Nutrition reuses actual saved-food cards from the Food tab');
  assert.equal(document.querySelectorAll('.home-dashboard-food-grid .food-card:first-child .food-card-macro').length,2,'Home cards show separate calories/protein figures');
@@ -1051,7 +1033,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  }
  await click('home');
  await click('settings');assert.ok(document.querySelector('.settings-page-head'));
- assert.ok(document.querySelector('.app-update-controls [data-action="app-reload-latest"]'),'Settings offers a non-destructive manual reload');
+ assert.ok(document.querySelector('.settings-version-controls [data-action="app-reload-latest"]'),'Settings reload is a compact control beside the version');
  await click('food');
  assert.ok(!document.querySelector('main').textContent.includes('Device meal'),'no automatic migration');
  await click('settings');await click('migrate-device');
@@ -1128,6 +1110,13 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(localStorage.getItem('everyday-cloud-recovery-v1:bob'),null,'successful cloud save clears the recovery copy');
  assert.ok(localStorage.getItem('everyday-cloud-confirmed-v1:bob'),'successful cloud save keeps a last-confirmed device copy');
  assert.equal(normalizeData(JSON.parse(localStorage.getItem('everyday-fitness-v1'))).foodEntries[0].name,'Device meal','cloud record never replaces local data');
+ // Mark the saved cloud food as a Favorite; only favorites appear on Home.
+ await click('food');await click('food-library');
+ const cloudFoodRow=[...document.querySelectorAll('[data-action="edit-food-def"]')].find(el=>el.textContent.includes('Cloud meal'));
+ assert.ok(cloudFoodRow,'saved cloud food can become a Favorite');cloudFoodRow.click();await tick();
+ const cloudFoodDef=document.querySelector('form[data-form="food-definition"]');
+ cloudFoodDef.elements.pinned.checked=true;await submit('food-definition',{});
+ await click('close');await tick();await tick();
  // Home customization must actually upload, and an isolated new PWA without
  // existing account caches must reconstruct its selection from Firebase.
  await click('home');
@@ -1161,7 +1150,9 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  await click('custom-lift');const legacyLateralForm=document.querySelector('[data-form="lift"]');legacyLateralForm.elements.exercise.value='Dumbbell Lateral Raises';legacyLateralForm.elements.equipment.value='dumbbell';for(const row of legacyLateralForm.querySelectorAll('.set-row')){row.querySelector('[name="weight"]').value='17.5';row.querySelector('[name="reps"]').value='8';row.querySelector('[name="difficulty"]').value='4';}legacyLateralForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
  const fullBodyTab=[...document.querySelectorAll('[data-action="gym-select-routine"]')].find(x=>x.textContent.trim()==='Full body');
  assert.ok(fullBodyTab,'Full body has its own color button');
+ document.querySelector('.gym-routine-tabs').scrollLeft=84;
  fullBodyTab.click();await tick();
+ assert.equal(document.querySelector('.gym-routine-tabs').scrollLeft,84,'routine selection preserves tab strip horizontal scroll');
  assert.ok(document.querySelector('.gym-routine-tab.selected')?.textContent.includes('Full body'),'routine buttons change the exercise list');
  assert.ok(document.querySelector('.gym-selected-routine h2')?.textContent.includes('Full body'),'selected routine card follows the chosen button');
  const lateralCard=[...document.querySelectorAll('.exercise-list .exercise')].find(el=>el.dataset.name==='Lateral Raise');assert.ok(lateralCard,'Full body contains canonical Lateral Raise');assert.ok(lateralCard.textContent.includes('Last:'),'legacy Dumbbell Lateral Raises history resolves to Lateral Raise');assert.ok(!lateralCard.textContent.includes('First time'),'canonical history prevents false first-time state');
@@ -1222,7 +1213,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.food-preview-empty'));
  assert.equal(document.querySelector('main[data-page="food"] > :first-child')?.className,'food-workspace-tabs','Food workspace tabs come first');
  assert.ok(document.querySelector('main[data-page="food"] > .food-day'),'selected-day food log remains first in Summary beneath tabs');
- assert.ok([...document.querySelectorAll('.food-section-title h2')].some(el=>el.textContent==='More foods'),'Food page exposes the current library section');
+ assert.ok([...document.querySelectorAll('.food-section-title h2')].some(el=>el.textContent==='Saved foods'),'Food page displays one unified saved-food section');
  const savedCountBeforeOneOff=normalizeData(JSON.parse(state.records.get('bob').payload)).foods.length;
  await click('new-food');const saveAsFood=document.querySelector('[name="saveAsFood"]');assert.ok(saveAsFood&&!saveAsFood.checked&&saveAsFood.closest('.save-new-food-option').hidden,'new food definition opt-in starts hidden and unchecked');saveAsFood.checked=false;await submit('food',{name:'One-off cruise dessert',calories:'420',protein:'6',quantity:'1'});
  let oneOffState=normalizeData(JSON.parse(state.records.get('bob').payload));assert.equal(oneOffState.foods.length,savedCountBeforeOneOff,'unchecked one-off food does not add a Saved Food');assert.ok(oneOffState.foodEntries.some(e=>e.name==='One-off cruise dessert'),'one-off food still logs normally');
