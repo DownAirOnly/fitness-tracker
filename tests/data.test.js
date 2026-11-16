@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseFoodCSV,dailyTotals,foodTrackingDate,foodEntriesNewestFirst,stepFoodDateTime,foodCalendarDate,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData,convertNotebookWeightUnit} from '../data.js';
+import {parseFoodCSV,dailyTotals,foodTrackingDate,foodEntriesNewestFirst,stepFoodDateTime,foodCalendarDate,weeklyWeights,bmi,shouldPrompt,emptyData,normalizeData,encodeData,convertNotebookWeightUnit,resetFinanceData} from '../data.js';
 
 test('CSV supports quoted names and rejects malformed rows before import',()=>{
   const parsed=parseFoodCSV('date,name,calories,protein,quantity\r\n2026-09-25,"Chicken, rice",500,42,0.5\r\n2026-09-26,Bad,hi,4,1');
@@ -259,4 +259,20 @@ test('v145 explicit exercise list can delete a built-in without normalization re
  assert.equal(normalized.exerciseDefinitions.some(e=>e.id===removed.id),false);
  assert.equal(normalized.workoutTemplates.some(r=>r.exercises.some(e=>e.exerciseId===removed.id)),false);
  assert.deepEqual(normalized.lifts,data.lifts,'history is left intact');
+});
+
+test('v145 retiring Finance clears all Finance state without altering Food or Lifting',()=>{
+ const notebook=emptyData();
+ notebook.transactions=[{id:'purchase',date:'2026-10-27',kind:'expense',amountCents:719,description:'Water',category:'Household',currency:'USD',source:'manual'}];
+ notebook.foodEntries=[{id:'e',date:'2026-11-15',name:'Snack',calories:100,protein:5,quantity:1}];
+ const before=structuredClone(notebook),reset=resetFinanceData(notebook);
+ assert.equal(reset.transactions.length,0);
+ assert.equal(reset.classificationRules.length,0);
+ assert.deepEqual(reset.foodEntries,before.foodEntries);
+ assert.deepEqual(reset.exerciseDefinitions,before.exerciseDefinitions);
+ assert.deepEqual(reset.workoutTemplates,before.workoutTemplates);
+ const persisted=normalizeData(encodeData(reset));
+ assert.equal(persisted.transactions.length,0);
+ assert.deepEqual(persisted.budgetPlan,normalizeData(emptyData()).budgetPlan);
+ assert.equal(normalizeData(encodeData(before)).transactions.length,1,'source notebook remains unchanged');
 });
