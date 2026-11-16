@@ -19,6 +19,52 @@ function parseProfile(get){
  if(get('safetyNote'))meta.safetyNote=get('safetyNote');
  return normalizeExerciseMeta(meta);
 }
+
+const routineCSVColumns=['recordType','id','workoutId','workout','exercise','equipment','order','targetSets','repMin','repMax','restSeconds','setup','notes','movement','movementPattern','primaryMuscles','secondaryMuscles','safetyNote','routineCue','routineColor','weekday'];
+const csvCell=value=>{
+ const raw=String(value??'');
+ return /[",\r\n]/.test(raw)||raw.trim()!==raw?'"'+raw.replace(/"/g,'""')+'"':raw;
+};
+// Export routine templates and the referenced exercise definitions, not personal training history.
+export function exportRoutineCSV(current,routineIds=null){
+ const selected=routineIds==null?null:new Set(routineIds);
+ const routines=(current.workoutTemplates||[]).filter(w=>!selected||selected.has(w.id));
+ if(!routines.length)throw Error('There are no routines to export.');
+ const defs=new Map((current.exerciseDefinitions||[]).map(d=>[d.id,d]));
+ const daysByRoutine=new Map();
+ for(const assignment of current.workoutSchedule||[]){
+  if(!routines.some(r=>r.id===assignment.routineId))continue;
+  const days=daysByRoutine.get(assignment.routineId)||[];
+  if(Number.isInteger(assignment.day)&&assignment.day>=0&&assignment.day<=6&&!days.includes(assignment.day))days.push(assignment.day);
+  daysByRoutine.set(assignment.routineId,days);
+ }
+ const rows=[routineCSVColumns];
+ const included=new Set();
+ const profile=def=>{
+  const meta=def.meta||{};
+  return{movement:meta.movement||'',movementPattern:meta.pattern||'',primaryMuscles:(meta.primaryMuscles||[]).join('|'),
+   secondaryMuscles:(meta.secondaryMuscles||[]).join('|'),safetyNote:meta.safetyNote||''};
+ };
+ const push=row=>rows.push(routineCSVColumns.map(key=>row[key]??''));
+ for(const routine of routines)for(const item of routine.exercises||[]){
+  const def=defs.get(item.exerciseId);
+  if(!def)throw Error('Missing exercise definition for '+routine.name+'.');
+  if(included.has(def.id))continue;
+  included.add(def.id);
+  push({recordType:'exercise',id:def.id,exercise:def.name,equipment:def.equipment,setup:def.setup||'',notes:def.notes||'',...profile(def)});
+ }
+ for(const routine of routines){
+  const weekdays=(daysByRoutine.get(routine.id)||[]).sort((a,b)=>a-b).join('|');
+  for(const [index,item] of (routine.exercises||[]).entries()){
+   const def=defs.get(item.exerciseId);
+   push({recordType:'workout',workoutId:routine.id,workout:routine.name,exercise:def.name,equipment:def.equipment,
+    order:index+1,targetSets:item.targetSets,repMin:item.repMin,repMax:item.repMax,restSeconds:item.restSeconds,
+    routineCue:item.cue||'',routineColor:routine.color||'',weekday:weekdays});
+  }
+ }
+ return rows.map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n';
+}
+
 export function parseRoutineCSV(text){
  const lines=parseCSV(String(text||'').replace(/^\uFEFF/,''));
  if(!lines.length)throw Error('The routine CSV is empty.');
@@ -26,7 +72,7 @@ export function parseRoutineCSV(text){
  const idx=new Map(headers.map((h,i)=>[h,i]));
  if(!['recordtype','exercise','equipment'].every(h=>idx.has(h))||!idx.has('workout'))
   throw Error('Choose a routine CSV with recordType, workout, exercise and equipment columns.');
- if(lines.length>400)throw Error('Routine CSV cannot exceed 400 rows.');
+ if(lines.length>10500)throw Error('Routine CSV cannot exceed 10,500 rows.');
  const definitions=new Map(),routines=new Map(),errors=[];
  const getFrom=(row,name)=>String(row[idx.get(name.toLowerCase())]??'').trim();
  for(const [i,row]of lines.entries()){
@@ -59,7 +105,8 @@ export function parseRoutineCSV(text){
    const workout=get('workout');
    if(!workout||workout.length>80)throw Error('Workout name is missing or too long.');
    const workoutKey=normalizeName(workout),rawWorkoutId=get('workoutId'),color=get('routineColor');
-   const weekday=get('weekday')===''?null:number(get('weekday'),'Weekday',{min:0,max:6,integer:true});
+   const weekdayText=get('weekday');
+   const weekdays=weekdayText===''?null:[...new Set(weekdayText.split('|').map(day=>number(day,'Weekday',{min:0,max:6,integer:true})))].sort((a,b)=>a-b);
    if(color&&!/^#[0-9a-f]{6}$/i.test(color))throw Error('Routine color must be a six-digit hex color.');
    const order=number(get('order'),'Exercise order',{min:1,max:1000,integer:true,fallback:line});
    const repMin=number(get('repMin'),'Min reps',{min:1,max:100,integer:true,fallback:6});
@@ -70,15 +117,15 @@ export function parseRoutineCSV(text){
    const cue=normalizeRoutineCue(get('routineCue'));
    let routine=routines.get(workoutKey);
    if(!routine){
-    routine={key:workoutKey,id:rawWorkoutId,name:workout,color:color||'',weekday,items:[],orders:new Set(),usedExercises:new Set()};
+    routine={key:workoutKey,id:rawWorkoutId,name:workout,color:color||'',weekdays,items:[],orders:new Set(),usedExercises:new Set()};
     routines.set(workoutKey,routine);
    }
    if(routine.id&&rawWorkoutId&&routine.id!==rawWorkoutId)throw Error('Rows for '+workout+' have conflicting workoutId values.');
    if(!routine.id)routine.id=rawWorkoutId;
    if(color&&routine.color&&color.toLowerCase()!==routine.color.toLowerCase())throw Error('Rows for '+workout+' have conflicting colors.');
    if(color)routine.color=color;
-   if(weekday!==null&&routine.weekday!==null&&weekday!==routine.weekday)throw Error('Rows for '+workout+' have conflicting weekdays.');
-   if(routine.weekday===null)routine.weekday=weekday;
+   if(weekdays!==null&&routine.weekdays!==null&&JSON.stringify(weekdays)!==JSON.stringify(routine.weekdays))throw Error('Rows for '+workout+' have conflicting weekdays.');
+   if(routine.weekdays===null)routine.weekdays=weekdays;
    if(routine.usedExercises.has(key))throw Error('Duplicate exercise in '+workout+'.');
    if(routine.orders.has(order))throw Error('Duplicate exercise order in '+workout+'.');
    routine.usedExercises.add(key);routine.orders.add(order);
@@ -97,7 +144,7 @@ const uniqueRoutineName=(base,used)=>{
 };
 export function prepareRoutineImport(text,current,options={}){
  const source=parseRoutineCSV(text),errors=[...source.errors],warnings=[],candidate=structuredClone(current);
- const matches=options.exerciseMatches||{},actions=options.routineActions||{},applySchedule=options.applySchedule===true;
+ const matches=options.exerciseMatches||{},actions=options.routineActions||{},applySchedule=options.applySchedule===true,applyColors=options.applyColors===true;
  const currentDefs=candidate.exerciseDefinitions||[],currentRoutines=candidate.workoutTemplates||[];
  const existingIds=new Set(currentDefs.map(x=>x.id)),existingRoutineIds=new Set(currentRoutines.map(x=>x.id));
  const byExerciseKey=new Map(currentDefs.map(def=>[exerciseKey(def.name,def.equipment),def]));
@@ -170,13 +217,14 @@ export function prepareRoutineImport(text,current,options={}){
   }else if(action==='update'){
    const old=structuredClone(prior);
    prior.exercises=entries;
-   // Existing routine names, IDs, colors, and unrelated records are retained.
+   if(applyColors&&routine.color)prior.color=routine.color;
+   // Existing routine names and IDs, and unrelated records are retained. Colors change only by opt-in.
    if(JSON.stringify(old)!==JSON.stringify(prior))updatedRoutines++;else unchangedRoutines++;
    if(current.activeWorkout?.workoutId===prior.id)
     warnings.push(prior.name+' is currently active. The active session remains unchanged; the saved routine will update for future sessions.');
   }else unchangedRoutines++;
-  routinePreview.push({key:routine.key,sourceName:routine.name,name,action,id:resultingId,existingId:exact?.id||null,previousCount:prior?.exercises.length||0,incomingCount:entries.length,weekday:routine.weekday});
-  if(routine.weekday!==null)schedulePreview.push({day:routine.weekday,routineId:resultingId,name});
+  routinePreview.push({key:routine.key,sourceName:routine.name,name,action,id:resultingId,existingId:exact?.id||null,previousCount:prior?.exercises.length||0,incomingCount:entries.length,weekday:routine.weekdays?.[0]??null,weekdays:routine.weekdays||[]});
+  for(const day of routine.weekdays||[])schedulePreview.push({day,routineId:resultingId,name});
  }
  if(schedulePreview.length){
   const days=new Set();
@@ -196,7 +244,7 @@ export function prepareRoutineImport(text,current,options={}){
  if(!errors.length)try{normalized=normalizeData(candidate);}catch(error){errors.push(error.message);}
  const changeCount=createdExercises+enrichedExercises+reclassifiedExercises+createdRoutines+updatedRoutines+(applySchedule?schedulePreview.length:0);
  return{kind:'routine-csv',base:JSON.stringify(current),candidate:errors.length?null:normalized,groups:[],errors,warnings,
-  exercisePreview,routinePreview,schedulePreview,options:{exerciseMatches:structuredClone(matches),routineActions:structuredClone(actions),applySchedule},
+  exercisePreview,routinePreview,schedulePreview,options:{exerciseMatches:structuredClone(matches),routineActions:structuredClone(actions),applySchedule,applyColors},
   counts:{createdExercises,reusedExercises,enrichedExercises,reclassifiedExercises,createdRoutines,updatedRoutines,unchangedRoutines},
   added:createdExercises+createdRoutines,replaced:updatedRoutines+enrichedExercises+reclassifiedExercises,unchanged:reusedExercises+unchangedRoutines,
   changeCount,display:{count:changeCount,label:changeCount+' workout import change'+(changeCount===1?'':'s')},
