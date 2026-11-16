@@ -1,5 +1,6 @@
 /** Source-grounded version history collected from PROJECT_CONTEXT.md and README.md. */
 export const RELEASE_HISTORY=[
+ {"version":"146","title":"v146 — Routine CSV export and portable settings","summary":"Export any individual routine or the complete routine library to a CSV that can be imported again. Includes routine colors, exercise order and definitions, setup notes, muscle profiles, exercise cues, sets, rep ranges, rest seconds, and multiple scheduled weekdays. Import automatically matches existing exercises, adds missing ones, and offers an explicit choice to apply CSV colors when updating saved routines.","source":"new"},
  {
   "version": "145",
   "title": "v145 — Settings, Favorites, and Lifting reliability",
