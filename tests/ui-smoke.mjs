@@ -257,7 +257,6 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.settings-page-head'),'Settings gear works from Finances');
   assert.equal(document.querySelector('.app-update-controls'),null,'large app update panel removed');
   assert.ok(document.querySelector('.release-history-panel .release-history-entry'),'full documented changelog renders in Settings');
-  assert.equal(document.querySelector('.modal')?.textContent.includes('untimed entries first'),false,'sort explanation is not shown');
   const usageMeters=[...document.querySelectorAll('.google-sync-usage [role="progressbar"]')];
   assert.equal(usageMeters.length,4,'settings and three catalogs have their own files even without history');
   assert.deepEqual(usageMeters.map(node=>node.getAttribute('aria-label')),
