@@ -2553,6 +2553,11 @@ function financeArchiveMatchesExport(){
  catch{return false;}
 }
 function financeResetPanel(){
+ // A successfully erased Finance archive should no longer appear in Settings.
+ // Compare the complete canonical section to the exact reset baseline, not
+ // merely its transaction count (old settings/rules can still contain data).
+ const cleared=resetFinanceData(data);
+ if(JSON.stringify(exportSection(data,'finances').data)===JSON.stringify(exportSection(cleared,'finances').data))return '';
  const txCount=data.transactions?.length||0,ruleCount=data.classificationRules?.length||0;
  const plan=data.budgetPlan||{},scheduleCount=plan.schedules?.length||0,limitCount=plan.categoryLimits?.length||0;
  const exported=financeArchiveMatchesExport();
@@ -4192,7 +4197,7 @@ function accountPanel(){
     return '<section class="panel"><h2>Cloud account paused</h2><p class="body-copy">'+esc(cloudLine)+'</p><p class="hint">Workspace edits cannot overwrite Firebase by accident. Export the workspace JSON, exit offline mode, then use the normal restore preview to apply it deliberately.</p></section>';
   }
   let migrated=false;try{migrated=localStorage.getItem('everyday-migrated:'+account?.uid)==='yes';}catch{}
-  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasDeviceMigrationContent(deviceData)?`<p class="body-copy">${migrated?'Original device data was copied before. Review again to find routines or Workout Buddy sessions older migrations may have missed.':'Original device notebook found. Review additions before copying logs, routines and Workout Buddy sessions into this account. The device notebook remains separate.'}</p>${button(migrated?'Review original device notebook':'Review & copy device notebook','migrate-device',migrated?'outline':'primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}<p class="hint">Google manages sign-in. Firebase stores account logs. While you stay signed in, Everyday also keeps a last-confirmed device copy plus any unsaved recovery copy so an offline refresh does not depend on RAM. Signing out clears those account-specific device copies.</p>${!account?button('Load demo data','demo-start','outline'):''}</section>`;
+  return `<section class="panel"><h2>${account?'Your account':'Save across devices'}</h2><p class="body-copy">${account?esc(account.email):'Sign in with Google to keep food, lifting and weight logs in your own cloud account. Each person gets separate records.'}</p>${account?`${button('Refresh from cloud','cloud-load','outline')}${button('Sign out','sign-out','outline')}${hasDeviceMigrationContent(deviceData)?`<p class="body-copy">${migrated?'Original device data was copied before. Review again to find routines or Workout Buddy sessions older migrations may have missed.':'Original device notebook found. Review additions before copying logs, routines and Workout Buddy sessions into this account. The device notebook remains separate.'}</p>${button(migrated?'Review original device notebook':'Review & copy device notebook','migrate-device',migrated?'outline':'primary')}`:''}`:cloudReady?button('Sign in with Google','sign-in','primary'):`<p>${esc(cloudMessage)}</p>`}${!account?button('Load demo data','demo-start','outline'):''}</section>`;
 }
 function adoptLegacyDevicePreferences(){
  if(data.preferences?.legacyImported===true)return false;
