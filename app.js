@@ -536,14 +536,13 @@ function readHomeFoodIds(){
  return Array.isArray(ids)?[...new Set(ids.filter(x=>typeof x==='string'))]:null;
 }
 function defaultHomeFoodIds(){
- const all=sortFoods(data.foods||[],'recent');
- return all.filter(f=>f.pinned).concat(all.filter(f=>!f.pinned)).slice(0,6).map(f=>f.id);
+ return sortFoods((data.foods||[]).filter(f=>f.pinned===true),'recent').map(f=>f.id);
 }
 function homeFoodPicks(){
- const all=data.foods||[];let ids=readHomeFoodIds();
- // Persist the first selected order. Logging a food must not move its Home card.
- if(ids===null)ids=defaultHomeFoodIds();
- return ids.map(foodId=>all.find(f=>f.id===foodId)).filter(Boolean);
+ const favorites=sortFoods((data.foods||[]).filter(f=>f.pinned===true),'recent');
+ const byId=new Map(favorites.map(f=>[f.id,f]));
+ const order=readHomeFoodIds()||[];
+ return [...order.map(id=>byId.get(id)).filter(Boolean),...favorites.filter(f=>!order.includes(f.id))];
 }
 let homeFoodDraft=[],homeFoodSaveBusy=false;
 function updateHomeFoodNumbers(){
@@ -557,13 +556,13 @@ function updateHomeFoodNumbers(){
  if(count)count.textContent=homeFoodDraft.length+' selected · in selection order';
 }
 function homeFoodCustomize(){
- const choices=sortFoods(data.foods||[],'recent');
+ const choices=sortFoods((data.foods||[]).filter(f=>f.pinned===true),'recent');
  homeFoodDraft=homeFoodPicks().map(f=>f.id);
- modal('Customize Home foods','<p class="body-copy">Tap foods in the order you want them displayed. Positions 1–6 are page one, 7–12 are page two, and so on.</p>'+
-  '<label class="field"><span>Find a saved food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
+ modal('Customize Home favorites','<p class="body-copy">Tap favorites in the order you want them displayed. Unselected favorites follow the custom order; page one shows six foods.</p>'+
+  '<label class="field"><span>Find a favorite food</span><input type="search" name="homeFoodSearch" placeholder="Search foods" autocomplete="off"></label>'+
   '<p class="home-food-count" role="status"></p>'+
   '<div class="home-food-picker">'+choices.map(f=>'<button type="button" class="home-food-pick" data-action="home-food-pick-toggle" data-id="'+esc(f.id)+'" data-search="'+esc(f.name.toLowerCase())+'" aria-pressed="false"><span class="home-food-position" aria-hidden="true">+</span><span class="home-food-pick-copy"><strong>'+esc(f.name)+'</strong><small>'+fmt(f.calories)+' cal · '+fmt(f.protein)+'g protein</small></span></button>').join('')+'</div>'+
-  '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Use favorites & recent','home-food-customize-reset','outline')+'</div>'+ '<p class="home-food-save-status" data-home-food-save-status role="status" aria-live="polite">'+(account?'Card order syncs with your Google account once saved.':'Only on this device until you sign in with Google.')+'</p>');
+  '<div class="form-actions">'+button('Save cards','home-food-customize-save','primary')+button('Reset favorite order','home-food-customize-reset','outline')+'</div>'+ '<p class="home-food-save-status" data-home-food-save-status role="status" aria-live="polite">'+(account?'Card order syncs with your Google account once saved.':'Only on this device until you sign in with Google.')+'</p>');
  updateHomeFoodNumbers();
 }
 let homeDashboardView=readHomeDashboard();
@@ -628,8 +627,8 @@ function homeDashboardCard(view){
   homeFoodPage=Math.min(homeFoodPage,pageCount-1);
   const picks=allPicks.slice(homeFoodPage*6,(homeFoodPage+1)*6);
  return '<article class="home-dashboard-content home-dash-nutrition">'+
-  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,Boolean(f.pinned),true)).join('')+'</div>':
-   '<p class="home-dashboard-empty">No saved foods</p>')+
+  (picks.length?'<div class="home-dashboard-food-grid">'+picks.map(f=>foodQuickCard(f,true,true)).join('')+'</div>':
+   '<p class="home-dashboard-empty">No favorites yet. Mark a food Favorite in Food Library.</p>')+
   '<div class="home-dashboard-footer home-food-footer">'+button('Customize','home-food-customize','home-dash-link')+(pageCount>1?'<div class="home-food-pager" role="group" aria-label="Quick food pages">'+
     '<button type="button" data-action="home-food-page" data-step="-1" aria-label="Previous food page">‹</button>'+
     '<span class="home-food-page-position" aria-label="Page '+(homeFoodPage+1)+' of '+pageCount+'">'+
@@ -1512,9 +1511,8 @@ function foodSuggestionAvoidPicker(index){
 function food() {
   if(cooking.tab==='cooking')return cooking.tabs()+cooking.home();
   const totals=foodDayTotals(chosenDate),entries=foodEntriesNewestFirst(data.foodEntries.filter(x=>currentFoodTrackingDate(x)===chosenDate));
-  const pinned=sortFoods(data.foods.filter(f=>f.pinned===true),foodSort),foods=sortFoods(data.foods.filter(f=>f.pinned!==true),foodSort);
-  const pinnedSection=pinned.length?'<section class="pinned-foods"><div class="section-head food-section-title"><h2>Favorites</h2></div><div class="food-grid pinned-food-grid">'+pinned.map(f=>foodQuickCard(f,true)).join('')+'</div></section>':'';
-  return cooking.tabs()+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+'Edit food log'+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Plan','food-plan-open','outline small')+'</div></section>'+pinnedSection+'<section><div class="section-head food-section-title"><h2>More foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':pinned.length?'<p class="hint">All saved foods are in Favorites.</p>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
+  const foods=sortFoods(data.foods,foodSort);
+  return cooking.tabs()+'<section class="food-day"><button type="button" class="daily-food-card" data-action="food-log" aria-label="Open complete food log for '+esc(chosenDate)+'" aria-haspopup="dialog">'+foodTotals(totals)+'<span class="food-preview-heading"><strong>'+(chosenDate===currentTrackingDate()?"Today's food log":'Food log · '+esc(niceDate(chosenDate)))+'</strong><small>'+entries.length+' entr'+(entries.length===1?'y':'ies')+'</small></span><span class="food-preview">'+(entries.length?entries.map(e=>'<span class="food-preview-row"><strong>'+esc(e.name)+'</strong><small>'+foodEntryDetail(e)+'</small></span>').join(''):'<span class="food-preview-empty">Nothing logged for this date yet.</span>')+'</span><span class="food-log-open">'+'Edit food log'+' <span aria-hidden="true">↗</span></span></button><div class="food-add-row">'+button('+ Log food','new-food','primary small')+button('Plan','food-plan-open','outline small')+'</div></section>'+'<section><div class="section-head food-section-title"><h2>Saved foods</h2><div class="section-actions">'+foodSortControl(foodSort,'food-page')+button('Food Library','food-library','outline small')+'</div></div>'+(foods.length?'<div class="food-grid">'+foods.map(f=>foodQuickCard(f)).join('')+'</div>':empty('Saved foods appear here for quick logging. Use Food Library to create definitions without adding them to a day.'))+'</section>';
 }
 function savedWorkouts(){return Array.isArray(data.workoutTemplates)?data.workoutTemplates:Object.entries(templateExercises).map(([name,exercises],i)=>({id:'legacy-'+i,name,exercises}));}
 function workoutByName(name){const list=savedWorkouts();return list.find(w=>w.name===name)||list[0];}
