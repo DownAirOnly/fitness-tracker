@@ -267,7 +267,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
 
   assert.ok(document.querySelector('[data-action="section-export"][data-section="nutrition"]'));
   assert.ok(document.querySelector('[data-action="section-export"][data-section="lifting"]'));
-  assert.ok(document.querySelector('[data-action="section-export"][data-section="finances"]'));
+  assert.equal(document.querySelector('[data-action="section-export"][data-section="finances"]'),null,'Finance export appears only when retired finance records exist');
   await click('section-import-open');
   const sectionForm=document.querySelector('form[data-form="section-import"]');
   const sectionJson=JSON.stringify(exportSection(emptyData(),'nutrition'));
