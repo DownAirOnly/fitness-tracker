@@ -2642,7 +2642,7 @@ async function financeResetConfirm(){
 }
 
 function releaseHistoryPanel(){
- const entries=RELEASE_HISTORY.map(item=>'<details class="release-history-entry"><summary><strong>v'+esc(item.version)+'</strong>'+(item.title&&item.title!=='v'+item.version?'<span>'+esc(item.title.replace(/^v[\\d.]+\\s*[—–:-]?\\s*/,''))+'</span>':'')+'</summary>'+
+ const entries=RELEASE_HISTORY.map(item=>'<details class="release-history-entry"><summary><strong>v'+esc(item.version)+'</strong>'+(item.title&&item.title!=='v'+item.version?'<span>'+esc(item.title.replace(/^v[\d.]+\s*[—–:-]?\s*/,''))+'</span>':'')+'</summary>'+
   (item.summary?'<p>'+esc(item.summary)+'</p>':'<p>Additional details were not preserved in the recorded release notes.</p>')+'</details>').join('');
  return '<section class="panel spaced release-history-panel"><h2>Changelog</h2><details class="release-history-root"><summary>Full version history <small>'+RELEASE_HISTORY.length+' documented releases</small></summary><div class="release-history-list">'+entries+'</div></details></section>';
 }
@@ -3212,7 +3212,7 @@ document.addEventListener('click',async event=>{
    if(action==='home-food-customize-reset'||action==='home-food-customize-save'){
      if(homeFoodSaveBusy)return;
      const ids=action==='home-food-customize-reset'?defaultHomeFoodIds():[...homeFoodDraft];
-     if(!ids.length){alert('Choose at least one Home food.');return;}
+     // Empty favorites are valid: Home shows an invitation to mark saved foods.
      const status=document.querySelector('[data-home-food-save-status]');
      const controls=[...document.querySelectorAll('[data-action="home-food-customize-save"],[data-action="home-food-customize-reset"]')];
      homeFoodSaveBusy=true;
