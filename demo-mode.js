@@ -24,7 +24,7 @@ const catalog=[
 const baseWeights={'Chest Press':60,'Lat Pulldown':85,'Seated Row':85,'Shoulder Press':45,'Triceps Pushdown':50,'Bicep Curl':17.5,'Seated Leg Press':115,'Leg Curl':90,'Glute Kickback':90,'Leg Extension':60,'Hip Abduction':120,'Calf Extension':100,'Torso Rotation':55,'Abdominal Crunch':75,'Lateral Raise':12.5};
 export function createDemoData(){
  const d=emptyData();
- d.foods=catalog.map(([name,calories,protein,kind,accuracy],i)=>({id:'demo-food-'+String(i+1).padStart(2,'0'),name,calories,protein,kind,accuracy,tags:kind==='drink'?['drink']:[],pinned:i<4,lastUsed:iso(dateAt(40),12)}));
+ d.foods=catalog.map(([name,calories,protein,kind,accuracy],i)=>({id:'demo-food-'+String(i+1).padStart(2,'0'),name,calories,protein,kind,accuracy,tags:kind==='drink'?['drink']:[],pinned:i<8,lastUsed:iso(dateAt(40),12)}));
  const addFood=(date,index,quantity,t,n)=>{const f=d.foods[index];d.foodEntries.push({id:'demo-entry-'+String(n).padStart(4,'0'),date,name:f.name,calories:f.calories,protein:f.protein,quantity,t});};
  let recordCount=0;
  for(let i=0;i<42;i++){
