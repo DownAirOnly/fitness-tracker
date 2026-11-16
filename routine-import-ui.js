@@ -1,13 +1,13 @@
-import {prepareRoutineImport} from './routine-import-model.js?v=145';
+import {prepareRoutineImport} from './routine-import-model.js?v=146';
 import {muscleMiniMarkup} from './muscle-map.js?v=145';
 
 const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 export function createRoutineImportUI({getData,modal,esc,setPending}){
- let csv='',filename='Routine CSV',options={exerciseMatches:{},routineActions:{},applySchedule:false};
+ let csv='',filename='Routine CSV',options={exerciseMatches:{},routineActions:{},applySchedule:false,applyColors:false};
  const e=s=>esc(String(s??''));
  const normalizeName=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
  function open(){
-  csv='';filename='Routine CSV';options={exerciseMatches:{},routineActions:{},applySchedule:false};setPending(null);
+  csv='';filename='Routine CSV';options={exerciseMatches:{},routineActions:{},applySchedule:false,applyColors:false};setPending(null);
   modal('Import routines','<form class="form routine-import-form" data-form="routine-import">'+
    '<p class="body-copy">Bring a workout-program CSV into Everyday. Review which exercises and routines already exist before changing anything. Your weights, history, machine settings and personal notes are protected.</p>'+
    '<label class="field"><span>Choose workout CSV</span><input type="file" name="file" accept=".csv,text/csv"></label>'+
@@ -45,7 +45,7 @@ export function createRoutineImportUI({getData,modal,esc,setPending}){
    const selected=options.routineActions[row.key]||(exact?'keep':'create');
    const select='<select data-routine-match-workout data-key="'+e(row.key)+'" aria-label="Import '+e(row.sourceName)+'">'+
     (exact?option('keep','Keep existing unchanged',selected==='keep')+
-     option('update','Update existing exercises (keep ID/color)',selected==='update')+
+     option('update','Update existing routine (keep ID)',selected==='update')+
      option('copy','Create separate copy',selected==='copy'):
      option('create','Create new routine',selected==='create'))+
     routines.filter(w=>w.id!==exact?.id).map(w=>option('update:'+w.id,'Update existing '+w.name,selected==='update:'+w.id)).join('')+
@@ -72,6 +72,7 @@ export function createRoutineImportUI({getData,modal,esc,setPending}){
    '<div class="routine-import-scroll" tabindex="0">'+
     '<details open><summary>Routines · '+plan.routinePreview.length+'</summary><div class="routine-import-match-list">'+routineRows+'</div></details>'+
     '<details><summary>Exercise matching · '+plan.exercisePreview.length+'</summary><p class="hint">Matches are based on exercise name and equipment. You can reuse a differently named exercise or explicitly change a matching saved exercise’s equipment while keeping past lift logs unchanged. No equipment changes occur automatically.</p><div class="routine-import-match-list">'+exerciseRows+'</div></details>'+
+    '<label class="routine-import-schedule"><input type="checkbox" data-routine-import-colors'+(options.applyColors?' checked':'')+'><span><strong>Apply imported colors to updated routines</strong><small>New routines always use their CSV color. Existing colors are kept unless you enable this and choose Update.</small></span></label>'+
     scheduleChoice+
    '</div><div class="routine-import-footer"><p class="hint">Import only applies after confirmation. No historical lifts or saved workouts are removed.</p>'+
    '<div class="form-actions">'+(plan.candidate&&plan.changeCount>0?'<button type="button" class="primary" data-action="commit-import">Confirm workout import</button>':'<span class="hint">No changes to apply with these choices.</span>')+
@@ -88,19 +89,20 @@ export function createRoutineImportUI({getData,modal,esc,setPending}){
     csv=form.elements.text.value.trim();filename='Pasted workout CSV';
     if(!csv)throw Error('Choose a CSV file or paste a workout CSV.');
    }
-   options={exerciseMatches:{},routineActions:{},applySchedule:false};
+   options={exerciseMatches:{},routineActions:{},applySchedule:false,applyColors:false};
    review();
   }catch(error){alert(error.message);}
  }
  function onChange(target){
-  if(!target.matches('[data-routine-match-exercise],[data-routine-match-workout],[data-routine-import-schedule]'))return false;
+  if(!target.matches('[data-routine-match-exercise],[data-routine-match-workout],[data-routine-import-schedule],[data-routine-import-colors]'))return false;
   const scroll=document.querySelector('.routine-import-scroll')?.scrollTop||0;
   if(target.matches('[data-routine-match-exercise]')){
    if(target.value==='auto')delete options.exerciseMatches[target.dataset.key];
    else options.exerciseMatches[target.dataset.key]=target.value;
   }else if(target.matches('[data-routine-match-workout]')){
    options.routineActions[target.dataset.key]=target.value;
-  }else options.applySchedule=target.checked;
+  }else if(target.matches('[data-routine-import-colors]'))options.applyColors=target.checked;
+  else options.applySchedule=target.checked;
   review();
   const next=document.querySelector('.routine-import-scroll');if(next)next.scrollTop=scroll;
   return true;
