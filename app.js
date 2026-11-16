@@ -1638,7 +1638,7 @@ function exerciseDefinitionForm(def=null,returnTo='library'){
   (profile.secondaryMuscles?.length?'<p><strong>Secondary:</strong> '+esc(profile.secondaryMuscles.join(', '))+'</p>':'')+
   (profile.safetyNote?'<p><strong>Safety:</strong> '+esc(profile.safetyNote)+'</p>':'')+'</details>':'';
  const options=['machine','cable','dumbbell','bench','calisthenics','other'].map(x=>`<option value="${x}" ${x===(def?.equipment||'machine')?'selected':''}>${equipmentLabel(x)}</option>`).join('');
- modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>${profileLabel}${exerciseProfileControls(def)}<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button></div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
+ modal(def?'Edit exercise':'New exercise',`<form class="form exercise-definition-form" data-form="exercise-definition"><input type="hidden" name="exerciseId" value="${esc(def?.id||'')}"><input type="hidden" name="returnTo" value="${esc(returnTo)}">${input('Exercise name','name',def?.name||'','text','maxlength="100" required')}<label class="field"><span>Equipment</span><select name="equipment">${options}</select></label><label class="field"><span>Setup / machine setting</span><input name="setup" type="text" maxlength="200" value="${esc(def?.setup||'')}" placeholder="Seat position, handle, machine setting…"></label><label class="field"><span>Shared exercise notes</span><textarea name="notes" rows="3" maxlength="500" placeholder="Form cues and reminders that apply in every routine">${esc(def?sharedExerciseNotes(def):'')}</textarea></label>${profileLabel}${exerciseProfileControls(def)}<p class="hint">Setup and notes follow this exercise across routines. Workout-specific rep ranges and planned sets stay in each routine.</p><div class="form-actions"><button class="primary" type="submit">Save exercise</button>${def?button('Delete exercise','exercise-def-delete-prompt','danger','data-id="'+esc(def.id)+'"'):''}</div></form>`,()=>returnTo==='routine'?workoutExercisePicker():exerciseLibrary());
 }
 
 const routinePresets=[
@@ -3407,6 +3407,26 @@ document.addEventListener('click',async event=>{
   if(action==='new-exercise-def'){exerciseDefinitionForm();return;}
   if(action==='routine-new-exercise'){if(!workoutEditorState)return;exerciseDefinitionForm(null,'routine');return;}
   if(action==='edit-exercise-def'){exerciseDefinitionForm(data.exerciseDefinitions?.find(x=>x.id===el.dataset.id));return;}
+  if(action==='exercise-def-delete-prompt'){
+   const definition=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!definition)return;
+   const usages=(data.workoutTemplates||[]).filter(r=>r.exercises?.some(e=>e.exerciseId===definition.id));
+   const active=Boolean(data.activeWorkout?.exercises?.some(e=>e.exerciseId===definition.id));
+   modal('Delete exercise?', '<p class="body-copy">Delete <strong>'+esc(definition.name)+'</strong> ('+esc(equipmentLabel(definition.equipment))+') from the Exercise Library?</p>'+
+    '<p class="hint">'+(usages.length?usages.length+' routine'+(usages.length===1?'':'s')+' will have this exercise removed. ':'')+'Past lift logs and completed workout history will not be deleted.'+(active?' End the active workout before deleting this exercise.':'')+'</p>'+
+    '<div class="form-actions">'+button('Delete exercise','exercise-def-delete-confirm','danger','data-id="'+esc(definition.id)+'" '+(active?'disabled':''))+button('Cancel','close','outline')+'</div>',
+    ()=>exerciseDefinitionForm(definition));
+   return;
+  }
+  if(action==='exercise-def-delete-confirm'){
+   const definition=data.exerciseDefinitions?.find(x=>x.id===el.dataset.id);if(!definition)return;
+   if(data.activeWorkout?.exercises?.some(e=>e.exerciseId===definition.id))return alert('End your active workout before removing this exercise.');
+   const candidate=structuredClone(data);
+   candidate.exerciseDefinitions=candidate.exerciseDefinitions.filter(x=>x.id!==definition.id);
+   for(const routine of candidate.workoutTemplates||[])routine.exercises=routine.exercises.filter(x=>x.exerciseId!==definition.id);
+   try{data=normalizeData(candidate);}catch(error){alert('Exercise could not be deleted: '+error.message);return;}
+   if(workoutEditorState)workoutEditorState.exercises=workoutEditorState.exercises.filter(x=>x.exerciseId!==definition.id);
+   close(true);render();exerciseLibrary();void persist();return;
+  }
   if(action==='gym-select-routine'){const selected=savedWorkouts().find(r=>r.id===el.dataset.id);if(selected){const tabs=document.querySelector('.gym-routine-tabs'),left=tabs?.scrollLeft??0;workout=selected.name;render();const next=document.querySelector('.gym-routine-tabs');if(next)next.scrollLeft=left;}return;}
   if(action==='routine-manage'){routineManager();return;}
   if(action==='routine-import-open'){routineImport.open();return;}
