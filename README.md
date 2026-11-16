@@ -1,3 +1,12 @@
+## v145 — Home Favorites, Settings cleanup, and routine/exercise fixes
+
+- The header logo e now acts as Everyday's first letter; the dot remains at the end.
+- Home food quick-access uses the saved Favorite foods, while Food presents all saved foods without a separate Favorites area. Home ordering/customization and paging remain available.
+- All food entries no longer explains its internal sorting order.
+- Settings has a small app-version refresh control; account and import/export boilerplate and About this version are removed. A full, expandable, documented release history appears at the end.
+- Empty Finance archives disappear from Settings after a successful reset; remaining finance data still retains its export/delete safeguards.
+- Exercise definitions can be deleted through a confirmation; routine references are removed, and completed history is preserved. Deleted default definitions remain deleted through persistence. Switching routine tabs preserves their horizontal scroll.
+
 ## v144 — Editable multi-food queue in Food Entry
 
 The familiar Food Entry interface now offers collapsible editing for queued foods from Add another food, recommended batches, or multi-row Paste CSV. Save foods commits the reviewed list together. The existing single-row paste continues filling the main form. The compact 50/50 serving presets and paired Date/Time layout use the current theme. New Food Library definitions remain opt-in only when a food does not already match saved or logged nutrition.
