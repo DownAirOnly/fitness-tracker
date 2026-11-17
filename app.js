@@ -303,8 +303,11 @@ function canCommitFoodEntry(){
 }
 function updatePendingFoodForm(){
  const form=app.querySelector('#overlay form[data-form="food"]');if(!form)return;
- const enabled=canCommitFoodEntry(),submit=form.querySelector('[data-food-submit]');
- if(submit)submit.disabled=!enabled;
+ const ready=canCommitFoodEntry(),submit=form.querySelector('[data-food-submit]');
+ // Keep Save actionable so iOS users receive a specific explanation instead of a dead button.
+ if(submit){submit.disabled=false;submit.formNoValidate=true;}
+ const status=form.querySelector('[data-food-save-status]');
+ if(status&&ready&&!status.hidden)status.textContent='Account ready. Tap Save again to log your food.';
 }
 function canPreviewCachedFoodAction(action,el){
  if(!canOpenCachedFood())return false;
@@ -1336,7 +1339,7 @@ function recentFoodRelogSection(){
 }
 function foodLog(){
   const entries=foodEntriesNewestFirst(data.foodEntries.filter(e=>currentFoodTrackingDate(e)===chosenDate));
-  modal('All food entries',`<div class="date-row tracking-date food-log-date">${input('Viewing date','date',chosenDate,'date','required aria-label="Food log date"')}${button('Today','food-log-today','outline small','aria-label="View today"')}</div><div class="food-log-totals">${foodTotals(foodDayTotals(chosenDate))}</div><p class="hint">${esc(chosenDate)} · ${entries.length} entr${entries.length===1?'y':'ies'}</p><div class="full-food-log">${entries.length?entries.map(e=>`<div class="list-row"><span><strong>${esc(e.name)}</strong><small>${foodEntryDetail(e)}</small></span>${button('Log again','food-relog','outline small',`data-id="${esc(e.id)}" aria-label="Log ${esc(e.name)} again"`)}${button('Edit','edit-entry','text-btn',`data-id="${esc(e.id)}" aria-label="Edit ${esc(e.name)}"`)}</div>`).join(''):empty('Nothing logged for this date yet.')}</div><div class="form-actions spaced">${button('+ Add food','new-food','primary')}</div>`);
+  modal('All food entries',`<div class="date-row tracking-date food-log-date"><label class="field"><input name="date" type="date" value="${esc(chosenDate)}" required aria-label="Food log date"></label>${button('Today','food-log-today','outline small','aria-label="View today"')}</div><div class="food-log-totals">${foodTotals(foodDayTotals(chosenDate))}</div><p class="hint">${entries.length} entr${entries.length===1?'y':'ies'}</p><div class="full-food-log">${entries.length?entries.map(e=>`<div class="list-row"><span><strong>${esc(e.name)}</strong><small>${foodEntryDetail(e)}</small></span>${button('Log again','food-relog','outline small',`data-id="${esc(e.id)}" aria-label="Log ${esc(e.name)} again"`)}${button('Edit','edit-entry','text-btn',`data-id="${esc(e.id)}" aria-label="Edit ${esc(e.name)}"`)}</div>`).join(''):empty('Nothing logged for this date yet.')}</div><div class="form-actions spaced">${button('+ Add food','new-food','primary')}</div>`);
 }
 
 const foodKindLabel=kind=>kind==='drink'?'Drink':'Food';
@@ -2847,7 +2850,7 @@ function foodBatchMarkup(){
 function refreshFoodBatchView(){
  const form=document.querySelector('form[data-form="food"]');if(!form)return;
  const holder=form.querySelector('[data-food-batch]');if(holder)holder.innerHTML=foodBatchMarkup();
- const save=form.querySelector('[data-food-submit]');if(save){save.textContent=foodBatch.length?'Save foods':'Save';save.formNoValidate=foodBatch.length>0;}
+ const save=form.querySelector('[data-food-submit]');if(save){save.textContent=foodBatch.length?'Save foods':'Save';save.formNoValidate=true;}
 }
 function syncFoodBatchRow(row,changed){
  const i=Number(row.dataset.index),item=foodBatch[i];if(!item)return;
@@ -2886,7 +2889,7 @@ function foodForm(entry=null,card=null,options={}) {
   if(!options.keepBatch){foodBatch=[];foodEntryReturnPage=options.returnPage||page;}
   const onBack=document.querySelector('.full-food-log')?()=>foodLog():null;
   const seed=options.seed||null,dateValue=entry?.date||options.date||(chosenDate===currentTrackingDate()?localDate():chosenDate),timeValue=entry?(entry.t??null):(options.timeSlot!==undefined?options.timeSlot:(chosenDate===currentTrackingDate()?currentFoodSlot():null)),newManual=!entry&&!card;
-  modal(entry?'Edit food log':card?'Food Entry':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-line"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div></div><div class="food-datetime-grid">${input('Date','date',dateValue,'date','required')}${timeControl("foodTime",timeValue)}</div>${newManual?'<label class="save-new-food-option" hidden><input type="checkbox" name="saveAsFood"><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions${!entry?' food-entry-actions':''}">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit ${!canCommitFoodEntry()?'disabled ':''}${foodBatch.length?'formnovalidate':''}>${foodBatch.length?'Save foods':'Save'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div></form>`,onBack);
+  modal(entry?'Edit food log':card?'Food Entry':'Add food',`<form class="form" data-form="food"><input type="hidden" name="entryId" value="${esc(entry?.id||'')}"><input type="hidden" name="cardId" value="${esc(card?.id||'')}"><div data-food-batch>${foodBatchMarkup()}</div>${input('Food name','name',entry?.name||card?.name||seed?.name||'','text','maxlength="100" autocomplete="off" required')}${newManual?'<div class="food-matches" role="listbox" aria-label="Matching saved foods"></div>':''}<div class="form-grid">${input('Calories per serving','calories',entry?.calories??card?.calories??seed?.calories??'','number','min="0" step="0.1" required')}${input('Protein (g) per serving','protein',entry?.protein??card?.protein??seed?.protein??'','number','min="0" step="0.1" required')}</div><div class="field food-quantity-field"><span>Servings</span><input type="hidden" name="quantity" value="${esc(entry?.quantity??seed?.quantity??options.quantity??1)}"><div class="food-quantity-line"><div class="food-quantity-quick"><button type="button" data-action="food-quantity-step" data-delta="-0.5" aria-label="Subtract half serving">−</button><strong data-food-quantity-display>${fmt(entry?.quantity??seed?.quantity??options.quantity??1)}</strong><button type="button" data-action="food-quantity-step" data-delta="0.5" aria-label="Add half serving">+</button></div><div class="food-quantity-presets"><button type="button" data-action="food-quantity" data-amount="0.5">½</button><button type="button" data-action="food-quantity" data-amount="1">1</button><button type="button" data-action="food-quantity" data-amount="2">2</button></div></div></div><div class="food-datetime-grid">${input('Date','date',dateValue,'date','required')}${timeControl("foodTime",timeValue)}</div>${newManual?'<label class="save-new-food-option" hidden><input type="checkbox" name="saveAsFood"><span><strong>Save as new food</strong><small>Add this definition to the Food Library for future use.</small></span></label>':''}<div class="food-csv-block"><div class="food-csv-actions" role="group" aria-label="Food CSV clipboard"><button type="button" class="outline food-csv-copy" data-action="food-csv-copy">Copy CSV</button><button type="button" class="outline food-csv-paste" data-action="food-csv-paste">Paste CSV</button></div><p class="food-csv-status" data-food-csv-status role="status" aria-live="polite" hidden></p></div><div class="form-actions${!entry?' food-entry-actions':''}">${!entry?button('+ Add another food','food-add-another','outline'):''}<button class="primary" type="submit" data-food-submit formnovalidate>${foodBatch.length?'Save foods':'Save'}</button>${entry?button('Delete log','delete-entry','danger',`data-id="${esc(entry.id)}"`):''}</div><p class="hint" data-food-save-status role="status" aria-live="polite" hidden></p></form>`,onBack);
   updateFoodSaveOption(document.querySelector('form[data-form="food"]'));
   syncFoodServingPresets(document.querySelector('form[data-form="food"] > .food-quantity-field'));
 }
@@ -3825,7 +3828,13 @@ app.addEventListener('submit',async event=>{
   // A cached food preview is read-only until the account has finished loading.
   // Enter-key form submissions must obey the same protection as Save.
   if((!authChecked&&!demoMode&&!offlineWorkspace)||(form.dataset.form==='food'&&!canCommitFoodEntry())){
-    if(form.dataset.form==='food')updatePendingFoodForm();
+    if(form.dataset.form==='food'){
+      updatePendingFoodForm();
+      const status=form.querySelector('[data-food-save-status]');
+      if(status){status.hidden=false;status.textContent=!authChecked?
+        'Still confirming your account. This food has not been logged. Tap Save after loading finishes.':
+        'This food has not been logged because your account is still loading. Check the sync warning, then try Save again.';}
+    }
     return;
   }
   // Ordinary food, workout and finance logs remain usable when iOS suspends an
@@ -4121,8 +4130,11 @@ app.addEventListener('submit',async event=>{
     });
     if(draft)prepared.push(draft);
     if(!prepared.length)return;
-    const candidate=structuredClone(data);let last;
-    for(const item of prepared)last=commitFoodDraft(candidate,item);
+    let candidate,last;
+    try{
+      candidate=structuredClone(data);
+      for(const item of prepared)last=commitFoodDraft(candidate,item);
+    }catch(error){alert('The food could not be prepared: '+(error?.message||'Unknown error'));return;}
     data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
     foodBatch=[];close(true);page=foodEntryReturnPage;render();void persist();
     if(prepared.length===1&&last.savedCard)showFoodUndo(last.entry.id,last.entry.name);
