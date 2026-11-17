@@ -1,5 +1,6 @@
 /** Source-grounded version history collected from PROJECT_CONTEXT.md and README.md. */
 export const RELEASE_HISTORY=[
+ {"version":"146.1","title":"v146.1 — Food Save response and food-log labels","summary":"Food Entry Save now uses explicit Everyday validation rather than silent browser validation, remains tappable during account confirmation to explain why an entry cannot yet be committed, and reports preparation errors. Full food log hides the redundant Viewing date label and repeat date before the entry count.","source":"new"},
  {"version":"146","title":"v146 — Routine CSV export and portable settings","summary":"Export any individual routine or the complete routine library to a CSV that can be imported again. Includes routine colors, exercise order and definitions, setup notes, muscle profiles, exercise cues, sets, rep ranges, rest seconds, and multiple scheduled weekdays. Import automatically matches existing exercises, adds missing ones, and offers an explicit choice to apply CSV colors when updating saved routines.","source":"new"},
  {
   "version": "145",

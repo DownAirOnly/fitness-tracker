@@ -55,7 +55,8 @@ test('cached Home food opens immediately and saves only after account readiness'
   assert.ok(!dialog?.classList.contains('modal-titleless'),'Food Entry has a visible heading');
   assert.equal(form.querySelectorAll('.food-entry-actions>button').length,2,'add-another and save use equal-grid action row');
   assert.equal(form.elements.name.value,'Early breakfast');
-  assert.equal(form.querySelector('[data-food-submit]').disabled,true,'save remains disabled until account confirmation');
+  assert.equal(form.querySelector('[data-food-submit]').disabled,false,'Save stays tappable and shows a loading reason');
+  assert.equal(form.querySelector('[data-food-submit]').formNoValidate,true,'Food Entry uses app validation even on iOS');
   assert.equal(form.querySelector('[data-food-account-pending]'),null,'pending-save explanation is not shown');
   assert.equal(form.querySelector('[data-food-submit]').textContent,'Save','food submit has compact label');
   const before=JSON.parse(dom.window.localStorage.getItem('everyday-cloud-confirmed-v1:alice'));
@@ -64,14 +65,16 @@ test('cached Home food opens immediately and saves only after account readiness'
   form.elements.quantity.value='0.5';
   form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
   assert.equal(JSON.parse(dom.window.localStorage.getItem('everyday-cloud-confirmed-v1:alice')).data.foodEntries.length,0);
+  assert.match(form.querySelector('[data-food-save-status]').textContent,/not been logged/,'blocked Save gives explicit status');
   state.releaseAuth();await tick();await tick();
   assert.equal(document.querySelector('form[data-form="food"]'),form,'same-owner auth keeps Food Entry node');
-  assert.equal(form.querySelector('[data-food-submit]').disabled,true,'waits for account load');
+  assert.equal(form.querySelector('[data-food-submit]').disabled,false,'Save can explain waiting for the cloud to load');
   state.releaseLoad();await tick();await tick();
   assert.equal(document.querySelector('form[data-form="food"]'),form,'cloud load preserves original dialog');
   assert.equal(form.elements.name.value,'Early breakfast adjusted');
   assert.equal(form.elements.quantity.value,'0.5');
-  assert.equal(form.querySelector('[data-food-submit]').disabled,false,'save enabled in place');
+  assert.equal(form.querySelector('[data-food-submit]').disabled,false,'save remains tappable after account is ready');
+  assert.match(form.querySelector('[data-food-save-status]').textContent,/Account ready/,'pending Save now offers clear retry');
   assert.equal(form.querySelector('[data-food-submit]').textContent,'Save');
   assert.equal(document.querySelector('.home-settings').disabled,false,'Settings enables without shell rebuild');
   form.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();await tick();
