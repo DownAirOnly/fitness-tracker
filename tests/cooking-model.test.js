@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,normalizePreparedBatches} from '../cooking-model.js';
+import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,normalizePreparedBatches,ingredientCategory,ingredientLibrary,resolveRecipeIngredients,cookingSteps} from '../cooking-model.js';
 import {emptyData,encodeData,normalizeData} from '../data.js';
 import {sectionPayloads,readSectionPayloads,exportSection,applySection} from '../account-sections.js';
 import {monthlyParts,readMonthlyParts} from '../account-monthly.js';
@@ -105,4 +105,42 @@ test('legacy nutrition section and backups without cooking fields remain compati
  assert.deepEqual(restored.preparedBatches,[]);
  const old=structuredClone(data);delete old.activeCooking;delete old.preparedBatches;
  assert.deepEqual(normalizeData(encodeData(old)).preparedBatches,[]);
+});
+
+
+test('ingredient categories and linked nutrition have one current source of truth',()=>{
+ const butter={id:'butter',name:'Butter (1 tablespoon)',calories:100,protein:0.1,tags:['ingredient','ingredient-fats']};
+ const rice={id:'rice',name:'Rice (1 cup)',calories:205,protein:4.3,tags:['ingredient','ingredient-grains']};
+ const foods=[rice,butter,{id:'snack',name:'Snack',calories:10,protein:2,tags:[]}];
+ assert.deepEqual(ingredientLibrary(foods).map(f=>f.id),['butter','rice']);
+ assert.equal(ingredientCategory(butter),'fats');
+ const recipe=normalizeRecipes([{id:'dish',name:'Test rice',servings:2,instructions:'Cook.',
+   ingredients:[ingredientSnapshot(butter,'i1',2),ingredientSnapshot(rice,'i2',1)]}])[0];
+ const before=beginCooking(resolveRecipeIngredients(recipe,foods),'started');
+ const cooked=finishCooking(before,'batch');
+ const revised=foods.map(f=>f.id==='butter'?{...f,calories:110,protein:0.2}:f);
+ const linked=resolveRecipeIngredients(recipe,revised);
+ assert.equal(linked.ingredients[0].calories,110,'a recipe reads updated Ingredient Library nutrition');
+ assert.equal(linked.ingredients[0].quantity,2,'serving amount remains recipe-specific');
+ assert.equal(recipe.ingredients[0].calories,100,'original portable ingredient snapshot is unchanged');
+ assert.equal(cooked.recipe.ingredients[0].calories,100,'prepared batch keeps historical nutrition');
+});
+
+test('numbered and line-separated cooking instructions generate a step checklist',()=>{
+ assert.deepEqual(cookingSteps('1. Cook rice.\n2. Add eggs.\n3. Stir and serve.'),['Cook rice.','Add eggs.','Stir and serve.']);
+ assert.deepEqual(cookingSteps('Heat oil. Add rice. Stir well.'),['Heat oil.','Add rice.','Stir well.']);
+ assert.deepEqual(cookingSteps(''),[]);
+});
+
+test('completed cooking steps survive local and account/cloud round trips',()=>{
+ const data=emptyData();data.recipes=[sample()];
+ data.activeCooking=beginCooking(data.recipes[0],'step-session','2026-11-18T03:00:00.000Z');
+ data.activeCooking.completedSteps=[2,0,2];
+ const normalized=normalizeData(data);
+ assert.deepEqual(normalized.activeCooking.completedSteps,[0,2]);
+ assert.deepEqual(normalizeData(encodeData(normalized)).activeCooking.completedSteps,[0,2]);
+ assert.deepEqual(readSectionPayloads(sectionPayloads(normalized)).activeCooking.completedSteps,[0,2]);
+ const {parts,months}=monthlyParts(normalized);
+ assert.deepEqual(readMonthlyParts(parts,months).activeCooking.completedSteps,[0,2]);
+ assert.throws(()=>normalizeCookingSession({...normalized.activeCooking,completedSteps:[-1]}),/Invalid completed/);
 });
