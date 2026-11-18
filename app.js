@@ -2980,7 +2980,7 @@ app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySe
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{
  if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
- if(event.target.closest('form[data-form="recipe"]')){cooking.onInput(event.target.form);return;}
+ if(event.target.closest('form[data-form="recipe"],form[data-form="cooking-session"]')){cooking.onInput(event.target.form);return;}
  if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
  if(event.target.matches('[data-finance-history-search]')){
   financeHistoryQuery=event.target.value;financeHistoryVisible=50;refreshFinanceHistoryList();return;
@@ -3039,7 +3039,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start'&&!canPreviewCachedFoodAction(action,el))||importSaving)return;
-  if(action==='food-workspace'||action.startsWith('recipe-')){await cooking.handleAction(action,el);return;}
+  if(action==='food-workspace'||action.startsWith('recipe-')||action.startsWith('cooking-')){await cooking.handleAction(action,el);return;}
   if(action==='appearance-inspect'){
    const inspecting=document.documentElement.dataset.themeInspect!=='on';
    document.documentElement.dataset.themeInspect=inspecting?'on':'off';
@@ -4137,7 +4137,7 @@ app.addEventListener('submit',async event=>{
   }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
-  if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'){await cooking.onSubmit(form,v);return;}
+  if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'||form.dataset.form==='cooking-session'){await cooking.onSubmit(form,v);return;}
   if(form.dataset.form==='food-definition'){let serving;try{serving=servingFromForm(v);}catch(error){alert(error.message);return;}const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||v.calories.trim()===''||v.protein.trim()===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,serving,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,...(serving?{serving}:{}),lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
     if(form.dataset.foodSubmitting==='true')return;
