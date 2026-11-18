@@ -80,3 +80,30 @@
  .cooking-ingredient-fields{gap:5px}
  .cooking-ingredient-fields .field input{padding:8px 5px}
 }
+
+/* v148 — compact, distinct draft and prepared-batch surfaces. */
+.cooking-recipe-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.cooking-recipe-row .cooking-recipe-card{min-width:0}
+.cooking-recipe-row>[data-action="cooking-start"]{min-width:68px;font-size:13px}
+.cooking-active-banner{display:grid;gap:10px;padding:15px;border-radius:16px;border:1px solid var(--ap-border,#d9e2dc);background:var(--ap-surface,#fff)}
+.cooking-active-banner>div:first-child{display:grid;gap:4px}
+.cooking-active-banner strong{font-size:15px;color:var(--ap-on-surface,#173b2b)}
+.cooking-active-banner small{font-size:11px;color:var(--ap-muted,#788e7e)}
+.cooking-active-actions{display:flex;flex-wrap:wrap;gap:8px}
+.cooking-active-actions button{flex:1;min-height:42px}
+.cooking-prepared{display:grid;gap:9px;margin:12px 0}
+.cooking-prepared h3,.cooking-batch-details h3{font:700 18px 'Outfit',sans-serif;margin:0}
+.cooking-prepared-list{display:grid;gap:7px}
+.cooking-prepared-card{width:100%;display:flex;align-items:center;justify-content:space-between;gap:9px;text-align:left;border:1px solid var(--ap-border,#d9e2dc);border-radius:13px;padding:12px 14px;background:var(--ap-surface,#fff);color:var(--ap-on-surface,#173b2b)}
+.cooking-prepared-card span{min-width:0;display:grid;gap:4px}
+.cooking-prepared-card strong{font-size:13px;overflow-wrap:anywhere}
+.cooking-prepared-card small{font-size:11px;color:var(--ap-muted,#778477)}
+.cooking-prepared-card b{flex-shrink:0;font-size:20px;font-weight:400}
+.cooking-session-form .cooking-totals,.cooking-batch-details .cooking-totals{padding:12px 13px;border:1px solid var(--ap-border,#d9e2dc);border-radius:12px;background:var(--ap-support,#eff5ed);color:var(--ap-on-surface,#285339);font-size:12px;line-height:1.5}
+.cooking-session-form .form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cooking-session-form .form-actions button{min-height:43px}
+.cooking-session-form .form-actions button:last-child{grid-column:1 / -1}
+.cooking-batch-details{display:grid;gap:12px}
+.cooking-batch-details .body-copy{margin:0;white-space:pre-wrap}
+.cooking-batch-details .cooking-batch-ingredient{font-size:12px;margin:0}
+@media(max-width:370px){.cooking-recipe-row{grid-template-columns:minmax(0,1fr) 62px}.cooking-recipe-row>[data-action="cooking-start"]{min-width:0;padding:8px}}
