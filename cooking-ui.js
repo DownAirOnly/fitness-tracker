@@ -1,12 +1,28 @@
 // Food > Cooking: a recipe workspace, intentionally separate from eating logs.
-import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps} from './cooking-model.js?v=149';
+import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps,suggestRecipeIngredientMatches,linkSuggestedRecipeIngredients} from './cooking-model.js?v=150';
+import {COMMON_INGREDIENTS,commonIngredientById,commonIngredientChoices,findCommonIngredient} from './common-ingredient-catalog.js?v=150';
 
 export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,modal,close,render,persist}){
  let tab='summary',draft=null,expandedIngredientId=null;
  const button=(text,action,cls='',extra='')=>'<button type="button" class="'+cls+'" data-action="'+action+'" '+extra+'>'+text+'</button>';
  const attr=s=>esc(s??'');
  const getRecipe=recipeId=>(getData().recipes||[]).find(x=>x.id===recipeId);
- const ingredientFoods=()=>ingredientLibrary(getData().foods);
+ const personalIngredients=()=>ingredientLibrary(getData().foods);
+ const ingredientFoods=()=>[...personalIngredients(),...commonIngredientChoices(getData().foods)];
+ const ingredientOptions=search=>{
+  const q=String(search||'').trim().toLocaleLowerCase();
+  const foods=ingredientFoods().filter(food=>!q||food.name.toLocaleLowerCase().includes(q)||food.serving?.text?.toLocaleLowerCase().includes(q)||
+   INGREDIENT_CATEGORIES.find(([key])=>key===ingredientCategory(food))?.[1].toLocaleLowerCase().includes(q));
+  const own=foods.filter(f=>!f.id.startsWith('builtin:'));
+  const common=foods.filter(f=>f.id.startsWith('builtin:'));
+  const options=items=>items.map(f=>'<option value="'+attr(f.id)+'">'+esc(f.name)+'</option>').join('');
+  return '<option value="">'+(foods.length?'Choose an ingredient':'No matching ingredients')+'</option>'+
+   (own.length?'<optgroup label="Your ingredients">'+options(own)+'</optgroup>':'')+
+   INGREDIENT_CATEGORIES.map(([key,label])=>{
+    const group=common.filter(f=>ingredientCategory(f)===key);
+    return group.length?'<optgroup label="'+esc(label)+'">'+options(group)+'</optgroup>':'';
+   }).join('');
+ };
  const categoryName=food=>INGREDIENT_CATEGORIES.find(([key])=>key===ingredientCategory(food))?.[1]||'Other';
  const categoryOptions=current=>INGREDIENT_CATEGORIES.map(([key,label])=>'<option value="'+key+'" '+(current===key?'selected':'')+'>'+label+'</option>').join('');
  const currentRecipe=recipe=>resolveRecipeIngredients(recipe,getData().foods);
@@ -40,7 +56,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function items(){
   if(!draft.ingredients.length)return '<p class="hint">No ingredients yet. Choose one from the library or add a new ingredient.</p>';
   return draft.ingredients.map(item=>{
-   const food=getData().foods.find(f=>f.id===item.sourceFoodId),info=food||item;
+   const food=getData().foods.find(f=>f.id===item.sourceFoodId)||commonIngredientById(item.sourceFoodId),info=food||item;
    const linked=Boolean(food),missing=Boolean(item.sourceFoodId&&!food);
    const fields=(key,label,value)=>'<label class="field"><span>'+label+'</span><input type="'+(key==='name'?'text':'number')+
     '" '+(key==='name'?'maxlength="120"':'min="'+(key==='quantity'?'0.01':'0')+'" step="any" inputmode="decimal"')+
@@ -89,7 +105,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   for(const card of form.querySelectorAll('[data-recipe-item]')){
    const item=draft.ingredients.find(x=>x.id===card.dataset.recipeItem);
    if(!item)continue;
-   const info=getData().foods.find(f=>f.id===item.sourceFoodId)||item;
+   const info=getData().foods.find(f=>f.id===item.sourceFoodId)||commonIngredientById(item.sourceFoodId)||item;
    const label=card.querySelector('[data-recipe-summary-name]');
    const amount=card.querySelector('[data-recipe-summary-amount]');
    const nutrition=card.querySelector('[data-recipe-summary-nutrition]');
@@ -101,15 +117,17 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function edit(recipe){
   draft=recipe?currentRecipe(recipe):{id:id(),name:'',servings:4,instructions:'',ingredients:[]};
   expandedIngredientId=null;
-  const selectedFoods=ingredientFoods();
+  const matches=suggestRecipeIngredientMatches(draft,getData().foods);
   modal(recipe?'Edit recipe':'New recipe','<form class="form cooking-editor" data-form="recipe" novalidate>'+
    '<label class="field"><span>Recipe name</span><input name="recipeName" maxlength="120" value="'+attr(draft.name)+'" required></label>'+
    '<label class="field"><span>Portions this batch makes</span><input type="number" name="recipeServings" min="0.01" step="any" inputmode="decimal" value="'+attr(draft.servings)+'" required></label>'+
    '<div class="cooking-totals" data-recipe-totals role="status"></div>'+
-   '<section class="cooking-ingredients"><div class="cooking-heading-row"><h3>Ingredients</h3><small>Tap a row to edit</small></div>'+
+   '<section class="cooking-ingredients"><div class="cooking-heading-row"><h3>Ingredients</h3><small>Tap a row to edit</small></div>'+ 
+   (matches.length?'<div class="cooking-match-entry"><div><strong>'+matches.length+' ingredient'+(matches.length===1?'':'s')+' can be linked</strong><small>Match this imported recipe to common reference ingredients.</small></div>'+
+    button('Review matches','recipe-review-matches','outline small')+'</div><div class="cooking-match-preview" data-recipe-match-preview hidden></div>':'')+
    '<div data-recipe-items>'+items()+'</div>'+
-   '<div class="cooking-add-row"><select name="recipeFoodId" aria-label="Ingredient library choice"><option value="">Choose an ingredient from your library</option>'+
-   selectedFoods.map(food=>'<option value="'+attr(food.id)+'">'+esc(food.name)+' · '+esc(categoryName(food))+'</option>').join('')+
+   '<label class="field cooking-ingredient-search"><span>Find ingredients</span><input type="search" name="ingredientSearch" data-ingredient-picker-search placeholder="Search 100+ common and saved ingredients" autocomplete="off"></label>'+ 
+   '<div class="cooking-add-row"><select name="recipeFoodId" aria-label="Ingredient library choice">'+ingredientOptions('')+
    '</select>'+button('Add','recipe-add-saved','outline small')+'</div>'+
    '<details class="cooking-new-library"><summary>+ Create a library ingredient</summary><div class="cooking-new-library-fields">'+
     '<label class="field"><span>Ingredient name</span><input name="newIngredientName" maxlength="120" placeholder="e.g. Unsalted butter"></label>'+
@@ -122,19 +140,33 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    '<div class="cooking-minor-action">'+button('+ One-off ingredient','recipe-add-custom','text-btn')+'</div></section>'+
    '<section class="recipe-instructions"><div class="cooking-heading-row"><h3>Instructions</h3><small>Editable steps</small></div>'+
     '<textarea class="recipe-instructions-note" name="recipeInstructions" maxlength="6000" rows="6" placeholder="Write each cooking step on its own line…">'+esc(draft.instructions)+'</textarea></section>'+
-   '<p class="hint">Linked ingredients always use the library’s current nutrition. Prepared batches keep their own historical snapshots.</p>'+
+   '<p class="hint">Standard ingredients use built-in reference estimates. You can override them in your personal Ingredient Library; previously cooked batches keep their historical values.</p>'+
    '<div class="form-actions"><button type="submit" class="primary">Save recipe</button>'+
    (recipe?button('Export JSON','recipe-export','outline','data-id="'+attr(recipe.id)+'"')+
     button('Delete recipe','recipe-delete','danger','data-id="'+attr(recipe.id)+'"'):'')+'</div></form>');
   preview(document.querySelector('form[data-form="recipe"]'));
  }
 
+ function reviewRecipeMatches(form){
+  if(!draft||!form)return;
+  capture(form);
+  const matches=suggestRecipeIngredientMatches(draft,getData().foods),panel=form.querySelector('[data-recipe-match-preview]');
+  if(!panel){if(!matches.length)alert('All recognized ingredients are already linked.');return;}
+  if(!matches.length){panel.hidden=true;panel.innerHTML='';return;}
+  panel.hidden=false;
+  panel.innerHTML='<strong>Review '+matches.length+' proposed match'+(matches.length===1?'':'es')+'</strong>'+
+   '<p class="hint">Generic reference values may differ from brands or measured portions. This updates the existing recipe, not previous cooked batches.</p>'+
+   '<div class="cooking-match-list">'+matches.map(m=>'<div class="cooking-match-row"><span><strong>'+esc(m.priorName)+'</strong><small>'+
+     fmt(m.priorCalories)+' cal · '+fmt(m.priorProtein)+'g → '+fmt(m.targetCalories)+' cal · '+fmt(m.targetProtein)+'g per serving</small></span>'+
+     '<small>'+esc(m.source==='common'?'Common reference':'Your library')+'</small></div>').join('')+'</div>'+
+   '<div class="cooking-match-actions">'+button('Apply and save '+matches.length+' matches','recipe-apply-matches','primary small')+
+    button('Cancel','recipe-cancel-matches','outline small')+'</div>';
+ }
  function refreshItems(form){
   const list=form?.querySelector('[data-recipe-items]');
   if(list)list.innerHTML=items();
   const picker=form?.elements?.recipeFoodId;
-  if(picker)picker.innerHTML='<option value="">Choose an ingredient from your library</option>'+ingredientFoods().map(food=>
-   '<option value="'+attr(food.id)+'">'+esc(food.name)+' · '+esc(categoryName(food))+'</option>').join('');
+  if(picker)picker.innerHTML=ingredientOptions(form.elements.ingredientSearch?.value||'');
   preview(form);
  }
 
@@ -144,23 +176,66 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    'ingredient','ingredient-'+category])];
  }
  function ingredientLibraryDialog(){
-  const foods=ingredientFoods();
-  const categories=INGREDIENT_CATEGORIES.map(([key,label])=>{
-   const entries=foods.filter(food=>ingredientCategory(food)===key);
+  const own=personalIngredients(),common=commonIngredientChoices(getData().foods);
+  const personal=INGREDIENT_CATEGORIES.map(([key,label])=>{
+   const entries=own.filter(food=>ingredientCategory(food)===key);
    if(!entries.length)return '';
-   return '<section class="cooking-library-group"><h3>'+label+'</h3><div class="cooking-library-rows">'+
+   return '<section class="cooking-library-group"><h3>'+esc(label)+'</h3><div class="cooking-library-rows">'+
     entries.map(food=>'<button type="button" class="cooking-library-row" data-action="ingredient-edit" data-id="'+attr(food.id)+'"><span><strong>'+esc(food.name)+'</strong>'+
      '<small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein / serving'+(food.serving?.text?' · '+esc(food.serving.text):'')+'</small></span><b>›</b></button>').join('')+
     '</div></section>';
   }).filter(Boolean).join('');
-  modal('Ingredient library','<div class="cooking-library-screen"><p class="body-copy">One nutrition definition per ingredient. Linked recipes use these facts; past cooked batches stay unchanged.</p>'+
+  const defaults=INGREDIENT_CATEGORIES.map(([key,label])=>{
+   const entries=common.filter(food=>ingredientCategory(food)===key);
+   if(!entries.length)return '';
+   return '<details class="cooking-common-category" data-common-group><summary>'+esc(label)+' <span>'+entries.length+'</span></summary>'+
+    '<div class="cooking-library-rows">'+entries.map(food=>'<button type="button" class="cooking-library-row" data-action="ingredient-common-view" '+
+    'data-id="'+attr(food.id)+'" data-search="'+attr([food.name,food.serving?.text||'',...food.aliases].join(' ').toLocaleLowerCase())+'"><span><strong>'+
+      esc(food.name)+'</strong><small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein · '+esc(food.serving.text)+'</small></span><b>›</b></button>').join('')+
+    '</div></details>';
+  }).filter(Boolean).join('');
+  modal('Ingredient library','<div class="cooking-library-screen">'+
+   '<p class="body-copy">Your ingredient definitions are editable; the built-in catalog provides offline reference estimates. Linked recipes share these values, while finished batches keep their original nutrition.</p>'+
    button('+ New ingredient','ingredient-new','primary small')+
-   (categories||'<p class="empty">No saved ingredients yet. Create one here or add ingredients from a recipe.</p>')+'</div>');
+   '<div class="cooking-heading-row"><h3>Your ingredients</h3><small>'+own.length+' saved</small></div>'+
+   (personal||'<p class="hint">No personal ingredients yet. Choose from the built-in catalog or create your own.</p>')+
+   '<div class="cooking-heading-row"><h3>Common ingredients</h3><small>'+COMMON_INGREDIENTS.length+' included</small></div>'+
+   '<label class="field"><span>Search common ingredients</span><input type="search" data-common-ingredient-search placeholder="Rice, egg, butter, oil…" autocomplete="off"></label>'+
+   '<p class="cooking-catalog-note">Generic nutrition estimates for the stated serving; packaged brands and preparation methods vary. Confirm labels when available.</p>'+
+   '<div class="cooking-common-groups">'+defaults+'</div></div>');
  }
- function ingredientEditor(food=null){
+ function commonIngredientDetails(food){
+  if(!food)return;
+  modal('Common · '+food.name,'<div class="cooking-common-details"><span class="cooking-common-category-label">'+esc(categoryName(food))+'</span>'+
+   '<div class="cooking-totals"><strong>'+fmt(food.calories)+' calories · '+fmt(food.protein)+'g protein</strong><small>per '+esc(food.serving.text)+'</small></div>'+
+   '<p class="body-copy">This is a built-in reference estimate. Use it directly in recipes, or create a personal version with the nutrition printed on your food label.</p>'+
+   button('Customize for my library','ingredient-common-copy','primary','data-id="'+attr(food.id)+'"')+
+   button('Back to ingredients','ingredient-library-open','outline')+'</div>');
+ }
+ function onSearch(field){
+  if(field?.matches?.('[data-ingredient-picker-search]')){
+   const picker=field.form?.elements?.recipeFoodId;
+   if(picker)picker.innerHTML=ingredientOptions(field.value);
+   return;
+  }
+  if(!field?.matches?.('[data-common-ingredient-search]'))return;
+  const search=field.value.trim().toLocaleLowerCase(),root=field.closest('.cooking-library-screen');
+  if(!root)return;
+  for(const group of root.querySelectorAll('[data-common-group]')){
+   let visible=0;
+   for(const row of group.querySelectorAll('[data-search]')){
+    row.hidden=!!search&&!row.dataset.search.includes(search);
+    if(!row.hidden)visible++;
+   }
+   group.hidden=!!search&&!visible;
+   if(search&&visible)group.open=true;
+  }
+ }
+
+ function ingredientEditor(food=null,asCopy=false){
   const category=ingredientCategory(food);
   modal(food?'Edit ingredient':'New ingredient','<form class="form cooking-library-editor" data-form="ingredient-definition" novalidate>'+
-   '<input type="hidden" name="ingredientId" value="'+attr(food?.id||'')+'">'+
+   '<input type="hidden" name="ingredientId" value="'+attr(asCopy?'':food?.id||'')+'">'+
    '<label class="field"><span>Ingredient name</span><input name="ingredientName" maxlength="120" value="'+attr(food?.name||'')+'" required></label>'+
    '<label class="field"><span>Category</span><select name="ingredientCategory">'+categoryOptions(category)+'</select></label>'+
    '<div class="form-grid"><label class="field"><span>Calories per serving</span><input name="ingredientCalories" type="number" step="any" min="0" inputmode="decimal" value="'+attr(food?.calories??'')+'" required></label>'+
@@ -292,7 +367,37 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   link.click();setTimeout(()=>URL.revokeObjectURL?.(link.href),1000);
  }
  async function handleAction(action,el){
+
+  if(action==='recipe-review-matches'){
+   const form=el.closest('form[data-form="recipe"]');
+   if(form)reviewRecipeMatches(form);return;
+  }
+  if(action==='recipe-cancel-matches'){
+   const panel=el.closest('[data-recipe-match-preview]');
+   if(panel){panel.hidden=true;panel.innerHTML='';}return;
+  }
+  if(action==='recipe-apply-matches'){
+   const form=el.closest('form[data-form="recipe"]');if(!form||!draft)return;
+   try{
+    capture(form);
+    const {recipe,links}=linkSuggestedRecipeIngredients(draft,getData().foods);
+    if(!links.length)return alert('No unlinked ingredients match your common or personal library.');
+    const next=structuredClone(getData()),validated=normalizeRecipes([recipe])[0];
+    recipeTotals(currentRecipe(validated));
+    const index=next.recipes.findIndex(row=>row.id===validated.id);
+    if(index<0)throw Error('The original recipe is no longer available. Reopen it and try again.');
+    next.recipes[index]=validated;
+    replaceData(normalizeData(next));draft=null;edit(validated);
+    await persist();
+   }catch(error){alert(error?.message||'Unable to update recipe.');}
+   return;
+  }
+
   if(action==='ingredient-library-open'){ingredientLibraryDialog();return;}
+  if(action==='ingredient-common-view'){commonIngredientDetails(commonIngredientById(el.dataset.id));return;}
+  if(action==='ingredient-common-copy'){
+   const food=commonIngredientById(el.dataset.id);if(food)ingredientEditor(food,true);return;
+  }
   if(action==='ingredient-new'){ingredientEditor();return;}
   if(action==='ingredient-edit'){
    const food=ingredientFoods().find(food=>food.id===el.dataset.id);
@@ -451,7 +556,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     const recipe=normalizeRecipes([parsed.recipe])[0];
     recipe.id=id();for(const ingredient of recipe.ingredients){
      ingredient.id=id();delete ingredient.sourceFoodId;
-     const matched=matchingIngredient(getData().foods,ingredient.name);
+     const matched=matchingIngredient(getData().foods,ingredient.name)||findCommonIngredient(ingredient.name);
      if(matched){Object.assign(ingredient,ingredientSnapshot(matched,ingredient.id,ingredient.quantity));}
     }
     const next=structuredClone(getData());next.recipes.push(recipe);
@@ -459,5 +564,5 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    }
   }catch(error){alert(error?.message||'Unable to save recipe.');}
  }
- return {get tab(){return tab;},tabs,home,onInput:form=>form?.dataset.form==='cooking-session'?previewCooking(form):preview(form),handleAction,onSubmit};
+ return {get tab(){return tab;},tabs,home,onInput:form=>form?.dataset.form==='cooking-session'?previewCooking(form):preview(form),onSearch,handleAction,onSubmit};
 }

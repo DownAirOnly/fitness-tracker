@@ -1,3 +1,13 @@
+## v150 — Native common ingredients and update existing recipes
+
+**Offline ingredient catalog:** 102 built-in references for common grains, eggs/proteins, produce, dairy, fats/oils, sauces, spices and cooking staples. Food → Cooking → Ingredients now has Your ingredients plus searchable, grouped Common ingredients. The reference numbers are generic estimates per stated serving, not verified brand-label facts. Common items are usable directly in recipes, without creating 102 separate account food records. A custom version can be saved explicitly.
+
+**Update a previously imported recipe:** Food → Cooking → open the recipe → **Review matches**. See every recognized ingredient and its before/after calories and protein per serving; select **Apply and save** to link matching rows in the existing recipe. Exact names or explicit aliases only—no risky fuzzy substitutions. Egg Fried Rice's eight ingredients are all supported. The previous recipe ID, quantities, instruction text, historical prepared batches and food entries are preserved.
+
+**Searching and adding:** a recipe's ingredient picker now searches both user-saved and common definitions. Imported recipe JSON links exact known names automatically for future recipes. Saved food definitions win over built-in defaults when the names match exactly. No API calls or online requirement.
+
+The planned portions/leftovers milestone moves to v151, then pantry and author credit.
+
 ## v149 — Ingredient Library and guided Cooking
 
 Food → Cooking now features an **Ingredient Library** using the existing Food Library's ingredient-tagged definitions, organized into Grains & starches, Meat/eggs/proteins, Vegetables & fruit, Dairy, Fats & oils, Sauces & seasonings, and Other. Ingredients have one defined name, calories/protein per reference serving, and optional serving description. A recipe can link an existing ingredient or create a new one explicitly; imported recipe ingredients remain usable as snapshots and can be linked or added to the library. Existing library names are reused rather than duplicated, with review when nutrition differs.

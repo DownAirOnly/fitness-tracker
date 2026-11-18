@@ -1,6 +1,7 @@
 // A recipe snapshots the nutrition basis of each ingredient independently of the
 // food library. Changing saved foods later must not silently rewrite a recipe.
-import {normalizeServing} from './food-portion-model.js?v=149';
+import {normalizeServing} from './food-portion-model.js?v=150';
+import {COMMON_INGREDIENTS,commonIngredientById,findCommonIngredient} from './common-ingredient-catalog.js?v=150';
 const positive=(n,label)=>{if(typeof n!=='number'||!Number.isFinite(n)||n<=0||n>100000)throw Error(label+' must be a positive number.');return n;};
 const title=(value,max,label)=>{if(typeof value!=='string'||!value.trim()||value.trim().length>max)throw Error('Check '+label+'.');return value.trim();};
 
@@ -22,7 +23,7 @@ export const matchingIngredient=(foods,name)=>(foods||[]).find(food=>
 // Historical sessions and prepared batches deliberately keep their old snapshots.
 export function resolveRecipeIngredients(recipe,foods){
  const copy=structuredClone(recipe);
- const byId=new Map((foods||[]).map(food=>[food.id,food]));
+ const byId=new Map([...COMMON_INGREDIENTS,...(foods||[])].map(food=>[food.id,food]));
  copy.ingredients=(copy.ingredients||[]).map(item=>{
   const current=byId.get(item.sourceFoodId);
   if(!current)return item;
@@ -30,6 +31,26 @@ export function resolveRecipeIngredients(recipe,foods){
   return snapshot;
  });
  return copy;
+}
+export function suggestRecipeIngredientMatches(recipe,foods=[]){
+ const known=new Map([...COMMON_INGREDIENTS,...foods].map(food=>[food.id,food]));
+ return (recipe.ingredients||[]).flatMap(item=>{
+  if(item.sourceFoodId&&known.has(item.sourceFoodId))return [];
+  const matched=matchingIngredient(foods,item.name)||findCommonIngredient(item.name);
+  if(!matched)return [];
+  return [{itemId:item.id,priorName:item.name,priorCalories:item.calories,priorProtein:item.protein,
+   targetId:matched.id,targetName:matched.name,targetCalories:matched.calories,targetProtein:matched.protein,
+   quantity:item.quantity,source:matched.id.startsWith('builtin:')?'common':'personal'}];
+ });
+}
+export function linkSuggestedRecipeIngredients(recipe,foods=[]){
+ const copy=structuredClone(recipe),links=suggestRecipeIngredientMatches(copy,foods);
+ const known=new Map([...COMMON_INGREDIENTS,...foods].map(food=>[food.id,food]));
+ for(const link of links){
+  const item=copy.ingredients.find(row=>row.id===link.itemId),food=known.get(link.targetId);
+  if(item&&food)Object.assign(item,ingredientSnapshot(food,item.id,item.quantity));
+ }
+ return {recipe:copy,links};
 }
 export function cookingSteps(instructions){
  const raw=String(instructions||'').trim();
