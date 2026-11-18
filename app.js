@@ -2906,7 +2906,7 @@ function showFoodUndo(entryId,name,count=1,editing=false){
  clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
  const root=document.querySelector('#overlay');if(!root)return null;
  const summary=editing?'Food log updated':count===1?'Added '+name:'Added '+count+' foods';
- root.innerHTML='<div class="food-undo-toast" role="status"><strong data-food-save-result>Saving…</strong>'+
+ root.innerHTML='<div class="food-undo-toast" role="status"><span class="food-save-copy"><strong>'+esc(summary)+'</strong><small data-food-save-result>Saving…</small></span>'+
   (entryId?'<button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button>':'')+'</div>';
  const shown=root.querySelector('.food-undo-toast');
  shown.dataset.summary=summary;
@@ -2921,12 +2921,12 @@ function settleFoodSaveToast(toast,saved){
  if(!toast?.isConnected)return;
  const label=toast.querySelector('[data-food-save-result]');if(!label)return;
  if(!saved){
-  if(account&&cloudRecovery){label.textContent=toast.dataset.summary+' · saved on this device · sync pending';return;}
-  label.textContent='Save not confirmed · export a backup';toast.setAttribute('role','alert');return;
+  if(account&&cloudRecovery){label.textContent='On device · sync pending';return;}
+  label.textContent='Save not confirmed · export backup';toast.setAttribute('role','alert');return;
  }
- const destination=account?(cloudPending||cloudRecoveryConflict||!session?.ready?'saved on this device · sync pending':'saved to account'):
-  offlineWorkspace?'saved to workspace':demoMode?'saved in demo':'saved on this device';
- label.textContent=toast.dataset.summary+' · '+destination;
+ const destination=account?(cloudPending||cloudRecoveryConflict||!session?.ready?'On device · sync pending':'Saved to account'):
+  offlineWorkspace?'Saved to workspace':demoMode?'Saved in demo':'Saved on device';
+ label.textContent=destination;
 }
 async function persistFoodToast(toast){
  try{settleFoodSaveToast(toast,await persist());}
