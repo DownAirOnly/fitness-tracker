@@ -2979,6 +2979,7 @@ function importModal(kind,source='file') {
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{
+ if(event.target.matches?.('[data-ingredient-picker-search],[data-common-ingredient-search]')){cooking.onSearch(event.target);return;}
  if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
  if(event.target.closest('form[data-form="recipe"],form[data-form="cooking-session"]')){cooking.onInput(event.target.form);return;}
  if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
