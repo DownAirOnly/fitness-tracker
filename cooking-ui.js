@@ -135,6 +135,64 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   preview(form);
  }
 
+
+ function ingredientTags(food,category){
+  return [...new Set([...(food?.tags||[]).filter(tag=>tag!=='ingredient'&&!tag.startsWith('ingredient-')),
+   'ingredient','ingredient-'+category])];
+ }
+ function ingredientLibraryDialog(){
+  const foods=ingredientFoods();
+  const categories=INGREDIENT_CATEGORIES.map(([key,label])=>{
+   const entries=foods.filter(food=>ingredientCategory(food)===key);
+   if(!entries.length)return '';
+   return '<section class="cooking-library-group"><h3>'+label+'</h3><div class="cooking-library-rows">'+
+    entries.map(food=>'<button type="button" class="cooking-library-row" data-action="ingredient-edit" data-id="'+attr(food.id)+'"><span><strong>'+esc(food.name)+'</strong>'+
+     '<small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein / serving'+(food.serving?.text?' · '+esc(food.serving.text):'')+'</small></span><b>›</b></button>').join('')+
+    '</div></section>';
+  }).filter(Boolean).join('');
+  modal('Ingredient library','<div class="cooking-library-screen"><p class="body-copy">One nutrition definition per ingredient. Linked recipes use these facts; past cooked batches stay unchanged.</p>'+
+   button('+ New ingredient','ingredient-new','primary small')+
+   (categories||'<p class="empty">No saved ingredients yet. Create one here or add ingredients from a recipe.</p>')+'</div>');
+ }
+ function ingredientEditor(food=null){
+  const category=ingredientCategory(food);
+  modal(food?'Edit ingredient':'New ingredient','<form class="form cooking-library-editor" data-form="ingredient-definition" novalidate>'+
+   '<input type="hidden" name="ingredientId" value="'+attr(food?.id||'')+'">'+
+   '<label class="field"><span>Ingredient name</span><input name="ingredientName" maxlength="120" value="'+attr(food?.name||'')+'" required></label>'+
+   '<label class="field"><span>Category</span><select name="ingredientCategory">'+categoryOptions(category)+'</select></label>'+
+   '<div class="form-grid"><label class="field"><span>Calories per serving</span><input name="ingredientCalories" type="number" step="any" min="0" inputmode="decimal" value="'+attr(food?.calories??'')+'" required></label>'+
+   '<label class="field"><span>Protein (g) per serving</span><input name="ingredientProtein" type="number" step="any" min="0" inputmode="decimal" value="'+attr(food?.protein??'')+'" required></label></div>'+
+   '<label class="field"><span>Reference serving (optional)</span><input name="ingredientServing" maxlength="120" value="'+attr(food?.serving?.text||'')+'" placeholder="e.g. 1 tablespoon"></label>'+
+   '<p class="hint">Nutrition values describe one reference serving. Editing a definition updates linked recipes, not previously prepared batches or logged meals.</p>'+
+   '<button class="primary" type="submit">Save ingredient</button></form>');
+ }
+ function newIngredientPayload(name,calories,protein,category,servingText=''){
+  name=String(name||'').trim();calories=Number(calories);protein=Number(protein);
+  if(!name||name.length>120)throw Error('Enter an ingredient name (120 characters maximum).');
+  if(!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)
+   throw Error('Enter valid, nonnegative calories and protein.');
+  if(!INGREDIENT_CATEGORIES.some(([key])=>key===category))throw Error('Choose an ingredient category.');
+  if(String(servingText).length>120)throw Error('Reference serving is too long.');
+  return {name,calories,protein,category,servingText:String(servingText||'').trim()};
+ }
+ function upsertIngredient(next,payload,existing=null){
+  if(!existing){
+   const found=matchingIngredient(next.foods,payload.name);
+   if(found)return {food:found,created:false,exact:found.calories===payload.calories&&found.protein===payload.protein};
+   const food={id:id(),name:payload.name,kind:'food',calories:payload.calories,protein:payload.protein,
+    pinned:false,tags:['ingredient','ingredient-'+payload.category],
+    ...(payload.servingText?{serving:{amount:1,unit:'serving',text:payload.servingText,state:''}}:{})};
+   next.foods.push(food);return {food,created:true,exact:true};
+  }
+  const conflict=next.foods.some(food=>food.id!==existing.id&&food.name.trim().toLocaleLowerCase()===payload.name.toLocaleLowerCase());
+  if(conflict)throw Error('An ingredient or saved food with this name already exists. Link that definition instead.');
+  Object.assign(existing,{name:payload.name,calories:payload.calories,protein:payload.protein,
+   tags:ingredientTags(existing,payload.category)});
+  if(existing.serving)existing.serving={...existing.serving,text:payload.servingText};
+  else if(payload.servingText)existing.serving={amount:1,unit:'serving',text:payload.servingText,state:''};
+  return {food:existing,created:false,exact:true};
+ }
+
  function cookingSessionForm(){
   const session=getData().activeCooking;
   if(!session)return alert('There is no cooking session to resume.');
