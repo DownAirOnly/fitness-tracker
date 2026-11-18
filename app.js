@@ -264,6 +264,8 @@ function refreshSyncIndicators(){
  for(const node of surface.querySelectorAll(':scope > .home-sync-warning, :scope > .save-warning'))node.remove();
  const markup=page==='home'?homeSyncWarning():cloudSaveWarning();
  if(markup)main.insertAdjacentHTML('beforebegin',markup);
+ // Cloud save completion can turn a previously blocked update into a safe one.
+ if(latestRelease)showReleaseNotice();
 }
 const persist=async()=>{
   if(demoMode){try{storeDemoWorkspace(data);refreshSyncIndicators();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
@@ -304,10 +306,17 @@ function canCommitFoodEntry(){
 function updatePendingFoodForm(){
  const form=app.querySelector('#overlay form[data-form="food"]');if(!form)return;
  const ready=canCommitFoodEntry(),submit=form.querySelector('[data-food-submit]');
- // Keep Save actionable so iOS users receive a specific explanation instead of a dead button.
+ // Save remains tappable while the account loads so a blocked tap has an explanation.
  if(submit){submit.disabled=false;submit.formNoValidate=true;}
  const status=form.querySelector('[data-food-save-status]');
- if(status&&ready&&!status.hidden)status.textContent='Account ready. Tap Save again to log your food.';
+ if(status&&ready&&status.dataset.state==='account-pending'){
+  status.dataset.state='ready';status.textContent='Account ready. Tap Save again to log your food.';
+ }
+}
+function foodFormError(form,message){
+ const status=form?.querySelector('[data-food-save-status]');
+ if(!status)return alert(message);
+ status.hidden=false;status.dataset.state='validation';status.setAttribute('role','alert');status.textContent=message;
 }
 function canPreviewCachedFoodAction(action,el){
  if(!canOpenCachedFood())return false;
@@ -2823,7 +2832,7 @@ function foodDraftFromForm(form,optional=false){
  if(optional&&!name&&!calText&&!proteinText)return null;
  const calories=Number(calText),protein=Number(proteinText),quantity=Number(v.quantity||1),time=v.foodTime===''||v.foodTime==null?null:Number(v.foodTime);
  if(!name||name.length>100||calText===''||proteinText===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||!/^\d{4}-\d{2}-\d{2}$/.test(v.date)||(time!=null&&(!Number.isInteger(time)||time<0||time>47))){
-  alert('Check the food name, calories, protein, servings, date and time.');return false;
+  foodFormError(form,'Check the food name, calories, protein, servings, date and time.');return false;
  }
  const record={name,calories,protein,quantity,date:v.date};
  if(time!=null)record.t=time;
@@ -2893,16 +2902,28 @@ function foodForm(entry=null,card=null,options={}) {
   updateFoodSaveOption(document.querySelector('form[data-form="food"]'));
   syncFoodServingPresets(document.querySelector('form[data-form="food"] > .food-quantity-field'));
 }
-function showFoodUndo(entryId,name){
+function showFoodUndo(entryId,name,count=1,editing=false){
  clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
- const root=document.querySelector('#overlay');if(!root)return;
- root.innerHTML='<div class="food-undo-toast" role="status"><strong>Added '+esc(name)+'</strong><button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button></div>';
+ const root=document.querySelector('#overlay');if(!root)return null;
+ const summary=editing?'Food log updated':count===1?'Added '+name:'Added '+count+' foods';
+ root.innerHTML='<div class="food-undo-toast" role="status"><strong data-food-save-result>Saving…</strong>'+
+  (entryId?'<button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button>':'')+'</div>';
  const shown=root.querySelector('.food-undo-toast');
+ shown.dataset.summary=summary;
  foodUndoTimer=setTimeout(()=>{
   if(!shown.isConnected)return;
   shown.classList.add('leaving');
-  foodUndoExitTimer=setTimeout(()=>{if(shown.isConnected)shown.remove();},340);
+  foodUndoExitTimer=setTimeout(()=>{if(shown.isConnected)shown.remove();if(latestRelease)showReleaseNotice();},340);
  },5000);
+ return shown;
+}
+function settleFoodSaveToast(toast,saved){
+ if(!toast?.isConnected)return;
+ const label=toast.querySelector('[data-food-save-result]');if(!label)return;
+ if(!saved){label.textContent='Save not confirmed · export a backup';toast.setAttribute('role','alert');return;}
+ const destination=account?(cloudPending||cloudRecoveryConflict||!session?.ready?'saved on this device · sync pending':'saved to account'):
+  offlineWorkspace?'saved to workspace':demoMode?'saved in demo':'saved on this device';
+ label.textContent=toast.dataset.summary+' · '+destination;
 }
 function liftForm(lift=null,name='',equipment='other') {
  const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type);
@@ -3831,7 +3852,7 @@ app.addEventListener('submit',async event=>{
     if(form.dataset.form==='food'){
       updatePendingFoodForm();
       const status=form.querySelector('[data-food-save-status]');
-      if(status){status.hidden=false;status.textContent=!authChecked?
+      if(status){status.hidden=false;status.dataset.state='account-pending';status.textContent=!authChecked?
         'Still confirming your account. This food has not been logged. Tap Save after loading finishes.':
         'This food has not been logged because your account is still loading. Check the sync warning, then try Save again.';}
     }
@@ -4112,16 +4133,22 @@ app.addEventListener('submit',async event=>{
   if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'){await cooking.onSubmit(form,v);return;}
   if(form.dataset.form==='food-definition'){let serving;try{serving=servingFromForm(v);}catch(error){alert(error.message);return;}const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||v.calories.trim()===''||v.protein.trim()===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,serving,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,...(serving?{serving}:{}),lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
+    if(form.dataset.foodSubmitting==='true')return;
     const draft=foodDraftFromForm(form,foodBatch.length>0);
     if(draft===false||(!draft&&!foodBatch.length))return;
     const edited=data.foodEntries.find(x=>x.id===v.entryId);
     if(edited){
-      if(!draft)return;Object.assign(edited,draft.record);
-      if(draft.record.t==null)delete edited.t;
-      chosenDate=currentFoodTrackingDate(edited);close(true);page=foodEntryReturnPage;render();void persist();return;
+      if(!draft)return;
+      const candidate=structuredClone(data),target=candidate.foodEntries.find(x=>x.id===edited.id);
+      if(!target)return foodFormError(form,'This food log no longer exists. Reopen it and try again.');
+      Object.assign(target,draft.record);if(draft.record.t==null)delete target.t;
+      form.dataset.foodSubmitting='true';data=candidate;chosenDate=currentFoodTrackingDate(target);
+      close(true);page=foodEntryReturnPage;render();
+      const toast=showFoodUndo(null,target.name,1,true);
+      void persist().then(saved=>settleFoodSaveToast(toast,saved));return;
     }
     let validated;
-    try{validated=foodBatch.map(validateQueuedFood);}catch(error){alert(error.message);return;}
+    try{validated=foodBatch.map(validateQueuedFood);}catch(error){foodFormError(form,error.message);return;}
     const prepared=validated.map(item=>{
       if(!item.inheritTime)return item;
       const next={...item,record:{...item.record,date:v.date}};
@@ -4134,10 +4161,11 @@ app.addEventListener('submit',async event=>{
     try{
       candidate=structuredClone(data);
       for(const item of prepared)last=commitFoodDraft(candidate,item);
-    }catch(error){alert('The food could not be prepared: '+(error?.message||'Unknown error'));return;}
-    data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
-    foodBatch=[];close(true);page=foodEntryReturnPage;render();void persist();
-    if(prepared.length===1&&last.savedCard)showFoodUndo(last.entry.id,last.entry.name);
+    }catch(error){foodFormError(form,'The food could not be prepared: '+(error?.message||'Unknown error'));return;}
+    form.dataset.foodSubmitting='true';data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
+    foodBatch=[];close(true);page=foodEntryReturnPage;render();
+    const toast=showFoodUndo(prepared.length===1?last.entry.id:null,last.entry.name,prepared.length);
+    void persist().then(saved=>settleFoodSaveToast(toast,saved));
     return;
   }
   if(form.dataset.form==='routine-history-exercise'){
