@@ -1,3 +1,7 @@
+## v147.1 — Readable save confirmations
+
+Food Save notifications no longer cover the header or truncate the item/status into a single line. They show a wrapping item name above short text like **Saved to account**, with Undo beside it. The notification appears above bottom navigation.
+
 ## v147 — Reliable Food Entry saves and safe PWA update readiness
 
 Food Entry now confirms where a successful save went: Firebase, a local device recovery copy awaiting synchronization, an offline workspace or demo data. The confirmation appears for manual foods, saved foods, edits and batch CSV logs. Single newly added food entries offer Undo; batches show how many foods were logged. Invalid entries and queued rows show inline errors rather than a Save button that appears to do nothing. A single form cannot double-submit. Update notices become actionable when a pending save finishes, but updating still waits until it is safe to leave the current app state. No stored data migrations.
