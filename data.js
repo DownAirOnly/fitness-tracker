@@ -1,10 +1,10 @@
-import {normalizeServing} from './food-portion-model.js?v=150';
-import {normalizeRecipes,normalizeCookingSession,normalizePreparedBatches} from './cooking-model.js?v=150';
-import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=150';
-import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=150';
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=150';
-import {normalizeClassificationRules} from './classification-model.js?v=150';
-import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=150';
+import {normalizeServing} from './food-portion-model.js?v=151';
+import {normalizeRecipes,normalizeCookingSession,normalizePreparedBatches} from './cooking-model.js?v=151';
+import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=151';
+import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=151';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=151';
+import {normalizeClassificationRules} from './classification-model.js?v=151';
+import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=151';
 
 export const KEY = 'everyday-fitness-v1';
 export const defaultExerciseDefinitions = () => [
@@ -288,7 +288,12 @@ export function normalizeData(input) {
   data.activeCooking=normalizeCookingSession(input.activeCooking??null);
   data.preparedBatches=normalizePreparedBatches(input.preparedBatches??[]);
   if(data.activeCooking&&data.preparedBatches.some(b=>b.sessionId===data.activeCooking.id))throw Error('The active cooking session has already been finished.');
-  for(const e of data.foodEntries){if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0)throw new Error('Backup has an invalid food entry.');if(e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47))throw new Error('Backup has an invalid food time.');}
+  for(const e of data.foodEntries){
+   if(typeof e.id!=='string'||!validDate(e.date)||typeof e.name!=='string'||!Number.isFinite(e.calories)||e.calories<0||!Number.isFinite(e.protein)||e.protein<0||!Number.isFinite(e.quantity)||e.quantity<=0)throw new Error('Backup has an invalid food entry.');
+   if(e.t!=null&&(!Number.isInteger(e.t)||e.t<0||e.t>47))throw new Error('Backup has an invalid food time.');
+   if(e.preparedBatchId!=null&&(typeof e.preparedBatchId!=='string'||!e.preparedBatchId.trim()||e.preparedBatchId.length>160))throw new Error('Backup has an invalid prepared batch link.');
+   if(e.batchGrams!=null&&(!e.preparedBatchId||!Number.isFinite(e.batchGrams)||e.batchGrams<=0||e.batchGrams>1e6))throw new Error('Backup has an invalid weighed batch portion.');
+  }
   for(const w of data.weights) if(typeof w.id!=='string'||!validDate(w.date)||!Number.isFinite(w.value)||w.value<=0) throw new Error('Backup has an invalid weigh-in.');
   for(const b of data.bodyFat) if(typeof b.id!=='string'||!validDate(b.date)||!Number.isFinite(b.value)||b.value<=0||b.value>100||(b.recordedAt!=null&&typeof b.recordedAt!=='string')||(b.source!=null&&typeof b.source!=='string')) throw new Error('Backup has an invalid body-fat reading.');
   for(const l of data.lifts) if(typeof l.id!=='string'||!validDate(l.date)||typeof l.exercise!=='string'||!['machine','cable','dumbbell','bench','calisthenics','other'].includes(l.equipment||'other')||!Array.isArray(l.sets)||!l.sets.every(s=>Number.isFinite(s.weight)&&s.weight>=0&&Number.isInteger(s.reps)&&s.reps>0&&(s.difficulty==null||(Number.isInteger(s.difficulty)&&s.difficulty>=1&&s.difficulty<=7)))) throw new Error('Backup has an invalid lift.');

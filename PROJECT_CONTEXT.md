@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v150 (November 18, 2026)
+## Current release — v151 (November 18, 2026)
+
+- **Portions and leftovers:** The user must explicitly log food from a prepared batch; recipes and cooked batches never auto-log. Portion counts or weighed grams based on a known finished weight can be entered for any date with an optional time. Batch nutrition remains frozen.
+- **Consumption is tracked once:** New food entries have preparedBatchId and optional batchGrams. Leftovers are calculated from those logs, so editing/deleting a meal updates availability across dates. Logging refuses amounts above remaining inventory and guards duplicate submits.
+- **Backup and cloud safety:** Links survive v1/v2 backup, nutrition account section, and month-partitioned cloud food logs. Old backups still load. Historical prepared batches and logs do not follow ingredient definition edits.
+- **Rollout:** v150 build succeeded but Pages initially failed on ID-token request timeout; retry reported success. Neither that nor v151 CI proves update on installed iPhone.
+- **Next:** v152 Pantry + author attribution, v153 Lifting, v154 Progress intelligence, v155+ food entry/scanning.
+
+## Previous release — v150 (November 18, 2026)
 
 - **Native offline common ingredients:** 102 curated generic per-reference-serving calorie/protein estimates in `common-ingredient-catalog.js`, covering the recipe's eight Egg Fried Rice ingredients and butter, oils, starches, meat, eggs, vegetables, dairy, condiments, spices and pantry staples. Browser use requires no FoodData Central API or account migration. Read-only defaults have stable `builtin:` IDs. Users can create personal definitions explicitly; no automatic seeding or default overwrites.
 - **Cooking library UX:** The Food > Cooking > Ingredients browser distinguishes personal editable definitions from grouped, searchable common references, shows source-estimate caveats, and offers an explicit personal customization path. Recipe ingredient select includes personal and common choices plus search.

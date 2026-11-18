@@ -20,7 +20,7 @@ const inferExercise=value=>{
 const exerciseKey=record=>`${cleanName(record.name).toLowerCase()}\u0000${record.equipment||'other'}`;
 function stableId(prefix,key){let hash=2166136261;for(let i=0;i<key.length;i++){hash^=key.charCodeAt(i);hash=Math.imul(hash,16777619);}return `${prefix}-${(hash>>>0).toString(36)}`;}
 function nextStableId(prefix,key,used){const base=stableId(prefix,key);let candidate=base,n=2;while(used.has(candidate))candidate=`${base}-${n++}`;return candidate;}
-import {normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=150';
+import {normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=151';
 
 export function decodeStoredData(input){
  if(!input||input.version!==2)return input;
@@ -35,7 +35,7 @@ export function decodeStoredData(input){
   foodMap.set(food.id,normalized);
   if(food.saved!==false){const card={id:food.id,name:food.name,calories:food.calories,protein:food.protein,kind:normalized.kind,tags:structuredClone(normalized.tags)};if(normalized.pinned)card.pinned=true;if(normalized.accuracy)card.accuracy=normalized.accuracy;if(food.lastUsed!=null)card.lastUsed=food.lastUsed;if(food.serving!=null)card.serving=structuredClone(food.serving);foods.push(card);}
  }
- const foodEntries=input.foodEntries.map(entry=>{if(!entry||typeof entry.foodId!=='string'||!foodMap.has(entry.foodId))throw Error('Backup food entry references a missing food.');if(entry.t!=null&&(!Number.isInteger(entry.t)||entry.t<0||entry.t>47))throw Error('Backup food entry has an invalid time.');const food=foodMap.get(entry.foodId),record={id:entry.id,date:entry.date,name:food.name,calories:food.calories,protein:food.protein,quantity:entry.quantity};if(entry.t!=null)record.t=entry.t;return record;});
+ const foodEntries=input.foodEntries.map(entry=>{if(!entry||typeof entry.foodId!=='string'||!foodMap.has(entry.foodId))throw Error('Backup food entry references a missing food.');if(entry.t!=null&&(!Number.isInteger(entry.t)||entry.t<0||entry.t>47))throw Error('Backup food entry has an invalid time.');const food=foodMap.get(entry.foodId),record={id:entry.id,date:entry.date,name:food.name,calories:food.calories,protein:food.protein,quantity:entry.quantity};if(entry.t!=null)record.t=entry.t;if(entry.preparedBatchId!=null)record.preparedBatchId=entry.preparedBatchId;if(entry.batchGrams!=null)record.batchGrams=entry.batchGrams;return record;});
  const exerciseMap=new Map(),exerciseDefinitions=[],usedExerciseIds=new Set();
  for(const exercise of input.exercises){
   if(!exercise||typeof exercise.id!=='string'||!exercise.id.trim()||typeof exercise.name!=='string'||!exercise.name.trim())throw Error('Backup has an invalid exercise dictionary item.');
@@ -94,7 +94,7 @@ export function encodeStoredData(data){
   if(food.lastUsed!=null)def.lastUsed=food.lastUsed;
   foods.push(def);usedFoodIds.add(def.id);if(!foodByKey.has(foodKey(def)))foodByKey.set(foodKey(def),def.id);
  }
- const foodEntries=data.foodEntries.map(entry=>{const key=foodKey(entry);let foodId=foodByKey.get(key);if(!foodId){foodId=nextStableId('food',key,usedFoodIds);usedFoodIds.add(foodId);foods.push({id:foodId,name:entry.name,calories:entry.calories,protein:entry.protein,saved:false});foodByKey.set(key,foodId);}const record={id:entry.id,date:entry.date,foodId,quantity:entry.quantity};if(Number.isInteger(entry.t)&&entry.t>=0&&entry.t<=47)record.t=entry.t;return record;});
+ const foodEntries=data.foodEntries.map(entry=>{const key=foodKey(entry);let foodId=foodByKey.get(key);if(!foodId){foodId=nextStableId('food',key,usedFoodIds);usedFoodIds.add(foodId);foods.push({id:foodId,name:entry.name,calories:entry.calories,protein:entry.protein,saved:false});foodByKey.set(key,foodId);}const record={id:entry.id,date:entry.date,foodId,quantity:entry.quantity};if(Number.isInteger(entry.t)&&entry.t>=0&&entry.t<=47)record.t=entry.t;if(entry.preparedBatchId!=null)record.preparedBatchId=entry.preparedBatchId;if(entry.batchGrams!=null)record.batchGrams=entry.batchGrams;return record;});
  const exercises=[],exerciseByKey=new Map(),exerciseById=new Map(),usedExerciseIds=new Set();
  for(const def of Array.isArray(data.exerciseDefinitions)?data.exerciseDefinitions:[]){
   const normalized=inferExercise(def.name),exercise={id:def.id,name:normalized.name,equipment:equipmentTypes.has(def.equipment)?def.equipment:normalized.equipment,...(def.setup?{setup:def.setup}:{}),...(Object.prototype.hasOwnProperty.call(def,'notes')?{notes:def.notes}:{}),...(def.meta?{meta:structuredClone(def.meta)}:{})},key=exerciseKey(exercise);
