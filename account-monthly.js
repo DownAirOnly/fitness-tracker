@@ -31,7 +31,7 @@ export function monthlyParts(input){
  }
  const parts={
   settings:JSON.stringify({settings:data.settings,preferences:data.preferences,promptDate:data.promptDate}),
-  catalog:JSON.stringify({foods:data.foods,recipes:data.recipes,activeCooking:data.activeCooking}),
+  catalog:JSON.stringify({foods:data.foods,recipes:data.recipes,pantry:data.pantry,activeCooking:data.activeCooking}),
   routines:JSON.stringify({exerciseDefinitions:data.exerciseDefinitions,
    workoutTemplates:data.workoutTemplates,activeWorkout:data.activeWorkout,
    workoutSchedule:data.workoutSchedule,undatedWorkoutHistory:undated}),
@@ -54,7 +54,7 @@ export function readMonthlyParts(parts,months){
  if(!settings||!settings.settings||!catalog||!routines||!finance)throw Error('Cloud settings or catalog is malformed.');
  Object.assign(raw,{
   settings:settings.settings,preferences:settings.preferences,
-  promptDate:settings.promptDate||'',foods:catalog.foods,recipes:catalog.recipes??[],activeCooking:catalog.activeCooking??null,
+  promptDate:settings.promptDate||'',foods:catalog.foods,recipes:catalog.recipes??[],pantry:catalog.pantry??[],activeCooking:catalog.activeCooking??null,
   exerciseDefinitions:routines.exerciseDefinitions,workoutTemplates:routines.workoutTemplates,
   activeWorkout:routines.activeWorkout,workoutSchedule:routines.workoutSchedule,
   classificationRules:finance.classificationRules,budgetPlan:finance.budgetPlan
