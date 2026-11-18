@@ -1,3 +1,11 @@
+## v151 — Prepared portions and leftovers (November 18, 2026)
+
+- **Explicit consumption logging:** Food > Cooking > Prepared batches > Log a portion records eaten recipe portions or weighed grams (only if a finished batch weight was recorded). Choose the date and optional time. Nutrition is calculated from the immutable finished batch. Creating a recipe or finishing cooking never logs food automatically.
+- **Leftovers:** Remaining portions and estimated grams are derived from linked dated food entries; no second mutable pantry counter. Editing/deleting a food entry restores that amount. The existing food log routes batch records to their dedicated quantity editor.
+- **Durable metadata:** Food entries store a preparedBatchId and optional batchGrams across compact JSON, account nutrition sections, and monthly cloud data. Older backups remain compatible. No change to past batches when shared ingredient definitions change. Repeated submissions and over-consumption are guarded.
+- **Rollout:** v150 initially failed GitHub Pages deployment due to an identity-token timeout; a retry succeeded. CI success and installed iPhone app refresh remain separate.
+- **Next:** v152 pantry + optional recipe creator credit; v153 lifting; v154 progress trends; v155+ scanning and searchable nutrition.
+
 ## v150 — Native common ingredients and update existing recipes
 
 **Offline ingredient catalog:** 102 built-in references for common grains, eggs/proteins, produce, dairy, fats/oils, sauces, spices and cooking staples. Food → Cooking → Ingredients now has Your ingredients plus searchable, grouped Common ingredients. The reference numbers are generic estimates per stated serving, not verified brand-label facts. Common items are usable directly in recipes, without creating 102 separate account food records. A custom version can be saved explicitly.

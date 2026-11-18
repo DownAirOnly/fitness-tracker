@@ -1,30 +1,30 @@
-import {RELEASE_HISTORY} from './release-history.js?v=150';
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=150';
-import {createCookingUI} from './cooking-ui.js?v=150';
-import {createRoutineImportUI} from './routine-import-ui.js?v=150';
-import {exportRoutineCSV} from './routine-import-model.js?v=150';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=150';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=150';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=150';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=150';
+import {RELEASE_HISTORY} from './release-history.js?v=151';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
+import {createCookingUI} from './cooking-ui.js?v=151';
+import {createRoutineImportUI} from './routine-import-ui.js?v=151';
+import {exportRoutineCSV} from './routine-import-model.js?v=151';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=151';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=151';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=151';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=151';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=150';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=150';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=150';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=150';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=150';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=150';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=150';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=150';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=150';
-import {availableMonths,exportMonth} from './account-monthly.js?v=150';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=150';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=150';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=150';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=150';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=150';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=150';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=150';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=151';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=151';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=151';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=151';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=151';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=151';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=151';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=151';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=151';
+import {availableMonths,exportMonth} from './account-monthly.js?v=151';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=151';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=151';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=151';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=151';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=151';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=151';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=151';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -132,7 +132,7 @@ const fmt=n=>Number.isInteger(n)?String(n):round(n).toFixed(1).replace(/\.0$/,''
 const button=(label,action,cls='',attrs='')=>`<button type="button" class="${cls}" data-action="${action}" ${attrs}>${label}</button>`;
 const input=(label,name,value='',type='text',extra='')=>`<label class="field"><span>${label}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
 const empty=message=>`<p class="empty">${message}</p>`;
-const cooking=createCookingUI({getData:()=>data,replaceData:next=>{data=next;},normalizeData,id,esc,fmt,modal,close,render,persist:()=>persist()});
+const cooking=createCookingUI({getData:()=>data,replaceData:next=>{data=next;},normalizeData,id,esc,fmt,modal,close,render,persist:()=>persist(),trackingDate:()=>currentTrackingDate(),timeSlot:()=>currentFoodSlot()});
 const routineImport=createRoutineImportUI({getData:()=>data,modal,esc,setPending:plan=>{pendingImport=plan;}});
 const currentCloudRevision=()=>session?.ready&&Number.isSafeInteger(session.revision)?session.revision:Number.isSafeInteger(cloudConfirmed?.revision)?cloudConfirmed.revision:Number.isSafeInteger(cloudRecovery?.revision)?cloudRecovery.revision:0;
 function saveCloudRecoveryLocally(markMessage=true){
@@ -2981,7 +2981,7 @@ document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isCom
 app.addEventListener('input',event=>{
  if(event.target.matches?.('[data-ingredient-picker-search],[data-common-ingredient-search]')){cooking.onSearch(event.target);return;}
  if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
- if(event.target.closest('form[data-form="recipe"],form[data-form="cooking-session"]')){cooking.onInput(event.target.form);return;}
+ if(event.target.closest('form[data-form="recipe"],form[data-form="cooking-session"],form[data-form="batch-portion"]')){cooking.onInput(event.target.form);return;}
  if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
  if(event.target.matches('[data-finance-history-search]')){
   financeHistoryQuery=event.target.value;financeHistoryVisible=50;refreshFinanceHistoryList();return;
@@ -3792,6 +3792,7 @@ document.addEventListener('click',async event=>{
   if(action==='new-food'){foodForm();return;}
   if(action==='food-relog'){
    const previous=data.foodEntries.find(e=>e.id===el.dataset.id);if(!previous)return;
+   if(previous.preparedBatchId){cooking.openPortionForBatch(previous.preparedBatchId);return;}
    foodForm(null,null,{seed:previous,date:chosenDate===currentTrackingDate()?localDate():chosenDate,
     timeSlot:chosenDate===currentTrackingDate()?currentFoodSlot():null});
    return;
@@ -3801,7 +3802,7 @@ document.addEventListener('click',async event=>{
   if(action==='edit-card'){foodDefinitionForm(data.foods.find(x=>x.id===el.dataset.id),'food');return;}
   if(action==='toggle-favorite'){const f=data.foods.find(x=>x.id===el.dataset.id);if(!f)return;f.pinned=!f.pinned;render();void persist();return;}
   if(action==='undo-food-add'){clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);data.foodEntries=data.foodEntries.filter(x=>x.id!==el.dataset.id);document.querySelector('#overlay').innerHTML='';render();void persist();return;}
-  if(action==='edit-entry'){foodForm(data.foodEntries.find(x=>x.id===el.dataset.id));return;}
+  if(action==='edit-entry'){const entry=data.foodEntries.find(x=>x.id===el.dataset.id);if(entry?.preparedBatchId)cooking.openLoggedPortion(entry);else if(entry)foodForm(entry);return;}
   if(action==='add-saved'){const f=data.foods.find(x=>x.id===el.dataset.id);if(f){if(page==='home')chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodForm(null,f,{returnPage:page});}return;}
   if(action==='custom-lift'){liftForm();return;}
   if(action==='choose-exercise-match'){const form=el.closest('form[data-form="lift"]'),name=el.dataset.name,equipment=el.dataset.equipment;if(!form||!name)return;form.elements.exercise.value=name;form.elements.equipment.value=equipment;form.querySelector('.exercise-matches').innerHTML='<div class="food-match-selected"><span><strong>'+esc(name)+'</strong><small>'+equipmentLabel(equipment)+' · Using canonical exercise</small></span><button type="button" class="text-btn" data-action="clear-exercise-match">Change</button></div>';return;}
@@ -4138,7 +4139,7 @@ app.addEventListener('submit',async event=>{
   }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
-  if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'||form.dataset.form==='cooking-session'||form.dataset.form==='ingredient-definition'){await cooking.onSubmit(form,v);return;}
+  if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'||form.dataset.form==='cooking-session'||form.dataset.form==='ingredient-definition'||form.dataset.form==='batch-portion'){await cooking.onSubmit(form,v);return;}
   if(form.dataset.form==='food-definition'){let serving;try{serving=servingFromForm(v);}catch(error){alert(error.message);return;}const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||v.calories.trim()===''||v.protein.trim()===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,serving,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,...(serving?{serving}:{}),lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
     if(form.dataset.foodSubmitting==='true')return;
@@ -4256,7 +4257,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=150',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=151',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4359,7 +4360,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=150');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=151');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

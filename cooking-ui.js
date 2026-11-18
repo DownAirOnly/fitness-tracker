@@ -1,9 +1,10 @@
 // Food > Cooking: a recipe workspace, intentionally separate from eating logs.
-import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps,suggestRecipeIngredientMatches,linkSuggestedRecipeIngredients} from './cooking-model.js?v=150';
-import {COMMON_INGREDIENTS,commonIngredientById,commonIngredientChoices,findCommonIngredient} from './common-ingredient-catalog.js?v=150';
+import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps,suggestRecipeIngredientMatches,linkSuggestedRecipeIngredients} from './cooking-model.js?v=151';
+import {COMMON_INGREDIENTS,commonIngredientById,commonIngredientChoices,findCommonIngredient} from './common-ingredient-catalog.js?v=151';
+import {batchInventory,planBatchPortion} from './batch-portion-model.js?v=151';
 
-export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,modal,close,render,persist}){
- let tab='summary',draft=null,expandedIngredientId=null;
+export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,modal,close,render,persist,trackingDate,timeSlot}){
+ let tab='summary',draft=null,expandedIngredientId=null,portionNotice='';
  const button=(text,action,cls='',extra='')=>'<button type="button" class="'+cls+'" data-action="'+action+'" '+extra+'>'+text+'</button>';
  const attr=s=>esc(s??'');
  const getRecipe=recipeId=>(getData().recipes||[]).find(x=>x.id===recipeId);
@@ -50,7 +51,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
      button('Cook','cooking-start','outline small','data-id="'+attr(recipe.id)+'"')+'</div>').join('')+'</div>':
     '<p class="empty">No recipes yet. Add a homemade meal to calculate its nutrition.</p>')+
    (batches.length?'<section class="cooking-prepared"><h3>Prepared batches</h3><div class="cooking-prepared-list">'+batches.slice(0,30).map(batch=>
-     '<button type="button" class="cooking-prepared-card" data-action="cooking-view-batch" data-id="'+attr(batch.id)+'"><span><strong>'+esc(batch.recipe.name)+'</strong><small>'+new Date(batch.preparedAt).toLocaleDateString()+' · '+fmt(batch.recipe.servings)+' portions'+(batch.finishedGrams?' · '+fmt(batch.finishedGrams)+' g finished':'')+'</small></span><b>›</b></button>').join('')+'</div></section>':'')+
+     '<button type="button" class="cooking-prepared-card" data-action="cooking-view-batch" data-id="'+attr(batch.id)+'"><span><strong>'+esc(batch.recipe.name)+'</strong><small>'+new Date(batch.preparedAt).toLocaleDateString()+' · '+fmt(batchInventory(batch,getData().foodEntries).remainingPortions)+' of '+fmt(batch.recipe.servings)+' portions left'+(batch.finishedGrams?' · '+fmt(batchInventory(batch,getData().foodEntries).remainingGrams)+' g left':'')+'</small></span><b>›</b></button>').join('')+'</div></section>':'')+
    '<p class="hint">Linked ingredient nutrition comes from your Ingredient Library. Cooking saves a separate batch; nothing is logged as eaten automatically.</p></section>';
  }
  function items(){
@@ -341,16 +342,67 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   }catch{status.textContent='Enter valid ingredient nutrition, quantities and portions.';}
  }
  function viewBatch(batch){
-  const nutrition=recipeTotals(batch.recipe);
+  const nutrition=recipeTotals(batch.recipe),logs=(getData().foodEntries||[]).filter(e=>e.preparedBatchId===batch.id);
+  const left=batchInventory(batch,logs);
+  const history=logs.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(e=>
+   '<button type="button" class="cooking-batch-log" data-action="cooking-edit-portion" data-id="'+attr(e.id)+'"><span><strong>'+esc(e.date)+'</strong><small>'+fmt(e.batchGrams??e.quantity)+(e.batchGrams!=null?' g weighed':' portions')+' · '+fmt(e.calories*e.quantity)+' cal · '+fmt(e.protein*e.quantity)+'g protein</small></span><b aria-hidden="true">›</b></button>').join('');
   modal('Prepared · '+batch.recipe.name,'<div class="cooking-batch-details"><p class="body-copy">'+
-   new Date(batch.preparedAt).toLocaleString()+'</p><div class="cooking-totals">'+
-   fmt(nutrition.calories)+' cal · '+fmt(nutrition.protein)+'g protein for batch | '+fmt(nutrition.perPortionCalories)+
-   ' cal · '+fmt(nutrition.perPortionProtein)+'g per portion</div>'+
-   '<p class="body-copy">'+fmt(batch.recipe.servings)+' portions'+(batch.finishedGrams?' · '+fmt(batch.finishedGrams)+' g finished weight':'')+'</p>'+
+   new Date(batch.preparedAt).toLocaleString()+'</p>'+
+   '<div class="cooking-batch-leftover" role="status"><span>Remaining</span><strong>'+fmt(left.remainingPortions)+' of '+fmt(left.totalPortions)+' portions</strong>'+
+   (left.remainingGrams!=null?'<small>Approximately '+fmt(left.remainingGrams)+' g of '+fmt(batch.finishedGrams)+' g finished</small>':'')+
+   (left.overLogged?'<small class="cooking-batch-alert">Logged portions exceed this batch; review your food entries.</small>':'')+'</div>'+
+   (portionNotice?'<p class="cooking-portion-notice" role="status">'+esc(portionNotice)+'</p>':'')+
+   button('Log a portion','cooking-log-portion','primary','data-id="'+attr(batch.id)+'"'+(left.remainingPortions<=1e-8?' disabled':''))+
+   '<div class="cooking-totals">'+fmt(nutrition.calories)+' cal · '+fmt(nutrition.protein)+'g protein for batch | '+
+    fmt(nutrition.perPortionCalories)+' cal · '+fmt(nutrition.perPortionProtein)+'g per portion</div>'+
+   '<p class="body-copy">'+fmt(batch.recipe.servings)+' original portions'+(batch.finishedGrams?' · '+fmt(batch.finishedGrams)+' g finished weight':'')+'</p>'+
+   (history?'<h3>Logged portions</h3><div class="cooking-batch-logs">'+history+'</div>':'')+
+   '<details class="cooking-batch-snapshot"><summary>Batch recipe snapshot</summary>'+
    '<h3>Ingredients</h3>'+batch.recipe.ingredients.map(item=>'<p class="cooking-batch-ingredient">'+esc(item.name)+' · '+fmt(item.quantity)+' servings</p>').join('')+
-   '<h3>Instructions</h3><p class="body-copy">'+esc(batch.recipe.instructions||'No instructions recorded.')+'</p>'+
-   '<p class="hint">This saved batch is a fixed snapshot, not a food log. Portion consumption and leftovers arrive next.</p></div>');
+   '<h3>Instructions</h3><p class="body-copy">'+esc(batch.recipe.instructions||'No instructions recorded.')+'</p></details>'+
+   '<p class="hint">Logging a portion adds a food entry only when you press Save. Editing or deleting an entry returns its amount to leftovers. Recipe and ingredient edits never change this batch.</p></div>');
  }
+ function openPortionForBatch(batchId,entry=null){
+  const batch=(getData().preparedBatches||[]).find(b=>b.id===batchId);
+  if(!batch){alert('This prepared batch is missing. The historical food log remains intact.');return;}
+  const available=batchInventory(batch,getData().foodEntries,entry?.id);
+  const weighed=entry?.batchGrams!=null,amount=weighed?entry.batchGrams:(entry?.quantity??Math.min(1,available.remainingPortions));
+  const time=entry?.t??(timeSlot?.()??null);
+  const times='<option value="">No time</option>'+Array.from({length:48},(_,slot)=>{
+   const h=Math.floor(slot/2),minute=slot%2?'30':'00';
+   return '<option value="'+slot+'" '+(String(time)===String(slot)?'selected':'')+'>'+((h%12)||12)+':'+minute+(h>=12?' PM':' AM')+'</option>';
+  }).join('');
+  portionNotice='';
+  modal(entry?'Edit logged portion':'Log prepared portion','<form class="form cooking-portion-form" data-form="batch-portion">'+
+   '<input type="hidden" name="batchId" value="'+attr(batch.id)+'"><input type="hidden" name="entryId" value="'+attr(entry?.id||'')+'">'+
+   '<div class="cooking-batch-leftover"><span>Available to log</span><strong>'+fmt(available.remainingPortions)+' portions</strong>'+
+    (available.remainingGrams!=null?'<small>Approximately '+fmt(available.remainingGrams)+' g</small>':'')+'</div>'+
+   '<p class="body-copy">'+esc(batch.recipe.name)+' · prepared '+new Date(batch.preparedAt).toLocaleDateString()+'</p>'+
+   '<div class="form-grid"><label class="field"><span>Measure by</span><select name="portionUnit">'+
+    '<option value="portions" '+(!weighed?'selected':'')+'>Portions</option>'+
+    (batch.finishedGrams?'<option value="grams" '+(weighed?'selected':'')+'>Weighed grams</option>':'')+'</select></label>'+
+    '<label class="field"><span>Amount</span><input type="number" name="portionAmount" min="0.000001" step="any" inputmode="decimal" value="'+attr(amount)+'" required></label></div>'+
+   (!batch.finishedGrams?'<p class="hint">Weight logging requires the finished batch weight recorded during cooking.</p>':'')+
+   '<div class="form-grid"><label class="field"><span>Date eaten</span><input type="date" name="date" value="'+attr(entry?.date||trackingDate?.()||'')+'" required></label>'+
+    '<label class="field"><span>Time</span><select name="t">'+times+'</select></label></div>'+
+   '<p class="cooking-portion-preview" role="status" data-batch-portion-preview></p>'+
+   '<div class="form-actions"><button type="submit" class="primary">Save</button>'+
+    button('Back to batch','cooking-view-batch','outline','data-id="'+attr(batch.id)+'"')+'</div>'+
+   '<p class="hint">Nothing is logged until Save. This entry belongs to the prepared batch, not the ingredient library.</p></form>');
+  previewBatchPortion(document.querySelector('form[data-form="batch-portion"]'));
+ }
+ function previewBatchPortion(form){
+  const status=form?.querySelector('[data-batch-portion-preview]');if(!status)return;
+  const batch=(getData().preparedBatches||[]).find(b=>b.id===form.elements.batchId.value);
+  if(!batch)return;
+  try{
+   const record=planBatchPortion(batch,getData().foodEntries,{
+    unit:form.elements.portionUnit.value,amount:form.elements.portionAmount.value,
+    date:form.elements.date.value,t:form.elements.t.value,entryId:form.elements.entryId.value||null});
+   status.textContent=fmt(record.calories*record.quantity)+' cal · '+fmt(record.protein*record.quantity)+'g protein · '+fmt(record.quantity)+' portions';
+  }catch(error){status.textContent=error.message;}
+ }
+
 
  function importDialog(){
   modal('Import recipe','<form class="form" data-form="recipe-import"><p class="body-copy">Import a portable Everyday recipe. This does not change existing foods or your food log.</p>'+
@@ -491,6 +543,12 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     replaceData(normalizeData(next));close(true);tab='cooking';render();await persist();}
    catch(error){alert(error?.message||'Unable to finish the batch.');}return;
   }
+  if(action==='cooking-log-portion'){openPortionForBatch(el.dataset.id);return;}
+  if(action==='cooking-edit-portion'){
+   const entry=(getData().foodEntries||[]).find(e=>e.id===el.dataset.id);
+   if(entry?.preparedBatchId)openPortionForBatch(entry.preparedBatchId,entry);
+   return;
+  }
   if(action==='cooking-view-batch'){
    const batch=(getData().preparedBatches||[]).find(item=>item.id===el.dataset.id);
    if(batch)viewBatch(batch);return;
@@ -534,6 +592,27 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     upsertIngredient(next,payload,existing?next.foods.find(food=>food.id===existing.id):null);
     replaceData(normalizeData(next));close(true);tab='cooking';render();ingredientLibraryDialog();await persist();return;
    }
+   if(form.dataset.form==='batch-portion'){
+    if(form.dataset.portionSubmitting==='true')return;
+    const batch=(getData().preparedBatches||[]).find(b=>b.id===v.batchId);
+    if(!batch)throw Error('This prepared batch is no longer available.');
+    const next=structuredClone(getData()),existing=v.entryId?next.foodEntries.find(e=>e.id===v.entryId):null;
+    if(v.entryId&&(!existing||existing.preparedBatchId!==batch.id))throw Error('This log changed. Reopen the batch.');
+    const record=planBatchPortion(batch,next.foodEntries,{unit:v.portionUnit,amount:v.portionAmount,date:v.date,
+     t:v.t,entryId:existing?.id||null});
+    if(existing){
+     Object.assign(existing,record);
+     if(record.batchGrams==null)delete existing.batchGrams;
+     if(record.t==null)delete existing.t;
+    }else next.foodEntries.push({id:id(),...record});
+    const valid=normalizeData(next);
+    form.dataset.portionSubmitting='true';
+    replaceData(valid);close(true);tab='cooking';render();
+    const saved=await persist();
+    portionNotice=saved?'Food log saved. Leftovers updated.':'Entry updated locally; check account sync or export a backup.';
+    viewBatch(batch);
+    return;
+   }
    if(form.dataset.form==='cooking-session'){
     const session=captureCooking(form),next=structuredClone(getData());next.activeCooking=session;
     replaceData(normalizeData(next));close(true);tab='cooking';render();await persist();return;
@@ -562,7 +641,10 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     const next=structuredClone(getData());next.recipes.push(recipe);
     replaceData(normalizeData(next));close(true);tab='cooking';render();await persist();
    }
-  }catch(error){alert(error?.message||'Unable to save recipe.');}
+  }catch(error){if(form.dataset.form==='batch-portion')delete form.dataset.portionSubmitting;alert(error?.message||'Unable to save recipe.');}
  }
- return {get tab(){return tab;},tabs,home,onInput:form=>form?.dataset.form==='cooking-session'?previewCooking(form):preview(form),onSearch,handleAction,onSubmit};
+ return {get tab(){return tab;},tabs,home,
+  openPortionForBatch,openLoggedPortion:entry=>entry?.preparedBatchId&&openPortionForBatch(entry.preparedBatchId,entry),
+  onInput:form=>form?.dataset.form==='batch-portion'?previewBatchPortion(form):form?.dataset.form==='cooking-session'?previewCooking(form):preview(form),
+  onSearch,handleAction,onSubmit};
 }
