@@ -409,7 +409,7 @@ export function reviewImport(kind,raw,current,initialErrors=[]){
         otherChanges.push({key,label,from:(current[key]||[]).length,to:(raw[key]||[]).length,detail:parts.slice(0,6).join(' · ')+(parts.length>6?' · +'+(parts.length-6)+' more':'')});
       }else unchanged++;
     }
-    for(const [key,label] of [['activeWorkout','Active Workout Buddy session'],['workoutHistory','Workout Buddy history']]){
+    for(const [key,label] of [['activeWorkout','Active Workout Buddy session'],['workoutHistory','Workout Buddy history'],['recipes','Recipes'],['activeCooking','Active cooking session'],['preparedBatches','Prepared cooking batches']]){
       if(!same(current[key],raw[key])){
         const from=Array.isArray(current[key])?current[key].length:(current[key]?1:0),to=Array.isArray(raw[key])?raw[key].length:(raw[key]?1:0);
         otherChanges.push({key,label,from,to,detail:key==='activeWorkout'?(raw[key]?'Restores active session':'Clears active session'):(from+' → '+to+' sessions')});
