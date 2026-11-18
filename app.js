@@ -2920,10 +2920,17 @@ function showFoodUndo(entryId,name,count=1,editing=false){
 function settleFoodSaveToast(toast,saved){
  if(!toast?.isConnected)return;
  const label=toast.querySelector('[data-food-save-result]');if(!label)return;
- if(!saved){label.textContent='Save not confirmed · export a backup';toast.setAttribute('role','alert');return;}
+ if(!saved){
+  if(account&&cloudRecovery){label.textContent=toast.dataset.summary+' · saved on this device · sync pending';return;}
+  label.textContent='Save not confirmed · export a backup';toast.setAttribute('role','alert');return;
+ }
  const destination=account?(cloudPending||cloudRecoveryConflict||!session?.ready?'saved on this device · sync pending':'saved to account'):
   offlineWorkspace?'saved to workspace':demoMode?'saved in demo':'saved on this device';
  label.textContent=toast.dataset.summary+' · '+destination;
+}
+async function persistFoodToast(toast){
+ try{settleFoodSaveToast(toast,await persist());}
+ catch{settleFoodSaveToast(toast,false);}
 }
 function liftForm(lift=null,name='',equipment='other') {
  const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type);
@@ -4145,7 +4152,7 @@ app.addEventListener('submit',async event=>{
       form.dataset.foodSubmitting='true';data=candidate;chosenDate=currentFoodTrackingDate(target);
       close(true);page=foodEntryReturnPage;render();
       const toast=showFoodUndo(null,target.name,1,true);
-      void persist().then(saved=>settleFoodSaveToast(toast,saved));return;
+      void persistFoodToast(toast);return;
     }
     let validated;
     try{validated=foodBatch.map(validateQueuedFood);}catch(error){foodFormError(form,error.message);return;}
@@ -4165,7 +4172,7 @@ app.addEventListener('submit',async event=>{
     form.dataset.foodSubmitting='true';data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
     foodBatch=[];close(true);page=foodEntryReturnPage;render();
     const toast=showFoodUndo(prepared.length===1?last.entry.id:null,last.entry.name,prepared.length);
-    void persist().then(saved=>settleFoodSaveToast(toast,saved));
+    void persistFoodToast(toast);
     return;
   }
   if(form.dataset.form==='routine-history-exercise'){
