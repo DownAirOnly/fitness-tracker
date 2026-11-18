@@ -253,3 +253,60 @@
  .cooking-step-text{font-size:14px}
  .cooking-link-picker{grid-template-columns:1fr}
 }
+
+/* v150 — native offline common ingredients and non-destructive recipe matching. */
+.cooking-match-entry{
+ display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:9px;
+ padding:12px 13px;border:1px solid var(--ap-border,#415669);border-radius:13px;
+ background:var(--ap-support,#eef4ef);color:var(--ap-on-surface,#263b30);
+}
+.cooking-match-entry>div{display:grid;gap:4px;min-width:0}
+.cooking-match-entry strong{font-size:13px}
+.cooking-match-entry small{font-size:11px;color:var(--ap-muted,#748577)}
+.cooking-match-entry button{min-height:40px;flex-shrink:0}
+.cooking-match-preview{
+ display:grid;gap:12px;padding:13px;border:1px solid var(--ap-border,#cfdcd2);
+ border-radius:13px;background:var(--ap-surface,#fff)
+}
+.cooking-match-preview[hidden]{display:none!important}
+.cooking-match-preview>strong{font-size:14px}
+.cooking-match-preview>.hint{margin:0}
+.cooking-match-list{display:grid;gap:0}
+.cooking-match-row{
+ display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+ padding:9px 0;border-bottom:1px solid var(--ap-border,#dce5dc);
+}
+.cooking-match-row>span{min-width:0;display:grid;gap:3px}
+.cooking-match-row strong{font-size:12px;overflow-wrap:anywhere}
+.cooking-match-row small{color:var(--ap-muted,#7b8c80);font-size:11px;line-height:1.45}
+.cooking-match-row>small{flex:0 0 auto}
+.cooking-match-actions{display:flex;flex-wrap:wrap;gap:8px}
+.cooking-match-actions button{min-height:42px}
+.cooking-ingredient-search input{width:100%;min-height:44px;font-size:16px}
+.cooking-catalog-note{
+ margin:0;font-size:11px;line-height:1.5;color:var(--ap-muted,#7c8d7f)
+}
+.cooking-common-groups{display:grid;gap:8px}
+.cooking-common-category{border:1px solid var(--ap-border,#d9e4da);border-radius:13px;overflow:hidden}
+.cooking-common-category>summary{
+ display:flex;justify-content:space-between;align-items:center;
+ padding:13px 14px;min-height:48px;font-size:13px;font-weight:800;cursor:pointer;
+ color:var(--ap-on-surface,#22432b);list-style:none
+}
+.cooking-common-category>summary::-webkit-details-marker{display:none}
+.cooking-common-category>summary span{font-size:11px;color:var(--ap-muted,#849188)}
+.cooking-common-category .cooking-library-rows{padding:0 8px 8px}
+.cooking-common-category .cooking-library-row{margin-top:6px}
+.cooking-common-category[hidden],
+.cooking-common-category .cooking-library-row[hidden]{display:none!important}
+.cooking-common-details{display:grid;gap:15px}
+.cooking-common-details .body-copy{margin:0}
+.cooking-common-details .cooking-totals{
+ display:grid;gap:5px;padding:15px;background:var(--ap-support,#e9f2e9);
+ border:1px solid var(--ap-border,#d9e4da);border-radius:12px;
+ color:var(--ap-on-surface,#25472e)
+}
+.cooking-common-details .cooking-totals strong{font-size:17px}
+.cooking-common-details .cooking-totals small,
+.cooking-common-category-label{font-size:12px;color:var(--ap-muted,#758776)}
+.cooking-common-details button{min-height:44px}
