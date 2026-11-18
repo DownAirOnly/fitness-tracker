@@ -1,8 +1,8 @@
 // v112 — Firestore v3 account layout. Dated history is partitioned by calendar
 // month; global definitions and preferences are in small account-scoped files.
 // This module never mutates the user's normalized notebook.
-import {emptyData,normalizeData,validDate} from './data.js?v=145';
-export const MONTHLY_KEYS=['foodEntries','weights','bodyFat','lifts','transactions','workoutHistory'];
+import {emptyData,normalizeData,validDate} from './data.js?v=148';
+export const MONTHLY_KEYS=['foodEntries','weights','bodyFat','lifts','transactions','workoutHistory','preparedBatches'];
 export const STATIC_PARTS=['settings','catalog','routines','financeConfig'];
 export const MONTH_FORMAT='everyday-month-v1';
 const monthOK=m=>/^\d{4}-(0[1-9]|1[0-2])$/.test(m);
@@ -11,6 +11,7 @@ const recordMonth=(record,key)=>{
  // Use the actual purchase month for receipts; delayed bank posting remains
  // separately preserved on the transaction and must not move the purchase.
  if(key==='transactions'&&validDate(record?.purchaseDate))return record.purchaseDate.slice(0,7);
+ if(key==='preparedBatches'&&typeof record?.preparedAt==='string'&&validDate(record.preparedAt.slice(0,10)))return record.preparedAt.slice(0,7);
  const date=validDate(record?.date)?record.date:
   typeof record?.startedAt==='string'&&validDate(record.startedAt.slice(0,10))?record.startedAt.slice(0,10):'';
  return date?date.slice(0,7):null;
@@ -30,7 +31,7 @@ export function monthlyParts(input){
  }
  const parts={
   settings:JSON.stringify({settings:data.settings,preferences:data.preferences,promptDate:data.promptDate}),
-  catalog:JSON.stringify({foods:data.foods,recipes:data.recipes}),
+  catalog:JSON.stringify({foods:data.foods,recipes:data.recipes,activeCooking:data.activeCooking}),
   routines:JSON.stringify({exerciseDefinitions:data.exerciseDefinitions,
    workoutTemplates:data.workoutTemplates,activeWorkout:data.activeWorkout,
    workoutSchedule:data.workoutSchedule,undatedWorkoutHistory:undated}),
@@ -53,7 +54,7 @@ export function readMonthlyParts(parts,months){
  if(!settings||!settings.settings||!catalog||!routines||!finance)throw Error('Cloud settings or catalog is malformed.');
  Object.assign(raw,{
   settings:settings.settings,preferences:settings.preferences,
-  promptDate:settings.promptDate||'',foods:catalog.foods,recipes:catalog.recipes??[],
+  promptDate:settings.promptDate||'',foods:catalog.foods,recipes:catalog.recipes??[],activeCooking:catalog.activeCooking??null,
   exerciseDefinitions:routines.exerciseDefinitions,workoutTemplates:routines.workoutTemplates,
   activeWorkout:routines.activeWorkout,workoutSchedule:routines.workoutSchedule,
   classificationRules:finance.classificationRules,budgetPlan:finance.budgetPlan
@@ -66,7 +67,7 @@ export function readMonthlyParts(parts,months){
   if(block?.format!==MONTH_FORMAT||block.month!==month||!block.records||typeof block.records!=='object')
    throw Error('Cloud month '+month+' is malformed.');
   for(const key of MONTHLY_KEYS){
-   const entries=block.records[key];
+   const entries=key==='preparedBatches'&&block.records[key]===undefined?[]:block.records[key];
    if(!Array.isArray(entries))throw Error('Month '+month+' is missing '+key+'.');
    for(const record of entries){
     if(recordMonth(record,key)!==month||typeof record?.id!=='string'||seenIds[key].has(record.id))
@@ -93,13 +94,14 @@ export function importMonth(current,backup){
   typeof backup.records!=='object')throw Error('Not an Everyday monthly backup.');
  const data=normalizeData(current),month=backup.month;
  for(const key of MONTHLY_KEYS){
-  if(!Array.isArray(backup.records[key]))throw Error('Invalid monthly '+key+' records.');
+  if(!Array.isArray(backup.records[key])&&!(key==='preparedBatches'&&backup.records[key]===undefined))throw Error('Invalid monthly '+key+' records.');
   data[key]=data[key].filter(item=>recordMonth(item,key)!==month)
-   .concat(structuredClone(backup.records[key]));
+   .concat(structuredClone(backup.records[key]??[]));
  }
  // Validation also catches a wrong-month entry and any broken cross-record ID.
  const checked=normalizeData(data),roundTrip=exportMonth(checked,month);
- if(JSON.stringify(roundTrip)!==JSON.stringify(backup))
+ const comparable=backup.records.preparedBatches===undefined?{...backup,records:{...backup.records,preparedBatches:[]}}:backup;
+ if(JSON.stringify(roundTrip)!==JSON.stringify(comparable))
   throw Error('Monthly file does not match the selected month.');
  return checked;
 }

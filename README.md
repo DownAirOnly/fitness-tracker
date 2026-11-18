@@ -1,3 +1,9 @@
+## v148 — Cooking sessions and prepared batches
+
+Food → Cooking now offers **Cook** on each saved recipe, with a separate active session that snapshots the recipe. Adjust ingredient quantities, per-serving nutrition, instructions, portions and optional finished grams, then **Save progress**, **Resume**, **Finish batch** or **Discard**. Finishing creates an immutable prepared-batch record that appears below recipes for inspection. The original recipe, previous batches and food logs are not changed. Sessions and batches travel with normal JSON backups and account/cloud data; legacy backup and cloud formats remain readable.
+
+Portion consumption, leftovers and pantry are **not** part of v148. Planned next: v149 prepared-batch portions and leftovers; v150 pantry and optional recipe credit.
+
 ## v147.1 — Readable save confirmations
 
 Food Save notifications no longer cover the header or truncate the item/status into a single line. They show a wrapping item name above short text like **Saved to account**, with Undo beside it. The notification appears above bottom navigation.

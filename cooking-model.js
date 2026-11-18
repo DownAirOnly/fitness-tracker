@@ -1,6 +1,6 @@
 // A recipe snapshots the nutrition basis of each ingredient independently of the
 // food library. Changing saved foods later must not silently rewrite a recipe.
-import {normalizeServing} from './food-portion-model.js?v=145';
+import {normalizeServing} from './food-portion-model.js?v=148';
 const positive=(n,label)=>{if(typeof n!=='number'||!Number.isFinite(n)||n<=0||n>100000)throw Error(label+' must be a positive number.');return n;};
 const title=(value,max,label)=>{if(typeof value!=='string'||!value.trim()||value.trim().length>max)throw Error('Check '+label+'.');return value.trim();};
 export function ingredientSnapshot(food,identity,quantity=1){
@@ -43,4 +43,54 @@ export function recipeTotals(recipe){
  }
  if(!Number.isFinite(calories)||!Number.isFinite(protein))throw Error('Recipe totals are too large.');
  return {calories,protein,perPortionCalories:calories/recipe.servings,perPortionProtein:protein/recipe.servings};
+}
+
+// A live session is an editable snapshot. Finishing it makes a new prepared
+// batch snapshot; neither operation rewrites its source recipe or logs food.
+const timestamp=(value,label)=>{
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)||!Number.isFinite(Date.parse(value)))
+  throw Error(label+' must be a valid timestamp.');
+ return value;
+};
+const optionalGrams=value=>{
+ if(value==null)return undefined;
+ const grams=Number(value);
+ if(!Number.isFinite(grams)||grams<=0||grams>1000000)throw Error('Finished weight must be a positive number of grams.');
+ return grams;
+};
+export function normalizeCookingSession(value){
+ if(value==null)return null;
+ if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Invalid cooking session.');
+ const id=title(value.id,160,'cooking session ID'),recipeId=title(value.recipeId,160,'recipe ID');
+ const startedAt=timestamp(value.startedAt,'Cooking start time');
+ const recipe=normalizeRecipes([value.recipe])[0];
+ if(!recipe.ingredients.length)throw Error('Cooking sessions need an ingredient.');
+ const finishedGrams=optionalGrams(value.finishedGrams);
+ return {id,recipeId,startedAt,recipe,...(finishedGrams==null?{}:{finishedGrams})};
+}
+export function normalizePreparedBatches(value){
+ if(!Array.isArray(value)||value.length>1500)throw Error('Too many prepared cooking batches.');
+ const ids=new Set(),sessions=new Set();
+ return value.map(item=>{
+  if(!item||typeof item!=='object'||Array.isArray(item))throw Error('Invalid prepared batch.');
+  const id=title(item.id,160,'prepared batch ID'),sessionId=title(item.sessionId,160,'cooking session ID');
+  if(ids.has(id)||sessions.has(sessionId))throw Error('Duplicate prepared batch or cooking session.');
+  ids.add(id);sessions.add(sessionId);
+  const recipeId=title(item.recipeId,160,'source recipe ID'),preparedAt=timestamp(item.preparedAt,'Prepared time');
+  const recipe=normalizeRecipes([item.recipe])[0];
+  if(!recipe.ingredients.length)throw Error('Prepared batches need an ingredient.');
+  const finishedGrams=optionalGrams(item.finishedGrams);
+  return {id,sessionId,recipeId,preparedAt,recipe,...(finishedGrams==null?{}:{finishedGrams})};
+ });
+}
+export function beginCooking(recipe,sessionId,startedAt=new Date().toISOString()){
+ const snapshot=normalizeRecipes([recipe])[0];
+ return normalizeCookingSession({id:sessionId,recipeId:snapshot.id,startedAt,recipe:snapshot});
+}
+export function finishCooking(session,batchId,preparedAt=new Date().toISOString()){
+ const active=normalizeCookingSession(session);
+ if(!active)throw Error('No cooking session to finish.');
+ return normalizePreparedBatches([{id:batchId,sessionId:active.id,recipeId:active.recipeId,
+  preparedAt,recipe:structuredClone(active.recipe),
+  ...(active.finishedGrams==null?{}:{finishedGrams:active.finishedGrams})}])[0];
 }

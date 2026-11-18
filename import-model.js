@@ -1,8 +1,8 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=145';
-import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=145';
-import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=145';
-import {prepareReconciliation} from './bank-reconcile.js?v=145';
-import {applyClassificationRuleProposals} from './classification-model.js?v=145';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=148';
+import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=148';
+import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=148';
+import {prepareReconciliation} from './bank-reconcile.js?v=148';
+import {applyClassificationRuleProposals} from './classification-model.js?v=148';
 
 export const importSections={foods:'Saved Foods',foodEntries:'Food Entries',lifts:'Lifting Entries',weights:'Weight Entries',bodyFat:'Body Fat Entries',transactions:'Financial Transactions'};
 const signature=(key,r)=>JSON.stringify(key==='foods'?[r.name.toLowerCase(),r.calories,r.protein,r.kind||'food',r.tags||[],r.pinned===true,r.accuracy||'']:key==='foodEntries'?[r.date,r.name.toLowerCase(),r.calories,r.protein,r.quantity,r.t??null]:key==='weights'?[r.date,r.value]:key==='bodyFat'?[r.date,r.value]:key==='transactions'?[r.date,r.time??null,r.kind,r.amountCents,r.description.toLowerCase(),r.category.toLowerCase(),r.merchant??'',r.note??'',r.source??'',r.externalId??'']:[r.date,r.exercise.toLowerCase(),r.equipment||'other',r.sets,r.difficulty??null,r.notes??'']);
@@ -409,7 +409,7 @@ export function reviewImport(kind,raw,current,initialErrors=[]){
         otherChanges.push({key,label,from:(current[key]||[]).length,to:(raw[key]||[]).length,detail:parts.slice(0,6).join(' · ')+(parts.length>6?' · +'+(parts.length-6)+' more':'')});
       }else unchanged++;
     }
-    for(const [key,label] of [['activeWorkout','Active Workout Buddy session'],['workoutHistory','Workout Buddy history']]){
+    for(const [key,label] of [['activeWorkout','Active Workout Buddy session'],['workoutHistory','Workout Buddy history'],['recipes','Recipes'],['activeCooking','Active cooking session'],['preparedBatches','Prepared cooking batches']]){
       if(!same(current[key],raw[key])){
         const from=Array.isArray(current[key])?current[key].length:(current[key]?1:0),to=Array.isArray(raw[key])?raw[key].length:(raw[key]?1:0);
         otherChanges.push({key,label,from,to,detail:key==='activeWorkout'?(raw[key]?'Restores active session':'Clears active session'):(from+' → '+to+' sessions')});

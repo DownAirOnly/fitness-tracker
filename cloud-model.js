@@ -1,5 +1,5 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=145';
-import {monthlyParts} from './account-monthly.js?v=145';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=148';
+import {monthlyParts} from './account-monthly.js?v=148';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -33,16 +33,16 @@ export function nextRecord(current,expected,payload) {
   return {schemaVersion:1,revision:revision+1,payload};
 }
 
-export function hasRecords(data) { return ['foods','foodEntries','recipes','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
+export function hasRecords(data) { return ['foods','foodEntries','recipes','preparedBatches','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
 export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
- return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||
+ return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||Boolean(data.activeCooking)||
   JSON.stringify(data.exerciseDefinitions||[])!==JSON.stringify(defaults.exerciseDefinitions)||
   JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates)||
   (data.workoutSchedule||[]).length>0;
 }
 
-const migrationKeys=['foods','foodEntries','recipes','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
+const migrationKeys=['foods','foodEntries','recipes','preparedBatches','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
 const exerciseKey=e=>String(e.name||'').trim().toLowerCase()+'|'+(e.equipment||'other');
 const signature=value=>JSON.stringify(value,(key,value)=>{
  if(value&&typeof value==='object'&&!Array.isArray(value))
@@ -89,7 +89,7 @@ export function planDeviceMigration(cloud,device) {
    const previous=(candidate[key]||[]).find(row=>row.id===entry.id);
    if(previous){
     if(signature(previous)===signature(entry)){summary.skipped[key]++;continue;}
-    if(key!=='lifts'&&key!=='recipes'){summary.skipped[key]++;continue;}
+    if(key!=='lifts'&&key!=='recipes'&&key!=='preparedBatches'){summary.skipped[key]++;continue;}
    }
    if((candidate[key]||[]).some(row=>signature(withoutId(row))===signature(withoutId(entry)))){
     summary.skipped[key]++;continue;
@@ -194,7 +194,7 @@ export function planDeviceMigration(cloud,device) {
   if(lift.buddySessionId&&sessionAliases.has(lift.buddySessionId))
    lift.buddySessionId=sessionAliases.get(lift.buddySessionId);
  }
- for(const key of ['foods','foodEntries','recipes','weights','bodyFat','lifts'])pushRecords(key);
+ for(const key of ['foods','foodEntries','recipes','preparedBatches','weights','bodyFat','lifts'])pushRecords(key);
  // Financial entries are not content-deduplicated: two identical purchases can be real.
  // Repeated imports are idempotent by original ID and deterministic "-device" aliases.
  // Different records sharing an ID are preserved rather than overwritten.
@@ -224,6 +224,15 @@ export function planDeviceMigration(cloud,device) {
  // Existing cloud schedules win; never overwrite a personal schedule during migration.
  if(!(candidate.workoutSchedule||[]).length && (incoming.workoutSchedule||[]).length)
   candidate.workoutSchedule=structuredClone(incoming.workoutSchedule);
+ // Preserve recoverable cooking without silently replacing a different active session.
+ if(incoming.activeCooking){
+  if(candidate.activeCooking){
+   if(signature(candidate.activeCooking)!==signature(incoming.activeCooking))
+    throw Error('Device and cloud have different active cooking sessions. Finish or export one before migration.');
+  }else if(candidate.preparedBatches.some(b=>b.sessionId===incoming.activeCooking.id)){
+   throw Error('The device cooking session was already finished in the cloud.');
+  }else candidate.activeCooking=structuredClone(incoming.activeCooking);
+ }
  // Cash-flow plans are unique per notebook. Copy only when cloud plan is blank; never merge monetary assumptions.
  if(signature(candidate.budgetPlan)===signature(emptyData().budgetPlan))candidate.budgetPlan=structuredClone(incoming.budgetPlan);
  // Validate all routine references and the encoded cloud payload BEFORE saving.
