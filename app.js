@@ -10,21 +10,21 @@ import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,fo
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=151';
 import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=151';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=151';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=152';
 import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=151';
 import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=151';
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=151';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=151';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=151';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=151';
-import {availableMonths,exportMonth} from './account-monthly.js?v=151';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=152';
+import {availableMonths,exportMonth} from './account-monthly.js?v=152';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=151';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=151';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=151';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=151';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=151';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=151';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=151';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=152';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=152';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=152';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -4365,7 +4365,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=151');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=152');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

@@ -3,7 +3,7 @@ import {normalizeRecipes,normalizeCookingSession,normalizePreparedBatches} from 
 import {normalizePantry} from './pantry-model.js?v=152';
 import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=151';
 import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=151';
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=151';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=152';
 import {normalizeClassificationRules} from './classification-model.js?v=151';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=151';
 
