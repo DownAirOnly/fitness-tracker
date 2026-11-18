@@ -38,17 +38,32 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    '<p class="hint">Linked ingredient nutrition comes from your Ingredient Library. Cooking saves a separate batch; nothing is logged as eaten automatically.</p></section>';
  }
  function items(){
-  return draft.ingredients.length?draft.ingredients.map(item=>{
-   const serving=item.serving?' · '+attr(item.serving.amount+' '+item.serving.unit):'';
-   const field=(key,label,value)=>'<label class="field"><span>'+label+'</span><input type="'+(key==='name'?'text':'number')+
+  if(!draft.ingredients.length)return '<p class="hint">No ingredients yet. Choose one from the library or add a new ingredient.</p>';
+  return draft.ingredients.map(item=>{
+   const food=getData().foods.find(f=>f.id===item.sourceFoodId),info=food||item;
+   const linked=Boolean(food),missing=Boolean(item.sourceFoodId&&!food);
+   const fields=(key,label,value)=>'<label class="field"><span>'+label+'</span><input type="'+(key==='name'?'text':'number')+
     '" '+(key==='name'?'maxlength="120"':'min="'+(key==='quantity'?'0.01':'0')+'" step="any" inputmode="decimal"')+
     ' data-recipe-item-id="'+attr(item.id)+'" data-recipe-item-key="'+key+'" value="'+attr(value)+'" required></label>';
-   return '<div class="cooking-ingredient"><div class="cooking-ingredient-heading"><strong>Ingredient</strong>'+
-    button('Remove','recipe-remove-ingredient','text-btn','data-id="'+attr(item.id)+'"')+'</div>'+
-    field('name','Name'+serving,item.name)+'<div class="cooking-ingredient-fields">'+
-    field('quantity','Servings',item.quantity)+field('calories','Cal / serving',item.calories)+
-    field('protein','Protein (g)',item.protein)+'</div></div>';
-  }).join(''):'<p class="hint">Add at least one ingredient below.</p>';
+   const options=ingredientFoods().map(f=>'<option value="'+attr(f.id)+'">'+esc(f.name)+'</option>').join('');
+   return '<details class="cooking-ingredient cooking-ingredient--compact" data-recipe-item="'+attr(item.id)+'" '+(expandedIngredientId===item.id?'open':'')+'>'+
+    '<summary class="cooking-ingredient-summary"><span><strong data-recipe-summary-name>'+esc(info.name)+'</strong>'+
+    '<small>'+(linked?(food.tags?.includes('ingredient')?esc(categoryName(food)):'Linked saved food'):(missing?'Missing library item · saved facts':'Custom · not linked'))+'</small></span>'+
+    '<span class="cooking-ingredient-brief"><b data-recipe-summary-amount>'+fmt(item.quantity)+' ×</b>'+
+    '<small data-recipe-summary-nutrition>'+fmt(info.calories*item.quantity)+' cal</small></span></summary>'+
+    '<div class="cooking-ingredient-body">'+fields('quantity','Amount · servings',item.quantity)+
+    (linked?'<p class="cooking-library-facts"><strong>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein</strong> per library serving'+
+       (food.serving?.text?' · '+esc(food.serving.text):'')+'</p>'+
+       (!food.tags?.includes('ingredient')?button('Classify as ingredient','recipe-promote-ingredient','outline small','data-id="'+attr(item.id)+'"'):''):
+      '<div class="cooking-custom-fields">'+fields('name','Name',item.name)+
+        '<div class="cooking-ingredient-fields">'+fields('calories','Cal / serving',item.calories)+fields('protein','Protein (g)',item.protein)+'</div>'+
+        '<label class="field"><span>Classify as</span><select data-recipe-category="'+attr(item.id)+'">'+categoryOptions('other')+'</select></label>'+
+        button('Add to ingredient library','recipe-save-custom-ingredient','outline small','data-id="'+attr(item.id)+'"')+'</div>')+
+    (options?'<div class="cooking-link-picker"><label class="field"><span>'+(linked?'Change linked ingredient':'Link existing ingredient')+
+      '</span><select data-recipe-link="'+attr(item.id)+'"><option value="">Choose from library</option>'+options+
+      '</select></label>'+button('Link','recipe-link-ingredient','outline small','data-id="'+attr(item.id)+'"')+'</div>':'')+
+    '<div class="cooking-ingredient-actions">'+button('Remove from recipe','recipe-remove-ingredient','text-btn','data-id="'+attr(item.id)+'"')+'</div></div></details>';
+  }).join('');
  }
  function capture(form){
   if(!form||!draft)return;
@@ -65,33 +80,55 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function preview(form){
   if(!form||!draft)return;
   capture(form);
-  const status=form.querySelector('[data-recipe-totals]');if(!status)return;
+  const status=form.querySelector('[data-recipe-totals]');
   try{
-   const t=recipeTotals(draft);
-   status.textContent=fmt(t.calories)+' cal · '+fmt(t.protein)+'g protein for batch | '+
+   const resolved=currentRecipe(draft),t=recipeTotals(resolved);
+   if(status)status.textContent=fmt(t.calories)+' cal · '+fmt(t.protein)+'g protein for batch | '+
     fmt(t.perPortionCalories)+' cal · '+fmt(t.perPortionProtein)+'g per portion';
-  }catch{status.textContent='Enter valid portions and ingredient amounts to calculate nutrition.';}
+  }catch{if(status)status.textContent='Enter valid portions and ingredient amounts to calculate nutrition.';}
+  for(const card of form.querySelectorAll('[data-recipe-item]')){
+   const item=draft.ingredients.find(x=>x.id===card.dataset.recipeItem);
+   if(!item)continue;
+   const info=getData().foods.find(f=>f.id===item.sourceFoodId)||item;
+   const label=card.querySelector('[data-recipe-summary-name]');
+   const amount=card.querySelector('[data-recipe-summary-amount]');
+   const nutrition=card.querySelector('[data-recipe-summary-nutrition]');
+   if(label)label.textContent=info.name;
+   if(amount)amount.textContent=fmt(item.quantity)+' ×';
+   if(nutrition)nutrition.textContent=fmt(info.calories*item.quantity)+' cal';
+  }
  }
  function edit(recipe){
-  draft=recipe?structuredClone(recipe):{id:id(),name:'',servings:4,instructions:'',ingredients:[]};
-  const selectedFoods=getData().foods.slice().sort((a,b)=>a.name.localeCompare(b.name));
-  modal(recipe?'Edit recipe':'New recipe','<form class="form cooking-editor" data-form="recipe">'+
+  draft=recipe?currentRecipe(recipe):{id:id(),name:'',servings:4,instructions:'',ingredients:[]};
+  expandedIngredientId=null;
+  const selectedFoods=ingredientFoods();
+  modal(recipe?'Edit recipe':'New recipe','<form class="form cooking-editor" data-form="recipe" novalidate>'+
    '<label class="field"><span>Recipe name</span><input name="recipeName" maxlength="120" value="'+attr(draft.name)+'" required></label>'+
    '<label class="field"><span>Portions this batch makes</span><input type="number" name="recipeServings" min="0.01" step="any" inputmode="decimal" value="'+attr(draft.servings)+'" required></label>'+
    '<div class="cooking-totals" data-recipe-totals role="status"></div>'+
-   '<section class="cooking-ingredients"><h3>Ingredients</h3><div data-recipe-items>'+items()+'</div>'+
-   '<div class="cooking-add-row"><select name="recipeFoodId" aria-label="Saved food to add">'+
-   '<option value="">Choose a saved food</option>'+
-   selectedFoods.map(f=>'<option value="'+attr(f.id)+'">'+esc(f.name)+'</option>').join('')+
-   '</select>'+button('Add saved food','recipe-add-saved','outline small')+'</div>'+
-   button('+ Custom ingredient','recipe-add-custom','outline small')+'</section>'+
-   '<label class="field"><span>Instructions (optional)</span><textarea name="recipeInstructions" maxlength="6000" rows="4" placeholder="Cooking steps and notes">'+esc(draft.instructions)+'</textarea></label>'+
-   '<p class="hint">Each ingredient keeps its own nutrition snapshot. Food Library edits cannot silently alter this recipe.</p>'+
+   '<section class="cooking-ingredients"><div class="cooking-heading-row"><h3>Ingredients</h3><small>Tap a row to edit</small></div>'+
+   '<div data-recipe-items>'+items()+'</div>'+
+   '<div class="cooking-add-row"><select name="recipeFoodId" aria-label="Ingredient library choice"><option value="">Choose an ingredient from your library</option>'+
+   selectedFoods.map(food=>'<option value="'+attr(food.id)+'">'+esc(food.name)+' · '+esc(categoryName(food))+'</option>').join('')+
+   '</select>'+button('Add','recipe-add-saved','outline small')+'</div>'+
+   '<details class="cooking-new-library"><summary>+ Create a library ingredient</summary><div class="cooking-new-library-fields">'+
+    '<label class="field"><span>Ingredient name</span><input name="newIngredientName" maxlength="120" placeholder="e.g. Unsalted butter"></label>'+
+    '<label class="field"><span>Category</span><select name="newIngredientCategory">'+categoryOptions('other')+'</select></label>'+
+    '<div class="cooking-ingredient-fields">'+
+    '<label class="field"><span>Cal / serving</span><input name="newIngredientCalories" type="number" min="0" step="any" inputmode="decimal"></label>'+
+    '<label class="field"><span>Protein (g)</span><input name="newIngredientProtein" type="number" min="0" step="any" inputmode="decimal"></label></div>'+
+    '<label class="field"><span>Reference serving (optional)</span><input name="newIngredientServing" maxlength="120" placeholder="e.g. 1 tablespoon"></label>'+
+    button('Save to library & recipe','recipe-create-ingredient','primary small')+'</div></details>'+
+   '<div class="cooking-minor-action">'+button('+ One-off ingredient','recipe-add-custom','text-btn')+'</div></section>'+
+   '<section class="recipe-instructions"><div class="cooking-heading-row"><h3>Instructions</h3><small>Editable steps</small></div>'+
+    '<textarea class="recipe-instructions-note" name="recipeInstructions" maxlength="6000" rows="6" placeholder="Write each cooking step on its own line…">'+esc(draft.instructions)+'</textarea></section>'+
+   '<p class="hint">Linked ingredients always use the library’s current nutrition. Prepared batches keep their own historical snapshots.</p>'+
    '<div class="form-actions"><button type="submit" class="primary">Save recipe</button>'+
    (recipe?button('Export JSON','recipe-export','outline','data-id="'+attr(recipe.id)+'"')+
     button('Delete recipe','recipe-delete','danger','data-id="'+attr(recipe.id)+'"'):'')+'</div></form>');
   preview(document.querySelector('form[data-form="recipe"]'));
  }
+
  function refreshItems(form){
   const list=form?.querySelector('[data-recipe-items]');
   if(list)list.innerHTML=items();
