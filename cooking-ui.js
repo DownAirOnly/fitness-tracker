@@ -394,6 +394,10 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   }
 
   if(action==='ingredient-library-open'){ingredientLibraryDialog();return;}
+  if(action==='ingredient-common-view'){commonIngredientDetails(commonIngredientById(el.dataset.id));return;}
+  if(action==='ingredient-common-copy'){
+   const food=commonIngredientById(el.dataset.id);if(food)ingredientEditor(food,true);return;
+  }
   if(action==='ingredient-new'){ingredientEditor();return;}
   if(action==='ingredient-edit'){
    const food=ingredientFoods().find(food=>food.id===el.dataset.id);
@@ -552,7 +556,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     const recipe=normalizeRecipes([parsed.recipe])[0];
     recipe.id=id();for(const ingredient of recipe.ingredients){
      ingredient.id=id();delete ingredient.sourceFoodId;
-     const matched=matchingIngredient(getData().foods,ingredient.name);
+     const matched=matchingIngredient(getData().foods,ingredient.name)||findCommonIngredient(ingredient.name);
      if(matched){Object.assign(ingredient,ingredientSnapshot(matched,ingredient.id,ingredient.quantity));}
     }
     const next=structuredClone(getData());next.recipes.push(recipe);
