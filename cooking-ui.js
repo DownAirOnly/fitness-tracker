@@ -306,7 +306,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     if(action==='recipe-create-ingredient'&&draft.ingredients.length>=100)throw Error('A recipe can contain at most 100 ingredients.');
     const item=action==='recipe-save-custom-ingredient'?draft.ingredients.find(item=>item.id===el.dataset.id):null;
     if(action==='recipe-save-custom-ingredient'&&!item)throw Error('Ingredient not found.');
-    const category=item?form.querySelector('[data-recipe-category="'+CSS.escape(item.id)+'"]')?.value:form.elements.newIngredientCategory.value;
+    const category=item?[...form.querySelectorAll('[data-recipe-category]')].find(field=>field.dataset.recipeCategory===item.id)?.value:form.elements.newIngredientCategory.value;
     const payload=item?newIngredientPayload(item.name,item.calories,item.protein,category):
      newIngredientPayload(form.elements.newIngredientName.value,form.elements.newIngredientCalories.value,
       form.elements.newIngredientProtein.value,category,form.elements.newIngredientServing.value);
@@ -332,7 +332,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    const form=el.closest('form[data-form="recipe"]');if(!form||!draft)return;
    capture(form);
    const item=draft.ingredients.find(item=>item.id===el.dataset.id);
-   const food=ingredientFoods().find(food=>food.id===form.querySelector('[data-recipe-link="'+CSS.escape(el.dataset.id)+'"]')?.value);
+   const food=ingredientFoods().find(food=>food.id===[...form.querySelectorAll('[data-recipe-link]')].find(field=>field.dataset.recipeLink===el.dataset.id)?.value);
    if(!item||!food){alert('Choose a library ingredient to link.');return;}
    Object.assign(item,ingredientSnapshot(food,item.id,item.quantity));
    expandedIngredientId=item.id;refreshItems(form);return;
@@ -421,6 +421,14 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  }
  async function onSubmit(form,v){
   try{
+   if(form.dataset.form==='ingredient-definition'){
+    const existing=getData().foods.find(food=>food.id===v.ingredientId),next=structuredClone(getData());
+    const payload=newIngredientPayload(v.ingredientName,v.ingredientCalories,v.ingredientProtein,
+      v.ingredientCategory,v.ingredientServing);
+    if(!existing&&matchingIngredient(next.foods,payload.name))throw Error('That food or ingredient already exists. Edit or classify its existing definition instead.');
+    upsertIngredient(next,payload,existing?next.foods.find(food=>food.id===existing.id):null);
+    replaceData(normalizeData(next));close(true);tab='cooking';render();ingredientLibraryDialog();await persist();return;
+   }
    if(form.dataset.form==='cooking-session'){
     const session=captureCooking(form),next=structuredClone(getData());next.activeCooking=session;
     replaceData(normalizeData(next));close(true);tab='cooking';render();await persist();return;
