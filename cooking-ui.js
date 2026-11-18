@@ -147,6 +147,21 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   preview(document.querySelector('form[data-form="recipe"]'));
  }
 
+ function reviewRecipeMatches(form){
+  if(!draft||!form)return;
+  capture(form);
+  const matches=suggestRecipeIngredientMatches(draft,getData().foods),panel=form.querySelector('[data-recipe-match-preview]');
+  if(!panel){if(!matches.length)alert('All recognized ingredients are already linked.');return;}
+  if(!matches.length){panel.hidden=true;panel.innerHTML='';return;}
+  panel.hidden=false;
+  panel.innerHTML='<strong>Review '+matches.length+' proposed match'+(matches.length===1?'':'es')+'</strong>'+
+   '<p class="hint">Generic reference values may differ from brands or measured portions. This updates the existing recipe, not previous cooked batches.</p>'+
+   '<div class="cooking-match-list">'+matches.map(m=>'<div class="cooking-match-row"><span><strong>'+esc(m.priorName)+'</strong><small>'+
+     fmt(m.priorCalories)+' cal · '+fmt(m.priorProtein)+'g → '+fmt(m.targetCalories)+' cal · '+fmt(m.targetProtein)+'g per serving</small></span>'+
+     '<small>'+esc(m.source==='common'?'Common reference':'Your library')+'</small></div>').join('')+'</div>'+
+   '<div class="cooking-match-actions">'+button('Apply and save '+matches.length+' matches','recipe-apply-matches','primary small')+
+    button('Cancel','recipe-cancel-matches','outline small')+'</div>';
+ }
  function refreshItems(form){
   const list=form?.querySelector('[data-recipe-items]');
   if(list)list.innerHTML=items();
@@ -309,6 +324,32 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   link.click();setTimeout(()=>URL.revokeObjectURL?.(link.href),1000);
  }
  async function handleAction(action,el){
+
+  if(action==='recipe-review-matches'){
+   const form=el.closest('form[data-form="recipe"]');
+   if(form)reviewRecipeMatches(form);return;
+  }
+  if(action==='recipe-cancel-matches'){
+   const panel=el.closest('[data-recipe-match-preview]');
+   if(panel){panel.hidden=true;panel.innerHTML='';}return;
+  }
+  if(action==='recipe-apply-matches'){
+   const form=el.closest('form[data-form="recipe"]');if(!form||!draft)return;
+   try{
+    capture(form);
+    const {recipe,links}=linkSuggestedRecipeIngredients(draft,getData().foods);
+    if(!links.length)return alert('No unlinked ingredients match your common or personal library.');
+    const next=structuredClone(getData()),validated=normalizeRecipes([recipe])[0];
+    recipeTotals(currentRecipe(validated));
+    const index=next.recipes.findIndex(row=>row.id===validated.id);
+    if(index<0)throw Error('The original recipe is no longer available. Reopen it and try again.');
+    next.recipes[index]=validated;
+    replaceData(normalizeData(next));draft=null;edit(validated);
+    await persist();
+   }catch(error){alert(error?.message||'Unable to update recipe.');}
+   return;
+  }
+
   if(action==='ingredient-library-open'){ingredientLibraryDialog();return;}
   if(action==='ingredient-new'){ingredientEditor();return;}
   if(action==='ingredient-edit'){
