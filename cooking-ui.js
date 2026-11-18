@@ -132,6 +132,9 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function refreshItems(form){
   const list=form?.querySelector('[data-recipe-items]');
   if(list)list.innerHTML=items();
+  const picker=form?.elements?.recipeFoodId;
+  if(picker)picker.innerHTML='<option value="">Choose an ingredient from your library</option>'+ingredientFoods().map(food=>
+   '<option value="'+attr(food.id)+'">'+esc(food.name)+' · '+esc(categoryName(food))+'</option>').join('');
   preview(form);
  }
 
@@ -167,7 +170,9 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    '<button class="primary" type="submit">Save ingredient</button></form>');
  }
  function newIngredientPayload(name,calories,protein,category,servingText=''){
-  name=String(name||'').trim();calories=Number(calories);protein=Number(protein);
+  name=String(name||'').trim();
+  if(String(calories??'').trim()===''||String(protein??'').trim()==='')throw Error('Enter calories and protein for the reference serving.');
+  calories=Number(calories);protein=Number(protein);
   if(!name||name.length>120)throw Error('Enter an ingredient name (120 characters maximum).');
   if(!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)
    throw Error('Enter valid, nonnegative calories and protein.');
@@ -290,7 +295,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   if(action==='cooking-start'){
    if(getData().activeCooking)return alert('Finish or discard your existing cooking session before starting another.');
    const recipe=getRecipe(el.dataset.id);if(!recipe)return;
-   try{const next=structuredClone(getData());next.activeCooking=beginCooking(recipe,id());
+   try{const next=structuredClone(getData());next.activeCooking=beginCooking(currentRecipe(recipe),id());
     replaceData(normalizeData(next));tab='cooking';render();cookingSessionForm();await persist();}
    catch(error){alert(error?.message||'Unable to start cooking.');}return;
   }
@@ -322,10 +327,11 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    if(draft.ingredients.length>=100){alert('A recipe can have up to 100 ingredients.');return;}
    if(action==='recipe-add-custom')draft.ingredients.push({id:id(),name:'New ingredient',calories:0,protein:0,quantity:1});
    else{
-    const food=getData().foods.find(x=>x.id===form.elements.recipeFoodId.value);
-    if(!food){alert('Choose a saved food first.');return;}
+    const food=ingredientFoods().find(x=>x.id===form.elements.recipeFoodId.value);
+    if(!food){alert('Choose an ingredient from the library first.');return;}
     draft.ingredients.push(ingredientSnapshot(food,id()));
    }
+   expandedIngredientId=draft.ingredients.at(-1)?.id;
    refreshItems(form);form.elements.recipeFoodId.value='';return;
   }
   if(action==='recipe-remove-ingredient'){
@@ -350,7 +356,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     if(!draft)return;
     capture(form);
     if(!draft.ingredients.length)throw Error('Add at least one ingredient first.');
-    const recipe=normalizeRecipes([draft])[0],next=structuredClone(getData());
+    const recipe=normalizeRecipes([currentRecipe(draft)])[0],next=structuredClone(getData());
     recipeTotals(recipe);
     const index=next.recipes.findIndex(x=>x.id===recipe.id);
     if(index<0)next.recipes.push(recipe);else next.recipes[index]=recipe;
@@ -362,7 +368,11 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     const parsed=JSON.parse(await file.text());
     if(parsed?.format!=='everyday-recipe-v1')throw Error('Not an Everyday recipe file.');
     const recipe=normalizeRecipes([parsed.recipe])[0];
-    recipe.id=id();for(const ingredient of recipe.ingredients){ingredient.id=id();delete ingredient.sourceFoodId;}
+    recipe.id=id();for(const ingredient of recipe.ingredients){
+     ingredient.id=id();delete ingredient.sourceFoodId;
+     const matched=matchingIngredient(getData().foods,ingredient.name);
+     if(matched){Object.assign(ingredient,ingredientSnapshot(matched,ingredient.id,ingredient.quantity));}
+    }
     const next=structuredClone(getData());next.recipes.push(recipe);
     replaceData(normalizeData(next));close(true);tab='cooking';render();await persist();
    }
