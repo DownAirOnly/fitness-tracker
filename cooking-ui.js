@@ -117,15 +117,17 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function edit(recipe){
   draft=recipe?currentRecipe(recipe):{id:id(),name:'',servings:4,instructions:'',ingredients:[]};
   expandedIngredientId=null;
-  const selectedFoods=ingredientFoods();
+  const matches=suggestRecipeIngredientMatches(draft,getData().foods);
   modal(recipe?'Edit recipe':'New recipe','<form class="form cooking-editor" data-form="recipe" novalidate>'+
    '<label class="field"><span>Recipe name</span><input name="recipeName" maxlength="120" value="'+attr(draft.name)+'" required></label>'+
    '<label class="field"><span>Portions this batch makes</span><input type="number" name="recipeServings" min="0.01" step="any" inputmode="decimal" value="'+attr(draft.servings)+'" required></label>'+
    '<div class="cooking-totals" data-recipe-totals role="status"></div>'+
-   '<section class="cooking-ingredients"><div class="cooking-heading-row"><h3>Ingredients</h3><small>Tap a row to edit</small></div>'+
+   '<section class="cooking-ingredients"><div class="cooking-heading-row"><h3>Ingredients</h3><small>Tap a row to edit</small></div>'+ 
+   (matches.length?'<div class="cooking-match-entry"><div><strong>'+matches.length+' ingredient'+(matches.length===1?'':'s')+' can be linked</strong><small>Match this imported recipe to common reference ingredients.</small></div>'+
+    button('Review matches','recipe-review-matches','outline small')+'</div><div class="cooking-match-preview" data-recipe-match-preview hidden></div>':'')+
    '<div data-recipe-items>'+items()+'</div>'+
-   '<div class="cooking-add-row"><select name="recipeFoodId" aria-label="Ingredient library choice"><option value="">Choose an ingredient from your library</option>'+
-   selectedFoods.map(food=>'<option value="'+attr(food.id)+'">'+esc(food.name)+' · '+esc(categoryName(food))+'</option>').join('')+
+   '<label class="field cooking-ingredient-search"><span>Find ingredients</span><input type="search" name="ingredientSearch" data-ingredient-picker-search placeholder="Search 100+ common and saved ingredients" autocomplete="off"></label>'+ 
+   '<div class="cooking-add-row"><select name="recipeFoodId" aria-label="Ingredient library choice">'+ingredientOptions('')+
    '</select>'+button('Add','recipe-add-saved','outline small')+'</div>'+
    '<details class="cooking-new-library"><summary>+ Create a library ingredient</summary><div class="cooking-new-library-fields">'+
     '<label class="field"><span>Ingredient name</span><input name="newIngredientName" maxlength="120" placeholder="e.g. Unsalted butter"></label>'+
@@ -149,8 +151,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   const list=form?.querySelector('[data-recipe-items]');
   if(list)list.innerHTML=items();
   const picker=form?.elements?.recipeFoodId;
-  if(picker)picker.innerHTML='<option value="">Choose an ingredient from your library</option>'+ingredientFoods().map(food=>
-   '<option value="'+attr(food.id)+'">'+esc(food.name)+' · '+esc(categoryName(food))+'</option>').join('');
+  if(picker)picker.innerHTML=ingredientOptions(form.elements.ingredientSearch?.value||'');
   preview(form);
  }
 
