@@ -334,3 +334,32 @@
 .cooking-batch-snapshot summary{cursor:pointer;font-weight:700;font-size:13px;margin-bottom:10px}
 .cooking-batch-snapshot h3{margin:12px 0 7px}
 @media(max-width:350px){.cooking-portion-form .form-grid{grid-template-columns:1fr}}
+
+
+/* v152 — Pantry inventory and creator credit. Uses the existing palette variables. */
+.cooking-pantry,.cooking-pantry-editor,.cooking-pantry-import,.cooking-credit-editor{display:grid;gap:13px}
+.cooking-pantry .body-copy,.cooking-credit-editor .hint{margin:0}
+.cooking-pantry-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.cooking-pantry-actions button{min-height:42px;font-size:12px;padding:8px 6px}
+.cooking-pantry-list{display:grid;gap:8px}
+.cooking-pantry-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:62px;text-align:left;padding:12px 13px;border-radius:12px;border:1px solid var(--ap-border,#cddbd1);background:var(--ap-surface,#fff);color:var(--ap-on-surface,#254633)}
+.cooking-pantry-row span{min-width:0;display:grid;gap:4px}
+.cooking-pantry-row strong{font-size:14px;overflow-wrap:anywhere}
+.cooking-pantry-row small,.cooking-pantry-coverage small{font-size:11px;color:var(--ap-muted,#768776);line-height:1.5}
+.cooking-pantry-row b{font-size:22px;font-weight:400}
+.cooking-pantry-editor :is(input,select){font-size:16px;min-height:44px;width:100%;background:var(--ap-input,var(--ap-surface,#fff));color:var(--ap-on-surface,#254633);border:1px solid var(--ap-border,#cddbd1);border-radius:10px}
+.cooking-pantry-editor .field{min-width:0}
+.cooking-pantry-editor .form-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cooking-pantry-editor .form-actions button{min-height:44px}
+.cooking-credit-editor{border-top:1px solid var(--ap-border,#cddbd1);padding-top:12px}
+.cooking-credit-editor h3{margin:0;font-size:16px}
+.cooking-credit{color:var(--ap-muted,#768776);font-size:12px}
+.cooking-checkbox{display:flex;align-items:flex-start;gap:9px;font-weight:650;font-size:13px;line-height:1.45;color:var(--ap-on-surface,#254633)}
+.cooking-checkbox input{width:18px;height:18px;flex:0 0 18px;accent-color:var(--ap-primary,#669b74);margin:0}
+.cooking-pantry-deduct{display:grid;gap:9px;padding:12px 13px;border-radius:13px;border:1px solid var(--ap-border,#cddbd1);background:var(--ap-support,#edf4ee)}
+.cooking-pantry-coverage{display:grid;gap:8px;font-size:12px}
+.cooking-pantry-coverage>span{font-weight:650}
+.cooking-pantry-needs{display:grid;gap:5px}
+.cooking-pantry-needs>div{display:flex;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.cooking-pantry-needs strong{font-size:12px}
+@media(max-width:380px){.cooking-pantry-actions{grid-template-columns:1fr 1fr}.cooking-pantry-actions button:first-child{grid-column:1 / -1}}

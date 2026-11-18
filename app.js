@@ -1,12 +1,12 @@
-import {RELEASE_HISTORY} from './release-history.js?v=151.1';
+import {RELEASE_HISTORY} from './release-history.js?v=152';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
-import {createCookingUI} from './cooking-ui.js?v=151';
+import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
 import {exportRoutineCSV} from './routine-import-model.js?v=151';
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=151';
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=151';
 import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=151';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=151';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=152';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=151';
 import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=151';
@@ -2979,7 +2979,7 @@ function importModal(kind,source='file') {
 app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySelector('.modal')){event.preventDefault();close();}});
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{
- if(event.target.matches?.('[data-ingredient-picker-search],[data-common-ingredient-search]')){cooking.onSearch(event.target);return;}
+ if(event.target.matches?.('[data-ingredient-picker-search],[data-common-ingredient-search],[data-pantry-ingredient-search]')){cooking.onSearch(event.target);return;}
  if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
  if(event.target.closest('form[data-form="recipe"],form[data-form="cooking-session"],form[data-form="batch-portion"]')){cooking.onInput(event.target.form);return;}
  if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
@@ -3040,9 +3040,9 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start'&&!canPreviewCachedFoodAction(action,el))||importSaving)return;
-  if(action==='food-workspace'||action.startsWith('recipe-')||action.startsWith('cooking-')||action.startsWith('ingredient-')){await cooking.handleAction(action,el);return;}
+  if(action==='food-workspace'||action.startsWith('recipe-')||action.startsWith('cooking-')||action.startsWith('ingredient-')||action.startsWith('pantry-')){await cooking.handleAction(action,el);return;}
   if(action==='exercise-guide-open'){
-   modal('Four-day exercise guide','<div class="exercise-guide-container"><iframe src="./exercise-guide.html?v=151.1" title="Upper A, Lower A, Upper B and Lower B exercise instructions" loading="eager"></iframe></div>');
+   modal('Four-day exercise guide','<div class="exercise-guide-container"><iframe src="./exercise-guide.html?v=152" title="Upper A, Lower A, Upper B and Lower B exercise instructions" loading="eager"></iframe></div>');
    document.querySelector('#overlay .modal')?.classList.add('exercise-guide-dialog');
    return;
   }
@@ -4144,7 +4144,7 @@ app.addEventListener('submit',async event=>{
   }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
-  if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'||form.dataset.form==='cooking-session'||form.dataset.form==='ingredient-definition'||form.dataset.form==='batch-portion'){await cooking.onSubmit(form,v);return;}
+  if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'||form.dataset.form==='cooking-session'||form.dataset.form==='ingredient-definition'||form.dataset.form==='batch-portion'||form.dataset.form==='pantry-item'||form.dataset.form==='pantry-import'){await cooking.onSubmit(form,v);return;}
   if(form.dataset.form==='food-definition'){let serving;try{serving=servingFromForm(v);}catch(error){alert(error.message);return;}const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||v.calories.trim()===''||v.protein.trim()===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,serving,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,...(serving?{serving}:{}),lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
     if(form.dataset.foodSubmitting==='true')return;
@@ -4262,7 +4262,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=151.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=152',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
