@@ -1,3 +1,9 @@
+## v151.1 — Standalone exercise guide in Settings
+
+Open **Settings → Exercise guide → Open four-day guide** to access a full-height, closable, mobile-friendly reference for Upper A, Lower A, Upper B and Lower B. All 36 exercise placements are included with setup, movement, muscle targets, mistakes, training notes and external video links. The guide is pre-cached for offline reading. Optional checkmarks are device-local and do not modify workout history.
+
+No routine or log changes, no cloud migration. The public guide omits dated private lifting logs and personally identifying symptom notes. This is a focused v151.1 hotfix; v151 Cooking and batch-portion features remain intact.
+
 ## v151 — Prepared portions and leftovers (November 18, 2026)
 
 - **Explicit consumption logging:** Food > Cooking > Prepared batches > Log a portion records eaten recipe portions or weighed grams (only if a finished batch weight was recorded). Choose the date and optional time. Nutrition is calculated from the immutable finished batch. Creating a recipe or finishing cooking never logs food automatically.

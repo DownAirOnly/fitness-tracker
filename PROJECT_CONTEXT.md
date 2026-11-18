@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v151 (November 18, 2026)
+## Current release — v151.1 (November 18, 2026)
+
+- **Standalone four-day exercise guide in Settings:** Opens a full-height closable iframe overlay with the Upper A / Lower A / Upper B / Lower B reference. Detailed setup, execution, muscles, mistakes, video links, and optional local-only checklist for 36 exercise placements. Offline-readable via service-worker precaching.
+- **Privacy and safety:** The public page excludes dated personal exercise history and identifiable health notes. The guide does not alter actual workout logs or routines, Cooking, Food, the data model, or Firebase rules.
+- **Patch assets:** app and release history use v151.1 cache tokens; guide HTML and dedicated modal CSS are new. v151 imported modules and v150/v145 backward cache coverage are retained.
+- **Next:** v152 pantry/recipe attribution; v153 lifting; v154 progress intelligence.
+
+## Previous release — v151 (November 18, 2026)
 
 - **Portions and leftovers:** The user must explicitly log food from a prepared batch; recipes and cooked batches never auto-log. Portion counts or weighed grams based on a known finished weight can be entered for any date with an optional time. Batch nutrition remains frozen.
 - **Consumption is tracked once:** New food entries have preparedBatchId and optional batchGrams. Leftovers are calculated from those logs, so editing/deleting a meal updates availability across dates. Logging refuses amounts above remaining inventory and guards duplicate submits.

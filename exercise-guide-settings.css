@@ -1,0 +1,9 @@
+/* v151.1 — isolated standalone exercise-guide viewer */
+.exercise-guide-settings .outline{display:block;width:100%;min-height:46px;margin:8px 0 0;text-align:center}
+.exercise-guide-dialog{width:min(980px,calc(100% - 12px));height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);padding:12px;display:flex;flex-direction:column;overflow:hidden}
+.exercise-guide-dialog .modal-top{flex:0 0 auto;margin-bottom:10px;padding:0 2px}
+.exercise-guide-dialog .modal-top h2{font-size:clamp(16px,4.5vw,22px)}
+.exercise-guide-dialog .close-btn{width:40px;height:40px;flex:0 0 auto}
+.exercise-guide-container{flex:1 1 auto;min-height:0;min-width:0;overflow:hidden;border-radius:12px;background:#0c1e1a}
+.exercise-guide-container iframe{display:block;width:100%;height:100%;border:0;background:#0c1e1a}
+@media(max-width:440px){.exercise-guide-dialog{padding:8px;width:calc(100% - 8px);height:calc(100dvh - 8px);max-height:calc(100dvh - 8px)}.exercise-guide-dialog .modal-top{margin-bottom:5px}.exercise-guide-container{border-radius:9px}}
