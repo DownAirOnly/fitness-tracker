@@ -2,7 +2,15 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v151.1 (November 18, 2026)
+## Current release — v152 (November 18, 2026)
+
+- Food > Cooking > Pantry supports linked ingredient reference-serving inventory, unlinked named items, quantities including zero, item editing, and separate portable JSON import/export. Imported inventory replaces existing stock only after explicit confirmation; it does not alter any Food logs or recipes.
+- Optional Cooking Finish deduction checks the current session's linked ingredient amounts against Pantry. If enabled, matched stock is deducted once as the session becomes a prepared batch, with shortages rejected before any mutation and untracked stock left alone. A batch retains immutable deduction details. Saving steps/progress never deducts or logs food.
+- Recipe creator credit is optional and can be hidden locally while still preserved in exported recipe files; the importer explicitly chooses whether to display supplied credit. Existing uncredited recipe JSON remains valid.
+- Pantry is included in both full compact/v1 backups, Nutrition section and Firestore v3 catalog. Device migration keeps existing cloud quantities on overlap rather than summing potentially stale stock. No Firebase rule or exercise guide changes.
+- **Next:** v153 lifting refinements, v154 progress intelligence, v155+ input/scanning. CI and Pages publication require independent checking; live iPhone version requires user confirmation.
+
+## Previous release — v151.1 (November 18, 2026)
 
 - **Standalone four-day exercise guide in Settings:** Opens a full-height closable iframe overlay with the Upper A / Lower A / Upper B / Lower B reference. Detailed setup, execution, muscles, mistakes, video links, and optional local-only checklist for 36 exercise placements. Offline-readable via service-worker precaching.
 - **Privacy and safety:** The public page excludes dated personal exercise history and identifiable health notes. The guide does not alter actual workout logs or routines, Cooking, Food, the data model, or Firebase rules.

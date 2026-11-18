@@ -2,6 +2,7 @@
 import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps,suggestRecipeIngredientMatches,linkSuggestedRecipeIngredients} from './cooking-model.js?v=151';
 import {COMMON_INGREDIENTS,commonIngredientById,commonIngredientChoices,findCommonIngredient} from './common-ingredient-catalog.js?v=151';
 import {batchInventory,planBatchPortion} from './batch-portion-model.js?v=151';
+import {normalizePantry,pantryCoverage,deductPantryForBatch,exportPortablePantry,importPortablePantry} from './pantry-model.js?v=152';
 
 export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,modal,close,render,persist,trackingDate,timeSlot}){
  let tab='summary',draft=null,expandedIngredientId=null,portionNotice='';
@@ -42,12 +43,12 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   const recipes=getData().recipes||[],active=getData().activeCooking,batches=(getData().preparedBatches||[]).slice().reverse();
   return '<section class="cooking-home"><div class="section-head"><div><h2>Cooking</h2>'+
    '<p class="body-copy cooking-intro">Recipes, shared ingredients, and guided cooking — all in one place.</p></div></div>'+
-   '<div class="cooking-actions">'+button('+ New recipe','recipe-new','primary small')+button('Ingredients','ingredient-library-open','outline small')+button('Import JSON','recipe-import-open','outline small')+'</div>'+
+   '<div class="cooking-actions">'+button('+ New recipe','recipe-new','primary small')+button('Ingredients','ingredient-library-open','outline small')+button('Pantry · '+(getData().pantry||[]).length,'pantry-open','outline small')+button('Import JSON','recipe-import-open','outline small')+'</div>'+
    (active?'<div class="cooking-active-banner"><div><strong>Cooking · '+esc(active.recipe.name)+'</strong><small>Session saved separately from your recipe</small></div><div class="cooking-active-actions">'+button('Resume','cooking-resume','primary small')+button('Discard','cooking-discard','outline small')+'</div></div>':'')+
    (recipes.length?'<div class="cooking-recipe-list">'+recipes.map(recipe=>
     '<div class="cooking-recipe-row"><button type="button" class="cooking-recipe-card" data-action="recipe-open" data-id="'+attr(recipe.id)+'"><span><strong>'+esc(recipe.name)+
      '</strong><small>'+fmt(recipe.servings)+' portions · '+recipe.ingredients.length+' ingredients</small>'+
-     '<span class="cooking-card-macros">'+totals(recipe)+'</span></span><b aria-hidden="true">›</b></button>'+
+     '<span class="cooking-card-macros">'+totals(recipe)+'</span>'+(recipe.creator&&recipe.showCreator!==false?'<small class="cooking-credit">By '+esc(recipe.creator)+'</small>':'')+'</span><b aria-hidden="true">›</b></button>'+
      button('Cook','cooking-start','outline small','data-id="'+attr(recipe.id)+'"')+'</div>').join('')+'</div>':
     '<p class="empty">No recipes yet. Add a homemade meal to calculate its nutrition.</p>')+
    (batches.length?'<section class="cooking-prepared"><h3>Prepared batches</h3><div class="cooking-prepared-list">'+batches.slice(0,30).map(batch=>
@@ -87,6 +88,9 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   draft.name=form.elements.recipeName.value;
   draft.servings=form.elements.recipeServings.value.trim()===''?NaN:Number(form.elements.recipeServings.value);
   draft.instructions=form.elements.recipeInstructions.value;
+   const creator=form.elements.recipeCreator.value.trim();
+   if(creator){draft.creator=creator;draft.showCreator=form.elements.recipeCreditVisible.checked;}
+   else{delete draft.creator;delete draft.showCreator;}
   for(const field of form.querySelectorAll('[data-recipe-item-key]')){
    const item=draft.ingredients.find(x=>x.id===field.dataset.recipeItemId);
    if(!item)continue;
@@ -139,7 +143,11 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     '<label class="field"><span>Reference serving (optional)</span><input name="newIngredientServing" maxlength="120" placeholder="e.g. 1 tablespoon"></label>'+
     button('Save to library & recipe','recipe-create-ingredient','primary small')+'</div></details>'+
    '<div class="cooking-minor-action">'+button('+ One-off ingredient','recipe-add-custom','text-btn')+'</div></section>'+
-   '<section class="recipe-instructions"><div class="cooking-heading-row"><h3>Instructions</h3><small>Editable steps</small></div>'+
+   '<section class="cooking-credit-editor"><h3>Recipe credit</h3>'+
+    '<label class="field"><span>Creator / shared by (optional)</span><input name="recipeCreator" maxlength="80" placeholder="e.g. Alex" value="'+attr(draft.creator||'')+'"></label>'+
+    '<label class="cooking-checkbox"><input type="checkbox" name="recipeCreditVisible" '+(draft.showCreator!==false?'checked':'')+'><span>Show creator on recipe cards</span></label>'+
+    '<p class="hint">Creator credit stays in shared recipe files even if hidden in your own collection.</p></section>'+
+    '<section class="recipe-instructions"><div class="cooking-heading-row"><h3>Instructions</h3><small>Editable steps</small></div>'+
     '<textarea class="recipe-instructions-note" name="recipeInstructions" maxlength="6000" rows="6" placeholder="Write each cooking step on its own line…">'+esc(draft.instructions)+'</textarea></section>'+
    '<p class="hint">Standard ingredients use built-in reference estimates. You can override them in your personal Ingredient Library; previously cooked batches keep their historical values.</p>'+
    '<div class="form-actions"><button type="submit" class="primary">Save recipe</button>'+
@@ -219,7 +227,12 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    if(picker)picker.innerHTML=ingredientOptions(field.value);
    return;
   }
-  if(!field?.matches?.('[data-common-ingredient-search]'))return;
+  if(field?.matches?.('[data-pantry-ingredient-search]')){
+    const picker=field.form?.elements?.pantrySource;
+    if(picker){const prior=picker.value;picker.innerHTML=ingredientOptions(field.value);picker.value=prior;}
+    return;
+   }
+   if(!field?.matches?.('[data-common-ingredient-search]'))return;
   const search=field.value.trim().toLocaleLowerCase(),root=field.closest('.cooking-library-screen');
   if(!root)return;
   for(const group of root.querySelectorAll('[data-common-group]')){
@@ -274,6 +287,54 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   return {food:existing,created:false,exact:true};
  }
 
+ 
+ function pantryDialog(){
+  const stock=getData().pantry||[],empty=stock.filter(x=>x.quantity===0).length;
+  modal('Pantry','<section class="cooking-pantry"><p class="body-copy">Keep a simple list of the ingredients you have. Quantities are reference servings, not consumed food.</p>'+
+   '<div class="cooking-pantry-actions">'+button('+ Add item','pantry-new','primary small')+button('Export pantry','pantry-export','outline small')+button('Import pantry','pantry-import-open','outline small')+'</div>'+
+   '<div class="cooking-heading-row"><h3>Stock</h3><small>'+stock.length+' items'+(empty?' · '+empty+' empty':'')+'</small></div>'+
+   (stock.length?'<div class="cooking-pantry-list">'+stock.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(item=>
+    '<button type="button" class="cooking-pantry-row" data-action="pantry-edit" data-id="'+attr(item.id)+'"><span><strong>'+esc(item.name)+'</strong><small>'+
+    fmt(item.quantity)+' reference servings'+(item.servingLabel?' · '+esc(item.servingLabel):'')+(item.sourceFoodId?'':' · Unlinked')+
+    '</small></span><b aria-hidden="true">›</b></button>').join('')+'</div>':
+    '<p class="empty">No pantry items yet. Add ingredients you have on hand.</p>')+
+   '<p class="hint">A finished batch deducts matched inventory only if you choose to. Export and import Pantry separately from recipes. Import replaces stock after confirmation.</p></section>');
+ }
+ function pantryEditor(item=null){
+  modal(item?'Edit pantry item':'Add pantry item','<form class="form cooking-pantry-editor" data-form="pantry-item" novalidate>'+
+   '<input type="hidden" name="pantryId" value="'+attr(item?.id||'')+'">'+
+   '<label class="field"><span>Find an ingredient</span><input type="search" data-pantry-ingredient-search placeholder="Search 100+ ingredients" autocomplete="off"></label>'+
+   '<label class="field"><span>Link to Ingredient Library (optional)</span><select name="pantrySource">'+ingredientOptions('')+'</select></label>'+
+   '<label class="field"><span>Item name (if not linked)</span><input name="pantryName" maxlength="120" value="'+attr(item?.name||'')+'" placeholder="e.g. Jasmine rice"></label>'+
+   '<label class="field"><span>On hand · reference servings</span><input type="number" name="pantryQuantity" min="0" max="100000" step="any" inputmode="decimal" value="'+attr(item?.quantity??1)+'" required></label>'+
+   '<label class="field"><span>Serving description (for unlinked items)</span><input name="pantryServing" maxlength="120" value="'+attr(item?.servingLabel||'')+'" placeholder="e.g. 1 tablespoon"></label>'+
+   '<p class="hint">Link an existing ingredient to enable optional deductions during Cooking. Set quantity to zero when out of stock.</p>'+
+   '<div class="form-actions"><button type="submit" class="primary">Save stock</button>'+button('Back','pantry-open','outline')+'</div>'+
+   (item?button('Remove from pantry','pantry-delete','danger','data-id="'+attr(item.id)+'"'):'')+'</form>');
+  document.querySelector('form[data-form="pantry-item"]').elements.pantrySource.value=item?.sourceFoodId||'';
+ }
+ function pantryImportDialog(){
+  modal('Import pantry','<form class="form" data-form="pantry-import"><p class="body-copy">A pantry file contains item names and quantities only. Importing replaces current stock after confirmation, not recipes or food logs.</p>'+
+   '<label class="field"><span>Pantry JSON</span><input type="file" name="file" accept=".json,application/json" required></label>'+
+   '<button type="submit" class="primary">Review import</button></form>');
+ }
+ function exportPantry(){
+  const blob=new Blob([JSON.stringify(exportPortablePantry(getData().pantry||[]),null,2)],{type:'application/json'});
+  const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='everyday-pantry.json';
+  link.click();setTimeout(()=>URL.revokeObjectURL?.(link.href),1000);
+ }
+ function pantryPreview(session){
+  const stock=getData().pantry||[];
+  if(!stock.length)return '<span>No pantry items yet. Open Pantry to add them.</span>';
+  const plan=pantryCoverage(session.recipe,stock);
+  return '<span>'+plan.matched+' matching linked ingredient'+(plan.matched===1?'':'s')+' · '+plan.untracked.length+' untracked</span>'+
+   (plan.rows.length?'<div class="cooking-pantry-needs">'+plan.rows.map(row=>
+    '<div><strong>'+esc(row.name)+'</strong><small>'+fmt(row.needed)+' needed / '+fmt(row.available)+' on hand'+
+    (row.needed>row.available+1e-8?' · Not enough':'')+'</small></div>').join('')+'</div>':'')+
+   (plan.shortfalls.length?'<small class="cooking-batch-alert">Increase available stock or finish without deductions.</small>':'')+
+   '<small>Untracked ingredients are never deducted.</small>';
+ }
+
  function cookingSessionForm(){
   const session=getData().activeCooking;
   if(!session)return alert('There is no cooking session to resume.');
@@ -311,6 +372,8 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     '<section class="recipe-instructions"><div class="cooking-heading-row"><h3>Edit instructions</h3><small>One step per line</small></div>'+
     '<textarea class="recipe-instructions-note" name="cookingInstructions" maxlength="6000" rows="5">'+esc(recipe.instructions)+'</textarea></section>'+
     '</div></details>'+
+   '<section class="cooking-pantry-deduct"><label class="cooking-checkbox"><input name="deductPantry" type="checkbox"><span>Deduct stocked ingredients when finishing</span></label>'+
+   '<div class="cooking-pantry-coverage" data-pantry-coverage></div></section>'+
    '<div class="form-actions"><button type="submit" class="primary">Save progress</button>'+button('Finish batch','cooking-finish','outline')+
    button('Discard session','cooking-discard','danger')+'</div></form>');
   previewCooking(document.querySelector('form[data-form="cooking-session"]'));
@@ -337,6 +400,8 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   if(!status)return;
   try{
    const session=captureCooking(form),totals=recipeTotals(session.recipe);
+   const coverage=form.querySelector('[data-pantry-coverage]');
+   if(coverage)coverage.innerHTML=pantryPreview(session);
    status.textContent=fmt(totals.calories)+' cal · '+fmt(totals.protein)+'g protein for batch | '+
     fmt(totals.perPortionCalories)+' cal · '+fmt(totals.perPortionProtein)+'g per portion';
   }catch{status.textContent='Enter valid ingredient nutrition, quantities and portions.';}
@@ -356,6 +421,9 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    '<div class="cooking-totals">'+fmt(nutrition.calories)+' cal · '+fmt(nutrition.protein)+'g protein for batch | '+
     fmt(nutrition.perPortionCalories)+' cal · '+fmt(nutrition.perPortionProtein)+'g per portion</div>'+
    '<p class="body-copy">'+fmt(batch.recipe.servings)+' original portions'+(batch.finishedGrams?' · '+fmt(batch.finishedGrams)+' g finished weight':'')+'</p>'+
+   (batch.pantryDeductions?.length?'<details class="cooking-batch-snapshot"><summary>Pantry used · '+batch.pantryDeductions.length+' ingredients</summary>'+
+    batch.pantryDeductions.map(row=>'<p class="cooking-batch-ingredient">'+esc(row.name)+' · '+fmt(row.quantity)+' reference servings</p>').join('')+'</details>':'')+
+   (batch.recipe.creator&&batch.recipe.showCreator!==false?'<p class="cooking-credit">Recipe by '+esc(batch.recipe.creator)+'</p>':'')+
    (history?'<h3>Logged portions</h3><div class="cooking-batch-logs">'+history+'</div>':'')+
    '<details class="cooking-batch-snapshot"><summary>Batch recipe snapshot</summary>'+
    '<h3>Ingredients</h3>'+batch.recipe.ingredients.map(item=>'<p class="cooking-batch-ingredient">'+esc(item.name)+' · '+fmt(item.quantity)+' servings</p>').join('')+
@@ -408,6 +476,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function importDialog(){
   modal('Import recipe','<form class="form" data-form="recipe-import"><p class="body-copy">Import a portable Everyday recipe. This does not change existing foods or your food log.</p>'+
    '<label class="field"><span>Recipe JSON file</span><input type="file" name="file" accept=".json,application/json" required></label>'+
+   '<label class="cooking-checkbox"><input type="checkbox" name="showCreator" value="yes" checked><span>Show imported creator credit (if included)</span></label>'+
    '<button type="submit" class="primary">Import recipe</button></form>');
  }
  function exportRecipe(recipe){
@@ -446,6 +515,19 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    return;
   }
 
+  if(action==='pantry-open'){pantryDialog();return;}
+  if(action==='pantry-new'){pantryEditor();return;}
+  if(action==='pantry-edit'){
+   const item=(getData().pantry||[]).find(x=>x.id===el.dataset.id);if(item)pantryEditor(item);return;
+  }
+  if(action==='pantry-delete'){
+   const item=(getData().pantry||[]).find(x=>x.id===el.dataset.id);
+   if(!item||!confirm('Remove "'+item.name+'" from pantry? Historical batches and food logs remain.'))return;
+   const next=structuredClone(getData());next.pantry=next.pantry.filter(x=>x.id!==item.id);
+   replaceData(normalizeData(next));pantryDialog();await persist();return;
+  }
+  if(action==='pantry-export'){exportPantry();return;}
+  if(action==='pantry-import-open'){pantryImportDialog();return;}
   if(action==='ingredient-library-open'){ingredientLibraryDialog();return;}
   if(action==='ingredient-common-view'){commonIngredientDetails(commonIngredientById(el.dataset.id));return;}
   if(action==='ingredient-common-copy'){
@@ -540,7 +622,12 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    const form=el.closest('form[data-form="cooking-session"]');
    try{const session=captureCooking(form),next=structuredClone(getData());
     if(next.preparedBatches.length>=1500)throw Error('Export and archive older prepared batches first.');
-    const batch=finishCooking(session,id());next.preparedBatches.push(batch);next.activeCooking=null;
+    const batch=finishCooking(session,id());
+    if(form.elements.deductPantry?.checked){
+     const result=deductPantryForBatch(session.recipe,next.pantry);
+     next.pantry=result.pantry;batch.pantryDeductions=result.deductions;
+    }
+    next.preparedBatches.push(batch);next.activeCooking=null;
     replaceData(normalizeData(next));close(true);tab='cooking';render();await persist();}
    catch(error){alert(error?.message||'Unable to finish the batch.');}return;
   }
@@ -597,6 +684,26 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  }
  async function onSubmit(form,v){
   try{
+   if(form.dataset.form==='pantry-item'){
+    const next=structuredClone(getData()),current=v.pantryId?next.pantry.find(x=>x.id===v.pantryId):null;
+    if(v.pantryId&&!current)throw Error('Pantry item changed. Reopen Pantry.');
+    const food=ingredientFoods().find(x=>x.id===v.pantrySource);
+    if(v.pantrySource&&!food)throw Error('Choose a valid linked ingredient.');
+    const name=food?.name||String(v.pantryName||'').trim(),quantity=String(v.pantryQuantity??'').trim()===''?NaN:Number(v.pantryQuantity);
+    const servingLabel=food?.serving?.text||String(v.pantryServing||'').trim();
+    const record={id:current?.id||id(),name,quantity,...(food?{sourceFoodId:food.id}:{}),...(servingLabel?{servingLabel}:{})};
+    if(current){Object.assign(current,record);if(!food)delete current.sourceFoodId;if(!servingLabel)delete current.servingLabel;}
+    else next.pantry.push(record);
+    replaceData(normalizeData(next));pantryDialog();await persist();return;
+   }
+   if(form.dataset.form==='pantry-import'){
+    const file=v.file;if(!file||typeof file.text!=='function')throw Error('Choose a pantry JSON file.');
+    if(file.size>200000)throw Error('Pantry file is too large.');
+    const imported=importPortablePantry(JSON.parse(await file.text()),ingredientFoods(),id);
+    if(!confirm('Replace '+getData().pantry.length+' current pantry items with '+imported.length+' imported items? Recipes and food logs remain unchanged.'))return;
+    const next=structuredClone(getData());next.pantry=imported;
+    replaceData(normalizeData(next));pantryDialog();await persist();return;
+   }
    if(form.dataset.form==='ingredient-definition'){
     const existing=getData().foods.find(food=>food.id===v.ingredientId),next=structuredClone(getData());
     const payload=newIngredientPayload(v.ingredientName,v.ingredientCalories,v.ingredientProtein,
@@ -646,6 +753,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     const parsed=JSON.parse(await file.text());
     if(parsed?.format!=='everyday-recipe-v1')throw Error('Not an Everyday recipe file.');
     const recipe=normalizeRecipes([parsed.recipe])[0];
+    if(recipe.creator)recipe.showCreator=v.showCreator==='yes';
     recipe.id=id();for(const ingredient of recipe.ingredients){
      ingredient.id=id();delete ingredient.sourceFoodId;
      const matched=matchingIngredient(getData().foods,ingredient.name)||findCommonIngredient(ingredient.name);

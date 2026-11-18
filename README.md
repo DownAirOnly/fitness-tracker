@@ -1,3 +1,11 @@
+## v152 — Pantry and recipe creator credit (November 18, 2026)
+
+- **Pantry:** Food → Cooking → Pantry tracks quantities in an ingredient's reference servings, including out-of-stock items and unlinked custom stock. Stock can be edited, removed, exported or imported through a separate pantry JSON file; imports replace the pantry only with confirmation and never touch meals or recipes.
+- **Optional deductions:** Guided Cooking shows matched ingredients and available servings. Finishing a batch deducts linked pantry stock **only if the user checks the deduction option**; shortages block that choice without partially deducting. Untracked ingredients are unchanged. A prepared batch keeps a read-only deduction record. Saving or discarding Cooking never uses stock.
+- **Recipe attribution:** Recipe editor supports optional creator / shared-by credit and independent display toggle. A portable recipe JSON includes the creator when supplied, and the recipient chooses whether to show it. Hidden credit remains stored in the recipe; no user identity is invented or automatically shared.
+- **Durability:** Pantry survives full compact/v1 backups, Nutrition section export/import, Firestore v3 catalog files, and conservative device migration. Older backups and cloud catalogs without pantry remain valid; no Firebase rule changes. No existing food log, recipe snapshot, workout, or historical batch is retroactively modified.
+- **Next:** v153 lifting refinements, v154 progress intelligence, v155+ nutrition input improvements and scanning.
+
 ## v151.1 — Standalone exercise guide in Settings
 
 Open **Settings → Exercise guide → Open four-day guide** to access a full-height, closable, mobile-friendly reference for Upper A, Lower A, Upper B and Lower B. All 36 exercise placements are included with setup, movement, muscle targets, mistakes, training notes and external video links. The guide is pre-cached for offline reading. Optional checkmarks are device-local and do not modify workout history.

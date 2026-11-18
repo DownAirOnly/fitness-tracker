@@ -1,8 +1,9 @@
 import {normalizeServing} from './food-portion-model.js?v=151';
-import {normalizeRecipes,normalizeCookingSession,normalizePreparedBatches} from './cooking-model.js?v=151';
+import {normalizeRecipes,normalizeCookingSession,normalizePreparedBatches} from './cooking-model.js?v=152';
+import {normalizePantry} from './pantry-model.js?v=152';
 import {mergeMissingExerciseMeta,normalizeExerciseMeta,normalizeRoutineCue} from './exercise-import-meta.js?v=151';
 import {defaultAppearance,normalizeAppearance} from './appearance-model.js?v=151';
-import {decodeStoredData,encodeStoredData} from './storage-model.js?v=151';
+import {decodeStoredData,encodeStoredData} from './storage-model.js?v=152';
 import {normalizeClassificationRules} from './classification-model.js?v=151';
 import {normalizeBudgetPlan,emptyBudgetPlan} from './budget-model.js?v=151';
 
@@ -55,7 +56,7 @@ export const templateExercises = {
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,color:['#69B98A','#AC8ED9','#C58B58'][index]||'#69B98A',exercises:structuredClone(exercises)}));
 export const defaultPreferences=()=>({homeDashboard:'nutrition',homeFoodIds:null,theme:'system',appearance:defaultAppearance(),legacyImported:false});
-export const emptyData = () => ({version: 1, preferences:defaultPreferences(), settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], recipes: [], activeCooking: null, preparedBatches: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+export const emptyData = () => ({version: 1, preferences:defaultPreferences(), settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], recipes: [], activeCooking: null, preparedBatches: [], pantry: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 // A Finance reset only changes finance-owned state. Other tabs and account
 // preferences must remain byte-for-byte identical in the candidate notebook.
 export function resetFinanceData(current){
@@ -285,6 +286,7 @@ export function normalizeData(input) {
   });
   for(const f of data.foods){if(f.serving!=null)f.serving=normalizeServing(f.serving);if(typeof f.id!=='string'||typeof f.name!=='string'||!Number.isFinite(f.calories)||f.calories<0||!Number.isFinite(f.protein)||f.protein<0)throw new Error('Backup has an invalid saved food.');f.kind=['food','drink'].includes(f.kind)?f.kind:'food';f.tags=Array.isArray(f.tags)?[...new Set(f.tags.filter(tag=>typeof tag==='string'&&tag.trim()).map(tag=>tag.trim().toLowerCase()))]:[];f.pinned=f.pinned===true;f.accuracy=['label','estimate'].includes(f.accuracy)?f.accuracy:'';if(f.tags.length>50||f.tags.some(tag=>tag.length>40))throw new Error('Backup has invalid food metadata.');}
   data.recipes=normalizeRecipes(input.recipes??[]);
+   data.pantry=normalizePantry(input.pantry??[]);
   data.activeCooking=normalizeCookingSession(input.activeCooking??null);
   data.preparedBatches=normalizePreparedBatches(input.preparedBatches??[]);
   if(data.activeCooking&&data.preparedBatches.some(b=>b.sessionId===data.activeCooking.id))throw Error('The active cooking session has already been finished.');

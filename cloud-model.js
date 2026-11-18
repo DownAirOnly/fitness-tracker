@@ -1,5 +1,5 @@
-import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=150';
-import {monthlyParts} from './account-monthly.js?v=150';
+import {emptyData, normalizeData, encodeData, convertNotebookWeightUnit} from './data.js?v=152';
+import {monthlyParts} from './account-monthly.js?v=152';
 
 export const MAX_CLOUD_BYTES = 800000;
 export class CloudConflict extends Error {
@@ -33,16 +33,16 @@ export function nextRecord(current,expected,payload) {
   return {schemaVersion:1,revision:revision+1,payload};
 }
 
-export function hasRecords(data) { return ['foods','foodEntries','recipes','preparedBatches','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
+export function hasRecords(data) { return ['foods','foodEntries','recipes','preparedBatches','pantry','lifts','weights','bodyFat','transactions'].some(k=>(data[k]||[]).length>0); }
 export function hasDeviceMigrationContent(data) {
  const defaults=emptyData();
- return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||Boolean(data.activeCooking)||
+ return hasRecords(data)||(data.classificationRules||[]).length>0||JSON.stringify(data.budgetPlan||{})!==JSON.stringify(emptyData().budgetPlan)||Boolean(data.activeWorkout)||(data.workoutHistory||[]).length>0||Boolean(data.activeCooking)||(data.pantry||[]).length>0||
   JSON.stringify(data.exerciseDefinitions||[])!==JSON.stringify(defaults.exerciseDefinitions)||
   JSON.stringify(data.workoutTemplates||[])!==JSON.stringify(defaults.workoutTemplates)||
   (data.workoutSchedule||[]).length>0;
 }
 
-const migrationKeys=['foods','foodEntries','recipes','preparedBatches','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
+const migrationKeys=['foods','foodEntries','recipes','preparedBatches','pantry','lifts','weights','bodyFat','transactions','exerciseDefinitions','workoutTemplates','workoutHistory'];
 const exerciseKey=e=>String(e.name||'').trim().toLowerCase()+'|'+(e.equipment||'other');
 const signature=value=>JSON.stringify(value,(key,value)=>{
  if(value&&typeof value==='object'&&!Array.isArray(value))
@@ -195,6 +195,19 @@ export function planDeviceMigration(cloud,device) {
    lift.buddySessionId=sessionAliases.get(lift.buddySessionId);
  }
  for(const key of ['foods','foodEntries','recipes','preparedBatches','weights','bodyFat','lifts'])pushRecords(key);
+  // Quantities are not historical events. Keep the cloud stock on overlap.
+  const tracked=new Set(candidate.pantry.filter(x=>x.sourceFoodId).map(x=>x.sourceFoodId));
+  const names=new Set(candidate.pantry.map(x=>x.name.trim().toLocaleLowerCase()));
+  const pantryIds=ids('pantry');
+  for(const item of incoming.pantry){
+   if((item.sourceFoodId&&tracked.has(item.sourceFoodId))||names.has(item.name.trim().toLocaleLowerCase())){summary.skipped.pantry++;continue;}
+   const copy=structuredClone(item);
+   if(pantryIds.has(copy.id)){copy.id=nextMigrationId(copy.id,pantryIds);summary.idConflicts++;}
+   else pantryIds.add(copy.id);
+   candidate.pantry.push(copy);summary.added.pantry++;
+   if(copy.sourceFoodId)tracked.add(copy.sourceFoodId);
+   names.add(copy.name.trim().toLocaleLowerCase());
+  }
  // Financial entries are not content-deduplicated: two identical purchases can be real.
  // Repeated imports are idempotent by original ID and deterministic "-device" aliases.
  // Different records sharing an ID are preserved rather than overwritten.

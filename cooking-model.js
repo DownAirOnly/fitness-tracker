@@ -88,7 +88,13 @@ export function normalizeRecipes(value){
    if(item.serving!=null)entry.serving=normalizeServing(item.serving);
    return entry;
   });
-  return {id,name,servings,instructions:recipe.instructions,ingredients};
+  const normalized={id,name,servings,instructions:recipe.instructions,ingredients};
+  if(recipe.creator!=null&&recipe.creator!==''){
+   normalized.creator=title(recipe.creator,80,'recipe creator');
+   if(recipe.showCreator!=null&&typeof recipe.showCreator!=='boolean')throw Error('Invalid recipe credit preference.');
+   normalized.showCreator=recipe.showCreator!==false;
+  }
+  return normalized;
  });
 }
 export function recipeTotals(recipe){
@@ -141,7 +147,17 @@ export function normalizePreparedBatches(value){
   const recipe=normalizeRecipes([item.recipe])[0];
   if(!recipe.ingredients.length)throw Error('Prepared batches need an ingredient.');
   const finishedGrams=optionalGrams(item.finishedGrams);
-  return {id,sessionId,recipeId,preparedAt,recipe,...(finishedGrams==null?{}:{finishedGrams})};
+  let pantryDeductions;
+   if(item.pantryDeductions!=null){
+    if(!Array.isArray(item.pantryDeductions)||item.pantryDeductions.length>100)throw Error('Invalid batch pantry deductions.');
+    pantryDeductions=item.pantryDeductions.map(row=>{
+     if(!row||typeof row!=='object'||Array.isArray(row)||!Number.isFinite(row.quantity)||row.quantity<=0||row.quantity>100000)throw Error('Invalid batch pantry deduction.');
+     return {pantryId:title(row.pantryId,160,'pantry ID'),sourceFoodId:title(row.sourceFoodId,160,'ingredient ID'),
+      name:title(row.name,120,'pantry item'),quantity:row.quantity};
+    });
+   }
+   return {id,sessionId,recipeId,preparedAt,recipe,...(finishedGrams==null?{}:{finishedGrams}),
+    ...(pantryDeductions?{pantryDeductions}:{})};
  });
 }
 export function beginCooking(recipe,sessionId,startedAt=new Date().toISOString()){
