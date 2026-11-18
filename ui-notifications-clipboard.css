@@ -1,11 +1,12 @@
 /* v127: compact top-of-screen Undo notice and clipboard-only food CSV. */
 #overlay .food-undo-toast{
  position:fixed!important;
- top:calc(env(safe-area-inset-top, 0px) + 12px)!important;
- bottom:auto!important;
+ top:auto!important;
+ /* Keep the confirmation above bottom navigation, clear of the wordmark/date. */
+ bottom:calc(93px + env(safe-area-inset-bottom, 0px))!important;
  left:50%!important;
  z-index:1200;
- width:max-content;max-width:min(390px,calc(100vw - 32px));
+ width:min(390px,calc(100vw - 32px));max-width:calc(100vw - 32px);
  min-height:42px;
  padding:7px 8px 7px 13px;
  display:flex;align-items:center;justify-content:space-between;
@@ -18,10 +19,14 @@
  animation:food-undo-arrive .3s cubic-bezier(.17,.77,.27,1) both;
  pointer-events:auto;
 }
+#overlay .food-undo-toast .food-save-copy{display:flex;flex:1;flex-direction:column;gap:3px;min-width:0}
 #overlay .food-undo-toast strong{
- display:block;min-width:0;flex:1;max-width:250px;
- font-size:12px;line-height:1.35;font-weight:700;
- text-overflow:ellipsis;overflow:hidden;white-space:nowrap;
+ display:block;min-width:0;max-width:none;
+ font-size:13px;line-height:1.3;font-weight:700;
+ white-space:normal;overflow-wrap:anywhere;
+}
+#overlay .food-undo-toast [data-food-save-result]{
+ font-size:11px;line-height:1.3;opacity:.88;white-space:normal;overflow-wrap:anywhere;
 }
 #overlay .food-undo-toast button{
  flex:0 0 auto;min-height:32px;min-width:52px;padding:5px 10px;
@@ -34,12 +39,12 @@
  pointer-events:none;
 }
 @keyframes food-undo-arrive{
- from{opacity:0;transform:translate(-50%,calc(-100% - 30px))}
+ from{opacity:0;transform:translate(-50%,calc(100% + 18px))}
  to{opacity:1;transform:translate(-50%,0)}
 }
 @keyframes food-undo-depart{
  from{opacity:1;transform:translate(-50%,0)}
- to{opacity:0;transform:translate(-50%,calc(-100% - 30px))}
+ to{opacity:0;transform:translate(-50%,calc(100% + 18px))}
 }
 @media(prefers-reduced-motion:reduce){
  #overlay .food-undo-toast{animation-duration:.01ms}

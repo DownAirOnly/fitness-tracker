@@ -2,7 +2,12 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v147 (November 17, 2026)
+## Current release — v147.1 (November 17, 2026)
+
+- Food save notifications use a full-width, two-line design with a wrapping food name and concise destination/status text (e.g. "Saved to account"). They appear above bottom navigation instead of covering the Everyday wordmark and date; single-food Undo remains intact.
+- No food records, saving logic, cloud schema or security rules were changed by this patch. Physical iPhone layout feedback remains necessary.
+
+## Previous release — v147 (November 17, 2026)
 
 - **Food Save feedback:** All Food Entry saves (manual, saved Food Library item, edited entry, queued CSV/meal) now show a brief nonblocking result. Results distinguish confirmed account saving from device-only saving with sync pending. Single new food entries offer Undo; a multi-food save shows the count without a single-item Undo. Storage or preparation failures are not labeled as confirmed saves.
 - **Validation and duplicate taps:** Invalid food details and queued rows show an inline message on Save; browser-native submission blocking no longer fails silently on iOS. Submission of the same form is guarded against duplicate commits. Background account readiness updates only account-pending messages, not actual input errors.
