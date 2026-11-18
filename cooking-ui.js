@@ -176,23 +176,66 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    'ingredient','ingredient-'+category])];
  }
  function ingredientLibraryDialog(){
-  const foods=ingredientFoods();
-  const categories=INGREDIENT_CATEGORIES.map(([key,label])=>{
-   const entries=foods.filter(food=>ingredientCategory(food)===key);
+  const own=personalIngredients(),common=commonIngredientChoices(getData().foods);
+  const personal=INGREDIENT_CATEGORIES.map(([key,label])=>{
+   const entries=own.filter(food=>ingredientCategory(food)===key);
    if(!entries.length)return '';
-   return '<section class="cooking-library-group"><h3>'+label+'</h3><div class="cooking-library-rows">'+
+   return '<section class="cooking-library-group"><h3>'+esc(label)+'</h3><div class="cooking-library-rows">'+
     entries.map(food=>'<button type="button" class="cooking-library-row" data-action="ingredient-edit" data-id="'+attr(food.id)+'"><span><strong>'+esc(food.name)+'</strong>'+
      '<small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein / serving'+(food.serving?.text?' · '+esc(food.serving.text):'')+'</small></span><b>›</b></button>').join('')+
     '</div></section>';
   }).filter(Boolean).join('');
-  modal('Ingredient library','<div class="cooking-library-screen"><p class="body-copy">One nutrition definition per ingredient. Linked recipes use these facts; past cooked batches stay unchanged.</p>'+
+  const defaults=INGREDIENT_CATEGORIES.map(([key,label])=>{
+   const entries=common.filter(food=>ingredientCategory(food)===key);
+   if(!entries.length)return '';
+   return '<details class="cooking-common-category" data-common-group><summary>'+esc(label)+' <span>'+entries.length+'</span></summary>'+
+    '<div class="cooking-library-rows">'+entries.map(food=>'<button type="button" class="cooking-library-row" data-action="ingredient-common-view" '+
+    'data-id="'+attr(food.id)+'" data-search="'+attr([food.name,food.serving?.text||'',...food.aliases].join(' ').toLocaleLowerCase())+'"><span><strong>'+
+      esc(food.name)+'</strong><small>'+fmt(food.calories)+' cal · '+fmt(food.protein)+'g protein · '+esc(food.serving.text)+'</small></span><b>›</b></button>').join('')+
+    '</div></details>';
+  }).filter(Boolean).join('');
+  modal('Ingredient library','<div class="cooking-library-screen">'+
+   '<p class="body-copy">Your ingredient definitions are editable; the built-in catalog provides offline reference estimates. Linked recipes share these values, while finished batches keep their original nutrition.</p>'+
    button('+ New ingredient','ingredient-new','primary small')+
-   (categories||'<p class="empty">No saved ingredients yet. Create one here or add ingredients from a recipe.</p>')+'</div>');
+   '<div class="cooking-heading-row"><h3>Your ingredients</h3><small>'+own.length+' saved</small></div>'+
+   (personal||'<p class="hint">No personal ingredients yet. Choose from the built-in catalog or create your own.</p>')+
+   '<div class="cooking-heading-row"><h3>Common ingredients</h3><small>'+COMMON_INGREDIENTS.length+' included</small></div>'+
+   '<label class="field"><span>Search common ingredients</span><input type="search" data-common-ingredient-search placeholder="Rice, egg, butter, oil…" autocomplete="off"></label>'+
+   '<p class="cooking-catalog-note">Generic nutrition estimates for the stated serving; packaged brands and preparation methods vary. Confirm labels when available.</p>'+
+   '<div class="cooking-common-groups">'+defaults+'</div></div>');
  }
- function ingredientEditor(food=null){
+ function commonIngredientDetails(food){
+  if(!food)return;
+  modal('Common · '+food.name,'<div class="cooking-common-details"><span class="cooking-common-category-label">'+esc(categoryName(food))+'</span>'+
+   '<div class="cooking-totals"><strong>'+fmt(food.calories)+' calories · '+fmt(food.protein)+'g protein</strong><small>per '+esc(food.serving.text)+'</small></div>'+
+   '<p class="body-copy">This is a built-in reference estimate. Use it directly in recipes, or create a personal version with the nutrition printed on your food label.</p>'+
+   button('Customize for my library','ingredient-common-copy','primary','data-id="'+attr(food.id)+'"')+
+   button('Back to ingredients','ingredient-library-open','outline')+'</div>');
+ }
+ function onSearch(field){
+  if(field?.matches?.('[data-ingredient-picker-search]')){
+   const picker=field.form?.elements?.recipeFoodId;
+   if(picker)picker.innerHTML=ingredientOptions(field.value);
+   return;
+  }
+  if(!field?.matches?.('[data-common-ingredient-search]'))return;
+  const search=field.value.trim().toLocaleLowerCase(),root=field.closest('.cooking-library-screen');
+  if(!root)return;
+  for(const group of root.querySelectorAll('[data-common-group]')){
+   let visible=0;
+   for(const row of group.querySelectorAll('[data-search]')){
+    row.hidden=!!search&&!row.dataset.search.includes(search);
+    if(!row.hidden)visible++;
+   }
+   group.hidden=!!search&&!visible;
+   if(search&&visible)group.open=true;
+  }
+ }
+
+ function ingredientEditor(food=null,asCopy=false){
   const category=ingredientCategory(food);
   modal(food?'Edit ingredient':'New ingredient','<form class="form cooking-library-editor" data-form="ingredient-definition" novalidate>'+
-   '<input type="hidden" name="ingredientId" value="'+attr(food?.id||'')+'">'+
+   '<input type="hidden" name="ingredientId" value="'+attr(asCopy?'':food?.id||'')+'">'+
    '<label class="field"><span>Ingredient name</span><input name="ingredientName" maxlength="120" value="'+attr(food?.name||'')+'" required></label>'+
    '<label class="field"><span>Category</span><select name="ingredientCategory">'+categoryOptions(category)+'</select></label>'+
    '<div class="form-grid"><label class="field"><span>Calories per serving</span><input name="ingredientCalories" type="number" step="any" min="0" inputmode="decimal" value="'+attr(food?.calories??'')+'" required></label>'+
@@ -517,5 +560,5 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    }
   }catch(error){alert(error?.message||'Unable to save recipe.');}
  }
- return {get tab(){return tab;},tabs,home,onInput:form=>form?.dataset.form==='cooking-session'?previewCooking(form):preview(form),handleAction,onSubmit};
+ return {get tab(){return tab;},tabs,home,onInput:form=>form?.dataset.form==='cooking-session'?previewCooking(form):preview(form),onSearch,handleAction,onSubmit};
 }
