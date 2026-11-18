@@ -1,3 +1,13 @@
+## v149 — Ingredient Library and guided Cooking
+
+Food → Cooking now features an **Ingredient Library** using the existing Food Library's ingredient-tagged definitions, organized into Grains & starches, Meat/eggs/proteins, Vegetables & fruit, Dairy, Fats & oils, Sauces & seasonings, and Other. Ingredients have one defined name, calories/protein per reference serving, and optional serving description. A recipe can link an existing ingredient or create a new one explicitly; imported recipe ingredients remain usable as snapshots and can be linked or added to the library. Existing library names are reused rather than duplicated, with review when nutrition differs.
+
+**Recipe editor:** ingredients collapse into compact list rows; tapping one reveals quantity and linking tools. Linked ingredients use current shared nutrition, not conflicting per-recipe values. Instructions are an integrated, editable note.
+
+**Cooking:** a distinct guided prep screen lists ingredients and shows numbered, tappable instruction steps with saved completion. The adjustable batch form stays behind an optional disclosure. A live session freezes its own ingredients; prepared batches and historical food logs never change when a library definition is edited. Finishing still does not log food.
+
+**Roadmap reorder:** v150 planned portion logging/leftovers; v151 pantry inventory and optional recipe creator credit.
+
 ## v148 — Cooking sessions and prepared batches
 
 Food → Cooking now offers **Cook** on each saved recipe, with a separate active session that snapshots the recipe. Adjust ingredient quantities, per-serving nutrition, instructions, portions and optional finished grams, then **Save progress**, **Resume**, **Finish batch** or **Discard**. Finishing creates an immutable prepared-batch record that appears below recipes for inspection. The original recipe, previous batches and food logs are not changed. Sessions and batches travel with normal JSON backups and account/cloud data; legacy backup and cloud formats remain readable.
