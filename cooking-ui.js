@@ -196,25 +196,45 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function cookingSessionForm(){
   const session=getData().activeCooking;
   if(!session)return alert('There is no cooking session to resume.');
-  const recipe=session.recipe;
+  const recipe=session.recipe,steps=cookingSteps(recipe.instructions),completed=session.completedSteps||[];
+  const macros=recipeTotals(recipe);
   const fields=recipe.ingredients.map(item=>{
    const field=(key,label,value)=>'<label class="field"><span>'+label+'</span><input '+(key==='name'?'type="text" maxlength="120"':'type="number" min="'+(key==='quantity'?'0.01':'0')+'" step="any" inputmode="decimal"')+
     ' data-cooking-item-id="'+attr(item.id)+'" data-cooking-item-key="'+key+'" value="'+attr(value)+'" required></label>';
-   return '<div class="cooking-ingredient"><strong>'+esc(item.name)+'</strong>'+field('name','Ingredient',item.name)+
+   return '<details class="cooking-adjust-ingredient"><summary><strong>'+esc(item.name)+'</strong><small>'+fmt(item.quantity)+' servings</small></summary>'+
+    '<div class="cooking-adjust-ingredient-fields">'+field('name','Ingredient',item.name)+
     '<div class="cooking-ingredient-fields">'+field('quantity','Servings',item.quantity)+field('calories','Cal / serving',item.calories)+
-    field('protein','Protein (g)',item.protein)+'</div></div>';
+    field('protein','Protein (g)',item.protein)+'</div></div></details>';
   }).join('');
-  modal('Cooking · '+recipe.name,'<form class="form cooking-editor cooking-session-form" data-form="cooking-session" novalidate>'+
-   '<p class="body-copy">Edit this batch without changing the saved recipe. Save progress to resume later; Finish creates a prepared batch but does not log food.</p>'+
-   '<label class="field"><span>Portions this batch makes</span><input type="number" name="cookingServings" min="0.01" step="any" inputmode="decimal" value="'+attr(recipe.servings)+'" required></label>'+
-   '<label class="field"><span>Finished weight in grams (optional)</span><input type="number" name="finishedGrams" min="0.01" step="any" inputmode="decimal" value="'+attr(session.finishedGrams??'')+'"></label>'+
-   '<div class="cooking-totals" data-cooking-totals role="status"></div>'+
-   '<section class="cooking-ingredients"><h3>Ingredients</h3>'+fields+'</section>'+
-   '<label class="field"><span>Instructions / notes</span><textarea name="cookingInstructions" maxlength="6000" rows="4">'+esc(recipe.instructions)+'</textarea></label>'+
+  const method=steps.length?steps.map((step,index)=>{
+   const done=completed.includes(index);
+   return '<button type="button" class="cooking-step'+(done?' done':'')+'" data-action="cooking-toggle-step" data-index="'+index+'" aria-pressed="'+String(done)+'">'+
+    '<span class="cooking-step-count">'+(done?'✓':index+1)+'</span><span class="cooking-step-text">'+esc(step)+'</span></button>';
+  }).join(''):'<p class="cooking-empty-steps">No instructions saved yet. Add instructions under Adjust batch, then Save progress.</p>';
+  modal('Cooking · '+recipe.name,'<form class="form cooking-session-form" data-form="cooking-session" novalidate>'+
+   '<div class="cooking-guided-intro"><strong>Cooking in progress</strong><span data-cooking-batch-total>'+fmt(macros.calories)+' cal · '+fmt(macros.protein)+'g protein / batch</span>'+
+    '<small>'+fmt(recipe.servings)+' planned portions'+(session.finishedGrams?' · '+fmt(session.finishedGrams)+'g finished weight':'')+'</small></div>'+
+   '<section class="cooking-prep"><div class="cooking-heading-row"><h3>Get ready</h3><small>'+recipe.ingredients.length+' ingredients</small></div>'+
+    '<div class="cooking-prep-list">'+recipe.ingredients.map(item=>'<div class="cooking-prep-row"><strong>'+esc(item.name)+'</strong>'+
+      '<span>'+fmt(item.quantity)+' × '+esc(item.serving?.text||'serving')+'</span></div>').join('')+'</div></section>'+
+   '<section class="cooking-method"><div class="cooking-heading-row"><h3>Instructions</h3><small data-cooking-progress>'+
+    completed.filter(index=>index<steps.length).length+' / '+steps.length+' complete</small></div>'+
+    '<p class="cooking-method-hint">Tap a step when it’s done. Your progress is saved.</p>'+
+    '<div class="cooking-step-list">'+method+'</div></section>'+
+   '<details class="cooking-adjustments"><summary>Adjust batch details</summary><div class="cooking-adjustments-body">'+
+    '<p class="hint">Changes here affect only this cooking session, not the saved recipe or previous batches.</p>'+
+    '<label class="field"><span>Portions this batch makes</span><input type="number" name="cookingServings" min="0.01" step="any" inputmode="decimal" value="'+attr(recipe.servings)+'" required></label>'+
+    '<label class="field"><span>Finished weight in grams (optional)</span><input type="number" name="finishedGrams" min="0.01" step="any" inputmode="decimal" value="'+attr(session.finishedGrams??'')+'"></label>'+
+    '<div class="cooking-totals" data-cooking-totals role="status"></div>'+
+    '<section class="cooking-ingredients"><h3>Adjust ingredients</h3>'+fields+'</section>'+
+    '<section class="recipe-instructions"><div class="cooking-heading-row"><h3>Edit instructions</h3><small>One step per line</small></div>'+
+    '<textarea class="recipe-instructions-note" name="cookingInstructions" maxlength="6000" rows="5">'+esc(recipe.instructions)+'</textarea></section>'+
+    '</div></details>'+
    '<div class="form-actions"><button type="submit" class="primary">Save progress</button>'+button('Finish batch','cooking-finish','outline')+
    button('Discard session','cooking-discard','danger')+'</div></form>');
   previewCooking(document.querySelector('form[data-form="cooking-session"]'));
  }
+
  function captureCooking(form){
   const original=getData().activeCooking;
   if(!original||!form)throw Error('Cooking session unavailable. Reopen Cooking.');
