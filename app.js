@@ -1,30 +1,30 @@
-import {RELEASE_HISTORY} from './release-history.js?v=146.1';
-import {normalizeServing,servingLabel} from './food-portion-model.js?v=146.1';
-import {createCookingUI} from './cooking-ui.js?v=146.1';
-import {createRoutineImportUI} from './routine-import-ui.js?v=146.1';
-import {exportRoutineCSV} from './routine-import-model.js?v=146.1';
-import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=146.1';
-import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=146.1';
-import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=146.1';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=146.1';
+import {RELEASE_HISTORY} from './release-history.js?v=147';
+import {normalizeServing,servingLabel} from './food-portion-model.js?v=147';
+import {createCookingUI} from './cooking-ui.js?v=147';
+import {createRoutineImportUI} from './routine-import-ui.js?v=147';
+import {exportRoutineCSV} from './routine-import-model.js?v=147';
+import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=147';
+import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=147';
+import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=147';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=147';
 
-import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=146.1';
-import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=146.1';
-import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=146.1';
-import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=146.1';
-import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=146.1';
-import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=146.1';
-import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=146.1';
-import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=146.1';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=146.1';
-import {availableMonths,exportMonth} from './account-monthly.js?v=146.1';
-import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=146.1';
-import {financeOverviewSnapshot} from './finance-overview-model.js?v=146.1';
-import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=146.1';
-import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=146.1';
-import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=146.1';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=146.1';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=146.1';
+import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=147';
+import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=147';
+import {prepareImport,prepareBankImport,prepareSavedBankReview,prepareRuleReview,importSections} from './import-model.js?v=147';
+import {bankChoose,bankReceiptCandidates} from './bank-reconcile.js?v=147';
+import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-model.js?v=147';
+import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=147';
+import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=147';
+import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=147';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=147';
+import {availableMonths,exportMonth} from './account-monthly.js?v=147';
+import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=147';
+import {financeOverviewSnapshot} from './finance-overview-model.js?v=147';
+import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=147';
+import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=147';
+import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=147';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=147';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=147';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -264,6 +264,8 @@ function refreshSyncIndicators(){
  for(const node of surface.querySelectorAll(':scope > .home-sync-warning, :scope > .save-warning'))node.remove();
  const markup=page==='home'?homeSyncWarning():cloudSaveWarning();
  if(markup)main.insertAdjacentHTML('beforebegin',markup);
+ // Cloud save completion can turn a previously blocked update into a safe one.
+ if(latestRelease)showReleaseNotice();
 }
 const persist=async()=>{
   if(demoMode){try{storeDemoWorkspace(data);refreshSyncIndicators();return true;}catch{alert('Demo changes could not be saved on this device.');return false;}}
@@ -304,10 +306,17 @@ function canCommitFoodEntry(){
 function updatePendingFoodForm(){
  const form=app.querySelector('#overlay form[data-form="food"]');if(!form)return;
  const ready=canCommitFoodEntry(),submit=form.querySelector('[data-food-submit]');
- // Keep Save actionable so iOS users receive a specific explanation instead of a dead button.
+ // Save remains tappable while the account loads so a blocked tap has an explanation.
  if(submit){submit.disabled=false;submit.formNoValidate=true;}
  const status=form.querySelector('[data-food-save-status]');
- if(status&&ready&&!status.hidden)status.textContent='Account ready. Tap Save again to log your food.';
+ if(status&&ready&&status.dataset.state==='account-pending'){
+  status.dataset.state='ready';status.textContent='Account ready. Tap Save again to log your food.';
+ }
+}
+function foodFormError(form,message){
+ const status=form?.querySelector('[data-food-save-status]');
+ if(!status)return alert(message);
+ status.hidden=false;status.dataset.state='validation';status.setAttribute('role','alert');status.textContent=message;
 }
 function canPreviewCachedFoodAction(action,el){
  if(!canOpenCachedFood())return false;
@@ -2823,7 +2832,7 @@ function foodDraftFromForm(form,optional=false){
  if(optional&&!name&&!calText&&!proteinText)return null;
  const calories=Number(calText),protein=Number(proteinText),quantity=Number(v.quantity||1),time=v.foodTime===''||v.foodTime==null?null:Number(v.foodTime);
  if(!name||name.length>100||calText===''||proteinText===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0||!Number.isFinite(quantity)||quantity<=0||!/^\d{4}-\d{2}-\d{2}$/.test(v.date)||(time!=null&&(!Number.isInteger(time)||time<0||time>47))){
-  alert('Check the food name, calories, protein, servings, date and time.');return false;
+  foodFormError(form,'Check the food name, calories, protein, servings, date and time.');return false;
  }
  const record={name,calories,protein,quantity,date:v.date};
  if(time!=null)record.t=time;
@@ -2893,16 +2902,35 @@ function foodForm(entry=null,card=null,options={}) {
   updateFoodSaveOption(document.querySelector('form[data-form="food"]'));
   syncFoodServingPresets(document.querySelector('form[data-form="food"] > .food-quantity-field'));
 }
-function showFoodUndo(entryId,name){
+function showFoodUndo(entryId,name,count=1,editing=false){
  clearTimeout(foodUndoTimer);clearTimeout(foodUndoExitTimer);
- const root=document.querySelector('#overlay');if(!root)return;
- root.innerHTML='<div class="food-undo-toast" role="status"><strong>Added '+esc(name)+'</strong><button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button></div>';
+ const root=document.querySelector('#overlay');if(!root)return null;
+ const summary=editing?'Food log updated':count===1?'Added '+name:'Added '+count+' foods';
+ root.innerHTML='<div class="food-undo-toast" role="status"><strong data-food-save-result>Saving…</strong>'+
+  (entryId?'<button type="button" data-action="undo-food-add" data-id="'+esc(entryId)+'">Undo</button>':'')+'</div>';
  const shown=root.querySelector('.food-undo-toast');
+ shown.dataset.summary=summary;
  foodUndoTimer=setTimeout(()=>{
   if(!shown.isConnected)return;
   shown.classList.add('leaving');
-  foodUndoExitTimer=setTimeout(()=>{if(shown.isConnected)shown.remove();},340);
+  foodUndoExitTimer=setTimeout(()=>{if(shown.isConnected)shown.remove();if(latestRelease)showReleaseNotice();},340);
  },5000);
+ return shown;
+}
+function settleFoodSaveToast(toast,saved){
+ if(!toast?.isConnected)return;
+ const label=toast.querySelector('[data-food-save-result]');if(!label)return;
+ if(!saved){
+  if(account&&cloudRecovery){label.textContent=toast.dataset.summary+' · saved on this device · sync pending';return;}
+  label.textContent='Save not confirmed · export a backup';toast.setAttribute('role','alert');return;
+ }
+ const destination=account?(cloudPending||cloudRecoveryConflict||!session?.ready?'saved on this device · sync pending':'saved to account'):
+  offlineWorkspace?'saved to workspace':demoMode?'saved in demo':'saved on this device';
+ label.textContent=toast.dataset.summary+' · '+destination;
+}
+async function persistFoodToast(toast){
+ try{settleFoodSaveToast(toast,await persist());}
+ catch{settleFoodSaveToast(toast,false);}
 }
 function liftForm(lift=null,name='',equipment='other') {
  const exercise=lift?.exercise||name,type=lift?.equipment||equipment||'other',prior=lastLift(exercise,lift?.id,type);
@@ -3831,7 +3859,7 @@ app.addEventListener('submit',async event=>{
     if(form.dataset.form==='food'){
       updatePendingFoodForm();
       const status=form.querySelector('[data-food-save-status]');
-      if(status){status.hidden=false;status.textContent=!authChecked?
+      if(status){status.hidden=false;status.dataset.state='account-pending';status.textContent=!authChecked?
         'Still confirming your account. This food has not been logged. Tap Save after loading finishes.':
         'This food has not been logged because your account is still loading. Check the sync warning, then try Save again.';}
     }
@@ -4112,16 +4140,22 @@ app.addEventListener('submit',async event=>{
   if(form.dataset.form==='recipe'||form.dataset.form==='recipe-import'){await cooking.onSubmit(form,v);return;}
   if(form.dataset.form==='food-definition'){let serving;try{serving=servingFromForm(v);}catch(error){alert(error.message);return;}const name=v.name.trim(),calories=Number(v.calories),protein=Number(v.protein),kind=v.kind==='drink'?'drink':'food',tags=v.ingredient==='yes'?['ingredient']:[],pinned=v.pinned==='yes',accuracy=['label','estimate'].includes(v.accuracy)?v.accuracy:'',origin=v.origin||'food',existing=data.foods.find(x=>x.id===v.foodId);if(!name||name.length>100||v.calories.trim()===''||v.protein.trim()===''||!Number.isFinite(calories)||calories<0||!Number.isFinite(protein)||protein<0)return alert('Check the food definition.');const duplicate=data.foods.find(x=>x.id!==v.foodId&&x.name.toLowerCase()===name.toLowerCase()&&x.calories===calories&&x.protein===protein);if(duplicate)return alert('That saved food already exists.');if(existing)Object.assign(existing,{name,calories,protein,kind,tags,pinned,accuracy,serving,lastUsed:existing.lastUsed||new Date().toISOString()});else data.foods.push({id:id(),name,calories,protein,kind,tags,pinned,accuracy,...(serving?{serving}:{}),lastUsed:new Date().toISOString()});close(true);if(origin==='library')foodLibrary();else render();void persist();return;}
   if(form.dataset.form==='food') {
+    if(form.dataset.foodSubmitting==='true')return;
     const draft=foodDraftFromForm(form,foodBatch.length>0);
     if(draft===false||(!draft&&!foodBatch.length))return;
     const edited=data.foodEntries.find(x=>x.id===v.entryId);
     if(edited){
-      if(!draft)return;Object.assign(edited,draft.record);
-      if(draft.record.t==null)delete edited.t;
-      chosenDate=currentFoodTrackingDate(edited);close(true);page=foodEntryReturnPage;render();void persist();return;
+      if(!draft)return;
+      const candidate=structuredClone(data),target=candidate.foodEntries.find(x=>x.id===edited.id);
+      if(!target)return foodFormError(form,'This food log no longer exists. Reopen it and try again.');
+      Object.assign(target,draft.record);if(draft.record.t==null)delete target.t;
+      form.dataset.foodSubmitting='true';data=candidate;chosenDate=currentFoodTrackingDate(target);
+      close(true);page=foodEntryReturnPage;render();
+      const toast=showFoodUndo(null,target.name,1,true);
+      void persistFoodToast(toast);return;
     }
     let validated;
-    try{validated=foodBatch.map(validateQueuedFood);}catch(error){alert(error.message);return;}
+    try{validated=foodBatch.map(validateQueuedFood);}catch(error){foodFormError(form,error.message);return;}
     const prepared=validated.map(item=>{
       if(!item.inheritTime)return item;
       const next={...item,record:{...item.record,date:v.date}};
@@ -4134,10 +4168,11 @@ app.addEventListener('submit',async event=>{
     try{
       candidate=structuredClone(data);
       for(const item of prepared)last=commitFoodDraft(candidate,item);
-    }catch(error){alert('The food could not be prepared: '+(error?.message||'Unknown error'));return;}
-    data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
-    foodBatch=[];close(true);page=foodEntryReturnPage;render();void persist();
-    if(prepared.length===1&&last.savedCard)showFoodUndo(last.entry.id,last.entry.name);
+    }catch(error){foodFormError(form,'The food could not be prepared: '+(error?.message||'Unknown error'));return;}
+    form.dataset.foodSubmitting='true';data=candidate;chosenDate=currentFoodTrackingDate(last.entry);
+    foodBatch=[];close(true);page=foodEntryReturnPage;render();
+    const toast=showFoodUndo(prepared.length===1?last.entry.id:null,last.entry.name,prepared.length);
+    void persistFoodToast(toast);
     return;
   }
   if(form.dataset.form==='routine-history-exercise'){
@@ -4220,7 +4255,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=146.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=147',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4323,7 +4358,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=146.1');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=147');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

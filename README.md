@@ -1,3 +1,17 @@
+## v147 — Reliable Food Entry saves and safe PWA update readiness
+
+Food Entry now confirms where a successful save went: Firebase, a local device recovery copy awaiting synchronization, an offline workspace or demo data. The confirmation appears for manual foods, saved foods, edits and batch CSV logs. Single newly added food entries offer Undo; batches show how many foods were logged. Invalid entries and queued rows show inline errors rather than a Save button that appears to do nothing. A single form cannot double-submit. Update notices become actionable when a pending save finishes, but updating still waits until it is safe to leave the current app state. No stored data migrations.
+
+**Proposed next development:** v148 cooking sessions and prepared batches, v149 portion logging/leftovers, v150 pantry and optional recipe creator credit. These are not implemented by v147.
+
+## v146.1 — Food log dates and Save hotfix
+
+All food entries keeps its date picker but removes the visible "Viewing date" label and the duplicate date before the entry count. Food Entry Save routes native validity problems through explicit feedback and explains account-loading restrictions.
+
+## v146 — Routine CSV export/import
+
+Portable routine import/export includes exercise definitions and settings, colors, ordering and optional schedule application, with existing history preserved.
+
 ## v145 — Home Favorites, Settings cleanup, and routine/exercise fixes
 
 - The header logo e now acts as Everyday's first letter; the dot remains at the end.
