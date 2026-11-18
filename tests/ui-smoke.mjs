@@ -1218,7 +1218,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  const savedCountBeforeOneOff=normalizeData(JSON.parse(state.records.get('bob').payload)).foods.length;
  await click('new-food');
  const firstEntryForm=document.querySelector('form[data-form="food"]');
- firstEntryForm.querySelector('[data-food-submit]').click();await tick();
+ firstEntryForm.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true}));await tick();
  assert.match(firstEntryForm.querySelector('[data-food-save-status]')?.textContent||'',/Check the food name/,'Save explains incomplete entries inline');
  assert.equal(firstEntryForm.querySelector('[data-food-submit]').formNoValidate,true,'Food Save always uses explicit app validation');
  const saveAsFood=document.querySelector('[name="saveAsFood"]');assert.ok(saveAsFood&&!saveAsFood.checked&&saveAsFood.closest('.save-new-food-option').hidden,'new food definition opt-in starts hidden and unchecked');saveAsFood.checked=false;await submit('food',{name:'One-off cruise dessert',calories:'420',protein:'6',quantity:'1'});
