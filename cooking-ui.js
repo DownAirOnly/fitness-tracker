@@ -367,7 +367,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   if(!batch){alert('This prepared batch is missing. The historical food log remains intact.');return;}
   const available=batchInventory(batch,getData().foodEntries,entry?.id);
   const weighed=entry?.batchGrams!=null,amount=weighed?entry.batchGrams:(entry?.quantity??Math.min(1,available.remainingPortions));
-  const time=entry?.t??(timeSlot?.()??null);
+  const time=entry?(entry.t??null):(timeSlot?.()??null);
   const times='<option value="">No time</option>'+Array.from({length:48},(_,slot)=>{
    const h=Math.floor(slot/2),minute=slot%2?'30':'00';
    return '<option value="'+slot+'" '+(String(time)===String(slot)?'selected':'')+'>'+((h%12)||12)+':'+minute+(h>=12?' PM':' AM')+'</option>';
@@ -387,7 +387,8 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     '<label class="field"><span>Time</span><select name="t">'+times+'</select></label></div>'+
    '<p class="cooking-portion-preview" role="status" data-batch-portion-preview></p>'+
    '<div class="form-actions"><button type="submit" class="primary">Save</button>'+
-    button('Back to batch','cooking-view-batch','outline','data-id="'+attr(batch.id)+'"')+'</div>'+
+    button('Back to batch','cooking-view-batch','outline','data-id="'+attr(batch.id)+'"')+'</div>'+ 
+   (entry?button('Delete this log','cooking-delete-portion','danger','data-id="'+attr(entry.id)+'"'):'')+
    '<p class="hint">Nothing is logged until Save. This entry belongs to the prepared batch, not the ingredient library.</p></form>');
   previewBatchPortion(document.querySelector('form[data-form="batch-portion"]'));
  }
@@ -547,6 +548,18 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   if(action==='cooking-edit-portion'){
    const entry=(getData().foodEntries||[]).find(e=>e.id===el.dataset.id);
    if(entry?.preparedBatchId)openPortionForBatch(entry.preparedBatchId,entry);
+   return;
+  }
+  if(action==='cooking-delete-portion'){
+   const entry=(getData().foodEntries||[]).find(e=>e.id===el.dataset.id);
+   if(!entry?.preparedBatchId||!confirm('Delete this logged portion? The amount will return to the batch leftovers.'))return;
+   const next=structuredClone(getData());
+   next.foodEntries=next.foodEntries.filter(e=>e.id!==entry.id);
+   replaceData(normalizeData(next));close(true);tab='cooking';render();
+   const saved=await persist();
+   portionNotice=saved?'Logged portion deleted; leftovers updated.':'Deletion is on this device; check account sync or export a backup.';
+   const batch=(getData().preparedBatches||[]).find(b=>b.id===entry.preparedBatchId);
+   if(batch)viewBatch(batch);
    return;
   }
   if(action==='cooking-view-batch'){
