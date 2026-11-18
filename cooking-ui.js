@@ -1,12 +1,28 @@
 // Food > Cooking: a recipe workspace, intentionally separate from eating logs.
-import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps} from './cooking-model.js?v=149';
+import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps,suggestRecipeIngredientMatches,linkSuggestedRecipeIngredients} from './cooking-model.js?v=150';
+import {COMMON_INGREDIENTS,commonIngredientById,commonIngredientChoices,findCommonIngredient} from './common-ingredient-catalog.js?v=150';
 
 export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,modal,close,render,persist}){
  let tab='summary',draft=null,expandedIngredientId=null;
  const button=(text,action,cls='',extra='')=>'<button type="button" class="'+cls+'" data-action="'+action+'" '+extra+'>'+text+'</button>';
  const attr=s=>esc(s??'');
  const getRecipe=recipeId=>(getData().recipes||[]).find(x=>x.id===recipeId);
- const ingredientFoods=()=>ingredientLibrary(getData().foods);
+ const personalIngredients=()=>ingredientLibrary(getData().foods);
+ const ingredientFoods=()=>[...personalIngredients(),...commonIngredientChoices(getData().foods)];
+ const ingredientOptions=search=>{
+  const q=String(search||'').trim().toLocaleLowerCase();
+  const foods=ingredientFoods().filter(food=>!q||food.name.toLocaleLowerCase().includes(q)||food.serving?.text?.toLocaleLowerCase().includes(q)||
+   INGREDIENT_CATEGORIES.find(([key])=>key===ingredientCategory(food))?.[1].toLocaleLowerCase().includes(q));
+  const own=foods.filter(f=>!f.id.startsWith('builtin:'));
+  const common=foods.filter(f=>f.id.startsWith('builtin:'));
+  const options=items=>items.map(f=>'<option value="'+attr(f.id)+'">'+esc(f.name)+'</option>').join('');
+  return '<option value="">'+(foods.length?'Choose an ingredient':'No matching ingredients')+'</option>'+
+   (own.length?'<optgroup label="Your ingredients">'+options(own)+'</optgroup>':'')+
+   INGREDIENT_CATEGORIES.map(([key,label])=>{
+    const group=common.filter(f=>ingredientCategory(f)===key);
+    return group.length?'<optgroup label="'+esc(label)+'">'+options(group)+'</optgroup>':'';
+   }).join('');
+ };
  const categoryName=food=>INGREDIENT_CATEGORIES.find(([key])=>key===ingredientCategory(food))?.[1]||'Other';
  const categoryOptions=current=>INGREDIENT_CATEGORIES.map(([key,label])=>'<option value="'+key+'" '+(current===key?'selected':'')+'>'+label+'</option>').join('');
  const currentRecipe=recipe=>resolveRecipeIngredients(recipe,getData().foods);
@@ -40,7 +56,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function items(){
   if(!draft.ingredients.length)return '<p class="hint">No ingredients yet. Choose one from the library or add a new ingredient.</p>';
   return draft.ingredients.map(item=>{
-   const food=getData().foods.find(f=>f.id===item.sourceFoodId),info=food||item;
+   const food=getData().foods.find(f=>f.id===item.sourceFoodId)||commonIngredientById(item.sourceFoodId),info=food||item;
    const linked=Boolean(food),missing=Boolean(item.sourceFoodId&&!food);
    const fields=(key,label,value)=>'<label class="field"><span>'+label+'</span><input type="'+(key==='name'?'text':'number')+
     '" '+(key==='name'?'maxlength="120"':'min="'+(key==='quantity'?'0.01':'0')+'" step="any" inputmode="decimal"')+
@@ -89,7 +105,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   for(const card of form.querySelectorAll('[data-recipe-item]')){
    const item=draft.ingredients.find(x=>x.id===card.dataset.recipeItem);
    if(!item)continue;
-   const info=getData().foods.find(f=>f.id===item.sourceFoodId)||item;
+   const info=getData().foods.find(f=>f.id===item.sourceFoodId)||commonIngredientById(item.sourceFoodId)||item;
    const label=card.querySelector('[data-recipe-summary-name]');
    const amount=card.querySelector('[data-recipe-summary-amount]');
    const nutrition=card.querySelector('[data-recipe-summary-nutrition]');
@@ -122,7 +138,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
    '<div class="cooking-minor-action">'+button('+ One-off ingredient','recipe-add-custom','text-btn')+'</div></section>'+
    '<section class="recipe-instructions"><div class="cooking-heading-row"><h3>Instructions</h3><small>Editable steps</small></div>'+
     '<textarea class="recipe-instructions-note" name="recipeInstructions" maxlength="6000" rows="6" placeholder="Write each cooking step on its own line…">'+esc(draft.instructions)+'</textarea></section>'+
-   '<p class="hint">Linked ingredients always use the library’s current nutrition. Prepared batches keep their own historical snapshots.</p>'+
+   '<p class="hint">Standard ingredients use built-in reference estimates. You can override them in your personal Ingredient Library; previously cooked batches keep their historical values.</p>'+
    '<div class="form-actions"><button type="submit" class="primary">Save recipe</button>'+
    (recipe?button('Export JSON','recipe-export','outline','data-id="'+attr(recipe.id)+'"')+
     button('Delete recipe','recipe-delete','danger','data-id="'+attr(recipe.id)+'"'):'')+'</div></form>');
