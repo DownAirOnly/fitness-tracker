@@ -403,6 +403,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  custom.querySelector('[data-recipe-item-key="quantity"]').value='2';
  custom.querySelector('[data-recipe-item-key="calories"]').value='70';
  custom.querySelector('[data-recipe-item-key="protein"]').value='6';
+ document.querySelector('form[data-form="recipe"]').elements.recipeInstructions.value='Beat eggs. Cook together.';
  await submit('recipe',{recipeName:'UI smoke recipe',recipeServings:'2'});
  assert.ok(document.querySelector('.cooking-recipe-card'),'saved recipe appears in Cooking');
  const recipeNotebook=normalizeData(JSON.parse(localStorage.getItem('everyday-demo-workspace-v1')).data);
