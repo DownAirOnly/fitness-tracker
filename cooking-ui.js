@@ -1,14 +1,18 @@
 // Food > Cooking: a recipe workspace, intentionally separate from eating logs.
-import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession} from './cooking-model.js?v=148';
+import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,resolveRecipeIngredients,ingredientLibrary,ingredientCategory,INGREDIENT_CATEGORIES,matchingIngredient,cookingSteps} from './cooking-model.js?v=148';
 
 export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,modal,close,render,persist}){
- let tab='summary',draft=null;
+ let tab='summary',draft=null,expandedIngredientId=null;
  const button=(text,action,cls='',extra='')=>'<button type="button" class="'+cls+'" data-action="'+action+'" '+extra+'>'+text+'</button>';
  const attr=s=>esc(s??'');
  const getRecipe=recipeId=>(getData().recipes||[]).find(x=>x.id===recipeId);
+ const ingredientFoods=()=>ingredientLibrary(getData().foods);
+ const categoryName=food=>INGREDIENT_CATEGORIES.find(([key])=>key===ingredientCategory(food))?.[1]||'Other';
+ const categoryOptions=current=>INGREDIENT_CATEGORIES.map(([key,label])=>'<option value="'+key+'" '+(current===key?'selected':'')+'>'+label+'</option>').join('');
+ const currentRecipe=recipe=>resolveRecipeIngredients(recipe,getData().foods);
  const totals=recipe=>{
   try{
-   const v=recipeTotals(recipe);
+   const v=recipeTotals(currentRecipe(recipe));
    return fmt(v.perPortionCalories)+' cal · '+fmt(v.perPortionProtein)+'g protein / portion';
   }catch{return 'Nutrition unavailable';}
  };
@@ -20,8 +24,8 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
  function home(){
   const recipes=getData().recipes||[],active=getData().activeCooking,batches=(getData().preparedBatches||[]).slice().reverse();
   return '<section class="cooking-home"><div class="section-head"><div><h2>Cooking</h2>'+
-   '<p class="body-copy cooking-intro">Build recipes with measured ingredients and see nutrition for the whole batch or each portion.</p></div></div>'+
-   '<div class="cooking-actions">'+button('+ New recipe','recipe-new','primary small')+button('Import JSON','recipe-import-open','outline small')+'</div>'+
+   '<p class="body-copy cooking-intro">Recipes, shared ingredients, and guided cooking — all in one place.</p></div></div>'+
+   '<div class="cooking-actions">'+button('+ New recipe','recipe-new','primary small')+button('Ingredients','ingredient-library-open','outline small')+button('Import JSON','recipe-import-open','outline small')+'</div>'+
    (active?'<div class="cooking-active-banner"><div><strong>Cooking · '+esc(active.recipe.name)+'</strong><small>Session saved separately from your recipe</small></div><div class="cooking-active-actions">'+button('Resume','cooking-resume','primary small')+button('Discard','cooking-discard','outline small')+'</div></div>':'')+
    (recipes.length?'<div class="cooking-recipe-list">'+recipes.map(recipe=>
     '<div class="cooking-recipe-row"><button type="button" class="cooking-recipe-card" data-action="recipe-open" data-id="'+attr(recipe.id)+'"><span><strong>'+esc(recipe.name)+
@@ -31,7 +35,7 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
     '<p class="empty">No recipes yet. Add a homemade meal to calculate its nutrition.</p>')+
    (batches.length?'<section class="cooking-prepared"><h3>Prepared batches</h3><div class="cooking-prepared-list">'+batches.slice(0,30).map(batch=>
      '<button type="button" class="cooking-prepared-card" data-action="cooking-view-batch" data-id="'+attr(batch.id)+'"><span><strong>'+esc(batch.recipe.name)+'</strong><small>'+new Date(batch.preparedAt).toLocaleDateString()+' · '+fmt(batch.recipe.servings)+' portions'+(batch.finishedGrams?' · '+fmt(batch.finishedGrams)+' g finished':'')+'</small></span><b>›</b></button>').join('')+'</div></section>':'')+
-   '<p class="hint">Saving a recipe or finishing a batch never logs food. Portion logging and leftovers follow in the next release.</p></section>';
+   '<p class="hint">Linked ingredient nutrition comes from your Ingredient Library. Cooking saves a separate batch; nothing is logged as eaten automatically.</p></section>';
  }
  function items(){
   return draft.ingredients.length?draft.ingredients.map(item=>{
