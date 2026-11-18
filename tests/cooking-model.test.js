@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,normalizePreparedBatches,ingredientCategory,ingredientLibrary,resolveRecipeIngredients,cookingSteps} from '../cooking-model.js';
+import {ingredientSnapshot,normalizeRecipes,recipeTotals,beginCooking,finishCooking,normalizeCookingSession,normalizePreparedBatches,ingredientCategory,ingredientLibrary,resolveRecipeIngredients,cookingSteps,suggestRecipeIngredientMatches,linkSuggestedRecipeIngredients} from '../cooking-model.js';
+import {COMMON_INGREDIENTS,commonIngredientById,findCommonIngredient,commonIngredientChoices} from '../common-ingredient-catalog.js';
 import {emptyData,encodeData,normalizeData} from '../data.js';
 import {sectionPayloads,readSectionPayloads,exportSection,applySection} from '../account-sections.js';
 import {monthlyParts,readMonthlyParts} from '../account-monthly.js';
@@ -143,4 +144,71 @@ test('completed cooking steps survive local and account/cloud round trips',()=>{
  const {parts,months}=monthlyParts(normalized);
  assert.deepEqual(readMonthlyParts(parts,months).activeCooking.completedSteps,[0,2]);
  assert.throws(()=>normalizeCookingSession({...normalized.activeCooking,completedSteps:[-1]}),/Invalid completed/);
+});
+
+
+test('offline common ingredient catalog has stable distinct references, explicit serving, and fried rice entries',()=>{
+ assert.equal(COMMON_INGREDIENTS.length,102);
+ assert.equal(new Set(COMMON_INGREDIENTS.map(f=>f.id)).size,102);
+ for(const food of COMMON_INGREDIENTS){
+  assert.ok(food.id.startsWith('builtin:'));
+  assert.ok(food.serving?.text);
+  assert.ok(Number.isFinite(food.calories)&&food.calories>=0);
+  assert.ok(Number.isFinite(food.protein)&&food.protein>=0);
+ }
+ for(const name of [
+  'Cooked white rice (1 cup)','Large egg (1 egg)','Frozen peas and carrots (1 cup)','Green onion (1 stalk)',
+  'Vegetable oil (1 tbsp)','Sesame oil (1 tsp)','Soy sauce (1 tbsp)','Garlic (1 clove)'
+ ])assert.ok(findCommonIngredient(name),name+' is native to the app');
+ assert.equal(findCommonIngredient('butter (1 tbsp)').tags[1],'ingredient-fats');
+ assert.equal(commonIngredientById('builtin:missing'),null);
+});
+
+test('previously imported Egg Fried Rice can be updated in place with eight safe library links',()=>{
+ const rows=[
+  ['Cooked white rice (1 cup)',205,4.3,3],
+  ['Large egg (1 egg)',72,6.3,3],
+  ['Frozen peas and carrots (1 cup)',80,4,1],
+  ['Green onion (1 stalk)',5,0.3,3],
+  ['Vegetable oil (1 tbsp)',120,0,1],
+  ['Sesame oil (1 tsp)',40,0,1],
+  ['Soy sauce (1 tbsp)',10,1,2],
+  ['Garlic (1 clove)',4.5,0.2,2]
+ ];
+ const old=normalizeRecipes([{id:'egg-fried-rice-old',name:'Egg Fried Rice',servings:4,
+  instructions:'Cook rice. Scramble eggs. Toss.',ingredients:rows.map(([name,calories,protein,quantity],i)=>({id:'item-'+i,name,calories,protein,quantity}))}])[0];
+ assert.equal(recipeTotals(old).calories,1115);
+ assert.equal(Math.round(recipeTotals(old).protein*10)/10,39.1);
+ const oldJson=JSON.stringify(old);
+ const proposals=suggestRecipeIngredientMatches(old,[]);
+ assert.equal(proposals.length,8);
+ const result=linkSuggestedRecipeIngredients(old,[]);
+ assert.equal(result.recipe.id,old.id,'matching updates existing recipe identity');
+ assert.equal(result.recipe.ingredients.length,8);
+ assert.ok(result.recipe.ingredients.every(i=>i.sourceFoodId.startsWith('builtin:')));
+ assert.equal(recipeTotals(resolveRecipeIngredients(result.recipe,[])).calories,1115);
+ assert.equal(JSON.stringify(old),oldJson,'preview/matching does not mutate original');
+ assert.equal(suggestRecipeIngredientMatches(result.recipe,[]).length,0,'second matching is idempotent');
+ const notebook=emptyData();
+ notebook.recipes=[result.recipe];notebook.preparedBatches=[
+  finishCooking(beginCooking(old,'old-session','2026-11-17T20:00:00.000Z'),'old-batch','2026-11-17T21:00:00.000Z')
+ ];
+ const restored=normalizeData(encodeData(notebook));
+ assert.deepEqual(restored.recipes[0],result.recipe,'linked IDs survive backup');
+ assert.deepEqual(restored.preparedBatches[0].recipe,old,'older prepared batch remains frozen');
+ assert.equal(restored.foodEntries.length,0,'matching never logs food');
+});
+
+test('local saved ingredient overrides common exact-name suggestion without copying defaults into account',()=>{
+ const recipe=normalizeRecipes([{id:'r',name:'Test',servings:2,instructions:'Cook.',
+  ingredients:[{id:'a',name:'Cooked white rice (1 cup)',calories:205,protein:4.3,quantity:2}]}])[0];
+ const local={id:'personal-rice',name:'Cooked white rice (1 cup)',calories:220,protein:5,
+  tags:['ingredient','ingredient-grains']};
+ assert.equal(suggestRecipeIngredientMatches(recipe,[local])[0].targetId,'personal-rice');
+ const linked=linkSuggestedRecipeIngredients(recipe,[local]).recipe;
+ assert.equal(linked.ingredients[0].calories,220);
+ assert.equal(resolveRecipeIngredients(linked,[local]).ingredients[0].calories,220);
+ assert.equal(commonIngredientChoices([local]).some(x=>x.name===local.name),false);
+ assert.equal(findCommonIngredient('rice product with no specified preparation'),null,
+  'unknown foods are never fuzzily matched');
 });
