@@ -3,6 +3,43 @@
 import {normalizeServing} from './food-portion-model.js?v=148';
 const positive=(n,label)=>{if(typeof n!=='number'||!Number.isFinite(n)||n<=0||n>100000)throw Error(label+' must be a positive number.');return n;};
 const title=(value,max,label)=>{if(typeof value!=='string'||!value.trim()||value.trim().length>max)throw Error('Check '+label+'.');return value.trim();};
+
+export const INGREDIENT_CATEGORIES=[
+ ['grains','Grains & starches'],['protein','Meat, eggs & proteins'],
+ ['produce','Vegetables & fruit'],['dairy','Dairy'],['fats','Fats & oils'],
+ ['seasoning','Sauces & seasonings'],['other','Other']
+];
+const categoryKeys=new Set(INGREDIENT_CATEGORIES.map(([key])=>key));
+export const ingredientCategory=food=>{
+ const category=(food?.tags||[]).find(tag=>typeof tag==='string'&&tag.startsWith('ingredient-'))?.slice(11);
+ return categoryKeys.has(category)?category:'other';
+};
+export const ingredientLibrary=foods=>(foods||[]).filter(food=>food?.tags?.includes('ingredient'))
+ .slice().sort((a,b)=>ingredientCategory(a).localeCompare(ingredientCategory(b))||a.name.localeCompare(b.name));
+export const matchingIngredient=(foods,name)=>(foods||[]).find(food=>
+ String(food?.name||'').trim().toLocaleLowerCase()===String(name||'').trim().toLocaleLowerCase())||null;
+// Linked recipe ingredients always resolve to their current library definition.
+// Historical sessions and prepared batches deliberately keep their old snapshots.
+export function resolveRecipeIngredients(recipe,foods){
+ const copy=structuredClone(recipe);
+ const byId=new Map((foods||[]).map(food=>[food.id,food]));
+ copy.ingredients=(copy.ingredients||[]).map(item=>{
+  const current=byId.get(item.sourceFoodId);
+  if(!current)return item;
+  const snapshot=ingredientSnapshot(current,item.id,item.quantity);
+  return snapshot;
+ });
+ return copy;
+}
+export function cookingSteps(instructions){
+ const raw=String(instructions||'').trim();
+ if(!raw)return [];
+ const numbered=raw.replace(/(?:^|\s)(\d{1,2}[.)])\s+(?=\S)/g,(match,label)=>'\n'+label+' ');
+ let parts=numbered.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+ if(parts.length===1)parts=parts[0].split(/(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
+ return parts.map(step=>step.replace(/^(?:\d+[.)]\s*|[-•]\s*)/,'').trim()).filter(Boolean).slice(0,100);
+}
+
 export function ingredientSnapshot(food,identity,quantity=1){
  if(!food||typeof food!=='object'||!Number.isFinite(food.calories)||!Number.isFinite(food.protein)||food.calories<0||food.protein<0)throw Error('Choose a saved food with valid nutrition.');
  return {id:title(identity,160,'ingredient ID'),sourceFoodId:title(food.id,160,'food ID'),
@@ -66,7 +103,10 @@ export function normalizeCookingSession(value){
  const recipe=normalizeRecipes([value.recipe])[0];
  if(!recipe.ingredients.length)throw Error('Cooking sessions need an ingredient.');
  const finishedGrams=optionalGrams(value.finishedGrams);
- return {id,recipeId,startedAt,recipe,...(finishedGrams==null?{}:{finishedGrams})};
+ const completedSteps=value.completedSteps??[];
+ if(!Array.isArray(completedSteps)||completedSteps.length>100||completedSteps.some(n=>!Number.isInteger(n)||n<0||n>=100))
+  throw Error('Invalid completed cooking steps.');
+ return {id,recipeId,startedAt,recipe,completedSteps:[...new Set(completedSteps)].sort((a,b)=>a-b),...(finishedGrams==null?{}:{finishedGrams})};
 }
 export function normalizePreparedBatches(value){
  if(!Array.isArray(value)||value.length>1500)throw Error('Too many prepared cooking batches.');
