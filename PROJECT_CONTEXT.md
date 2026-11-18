@@ -2,7 +2,16 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v149 (November 18, 2026)
+## Current release — v150 (November 18, 2026)
+
+- **Native offline common ingredients:** 102 curated generic per-reference-serving calorie/protein estimates in `common-ingredient-catalog.js`, covering the recipe's eight Egg Fried Rice ingredients and butter, oils, starches, meat, eggs, vegetables, dairy, condiments, spices and pantry staples. Browser use requires no FoodData Central API or account migration. Read-only defaults have stable `builtin:` IDs. Users can create personal definitions explicitly; no automatic seeding or default overwrites.
+- **Cooking library UX:** The Food > Cooking > Ingredients browser distinguishes personal editable definitions from grouped, searchable common references, shows source-estimate caveats, and offers an explicit personal customization path. Recipe ingredient select includes personal and common choices plus search.
+- **Update existing recipes:** Imported `Egg Fried Rice` in v149 shows 8 custom/unlinked rows; the recipe editor now offers `Review matches`, displaying before/after cal/protein per serving, followed by `Apply and save`. This updates the same recipe ID rather than importing a duplicate. Strict exact-name/alias matching only; personal exact-name definitions are preferred. No uncontrolled fuzzy substitutions.
+- **Persistence and safety:** `resolveRecipeIngredients` also resolves built-in IDs with current reference values. The recipe retains a nutrient snapshot for portable JSON; frozen cooking sessions and completed batches remain unchanged. Existing food logs unaffected. v1/v2 backups and cloud section formats need no changes, since `sourceFoodId` was already supported.
+- **Validation:** New model and UI regressions cover all eight original fried-rice ingredients, stable IDs, recipe update in place, local overrides and historical batches. CI passage is distinct from published Pages and real iPhone testing.
+- **Reprioritized next steps:** v151 planned portion logging and leftovers; v152 pantry and optional recipe creator attribution.
+
+## Previous release — v149 (November 18, 2026)
 
 - **Shared ingredient library:** Food > Cooking > Ingredients groups existing saved foods tagged `ingredient` under seven ingredient categories. Ingredient entries have canonical per-serving calories/protein, optional reference serving notes, and category tags; the library uses existing Food Library storage, so no new account entity or migration is required. A new ingredient can be made from Cooking or from a recipe, but never silently duplicated. Old imported recipe rows can explicitly link to existing ingredients or save a new definition. Exact-name import matches reuse library facts.
 - **Live reference vs snapshots:** A recipe editor, Cooking home macro preview, and start-cooking action all resolve linked `sourceFoodId` against current Food Library nutrition. Recipe-specific quantities remain editable. An active cooking session freezes the facts when started, and prepared batches remain immutable; historical meal logs do not change. Orphaned or unlinked ingredients retain their snapshot until the user explicitly links them.
