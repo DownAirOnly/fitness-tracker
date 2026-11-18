@@ -292,6 +292,79 @@ export function createCookingUI({getData,replaceData,normalizeData,id,esc,fmt,mo
   link.click();setTimeout(()=>URL.revokeObjectURL?.(link.href),1000);
  }
  async function handleAction(action,el){
+  if(action==='ingredient-library-open'){ingredientLibraryDialog();return;}
+  if(action==='ingredient-new'){ingredientEditor();return;}
+  if(action==='ingredient-edit'){
+   const food=ingredientFoods().find(food=>food.id===el.dataset.id);
+   if(food)ingredientEditor(food);
+   return;
+  }
+  if(action==='recipe-create-ingredient'||action==='recipe-save-custom-ingredient'){
+   const form=el.closest('form[data-form="recipe"]');if(!form||!draft)return;
+   try{
+    capture(form);
+    if(action==='recipe-create-ingredient'&&draft.ingredients.length>=100)throw Error('A recipe can contain at most 100 ingredients.');
+    const item=action==='recipe-save-custom-ingredient'?draft.ingredients.find(item=>item.id===el.dataset.id):null;
+    if(action==='recipe-save-custom-ingredient'&&!item)throw Error('Ingredient not found.');
+    const category=item?form.querySelector('[data-recipe-category="'+CSS.escape(item.id)+'"]')?.value:form.elements.newIngredientCategory.value;
+    const payload=item?newIngredientPayload(item.name,item.calories,item.protein,category):
+     newIngredientPayload(form.elements.newIngredientName.value,form.elements.newIngredientCalories.value,
+      form.elements.newIngredientProtein.value,category,form.elements.newIngredientServing.value);
+    const next=structuredClone(getData()),found=matchingIngredient(next.foods,payload.name);
+    if(found&&(found.calories!==payload.calories||found.protein!==payload.protein)&&
+       !confirm('This ingredient already exists with '+fmt(found.calories)+' calories and '+fmt(found.protein)+'g protein per serving. Link to those existing facts instead?'))return;
+    const result=upsertIngredient(next,payload);
+    const food=result.food;
+    if(!food.tags?.includes('ingredient'))food.tags=ingredientTags(food,payload.category);
+    if(item){Object.assign(item,ingredientSnapshot(food,item.id,item.quantity));expandedIngredientId=item.id;}
+    else{
+     const added=ingredientSnapshot(food,id());draft.ingredients.push(added);expandedIngredientId=added.id;
+    }
+    replaceData(normalizeData(next));refreshItems(form);
+    if(action==='recipe-create-ingredient'){
+     for(const key of ['newIngredientName','newIngredientCalories','newIngredientProtein','newIngredientServing'])form.elements[key].value='';
+    }
+    await persist();
+   }catch(error){alert(error?.message||'Unable to add ingredient.');}
+   return;
+  }
+  if(action==='recipe-link-ingredient'){
+   const form=el.closest('form[data-form="recipe"]');if(!form||!draft)return;
+   capture(form);
+   const item=draft.ingredients.find(item=>item.id===el.dataset.id);
+   const food=ingredientFoods().find(food=>food.id===form.querySelector('[data-recipe-link="'+CSS.escape(el.dataset.id)+'"]')?.value);
+   if(!item||!food){alert('Choose a library ingredient to link.');return;}
+   Object.assign(item,ingredientSnapshot(food,item.id,item.quantity));
+   expandedIngredientId=item.id;refreshItems(form);return;
+  }
+  if(action==='recipe-promote-ingredient'){
+   const form=el.closest('form[data-form="recipe"]');if(!form||!draft)return;
+   capture(form);
+   const item=draft.ingredients.find(item=>item.id===el.dataset.id),next=structuredClone(getData());
+   const food=next.foods.find(food=>food.id===item?.sourceFoodId);
+   if(!food)return alert('The original Food Library definition is missing.');
+   food.tags=ingredientTags(food,'other');
+   replaceData(normalizeData(next));expandedIngredientId=item.id;refreshItems(form);await persist();return;
+  }
+  if(action==='cooking-toggle-step'){
+   const form=el.closest('form[data-form="cooking-session"]'),index=Number(el.dataset.index);
+   if(!form||!Number.isInteger(index)||index<0)return;
+   try{
+    const session=captureCooking(form),steps=cookingSteps(session.recipe.instructions);
+    if(index>=steps.length)return;
+    const done=new Set(session.completedSteps||[]);
+    if(done.has(index))done.delete(index);else done.add(index);
+    session.completedSteps=[...done].sort((a,b)=>a-b);
+    const next=structuredClone(getData());next.activeCooking=session;
+    replaceData(normalizeData(next));
+    el.classList.toggle('done',done.has(index));el.setAttribute('aria-pressed',String(done.has(index)));
+    const marker=el.querySelector('.cooking-step-count');if(marker)marker.textContent=done.has(index)?'✓':String(index+1);
+    const progress=form.querySelector('[data-cooking-progress]');
+    if(progress)progress.textContent=session.completedSteps.length+' / '+steps.length+' complete';
+    await persist();
+   }catch(error){alert(error?.message||'Unable to save cooking step.');}
+   return;
+  }
   if(action==='cooking-start'){
    if(getData().activeCooking)return alert('Finish or discard your existing cooking session before starting another.');
    const recipe=getRecipe(el.dataset.id);if(!recipe)return;
