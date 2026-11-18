@@ -2,7 +2,25 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v145 (November 15, 2026)
+## Current release — v147 (November 17, 2026)
+
+- **Food Save feedback:** All Food Entry saves (manual, saved Food Library item, edited entry, queued CSV/meal) now show a brief nonblocking result. Results distinguish confirmed account saving from device-only saving with sync pending. Single new food entries offer Undo; a multi-food save shows the count without a single-item Undo. Storage or preparation failures are not labeled as confirmed saves.
+- **Validation and duplicate taps:** Invalid food details and queued rows show an inline message on Save; browser-native submission blocking no longer fails silently on iOS. Submission of the same form is guarded against duplicate commits. Background account readiness updates only account-pending messages, not actual input errors.
+- **Update readiness:** When saving finishes, re-evaluate whether an already detected release can be safely applied. The Update/Refresh button stays blocked during active edits, workouts or unsynced changes and becomes available when safe. The service worker retains its network-first navigation, explicit asset revisions and local recovery safeguards.
+- **Scope and verification:** No data migration, Firestore rules, workout history or existing nutrition records changed. CI and live Pages deployment are distinct from on-device iPhone confirmation.
+- **Next proposed milestones (not yet implemented):** v148 recoverable Cooking sessions and immutable prepared-batch records; v149 explicit consumption/portion logging and leftovers; v150 practical pantry inventory and recipe attribution. Do not automatically log a recipe when it is saved or cooked.
+
+## Previous release — v146.1 (November 17, 2026)
+
+- All food entries removes the redundant visible "Viewing date" label and repeated date before the entry count, retaining an accessible date picker.
+- Food Entry Save remains tappable while authentication loads and explains when account state prevents submission. Form validation runs in Everyday rather than silently blocking through browser-native validation.
+- v146.1 merged on November 17; real iPhone confirmation remains separate.
+
+## Previous release — v146 (November 16, 2026)
+
+- Routine CSV export/import carries existing exercise metadata, routine colors, targets, sets, rep ranges, rest, and schedule. Missing definitions can be created; existing history is preserved and imported schedule/color changes remain opt-in.
+
+## Previous release — v145 (November 15, 2026)
 
 - **Food and Home:** Removed the explanatory chronology sentence in All food entries. Recombined the existing DM Sans `e` monogram into the actual first letter of the Outfit `veryday` wordmark, retaining the trailing dot. Home now displays only Favorite foods, using the existing Home card styling, paging, ordering/customization, and card actions. New favorites appear automatically in the fallback order after saved manual ordering; Food no longer has a separate Favorites block and instead lists all saved foods under Saved foods.
 - **Settings simplification:** Removed the account storage explanation, full App version and updates card, About this version, and the Import & backup preamble/footnote. A small refresh symbol now sits next to the app version at the upper right and retains the guarded manual update action. Added an expandable, complete project-documented Changelog at the bottom of Settings, sourced from PROJECT_CONTEXT.md and README.md (119 recorded releases, v59 onward); earlier undocumented versions are not invented.
