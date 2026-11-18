@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v147.1 (November 17, 2026)
+## Current release — v148 (November 17, 2026)
+
+- **Cooking session lifecycle (Food > Cooking):** A saved recipe offers Cook, starting a persistently stored, editable snapshot. Modify ingredient names, calories/protein per serving, quantities, batch portions, instructions and optional finished weight without rewriting the saved recipe. Save progress and resume later, discard with confirmation, or Finish to save an immutable prepared-batch snapshot. Prepared batches appear in Cooking; the item details are read-only. Saving/finishing never logs food.
+- **Durability:** activeCooking and preparedBatches normalize into the notebook, v1/v2 local JSON, Nutrition account sections, monthly cloud snapshots (preparedBatches are partitioned by prepared month), and cloud migration. Older monthly files lacking the new key remain readable. Distinct active cooking sessions on device and cloud are not silently merged.
+- **Verification:** New model, backup/cloud and UI smoke checks; no Firebase rule updates, existing nutrition changes or Food Entry redesign. Real-device and live Pages verification are distinct from CI.
+- **Next planned scopes:** v149 prepared batch portion logging and leftover counts; v150 pantry and recipe author/creator credit.
+
+## Previous release — v147.1 (November 17, 2026)
 
 - Food save notifications use a full-width, two-line design with a wrapping food name and concise destination/status text (e.g. "Saved to account"). They appear above bottom navigation instead of covering the Everyday wordmark and date; single-food Undo remains intact.
 - No food records, saving logic, cloud schema or security rules were changed by this patch. Physical iPhone layout feedback remains necessary.
