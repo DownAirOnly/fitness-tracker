@@ -184,7 +184,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(release-history|routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(release-history|routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|lifting-progression-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
@@ -677,6 +677,15 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  const targetForm=document.querySelector('form[data-form="routine-exercise-settings"]');
  assert.ok(targetForm,'target modal opens from the exercise card');
  assert.ok(targetForm.elements.repMin&&targetForm.elements.repMax&&targetForm.elements.targetSets);
+  const repPresets=[...targetForm.querySelectorAll('[data-action="lifting-rep-preset"]')];
+  assert.deepEqual(repPresets.map(x=>x.textContent),['8–12','10–16','12–20'],'common rep-range presets are visible');
+  repPresets[1].click();await tick();
+  assert.equal(targetForm.elements.repMin.value,'10');
+  assert.equal(targetForm.elements.repMax.value,'16');
+  assert.equal(repPresets[1].getAttribute('aria-pressed'),'true','preset updates draft selection');
+  targetForm.elements.repMax.value='15';
+  targetForm.elements.repMax.dispatchEvent(new dom.window.Event('input',{bubbles:true}));await tick();
+  assert.equal(repPresets[1].getAttribute('aria-pressed'),'false','manual targets remain editable and deselect presets');
  assert.ok([...targetForm.elements.equipment.options].some(o=>o.value==='bench'),'Smith/bench equipment can be chosen');
  assert.ok(targetForm.querySelector('.exercise-map-editor'),'same panel contains editable anatomy and push/pull');
  await click('close');
@@ -835,6 +844,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(document.querySelector('.buddy-set-active .buddy-muscle-stage .muscle-exercise-pair'),'large anatomy appears only while timing a set');
  assert.equal(document.querySelector('.buddy-set-active .buddy-muscle-mini'),null,'running screen omits small anatomy thumbnail');
  assert.ok(document.querySelector('.buddy-set-active .buddy-a'),'Finish set stays reachable at bottom during an active set');
+  assert.equal(document.querySelector('.buddy-set-active .buddy-performance-peek'),null,'running screen remains free of performance cards');
  assert.ok(stylesheet.includes('.buddy-set-active .buddy-muscle-stage .muscle-recovery-view:last-child'),'active anatomy has equal-height view alignment');
 
  assert.equal(document.querySelector('[data-action=buddy-undo]')?.textContent?.trim(),'↶ Undo');
@@ -843,6 +853,8 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelectorAll('#buddy-root .buddy-completed-sets .buddy-completed-set').length,0,'set one stays under review until its reps and effort are confirmed');
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-review-next"] b')?.textContent,'Start set 2','review action returns to the large bottom button');
  assert.ok(document.querySelector('.buddy-exercise-view .buddy-muscle-mini'),'review keeps compact upper-right anatomy thumbnail');
+  assert.ok(document.querySelector('.buddy-exercise-view .buddy-performance-peek'),'finished set has an informative range/comparison peek');
+  assert.match(document.querySelector('.buddy-performance-meta').textContent,/REP TARGET/);
  assert.equal(document.querySelector('.buddy-muscle-stage'),null,'review screen does not display large anatomy');
  assert.equal(document.querySelector('#buddy-root [data-buddy-state]'),null,'review has no extra action label');
  assert.equal(document.querySelector('[data-action=buddy-undo]')?.textContent?.trim(),'↶ Undo','Undo is a general control without a step-specific label');
@@ -853,6 +865,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.ok(row.querySelector('.buddy-compact-history'),'history expansion is contained');
   assert.ok(document.querySelector('.buddy-a-with-rest [data-buddy-rest]'),'rest countdown is integrated into the bottom action');
   assert.ok(document.querySelector('.buddy-a-with-rest > b'),'resting action label is a direct child, next to the timer');
+   assert.ok(document.querySelector('.buddy-performance-compare'),'matching historical set comparison is shown beside the range');
   assert.equal(document.querySelector('.buddy-a-with-rest .buddy-action-label'),null,'rest action label is not dimmed by generic span opacity');
   assert.ok(!document.querySelector('.buddy-set-status [data-buddy-rest]'),'rest countdown does not move into the top progress row');
   await click('buddy-toggle-history');
@@ -905,6 +918,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.ok(resultLine?.textContent.includes(' · '),'completed reps, effort and duration share a single inline summary');
  assert.equal(document.querySelector('.buddy-completed-set').children.length,2,'completed set uses label plus one inline summary, not separated columns');
  assert.equal(document.querySelector('#buddy-root .buddy-exercise-view > .buddy-a[data-action="buddy-review-next"] b')?.textContent,'Next exercise','end-of-exercise action stays at bottom');
+  assert.ok(document.querySelector('.buddy-performance-guidance'),'second planned set adds read-only range guidance');
  // Reproduce the exact failure: mistakenly tap Exercises after finishing
  // an unwanted second set. Undo must recover the set in one tap, not the screen.
  await click('buddy-picker');

@@ -1,4 +1,4 @@
-import {RELEASE_HISTORY} from './release-history.js?v=152';
+import {RELEASE_HISTORY} from './release-history.js?v=153';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
 import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
@@ -21,6 +21,7 @@ import {availableMonths,exportMonth} from './account-monthly.js?v=152';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=151';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=151';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=151';
+import {compareLiftSet,latestTopSetComparison,repRangeProgress} from './lifting-progression-model.js?v=153';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=151';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=152';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=152';
@@ -1721,10 +1722,24 @@ function workoutEditorCapture(){
    if(Number.isInteger(min))item.repMin=min;if(Number.isInteger(max))item.repMax=max;if(Number.isInteger(sets))item.targetSets=sets;if(Number.isInteger(rest))item.restSeconds=rest;
  });
 }
+const liftingRepPresets=[[8,12],[10,16],[12,20]];
+function liftingRepPresetMarkup(min,max){
+ return '<div class="lifting-rep-presets" role="group" aria-label="Rep-range presets"><span>Quick rep range</span><div>'+
+ liftingRepPresets.map(([a,b])=>'<button type="button" class="lifting-rep-preset'+(a===Number(min)&&b===Number(max)?' selected':'')+
+ '" data-action="lifting-rep-preset" data-min="'+a+'" data-max="'+b+'" aria-pressed="'+String(a===Number(min)&&b===Number(max))+'">'+a+'–'+b+'</button>').join('')+'</div></div>';
+}
+function syncLiftingRepPresets(scope){
+ if(!scope)return;
+ const min=Number(scope.querySelector('[name=repMin]')?.value),max=Number(scope.querySelector('[name=repMax]')?.value);
+ for(const button of scope.querySelectorAll('[data-action="lifting-rep-preset"]')){
+ const selected=min===Number(button.dataset.min)&&max===Number(button.dataset.max);
+ button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected));
+ }
+}
 function workoutEditorRow(item,i,total){
  const e=resolveWorkoutExercise(item);if(!e)return'';
  const cue=e.cue?'<p class="routine-import-cue"><strong>Routine cue:</strong> '+esc(e.cue)+'</p>':'';
- return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div>'+cue+'<div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div></section>`;
+ return `<section class="workout-template-row exercise-card-surface equipment-${esc(e.equipment)} movement-${buddyMovement(e)}" data-workout-row="${i}">${buddyMovementCorner(e)}<div class="workout-template-head"><div class="workout-template-title"><span class="equipment-mini">${equipmentGlyph(e.equipment)}</span><span><small>${equipmentLabel(e.equipment)}</small><strong>${esc(e.name)}</strong>${e.setup?`<em>Setup: ${esc(e.setup)}</em>`:''}<button type="button" class="routine-muscle-link routine-muscle-mini" data-action="routine-muscle-guide" data-index="${i}" aria-label="Show muscles for ${esc(e.name)}">${muscleMiniMarkup(e)}</button></span></div><div class="workout-order-actions"><button type="button" data-action="workout-move" data-index="${i}" data-direction="-1" ${i===0?'disabled':''} aria-label="Move ${esc(e.name)} up">↑</button><button type="button" data-action="workout-move" data-index="${i}" data-direction="1" ${i===total-1?'disabled':''} aria-label="Move ${esc(e.name)} down">↓</button><button type="button" class="remove" data-action="workout-remove" data-index="${i}" aria-label="Remove ${esc(e.name)}">×</button></div></div>'+cue+'<div class="workout-program-grid"><label class="field"><span>Min reps</span><input name="repMin" type="number" min="1" max="100" step="1" value="${item.repMin||6}"></label><label class="field"><span>Max reps</span><input name="repMax" type="number" min="1" max="100" step="1" value="${item.repMax||12}"></label><label class="field"><span>Planned sets</span><input name="targetSets" type="number" min="1" max="10" step="1" value="${item.targetSets||2}"></label><label class="field"><span>Rest (sec)</span><input name="restSeconds" type="number" min="0" max="1800" step="15" value="${item.restSeconds??90}"></label></div>${liftingRepPresetMarkup(item.repMin,item.repMax)}</section>`;
 }
 function workoutTemplateForm(name=null,preserve=false){
  if(!preserve){
@@ -1751,7 +1766,7 @@ function routineExerciseSettings(routineId,exerciseId){
   input('Max reps','repMax',item.repMax,'number','min="1" max="100" step="1" required')+
   input('Planned sets','targetSets',item.targetSets||2,'number','min="1" max="10" step="1" required')+
   input('Rest (sec)','restSeconds',item.restSeconds??90,'number','min="0" max="1800" step="15" required')+
-  '</div><label class="field"><span>Exercise equipment</span><select name="equipment">'+equipmentOptions+'</select></label>'+
+  '</div>'+liftingRepPresetMarkup(item.repMin,item.repMax)+'<label class="field"><span>Exercise equipment</span><select name="equipment">'+equipmentOptions+'</select></label>'+
   '<p class="hint">For a Smith-machine incline press, choose Bench if that is how you categorize the setup. This does not relabel past Machine logs.</p>'+
   exerciseProfileControls(def)+
   '<div class="form-actions"><button type="submit" class="primary">Save targets & exercise</button></div></form>');
@@ -1796,6 +1811,17 @@ function buddyPreviousOrder(w){
  if(!previous)return[];
  if(Array.isArray(previous.performedOrder)&&previous.performedOrder.length)return previous.performedOrder;
  return(previous.exercises||[]).map(e=>({key:buddyKey(e),when:e.sets?.[0]?.startedAt||e.selectedAt||''})).filter(x=>x.when).sort((a,b)=>Date.parse(a.when)-Date.parse(b.when)).map(x=>x.key);
+}
+function buddySetProgressMarkup(e,previous,setIndex,range){
+ const current=e.sets?.[setIndex],prior=previous?.sets?.[setIndex],comparison=compareLiftSet(current,prior,data.settings.unit);
+ const progress=repRangeProgress(e.sets,{min:range.min,max:range.max,plannedSets:buddyTargetSets(e)});
+ if(!current)return '';
+ const target=current.reps<range.min?'Below range':current.reps>range.max?'Above range':'In range';
+ const last=comparison?'<div class="buddy-performance-compare"><span>SET '+(setIndex+1)+' VS LAST</span><strong>'+esc(comparison.label)+'</strong></div>':'';
+ const ready=progress&&e.sets.length>=buddyTargetSets(e)?
+  '<div class="buddy-performance-guidance"><strong>'+esc(progress.label)+'</strong><small>'+esc(progress.detail)+'</small></div>':'';
+ return '<section class="buddy-performance-peek" aria-label="Set performance comparison"><div class="buddy-performance-meta"><span>REP TARGET</span><strong>'+esc(target)+' · '+range.min+'–'+range.max+'</strong></div>'+
+  last+ready+'</section>';
 }
 function buddyJournalScreen(head,e,backAction='buddy-journal-toggle'){
  const past=buddyHistory(e).slice(0,20);
@@ -1973,7 +1999,8 @@ function buddyRender(){
  const history=lastSession?'<div class="buddy-history-preview"><button type="button" class="buddy-last-toggle" data-action="buddy-toggle-history" aria-expanded="'+Boolean(e.showRecent)+'"><span><b>LAST · '+esc(niceDate(lastSession.date))+'</b><small>'+esc(buddyLastTwo(lastSession))+'</small></span><span class="buddy-last-chevron" aria-hidden="true">'+(e.showRecent?'⌃':'⌄')+'</span></button>'+(e.showRecent?'<div class="buddy-compact-history" role="region" aria-label="Earlier exercise history">'+recent.slice(1,3).map(l=>'<div><small>'+esc(niceDate(l.date))+'</small><span>'+esc(buddyLastTwo(l))+'</span></div>').join('')+(recent.length===1?'<small>No earlier workouts</small>':'')+'</div>':'')+'</div>':'';
  const setup=e.setupEditing?'<div class="buddy-setup-editor"><input name="buddySetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Persistent exercise setup" placeholder="Machine setting or setup note" value="'+esc(e.setupDraft??e.setup??'')+'"><button type="button" data-action="buddy-setup-save">Save</button></div>':'';
  const historyRest=history?'<div class="buddy-history-rest-row">'+history+'</div>':'';
- return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${buddySetControlsMarkup(d)}${notes}${optionalSecond}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><b>${action}</b>${rest}</button></main></div>`;
+  const comparison=reviewing?buddySetProgressMarkup(e,lastSession,e.reviewSetIndex,range):'';
+ return `<div class="buddy-screen">${head}<main class="buddy-main buddy-exercise-view"><button class="buddy-back" data-action="buddy-picker">‹ Exercises</button>${setProgress}<div class="buddy-exercise-title">${buddyExerciseHeading(e)}<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>${range.min}–${range.max}</strong></div><button type="button" class="buddy-setup ${e.setup?'has-setup':''}" data-action="buddy-setup-toggle" aria-expanded="${Boolean(e.setupEditing)}" title="Tap to edit exercise setup"><span>SETUP</span>${e.setup?`<strong>${esc(e.setup)}</strong>`:''}</button></div>${setup}</div>${historyRest}${completedSets}${comparison}${buddySetControlsMarkup(d)}${notes}${optionalSecond}<button class="buddy-a${showRest?' buddy-a-with-rest':''}" data-action="${reviewing?'buddy-review-next':'buddy-a'}"><b>${action}</b>${rest}</button></main></div>`;
 
 }
 let buddyTicker=null;
@@ -2248,10 +2275,21 @@ function exerciseProgressChart(group){
  return '<div class="exercise-progress-chart"><div class="exercise-chart-head"><small>'+(weighted?'Top set weight':'Top set reps')+'</small><strong>'+fmt(weightValues.at(-1))+(weighted?' '+data.settings.unit:' reps')+'</strong></div><div class="exercise-chart-legend"><span class="exercise-chart-legend-item weight"><i></i><span><b>'+(weighted?'Weight':'Top reps')+'</b><small>Exact session values</small></span></span>'+repLegend+'<span class="exercise-chart-effort"><small>Latest effort</small><b>'+esc(latestEffort)+'</b></span></div><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(group.name)+' '+(weighted?'weight and reps':'reps')+' trend">'+repSegments.join('')+'<polyline class="exercise-weight-line" points="'+weightPoly+'" fill="none" vector-effect="non-scaling-stroke"></polyline>'+weightCoords.map(pt=>'<circle class="exercise-weight-dot" cx="'+pt.x.toFixed(1)+'" cy="'+pt.y.toFixed(1)+'" r="3"></circle>').join('')+'</svg><div class="exercise-chart-range"><span>'+niceDate(points[0].date)+'</span><span>'+niceDate(points.at(-1).date)+'</span></div><p class="exercise-chart-note">The smooth rep curve uses its own scale. Green means lighter effort and red means harder effort, matching Workout Buddy’s difficulty scale.</p></div>';
 }
 
+function exerciseRecentComparisonMarkup(group){
+ const recent=group.lifts.slice(-2);
+ if(recent.length<2)return '';
+ const result=latestTopSetComparison(recent[1],recent[0],data.settings.unit);
+ if(!result)return '';
+ return '<section class="lifting-recent-comparison" aria-label="Recent lifting comparison"><div><strong>Recent top sets</strong>'+
+  '<small>'+esc(niceDate(recent[0].date))+' → '+esc(niceDate(recent[1].date))+'</small></div>'+
+  '<div class="lifting-recent-sets"><span><small>Previous</small><strong>'+fmt(result.previous.weight)+' '+esc(data.settings.unit)+' × '+result.previous.reps+'</strong></span>'+
+  '<span><small>Latest</small><strong>'+fmt(result.current.weight)+' '+esc(data.settings.unit)+' × '+result.current.reps+'</strong></span></div>'+
+  '<p>'+esc(result.comparison.label)+'</p><small>Top sets use highest load, then reps. Mixed load and rep changes are not treated as a strength record.</small></section>';
+}
 function exerciseProgressModal(name,equipment){
  const group=exerciseProgressGroups().find(g=>g.key===exerciseHistoryKey(name,equipment));if(!group)return;
  const best=[...group.lifts].map(l=>({lift:l,set:bestLiftSet(l)})).filter(x=>x.set).sort((a,b)=>b.set.weight-a.set.weight||b.set.reps-a.set.reps)[0];
- modal(group.name+' progress','<div class="exercise-progress-modal"><button type="button" class="routine-muscle-link" data-action="muscle-guide" data-name="'+esc(group.name)+'" data-equipment="'+esc(group.equipment)+'">View muscle diagram ↗</button><div class="exercise-progress-summary"><span><small>Equipment</small><strong>'+equipmentLabel(group.equipment)+'</strong></span><span><small>Sessions</small><strong>'+group.lifts.length+'</strong></span><span><small>Best set</small><strong>'+(best?fmt(best.set.weight)+' '+data.settings.unit+' × '+best.set.reps:'—')+'</strong></span></div>'+(group.definition?.setup?'<p class="exercise-progress-setup"><strong>Current setup:</strong> '+esc(group.definition.setup)+'</p>':'')+exerciseProgressChart(group)+'<div class="exercise-progress-history">'+[...group.lifts].reverse().map(l=>'<div class="exercise-progress-session"><div><strong>'+niceDate(l.date)+'</strong><small>'+l.date+'</small></div><div class="exercise-progress-sets">'+l.sets.map((s,i)=>'<span><b>Set '+(i+1)+'</b> '+fmt(s.weight)+' '+data.settings.unit+' × '+s.reps+(s.difficulty?' · '+effortText(s.difficulty):'')+'</span>').join('')+'</div>'+(l.notes?'<p>'+esc(l.notes)+'</p>':'')+'</div>').join('')+'</div></div>');
+ modal(group.name+' progress','<div class="exercise-progress-modal"><button type="button" class="routine-muscle-link" data-action="muscle-guide" data-name="'+esc(group.name)+'" data-equipment="'+esc(group.equipment)+'">View muscle diagram ↗</button><div class="exercise-progress-summary"><span><small>Equipment</small><strong>'+equipmentLabel(group.equipment)+'</strong></span><span><small>Sessions</small><strong>'+group.lifts.length+'</strong></span><span><small>Best set</small><strong>'+(best?fmt(best.set.weight)+' '+data.settings.unit+' × '+best.set.reps:'—')+'</strong></span></div>'+(group.definition?.setup?'<p class="exercise-progress-setup"><strong>Current setup:</strong> '+esc(group.definition.setup)+'</p>':'')+exerciseRecentComparisonMarkup(group)+exerciseProgressChart(group)+'<div class="exercise-progress-history">'+[...group.lifts].reverse().map(l=>'<div class="exercise-progress-session"><div><strong>'+niceDate(l.date)+'</strong><small>'+l.date+'</small></div><div class="exercise-progress-sets">'+l.sets.map((s,i)=>'<span><b>Set '+(i+1)+'</b> '+fmt(s.weight)+' '+data.settings.unit+' × '+s.reps+(s.difficulty?' · '+effortText(s.difficulty):'')+'</span>').join('')+'</div>'+(l.notes?'<p>'+esc(l.notes)+'</p>':'')+'</div>').join('')+'</div></div>');
 }
 function exerciseProgressLink(group){
  const set=bestLiftSet(group.latest);
@@ -2980,6 +3018,7 @@ app.addEventListener('keydown',event=>{if(event.key==='Escape'&&document.querySe
 document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches?.('[name=buddySetup]')){event.preventDefault();event.target.closest('.buddy-setup-editor')?.querySelector('[data-action="buddy-setup-save"]')?.click();}});
 app.addEventListener('input',event=>{
  if(event.target.matches?.('[data-ingredient-picker-search],[data-common-ingredient-search],[data-pantry-ingredient-search]')){cooking.onSearch(event.target);return;}
+ if(event.target.matches?.('[name="repMin"],[name="repMax"]'))syncLiftingRepPresets(event.target.closest('.workout-template-row,.routine-exercise-settings-form'));
  if(event.target.closest('[data-food-batch-item]')){syncFoodBatchRow(event.target.closest('[data-food-batch-item]'),event.target);return;}
  if(event.target.closest('form[data-form="recipe"],form[data-form="cooking-session"],form[data-form="batch-portion"]')){cooking.onInput(event.target.form);return;}
  if(event.target.closest('form.weight-checkin-form')&&event.target.matches('[name="value"],[name="bodyFatValue"]'))refreshWeightAdjustButtons(event.target.form);
@@ -3042,7 +3081,7 @@ document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start'&&!canPreviewCachedFoodAction(action,el))||importSaving)return;
   if(action==='food-workspace'||action.startsWith('recipe-')||action.startsWith('cooking-')||action.startsWith('ingredient-')||action.startsWith('pantry-')){await cooking.handleAction(action,el);return;}
   if(action==='exercise-guide-open'){
-   modal('Four-day exercise guide','<div class="exercise-guide-container"><iframe src="./exercise-guide.html?v=152" title="Upper A, Lower A, Upper B and Lower B exercise instructions" loading="eager"></iframe></div>');
+   modal('Four-day exercise guide','<div class="exercise-guide-container"><iframe src="./exercise-guide.html?v=153" title="Upper A, Lower A, Upper B and Lower B exercise instructions" loading="eager"></iframe></div>');
    document.querySelector('#overlay .modal')?.classList.add('exercise-guide-dialog');
    return;
   }
@@ -3484,6 +3523,14 @@ document.addEventListener('click',async event=>{
   if(action==='routine-new'){routineStarterPicker();return;}
   if(action==='routine-starter'){const preset=routinePresets.find(p=>p.key===el.dataset.key);if(!preset)return;newRoutineEditor(preset.name,routinePresetExercises(preset));return;}
   if(action==='routine-exercise-settings'){routineExerciseSettings(el.dataset.routine,el.dataset.id);return;}
+   if(action==='lifting-rep-preset'){
+    const min=Number(el.dataset.min),max=Number(el.dataset.max);
+    if(!liftingRepPresets.some(([a,b])=>a===min&&b===max))return;
+    const scope=el.closest('.workout-template-row,.routine-exercise-settings-form');
+    const lo=scope?.querySelector('[name=repMin]'),hi=scope?.querySelector('[name=repMax]');
+    if(!lo||!hi)return;
+    lo.value=String(min);hi.value=String(max);syncLiftingRepPresets(scope);return;
+   }
   if(action==='routine-edit'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;workoutTemplateForm(w.name);return;}
   if(action==='routine-copy'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(!w)return;newRoutineEditor(w.name+' copy',w.exercises);return;}
   if(action==='routine-delete-prompt'){const w=savedWorkouts().find(w=>w.id===el.dataset.id);if(w)routineDeletePrompt(w);return;}
@@ -4262,7 +4309,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=152',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=153',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';

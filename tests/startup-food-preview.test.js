@@ -35,7 +35,7 @@ test('cached Home food opens immediately and saves only after account readiness'
   ].join('\n');
   await writeFile(fixture,fixtureSource);
   let source=await readFile(new URL('app.js',root),'utf8');
-  source=source.replace(/(['"])\.\/(release-history|routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+  source=source.replace(/(['"])\.\/(release-history|routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|lifting-progression-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
    (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
   source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
   assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source));

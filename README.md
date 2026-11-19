@@ -1,3 +1,11 @@
+## v153 — Lifting progression and routine refinements (November 19, 2026)
+
+- **Workout Buddy set review:** After finishing a set, shows the set's position relative to its saved rep range and, when a matching historical set exists, a factual set-for-set comparison. Displays rep-range progression guidance after all planned sets; no automatic weight changes or claims that mixed load/rep changes are strength personal records. Running set screen stays unchanged.
+- **Exercise Progress:** Individual exercise detail adds previous versus latest *top sets* and an explicit description of weight/reps changes. Compares matching exercise/equipment histories; keeps historical lifts and their original values intact. The top-set rule is highest weight, then reps, so it is not a substitute for matched-workload analysis.
+- **Routine targets:** Both My Routines editor and the Lifting card's Targets & exercise setup panel offer one-tap **8–12**, **10–16**, and **12–20** rep presets; users can still enter any valid custom range. A tap updates draft fields only, and Save remains required. No routines, set counts, muscle profiles, CSV contract, or schedules are rewritten by the upgrade.
+- **Safety and rollout:** Pure read-only comparison model and responsive theme-aware styles. No data migration, cloud schema update, Firebase rule change, planned-muscle analytics in active Buddy, or automatic progression. Existing compact/backup/import compatibility is preserved.
+- **Next:** v154 progress and expenditure intelligence; v155+ nutrition input/scanning.
+
 ## v152 — Pantry and recipe creator credit (November 18, 2026)
 
 - **Pantry:** Food → Cooking → Pantry tracks quantities in an ingredient's reference servings, including out-of-stock items and unlinked custom stock. Stock can be edited, removed, exported or imported through a separate pantry JSON file; imports replace the pantry only with confirmation and never touch meals or recipes.
