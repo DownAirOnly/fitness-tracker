@@ -1,4 +1,4 @@
-import {RELEASE_HISTORY} from './release-history.js?v=152';
+import {RELEASE_HISTORY} from './release-history.js?v=153';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
 import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
@@ -3081,7 +3081,7 @@ document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start'&&!canPreviewCachedFoodAction(action,el))||importSaving)return;
   if(action==='food-workspace'||action.startsWith('recipe-')||action.startsWith('cooking-')||action.startsWith('ingredient-')||action.startsWith('pantry-')){await cooking.handleAction(action,el);return;}
   if(action==='exercise-guide-open'){
-   modal('Four-day exercise guide','<div class="exercise-guide-container"><iframe src="./exercise-guide.html?v=152" title="Upper A, Lower A, Upper B and Lower B exercise instructions" loading="eager"></iframe></div>');
+   modal('Four-day exercise guide','<div class="exercise-guide-container"><iframe src="./exercise-guide.html?v=153" title="Upper A, Lower A, Upper B and Lower B exercise instructions" loading="eager"></iframe></div>');
    document.querySelector('#overlay .modal')?.classList.add('exercise-guide-dialog');
    return;
   }
@@ -4309,7 +4309,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=152',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=153',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';

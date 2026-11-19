@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v152 (November 18, 2026)
+## Current release — v153 (November 19, 2026)
+
+- **Lifting progression:** Workout Buddy shows factual per-set comparison with the last matching exercise on the finished-set review screen. It also displays whether recorded reps are within the routine target and an informational cue when planned sets are complete. The active running-set screen and Undo transitions are unchanged; no automatic weight/reps increase.
+- **Progress detail:** Read-only comparison of the most recent two matching historical exercise top sets, with explicit weight/repetition changes and a note that mixed changes are not PRs.
+- **Routine editor:** Quick-rep presets 8–12, 10–16 and 12–20 in My Routines and the per-exercise target editor. Freeform valid rep targets and save confirmation remain; history and CSV data are untouched.
+- **Safety:** No new persisted workout fields, migration, cloud rules, or adjustments to muscle diagrams/coverage during the running set. New pure-model tests and targeted UI regression. **Next:** v154 progress intelligence, v155+ nutrition entry/scanning. CI and Pages success are distinct from on-device iPhone confirmation.
+
+## Previous release — v152 (November 18, 2026)
 
 - Food > Cooking > Pantry supports linked ingredient reference-serving inventory, unlinked named items, quantities including zero, item editing, and separate portable JSON import/export. Imported inventory replaces existing stock only after explicit confirmation; it does not alter any Food logs or recipes.
 - Optional Cooking Finish deduction checks the current session's linked ingredient amounts against Pantry. If enabled, matched stock is deducted once as the session becomes a prepared batch, with shortages rejected before any mutation and untracked stock left alone. A batch retains immutable deduction details. Saving steps/progress never deducts or logs food.
