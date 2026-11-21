@@ -1,3 +1,8 @@
+## v153.2 — Add notes label cleanup (November 20, 2026)
+
+- Remove the subtitle under **Add notes** in both active and completed Workout Buddy exercise editors. Leave the Notes saved review label, editing controls, and historical note behavior unchanged.
+- No data, import, cloud, history, or schema changes.
+
 ## v153.1 — Compact Workout Buddy sets and session notes (November 20, 2026)
 
 - Removed the new Set target/performance panel from active Workout Buddy. Read-only Exercise Progress comparisons remain separately available.
