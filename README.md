@@ -1,3 +1,11 @@
+## v154 — Progress Intelligence (November 20, 2026)
+
+- **On track?** Read-only summary at the top of Progress: observed 28-day weight pace (or early 14-day trend when only shorter history exists), intake-plus-weight-change TDEE estimate, editable goal weight, optional desired weekly pace and approximate goal month.
+- **Guardrails:** TDEE requires food entries on at least 24 of the last 28 *finished* tracking days, plus multiple weigh-ins near both ends. Missing food days are not counted as zero. Days with some entries are not guaranteed to be complete. Uses the current 6 a.m. (configurable) food-day boundary and ignores ongoing/future tracking days. No numeric estimate with insufficient or implausible data. Weight trends use endpoint-week averages rather than first/last single readings. Goal ETA withheld on plateaus or gaining weight.
+- **Method:** TDEE roughly equals logged mean calorie intake plus scale-loss energy equivalent (≈3,500 kcal/lb). This is an observational approximation subject to fluid shifts, meal logging errors and changing energy needs—not measured metabolism or a long-term dynamic physiological forecast. Goal ETA assumes recent trend continues; displays a month rather than a precise day.
+- **Settings:** Optional goalWeight and goalWeeklyPace in existing account settings, backup/export, cloud settings, offline/demo notebooks, and unit conversion. Existing calorie/protein targets and lifting logs are untouched.
+- **Design:** Compact theme-aware cards, one goal button and optional expanded explanation; no mandatory additional daily entries. New pure-model and UI smoke checks. Next: iterate Progress Intelligence from user feedback before v155 food-entry improvements.
+
 ## v153.2 — Add notes label cleanup (November 20, 2026)
 
 - Remove the subtitle under **Add notes** in both active and completed Workout Buddy exercise editors. Leave the Notes saved review label, editing controls, and historical note behavior unchanged.
