@@ -25,7 +25,8 @@ test('no logs are missing days not zero calories',()=>{
  const value=energyExpenditureEstimate({weights:weights(),foodEntries:entries,asOf:today});
  assert.equal(value.ready,false);
  assert.equal(value.reason,'food');
- assert.equal(value.loggedDays,14);
+ assert.equal(value.loggedDays,7);
+ assert.equal(value.windowDays,14,'the readiness message uses the early-window requirement');
 });
 test('TDEE withholds until both weight edges are supported',()=>{
  const latest=weights().filter((_,i)=>i>=22);
