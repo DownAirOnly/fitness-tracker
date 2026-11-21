@@ -184,7 +184,7 @@ await writeFile(fixture,`
 let source=await readFile(new URL('app.js',root),'utf8');
 // Load the current production modules into the temporary test app.
 // Use a version-agnostic resolver so smoke tests follow future asset revisions.
-source=source.replace(/(['"])\.\/(release-history|routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|lifting-progression-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
+source=source.replace(/(['"])\.\/(release-history|routine-import-ui|routine-import-model|exercise-import-meta|cooking-ui|cooking-model|food-portion-model|appearance-model|data|calendar-ui|muscle-map|muscle-load|buddy-set-model|lifting-progression-model|progress-intelligence-ui|progress-intelligence-model|finance-model|bank-import|import-model|classification-model|finance-insights-model|budget-model|finance-overview-model|account-sections|demo-mode|cloud-model|durability|paycheck-model|bank-reconcile|account-monthly|weight-checkin-model)\.js\?v=\d+(?:\.\d+){0,2}\1/g,
  (_match,_quote,name)=>"'"+new URL(name+'.js',root)+"'");
 source=source.replace(/(['"])\.\/cloud\.js\?v=\d+(?:\.\d+){0,2}\1/g,"'"+pathToFileURL(fixture)+"'");
 assert.ok(!/from ['"]\.\/[^'"]+\?v=\d+(?:\.\d+){0,2}/.test(source),'all static app imports resolved');
@@ -1440,6 +1440,19 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
   assert.equal(document.querySelector('nav.nav [data-action="progress"]').getAttribute('aria-current'),'page','History keeps Progress selected');
   assert.ok(document.querySelector('nav.nav [data-action="progress"]').classList.contains('active'),'Progress remains highlighted in History');
   await click('progress');
+ assert.ok(document.querySelector('.progress-intelligence'),'Progress opens with the new intelligence panel');
+ assert.ok(document.querySelector('.pi-tdee')?.textContent.includes('Building estimate'),'sparse food/weight data shows no invented TDEE');
+ assert.ok(document.querySelector('.pi-eta')?.textContent.includes('Set a goal'),'new users are not given an assumed target weight');
+ await click('progress-goal');
+ const weightGoal=document.querySelector('form[data-form="weight-goal"]');
+ assert.ok(weightGoal?.elements.goalWeight&&weightGoal?.elements.goalWeeklyPace,'optional weight and pace controls exist');
+ await submit('weight-goal',{goalWeight:'160',goalWeeklyPace:'1.5'});
+ assert.ok(document.querySelector('.pi-eta'),'goal save returns to Progress and updates ETA card');
+ await click('progress-goal');
+ assert.equal(document.querySelector('form[data-form="weight-goal"]').elements.goalWeight.value,'160','goal value persists when reopening editor');
+ assert.equal(document.querySelector('form[data-form="weight-goal"]').elements.goalWeeklyPace.value,'1.5','target pace persists when reopening editor');
+ await click('close');
+ assert.ok(document.querySelector('.pi-tdee')?.textContent.includes('Building estimate'),'goal alone must not manufacture TDEE');
  const {weeklyWeights,startOfWeek,localDate}=await import(new URL('data.js',root));
  const visibleWeeks=weeklyWeights(savedCalendar.weights,68,'lb',5).slice(0,6);
  assert.deepEqual([...document.querySelectorAll('[data-week]')].map(e=>e.dataset.week),visibleWeeks.map(w=>w.week));

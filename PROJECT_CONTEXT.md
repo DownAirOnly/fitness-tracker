@@ -2,7 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v153.2 (November 20, 2026)
+## Current release — v154 (November 20, 2026)
+
+- **Progress Intelligence:** Compact On track? section above Weight trend on Progress. Weight pace: 28-day weighted week-edge averages, with conservative 14-day early fallback; no short-term plateau conclusions from a few days alone. TDEE: rough observational estimate from the last 28 finished tracking days, when 24+ of 28 days have food entries, or an explicitly provisional 14-day alternative with 12+ logged days, plus multiple weigh-ins at both ends; absent entries are not assumed zero calories. 3,500 kcal/lb is an energy-balance approximation, not a dynamic metabolism simulation.
+- **Goals:** Optional weight goal and desired weekly loss saved to existing settings; progress card shows approximate ETA month only when falling trend is supported. Settings/backups/account sync and lb↔kg conversion supported. Goal starts unset; there is no automatic target change or fabricated ETA. No new required steps, charts, imported record changes or rule changes.
+- **Files:** progress-intelligence-model.js (pure), progress-intelligence-ui.js, progress-intelligence.css, model/UI tests. Refreshed data, import, cloud and account module tokens to carry optional settings. Release v154 offline tokens. Next: check real on-device UI and refine based on feedback; v155 food-entry improvements remain later.
+
+## Previous release — v153.2 (November 20, 2026)
 
 - **Tiny Buddy UI hotfix:** Remove the subtext beneath Add notes on active and completed exercise editors. Keep the text and behavior for an existing Notes saved entry. No data model, cloud, or history changes.
 

@@ -1,4 +1,4 @@
-import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=152';
+import {emptyData,normalizeData,parseCSV,id,validDate} from './data.js?v=154';
 import {parseFinanceAmount,financeCsvId,financeDuplicateKey,FINANCE_KINDS} from './finance-model.js?v=150';
 import {readBofaCSV,readEnrichmentCSV} from './bank-import.js?v=150';
 import {prepareReconciliation} from './bank-reconcile.js?v=150';
