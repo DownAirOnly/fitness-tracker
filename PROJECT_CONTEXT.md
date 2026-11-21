@@ -2,7 +2,13 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v153 (November 19, 2026)
+## Current release — v153.1 (November 20, 2026)
+
+- Workout Buddy's crowded performance box is removed. Set N is displayed above current inputs; prior sets are expandable summaries with the same controls and per-set persistence. Completed exercise editing is likewise collapsible. Set timers, Undo and automatic next-set defaults are preserved.
+- Session notes no longer prepopulate from Exercise Library or previous sessions. Existing historical exercise notes remain in Journal; active legacy sessions with inherited notes no longer present untouched shared text as a new note. Editing session notes no longer rewrites shared exercise definitions.
+- No changes to cloud schema, workout history or Firebase rules. v153 Exercise Progress comparisons and rep-range presets are retained. Next: v154 progress intelligence.
+
+## Previous release — v153 (November 19, 2026)
 
 - **Lifting progression:** Workout Buddy shows factual per-set comparison with the last matching exercise on the finished-set review screen. It also displays whether recorded reps are within the routine target and an informational cue when planned sets are complete. The active running-set screen and Undo transitions are unchanged; no automatic weight/reps increase.
 - **Progress detail:** Read-only comparison of the most recent two matching historical exercise top sets, with explicit weight/repetition changes and a note that mixed changes are not PRs.

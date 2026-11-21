@@ -1,3 +1,10 @@
+## v153.1 — Compact Workout Buddy sets and session notes (November 20, 2026)
+
+- Removed the new Set target/performance panel from active Workout Buddy. Read-only Exercise Progress comparisons remain separately available.
+- Number each active set directly above the weight/reps/effort controls. Previously confirmed sets become prominent, expandable summaries with in-place editing; completed-exercise editing exposes the last set by default and lets users switch which set is expanded.
+- New workout notes start empty and remain scoped to the session, without automatically copying or overwriting exercise-library notes. Previously recorded notes remain in historical logs.
+- Existing workout history, imported routines and cloud data are not migrated. No Firebase rule changes.
+
 ## v153 — Lifting progression and routine refinements (November 19, 2026)
 
 - **Workout Buddy set review:** After finishing a set, shows the set's position relative to its saved rep range and, when a matching historical set exists, a factual set-for-set comparison. Displays rep-range progression guidance after all planned sets; no automatic weight changes or claims that mixed load/rep changes are strength personal records. Running set screen stays unchanged.
