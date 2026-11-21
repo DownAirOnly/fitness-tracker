@@ -2,7 +2,11 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v153.1 (November 20, 2026)
+## Current release — v153.2 (November 20, 2026)
+
+- **Tiny Buddy UI hotfix:** Remove the subtext beneath Add notes on active and completed exercise editors. Keep the text and behavior for an existing Notes saved entry. No data model, cloud, or history changes.
+
+## Previous release — v153.1 (November 20, 2026)
 
 - Workout Buddy's crowded performance box is removed. Set N is displayed above current inputs; prior sets are expandable summaries with the same controls and per-set persistence. Completed exercise editing is likewise collapsible. Set timers, Undo and automatic next-set defaults are preserved.
 - Session notes no longer prepopulate from Exercise Library or previous sessions. Existing historical exercise notes remain in Journal; active legacy sessions with inherited notes no longer present untouched shared text as a new note. Editing session notes no longer rewrites shared exercise definitions.

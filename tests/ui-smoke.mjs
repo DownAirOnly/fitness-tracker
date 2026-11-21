@@ -751,6 +751,7 @@ assert.ok(!document.body.textContent.includes('Goals are guides, not grades'));
  assert.equal(document.querySelector('.buddy-picker-head .eyebrow')?.textContent,'REMAINING EXERCISES','available exercises are labeled without extra copy');
  await click('buddy-choose');
  assert.ok(document.querySelector('.buddy-notes-toggle')?.textContent.includes('Add notes'),'new session does not inherit exercise-library notes');
+ assert.equal(document.querySelector('.buddy-notes-toggle small'),null,'Add notes has no explanatory subtitle');
  assert.equal(document.querySelector('.buddy-current-set-editor .buddy-set-entry-label')?.textContent,'Set 1','label appears above first set controls');
  assert.ok(document.querySelector('.buddy-muscle-mini .muscle-mini-pair'),'ready screen restores the small front/back muscle thumbnail');
  assert.equal(document.querySelector('.buddy-muscle-stage'),null,'large anatomy pair is absent before starting a set');
