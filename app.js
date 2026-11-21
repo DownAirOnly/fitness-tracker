@@ -1827,7 +1827,7 @@ function buddyCompletedEditorRead(){
  const state=buddyCompletedEditor,root=document.querySelector('#buddy-root .buddy-completed-editor');
  if(!state||!root)return;
  for(const row of root.querySelectorAll('.buddy-completed-edit-set')){
-  const i=Number(row.dataset.index),set=state.sets[i];if(!set)continue;
+  const i=Number(row.dataset.index),set=state.sets[i];if(!set||!row.querySelector('[name=buddyWeight]'))continue;
   set.weight=Math.max(0,Number(row.querySelector('[name=buddyWeight]')?.value)||0);
   set.reps=Math.max(1,Math.floor(Number(row.querySelector('[name=buddyReps]')?.value)||1));
   const effort=Number(row.querySelector('[name=buddyDifficulty]')?.value)||0;
@@ -1843,7 +1843,11 @@ function buddyCompletedEditorScreen(head,s){
  if(!state||!e){buddyCompletedEditor=null;return '';}
  if(state.journalOpen)return buddyJournalScreen(head,{...e,notes:state.notes},'buddy-completed-journal-back');
  const range=buddyRepRange(e),notesButton='<button type="button" class="buddy-journal-chip" data-action="buddy-completed-journal">Journal ↗</button>';
- const sets=state.sets.map((set,i)=>'<section class="buddy-completed-edit-set" data-index="'+i+'"><div class="buddy-completed-edit-set-heading"><strong>Set '+(i+1)+'</strong><span>'+buddyClock(set.durationSeconds||0)+'</span></div>'+buddySetControlsMarkup(set)+'</section>').join('');
+ const sets=state.sets.map((set,i)=>{
+  const expanded=state.editSetIndex===i;
+  const summary=fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+esc(effortText(set.difficulty)):'')+' · '+buddyClock(set.durationSeconds||0);
+  return '<section class="buddy-completed-edit-set" data-index="'+i+'"><button type="button" class="buddy-completed-edit-set-heading" data-action="buddy-completed-set-toggle" data-index="'+i+'" aria-expanded="'+expanded+'"><strong>Set '+(i+1)+'</strong><span>'+summary+' · '+(expanded?'Done ⌃':'Edit ⌄')+'</span></button>'+(expanded?buddySetControlsMarkup(set):'')+'</section>';
+ }).join('');
  const setup=state.setupEditing?'<div class="buddy-setup-editor"><input name="buddyCompletedSetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Exercise setup" placeholder="Machine setting or setup" value="'+esc(state.setup||'')+'"><button type="button" data-action="buddy-completed-setup-toggle">Done</button></div>':'';
  const notes=state.notesOpen?'<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>'+notesButton+'</div><div class="buddy-notes-editor"><textarea name="buddyCompletedNotes" maxlength="500" rows="2" placeholder="Form, setup, pain, or anything worth remembering">'+esc(state.notes||'')+'</textarea><button type="button" class="buddy-notes-done" data-action="buddy-completed-notes-toggle">Done</button></div></div>':'<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle '+(state.notes?'has-note':'')+'" data-action="buddy-completed-notes-toggle"><span><b>'+(state.notes?'Notes saved':'Add notes')+'</b><small>'+(state.notes?'Tap to review or edit':'Form, setup, pain, or anything worth remembering')+'</small></span><strong aria-hidden="true">'+(state.notes?'✓':'＋')+'</strong></button>'+notesButton+'</div></div>';
  return '<div class="buddy-screen">'+head+'<main class="buddy-main buddy-exercise-view buddy-completed-editor"><button type="button" class="buddy-back" data-action="buddy-edit-completed-cancel">‹ Exercises</button><div class="buddy-exercise-title buddy-completed-edit-title">'+buddyExerciseHeading(e)+'<div class="buddy-meta-row"><div class="buddy-rep-range"><span>REP RANGE</span><strong>'+range.min+'–'+range.max+'</strong></div><button type="button" class="buddy-setup '+(state.setup?'has-setup':'')+'" data-action="buddy-completed-setup-toggle" aria-expanded="'+Boolean(state.setupEditing)+'"><span>SETUP</span>'+(state.setup?'<strong>'+esc(state.setup)+'</strong>':'')+'</button></div>'+setup+'</div><div class="buddy-completed-edit-body">'+sets+'</div>'+notes+'<button type="button" class="buddy-a" data-action="buddy-edit-completed-save"><b>Save changes</b></button></main></div>';
@@ -3579,10 +3583,11 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-edit-completed'){
    const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);
    if(!e||e.status!=='done')return;
-   buddyCompletedEditor={key:buddyKey(e),sets:structuredClone(e.sets),notes:buddySessionNotes(e),setup:e.setup||'',notesOpen:false,setupEditing:false,journalOpen:false};
+   buddyCompletedEditor={key:buddyKey(e),sets:structuredClone(e.sets),notes:buddySessionNotes(e),setup:e.setup||'',notesOpen:false,setupEditing:false,journalOpen:false,editSetIndex:e.sets.length-1};
    buddyOpen();return;
   }
-  if(action==='buddy-completed-notes-toggle'){
+  if(action==='buddy-completed-set-toggle'){const state=buddyCompletedEditor,i=Number(el.dataset.index);if(!state||!Number.isInteger(i)||i<0||i>=state.sets.length)return;buddyCompletedEditorRead();state.editSetIndex=state.editSetIndex===i?null:i;buddyOpen();return;}
+   if(action==='buddy-completed-notes-toggle'){
    const edit=buddyCompletedEditor;if(!edit)return;
    buddyCompletedEditorRead();
    const opening=!edit.notesOpen;
@@ -4807,6 +4812,7 @@ document.addEventListener('input',event=>{
  }
  if(event.target.matches?.('[name=buddyWeight],[name=buddyReps],[name=buddyNotes]')){
    if(event.target.closest('.routine-history-editor'))routineHistoryCaptureDraft();
+   else if(event.target.closest('.buddy-completed-editor'))buddyCompletedEditorRead();
    else{buddyReadEditor();buddyReadNotes();saveCriticalLocalCopy();}
  }
 });
