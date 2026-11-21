@@ -56,7 +56,7 @@ export const templateExercises = {
 };
 export const defaultWorkoutTemplates=()=>Object.entries(templateExercises).map(([name,exercises],index)=>({id:'workout-'+String(index+1).padStart(2,'0'),name,color:['#69B98A','#AC8ED9','#C58B58'][index]||'#69B98A',exercises:structuredClone(exercises)}));
 export const defaultPreferences=()=>({homeDashboard:'nutrition',homeFoodIds:null,theme:'system',appearance:defaultAppearance(),legacyImported:false});
-export const emptyData = () => ({version: 1, preferences:defaultPreferences(), settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360}, foods: [], foodEntries: [], recipes: [], activeCooking: null, preparedBatches: [], pantry: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
+export const emptyData = () => ({version: 1, preferences:defaultPreferences(), settings: {calories: 1600, protein: 130, heightInches: 68, unit: 'lb', weekStart: 5, dayResetMinutes: 360, goalWeight: null, goalWeeklyPace: null}, foods: [], foodEntries: [], recipes: [], activeCooking: null, preparedBatches: [], pantry: [], lifts: [], weights: [], bodyFat: [], transactions: [], classificationRules: [], budgetPlan: emptyBudgetPlan(), exerciseDefinitions: defaultExerciseDefinitions(), workoutTemplates: defaultWorkoutTemplates(), workoutSchedule: [], activeWorkout: null, workoutHistory: [], notes: [], promptDate: ''});
 // A Finance reset only changes finance-owned state. Other tabs and account
 // preferences must remain byte-for-byte identical in the candidate notebook.
 export function resetFinanceData(current){
@@ -133,6 +133,8 @@ export function convertNotebookWeightUnit(notebook,nextUnit) {
   if(Array.isArray(session.undoStack))for(const snapshot of session.undoStack)
    for(const exercise of snapshot?.exercises||[])convertExercise(exercise);
  }
+ convertRecord(converted.settings,'goalWeight');
+ convertRecord(converted.settings,'goalWeeklyPace');
  for(const weight of converted.weights||[])convertRecord(weight,'value');
  for(const lift of converted.lifts||[])for(const set of lift.sets||[])convertRecord(set,'weight');
  convertSession(converted.activeWorkout);
@@ -194,6 +196,13 @@ export function normalizeData(input) {
   if(!input || input.version!==1 || !Array.isArray(input.foods)||!Array.isArray(input.foodEntries)||!Array.isArray(input.lifts)||!Array.isArray(input.weights)||!input.settings || typeof input.settings!=='object') throw new Error('This is not an Everyday backup.');
   const data=emptyData();
   data.settings={...data.settings,...input.settings};
+  for(const key of ['goalWeight','goalWeeklyPace']){
+   const raw=data.settings[key];
+   if(raw===null||raw===undefined||raw===''){data.settings[key]=null;continue;}
+   const value=typeof raw==='number'?raw:typeof raw==='string'&&raw.trim()?Number(raw):NaN;
+   if(!Number.isFinite(value)||value<=0||value>1000)throw new Error('Backup '+key+' is invalid.');
+   data.settings[key]=Math.round(value*10)/10;
+  }
   const prefs=input.preferences??defaultPreferences();
   if(!prefs||typeof prefs!=='object'||Array.isArray(prefs))throw Error('Invalid account preferences.');
   const homeDashboard=['nutrition','lifting','finances'].includes(prefs.homeDashboard)?prefs.homeDashboard:'nutrition';

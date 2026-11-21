@@ -64,7 +64,7 @@ test('food day reset shifts timed entries, while untimed entries stay on calenda
 });
 test('kg units and reached goals are handled in the selected unit',()=>{
  const w=weights().map(x=>({...x,value:x.value/2.2046226218}));
- const result=progressIntelligence({weights:w,foodEntries:food(),today,unit:'kg',goalWeight:79});
+ const result=progressIntelligence({weights:w,foodEntries:food(),today,unit:'kg',goalWeight:80});
  assert.equal(result.tdee.ready,true);
  assert.equal(result.tdee.tdee,2500);
  assert.equal(result.goal.state,'reached');
@@ -82,4 +82,17 @@ test('no goal and sparse records remain neutral',()=>{
  assert.equal(x.goal.state,'unset');
  assert.equal(x.tdee.ready,false);
  assert.equal(x.pace,null);
+});
+
+test('optional weight goal and preferred pace survive notebook normalization and unit conversion',async()=>{
+ const {emptyData,normalizeData,convertNotebookWeightUnit}=await import('../data.js');
+ const data=emptyData();data.settings.goalWeight=160;data.settings.goalWeeklyPace=1.5;
+ const normalized=normalizeData(data);
+ assert.equal(normalized.settings.goalWeight,160);
+ const converted=convertNotebookWeightUnit(normalized,'kg');
+ assert.equal(converted.settings.goalWeight,72.6);
+ assert.equal(converted.settings.goalWeeklyPace,.7);
+ assert.equal(normalized.settings.goalWeight,160,'unit conversion does not mutate original');
+ assert.equal(normalizeData({...data,settings:{...data.settings,goalWeight:null}}).settings.goalWeight,null);
+ assert.throws(()=>normalizeData({...data,settings:{...data.settings,goalWeight:-1}}),/goalWeight/);
 });
