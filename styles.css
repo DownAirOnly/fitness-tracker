@@ -3994,3 +3994,39 @@ form[data-form="food"] .food-batch-delete{
  border-top:1px solid var(--ap-border,#d1dcd1);
  color:var(--ap-on-surface,inherit);
 }
+
+
+/* v154.1 — During a timed set, anatomy is reference-only. */
+#buddy-root .buddy-set-active .buddy-muscle-stage{cursor:default;pointer-events:none}
+
+/* Completed cards: equal height and reserved rows for exercise name, setup
+   note, and set summaries. Setup does not flow beside or wrap under the name. */
+#buddy-root .buddy-completed-exercise-strip .exercise-card{
+ height:136px;min-height:136px;max-height:136px;padding:11px 12px;
+}
+#buddy-root .buddy-completed-exercise-strip .exercise-card .exercise-copy{
+ display:grid!important;grid-template-rows:19px minmax(0,1fr) 46px;
+ align-content:stretch;height:100%;overflow:hidden;
+}
+#buddy-root .buddy-completed-exercise-strip .exercise-name-row{
+ display:block;min-height:0;max-height:100%;overflow:hidden;
+}
+#buddy-root .buddy-completed-exercise-strip .exercise-name-row>strong{
+ display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+ overflow:hidden;overflow-wrap:anywhere;
+}
+#buddy-root .buddy-completed-exercise-strip .exercise-card-summary{
+ display:grid;grid-template-rows:14px 30px;gap:2px;
+ margin-top:0;min-width:0;overflow:hidden;
+}
+#buddy-root .buddy-completed-exercise-strip .buddy-card-setup{
+ display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ height:14px;font:600 10px/14px 'DM Sans',sans-serif;color:var(--ap-muted,#9eb5a6);
+}
+#buddy-root .buddy-completed-exercise-strip .buddy-card-set-summaries{
+ grid-template-rows:repeat(2,13px);gap:2px;min-width:0;overflow:hidden;
+}
+#buddy-root .buddy-completed-editor{overflow-y:auto!important;overscroll-behavior-y:contain}
+#buddy-root .buddy-completed-edit-set-heading span{
+ min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
