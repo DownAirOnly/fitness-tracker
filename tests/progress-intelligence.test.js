@@ -28,7 +28,7 @@ test('no logs are missing days not zero calories',()=>{
  assert.equal(value.loggedDays,14);
 });
 test('TDEE withholds until both weight edges are supported',()=>{
- const latest=weights().filter((_,i)=>i>=10);
+ const latest=weights().filter((_,i)=>i>=22);
  const value=energyExpenditureEstimate({weights:latest,foodEntries:food(),asOf:today});
  assert.equal(value.ready,false);
  assert.equal(value.reason,'weight');
@@ -95,4 +95,13 @@ test('optional weight goal and preferred pace survive notebook normalization and
  assert.equal(normalized.settings.goalWeight,160,'unit conversion does not mutate original');
  assert.equal(normalizeData({...data,settings:{...data.settings,goalWeight:null}}).settings.goalWeight,null);
  assert.throws(()=>normalizeData({...data,settings:{...data.settings,goalWeight:-1}}),/goalWeight/);
+});
+
+test('after two weeks, a provisional TDEE is visible with clear early labeling',()=>{
+ const value=energyExpenditureEstimate({weights:weights(),foodEntries:food().slice(-13),asOf:today});
+ assert.equal(value.ready,true);
+ assert.equal(value.windowDays,14);
+ assert.equal(value.loggedDays,13);
+ assert.equal(value.quality,'early');
+ assert.equal(value.tdee,2500);
 });

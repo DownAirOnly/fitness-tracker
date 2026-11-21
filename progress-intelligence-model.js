@@ -61,26 +61,33 @@ function foodDays(entries,asOf,dayResetMinutes){
  return byDay;
 }
 export function energyExpenditureEstimate({weights=[],foodEntries=[],asOf,unit='lb',dayResetMinutes=360}={}){
- const end=shiftInsightDate(asOf,-1),start=end&&shiftInsightDate(end,-27);
+ const end=shiftInsightDate(asOf,-1);
  if(!end||!['lb','kg'].includes(unit))return {ready:false,reason:'invalid-input'};
  const entries=foodDays(foodEntries,end,dayResetMinutes);
- const totals=[...entries].filter(([day])=>day>=start&&day<=end);
- const loggedDays=totals.length,requiredDays=24;
- const pace=weightPace(weights,end,{days:28});
- const evidence={loggedDays,requiredDays,windowDays:28,weightCount:pace?.count||0,
-  firstWeightCount:pace?.firstCount||0,lastWeightCount:pace?.lastCount||0,start,end};
- if(loggedDays<requiredDays||!pace?.ready){
-  return {ready:false,reason:loggedDays<requiredDays?'food':'weight',...evidence};
+ let incomplete=null;
+ // Prefer 28 days; allow an explicitly early, lower-confidence estimate
+ // after about two weeks, rather than inferring missing food as zero.
+ for(const {days,requiredDays} of [{days:28,requiredDays:24},{days:14,requiredDays:12}]){
+  const start=shiftInsightDate(end,-days+1);
+  const totals=[...entries].filter(([day])=>day>=start&&day<=end);
+  const loggedDays=totals.length,pace=weightPace(weights,end,{days});
+  const evidence={loggedDays,requiredDays,windowDays:days,weightCount:pace?.count||0,
+   firstWeightCount:pace?.firstCount||0,lastWeightCount:pace?.lastCount||0,start,end};
+  if(loggedDays<requiredDays||!pace?.ready){
+   incomplete={ready:false,reason:loggedDays<requiredDays?'food':'weight',...evidence};continue;
+  }
+  const intake=mean(totals.map(([,calories])=>calories));
+  const lossInLbPerWeek=pace.lossPerWeek*(unit==='kg'?2.2046226218:1);
+  // Approximate retrospective conversion; not a metabolic simulation or a
+  // prediction that the scale is recording only changes in body fat.
+  const raw=intake+lossInLbPerWeek*3500/7;
+  if(!Number.isFinite(raw)||raw<800||raw>7000)
+   return {ready:false,reason:'implausible',...evidence,avgIntake:Math.round(intake)};
+  return {ready:true,tdee:roundTo(raw,50),rawTdee:raw,avgIntake:Math.round(intake),
+   coverage:loggedDays/days,quality:days===14?'early':loggedDays===28?'higher':'limited',
+   lossPerWeek:pace.lossPerWeek,...evidence};
  }
- const intake=mean(totals.map(([,calories])=>calories)),lossInLbPerWeek=pace.lossPerWeek*(unit==='kg'?2.2046226218:1);
- // Fixed energy-density conversion is only a rough *retrospective* approximation.
- // It does not forecast long-run metabolic adaptation or actual fat loss.
- const raw=intake+lossInLbPerWeek*3500/7;
- if(!Number.isFinite(raw)||raw<800||raw>7000)
-  return {ready:false,reason:'implausible',...evidence,avgIntake:Math.round(intake)};
- return {ready:true,tdee:roundTo(raw,50),rawTdee:raw,avgIntake:Math.round(intake),
-  coverage:loggedDays/28,quality:loggedDays===28?'higher':'limited',
-  lossPerWeek:pace.lossPerWeek,...evidence};
+ return incomplete||{ready:false,reason:'insufficient'};
 }
 export function progressIntelligence({weights=[],foodEntries=[],today,unit='lb',goalWeight=null,desiredWeeklyLoss=null,dayResetMinutes=360}={}){
  if(!Number.isFinite(utcDate(today))||!['lb','kg'].includes(unit))

@@ -15,9 +15,9 @@ export function progressIntelligenceHTML(data,today){
  const paceDetail=!pace?'Several weigh-ins over at least two weeks needed':
   (pace.days===14?'Early 14-day trend':'28-day averaged trend')+' · '+pace.count+' weigh-ins';
  const tdeeValue=tdee.ready?'≈'+cal(tdee.tdee)+' kcal/day':'Building estimate';
- const tdeeDetail=tdee.ready?'Last 28 finished days · '+tdee.loggedDays+'/28 with food entries':
-  tdee.reason==='food'?tdee.loggedDays+'/28 days with food entries · need at least 24':
-  tdee.reason==='weight'?'More weigh-ins needed at the start and end of the month':
+ const tdeeDetail=tdee.ready?(tdee.windowDays===14?'Early 14-day estimate':'Last 28 finished days')+' · '+tdee.loggedDays+'/'+tdee.windowDays+' days with food entries':
+  tdee.reason==='food'?tdee.loggedDays+'/'+tdee.windowDays+' days with food entries · need '+tdee.requiredDays:
+  tdee.reason==='weight'?'Need weigh-ins near both ends of the tracking period':
   tdee.reason==='implausible'?'Weight/intake combination needs review':
   'More intake and weigh-in history needed';
  const eta=goal.eta?new Date(goal.eta+'T12:00:00').toLocaleDateString(undefined,{month:'short',year:'numeric'}):null;
@@ -43,7 +43,7 @@ export function progressIntelligenceHTML(data,today){
   row('GOAL ETA',goalValue,goalDetail,'eta')+'</div>'+targetText+
   '<details class="pi-method"><summary>How are these calculated?</summary>'+
   '<p>Weight pace compares averages from the beginning and end of 28 days. A 14-day early trend can appear until enough longer-term data exists. Day-to-day water shifts can obscure progress.</p>'+
-  '<p>TDEE uses calorie entries from the last 28 <strong>finished</strong> tracking days and weight change across that window. It requires food entries on at least 24 days and sufficient weigh-ins near both ends. Days without entries are missing, not zero. A day with entries might still be incomplete.</p>'+
+  '<p>TDEE uses the last 28 <strong>finished</strong> tracking days when possible (24+ logged days and enough weigh-ins), or a clearly marked early 14-day estimate (12+ logged days and enough weigh-ins). Days with no food entries are missing, not zero. Days with some entries might still be incomplete.</p>'+
   intakeText+
   '<p>Energy expenditure uses a rough 3,500 kcal/lb energy-balance approximation, not a measurement of metabolism. Both TDEE and weight-loss rates change over time. ETA assumes the current pace continues, so it shows an approximate month, not a deadline. Nothing automatically changes your calorie target.</p>'+
   '</details></section>';
