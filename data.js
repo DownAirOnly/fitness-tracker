@@ -133,8 +133,13 @@ export function convertNotebookWeightUnit(notebook,nextUnit) {
   if(Array.isArray(session.undoStack))for(const snapshot of session.undoStack)
    for(const exercise of snapshot?.exercises||[])convertExercise(exercise);
  }
- convertRecord(converted.settings,'goalWeight');
- convertRecord(converted.settings,'goalWeeklyPace');
+ for(const key of ['goalWeight','goalWeeklyPace']){
+  const value=converted.settings[key];
+  if(value==null)continue;
+  const number=Number(value);
+  if(!Number.isFinite(number)||number<=0)throw Error('Goal weight or pace is invalid; unit conversion canceled.');
+  converted.settings[key]=round(number*factor);
+ }
  for(const weight of converted.weights||[])convertRecord(weight,'value');
  for(const lift of converted.lifts||[])for(const set of lift.sets||[])convertRecord(set,'weight');
  convertSession(converted.activeWorkout);
