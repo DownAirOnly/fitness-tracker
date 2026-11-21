@@ -22,6 +22,7 @@ import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=151';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=151';
 import {latestTopSetComparison} from './lifting-progression-model.js?v=153';
+import {progressIntelligenceHTML} from './progress-intelligence-ui.js?v=154';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=151';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=152';
 import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=152';
@@ -2481,6 +2482,15 @@ function measurementEditForm(date){
    button('Delete date','delete-measurement','danger','data-date="'+esc(date)+'"')+
    button('Cancel','close','outline')+'</div></form>');
 }
+function weightGoalForm(){
+ const unit=esc(data.settings.unit);
+ modal('Weight goal','<form class="form" data-form="weight-goal">'+
+  input('Goal weight ('+unit+')','goalWeight',data.settings.goalWeight??'','number','min="1" max="1000" step="0.1" inputmode="decimal"')+
+  input('Desired weekly loss ('+unit+') · optional','goalWeeklyPace',data.settings.goalWeeklyPace??'','number','min="0.1" max="20" step="0.1" inputmode="decimal"')+
+  '<p class="hint">Leave either field blank to clear it. Your goal is used only for progress estimates. No calorie target will be changed automatically.</p>'+
+  '<div class="form-actions"><button type="submit" class="primary">Save goal</button>'+
+  button('Cancel','close','outline')+'</div></form>');
+}
 function progress() {
  const weeks=weeklyWeights(data.weights,data.settings.heightInches,data.settings.unit,FIXED_WEEK_START);
  const visibleWeeks=weeks.slice(0,6);
@@ -2502,7 +2512,7 @@ function progress() {
  const muscleLevels='<section class="panel progress-details muscle-levels-panel">'+muscleSetLevelsMarkup(
   muscleWindow.completed,null,
   {title:'Set levels',subtitle:'Rolling 8 days · '+niceDate(muscleWindow.start)+' – '+niceDate(muscleWindow.end),showAll:true})+'</section>';
- return `<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${chartControls}${weightChart}${weekly}${fatSummary}</section>${muscleLevels}${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
+ return progressIntelligenceHTML(data,currentTrackingDate())+`<section class="panel progress-trend"><div class="section-head"><div><h2>Weight trend</h2></div>${button('+ Weigh in','weight','primary small')}</div>${latestCard}${chartControls}${weightChart}${weekly}${fatSummary}</section>${muscleLevels}${workoutTimingPanel()}${exerciseProgressPanel()}<section class="panel progress-details food-progress-panel"><div class="section-head"><div><h2>Calories & protein</h2></div>${button('All dates ↗','history','text-btn')}</div>${data.foodEntries.length?foodProgressControls(foodWindow)+recentFoodChart(foodWindow)+'<div class="recent-food-days"><p class="eyebrow">RECENT LOGGED DAYS</p>'+days.map(day=>{const t=foodDayTotals(day);return `<button class="day-link" data-action="go-date" data-date="${day}"><span>${niceDate(day)}</span><strong>${Math.round(t.calories)} cal · ${Math.round(t.protein)}g</strong></button>`;}).join('')+'</div>':empty('Food totals will appear once you start logging.')}</section>`;
 }
 
 function history() {
@@ -3404,6 +3414,7 @@ document.addEventListener('click',async event=>{
   if(action==='workout-schedule-clear'){data.workoutSchedule=[];close(true);selectHomeDashboard('lifting');void persist();return;}
   if(action==='home-food-page'){homeFoodPage=(homeFoodPage+(Number(el.dataset.step)||1)+Math.max(1,Math.ceil(homeFoodPicks().length/6)))%Math.max(1,Math.ceil(homeFoodPicks().length/6));selectHomeDashboard('nutrition');return;}
   if(action==='home-food-plan'){chosenDate=demoMode?DEMO_LAST_DATE:currentTrackingDate();foodPlanItems=[];foodPlanSearch='';foodPlan();return;}
+  if(action==='progress-goal'){weightGoalForm();return;}
   if(action==='weight-chart-window'){
    const days=Number(el.dataset.days);if([7,30,90].includes(days)){weightChartDays=days;render();}return;
   }
@@ -4206,6 +4217,18 @@ app.addEventListener('submit',async event=>{
     close(true);render();void persist();
    }catch(error){alert(error.message);}
    return;
+  }
+  if(form.dataset.form==='weight-goal'){
+   const weightText=String(v.goalWeight??'').trim(),paceText=String(v.goalWeeklyPace??'').trim();
+   const weight=weightText?Number(weightText):null,pace=paceText?Number(paceText):null;
+   if((weight!==null&&(!Number.isFinite(weight)||weight<=0||weight>1000))||
+      (pace!==null&&(!Number.isFinite(pace)||pace<=0||pace>20)))
+     return alert('Enter positive goal values or leave the fields blank.');
+   const candidate=structuredClone(data);
+   candidate.settings.goalWeight=weight===null?null:Math.round(weight*10)/10;
+   candidate.settings.goalWeeklyPace=pace===null?null:Math.round(pace*10)/10;
+   try{data=normalizeData(candidate);}catch(error){return alert(error.message);}
+   close(true);render();void persist();return;
   }
   if(form.dataset.form==='week-settings'){const dayResetMinutes=Number(v.dayResetMinutes);if(!Number.isInteger(dayResetMinutes)||dayResetMinutes<0||dayResetMinutes>1410||dayResetMinutes%30!==0)return;const oldToday=currentTrackingDate();data.settings.weekStart=FIXED_WEEK_START;data.settings.dayResetMinutes=dayResetMinutes;if(chosenDate===oldToday)chosenDate=currentTrackingDate();render();void persist();return;}
   if(form.dataset.form==='settings') {const calories=Number(v.calories),protein=Number(v.protein),heightInches=Number(v.heightInches);if([calories,protein,heightInches].some(x=>!Number.isFinite(x)||x<=0))return alert('Enter positive goals and height.');if(v.unit!==data.settings.unit){try{data=convertNotebookWeightUnit(data,v.unit);}catch(error){return alert(error.message);}}data.settings={...data.settings,calories,protein,heightInches,unit:v.unit};render();void persist();return;}
