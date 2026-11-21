@@ -2,7 +2,14 @@
 
 > **Read this file first in every new Everyday development conversation.** This is the living project handoff, not an implementation spec or a substitute for inspecting code. Check `version.json` and recent commits to confirm the current release before editing. Update this document when completing each version and before moving to a new conversation.
 
-## Current release — v154 (November 20, 2026)
+## Current release — v154.1 (November 21, 2026)
+
+- **Active set:** the two anatomy figures are a visual-only reference while the set timer is running; tapping the diagram does not open the muscle guide. Other diagram interactions stay unchanged.
+- **Editing completed exercises:** both Set 1 and Set 2 (and any additional recorded sets) show full weight, reps, and effort controls when the completed exercise is reopened; no dropdown required. While *actively doing an exercise*, previous-set summaries remain compact and independently expandable.
+- **Completed exercise cards:** fixed and matching heights; notes/setup settings appear in a single reserved line below the exercise name (truncated if needed), not wrapped beside it. Two set summaries remain visible in the strip and the complete set list is available on edit. Mini anatomy tiles remain independently interactive in the exercise picker.
+- **Release:** v154.1 UI-only follow-up to v154; session history and set data, persistence, per-set effort, rest, Undo, and cloud behavior are unchanged. Verification: confirm version in Settings then test on installed iPhone PWA.
+
+## Previous release — v154 (November 20, 2026)
 
 - **Progress Intelligence:** Compact On track? section above Weight trend on Progress. Weight pace: 28-day weighted week-edge averages, with conservative 14-day early fallback; no short-term plateau conclusions from a few days alone. TDEE: rough observational estimate from the last 28 finished tracking days, when 24+ of 28 days have food entries, or an explicitly provisional 14-day alternative with 12+ logged days, plus multiple weigh-ins at both ends; absent entries are not assumed zero calories. 3,500 kcal/lb is an energy-balance approximation, not a dynamic metabolism simulation.
 - **Goals:** Optional weight goal and desired weekly loss saved to existing settings; progress card shows approximate ETA month only when falling trend is supported. Settings/backups/account sync and lb↔kg conversion supported. Goal starts unset; there is no automatic target change or fabricated ETA. No new required steps, charts, imported record changes or rule changes.

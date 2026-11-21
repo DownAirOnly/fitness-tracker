@@ -1,4 +1,4 @@
-import {RELEASE_HISTORY} from './release-history.js?v=154';
+import {RELEASE_HISTORY} from './release-history.js?v=154.1';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
 import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
@@ -1845,9 +1845,8 @@ function buddyCompletedEditorScreen(head,s){
  if(state.journalOpen)return buddyJournalScreen(head,{...e,notes:state.notes},'buddy-completed-journal-back');
  const range=buddyRepRange(e),notesButton='<button type="button" class="buddy-journal-chip" data-action="buddy-completed-journal">Journal ↗</button>';
  const sets=state.sets.map((set,i)=>{
-  const expanded=state.editSetIndex===i;
   const summary=fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+(set.difficulty?' · '+esc(effortText(set.difficulty)):'')+' · '+buddyClock(set.durationSeconds||0);
-  return '<section class="buddy-completed-edit-set" data-index="'+i+'"><button type="button" class="buddy-completed-edit-set-heading" data-action="buddy-completed-set-toggle" data-index="'+i+'" aria-expanded="'+expanded+'"><strong>Set '+(i+1)+'</strong><span>'+summary+' · '+(expanded?'Done ⌃':'Edit ⌄')+'</span></button>'+(expanded?buddySetControlsMarkup(set):'')+'</section>';
+  return '<section class="buddy-completed-edit-set" data-index="'+i+'"><div class="buddy-completed-edit-set-heading"><strong>Set '+(i+1)+'</strong><span>'+summary+'</span></div>'+buddySetControlsMarkup(set)+'</section>';
  }).join('');
  const setup=state.setupEditing?'<div class="buddy-setup-editor"><input name="buddyCompletedSetup" maxlength="200" enterkeyhint="done" autocomplete="off" aria-label="Exercise setup" placeholder="Machine setting or setup" value="'+esc(state.setup||'')+'"><button type="button" data-action="buddy-completed-setup-toggle">Done</button></div>':'';
  const notes=state.notesOpen?'<div class="buddy-notes-wrap"><div class="buddy-notes-row"><span class="buddy-notes-heading">EXERCISE NOTES</span>'+notesButton+'</div><div class="buddy-notes-editor"><textarea name="buddyCompletedNotes" maxlength="500" rows="2" placeholder="Form, setup, pain, or anything worth remembering">'+esc(state.notes||'')+'</textarea><button type="button" class="buddy-notes-done" data-action="buddy-completed-notes-toggle">Done</button></div></div>':'<div class="buddy-notes-wrap"><div class="buddy-notes-row"><button type="button" class="buddy-notes-toggle '+(state.notes?'has-note':'')+'" data-action="buddy-completed-notes-toggle"><span><b>'+(state.notes?'Notes saved':'Add notes')+'</b>'+(state.notes?'<small>Tap to review or edit</small>':'')+'</span><strong aria-hidden="true">'+(state.notes?'✓':'＋')+'</strong></button>'+notesButton+'</div></div>';
@@ -1932,7 +1931,7 @@ function buddyExerciseHeading(e,showMini=true){
 function buddyExerciseMuscleStage(e){
  // Share Home's spaced front/back layout, using this exercise's existing
  // warm-primary / cool-secondary anatomy mapping rather than recent workload.
- return '<button type="button" class="home-recovery-anatomy buddy-muscle-stage" data-action="muscle-guide" data-name="'+esc(e.name)+'" data-equipment="'+esc(e.equipment||'other')+'" aria-label="Explore muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e)+'</button>';
+ return '<div class="home-recovery-anatomy buddy-muscle-stage" role="img" aria-label="Muscles used by '+esc(e.name)+'">'+muscleExercisePairMarkup(e)+'</div>';
 }
 // v108 — single analog clock, fully transient. Continue alone saves warm-up.
 let buddyBikeUi=null;
@@ -1974,7 +1973,7 @@ function buddyRender(){
   const remaining=s.exercises.filter(e=>e.status!=='done');
   const completed=s.exercises.filter(e=>e.status==='done').sort((a,b)=>(s.performedOrder||[]).indexOf(buddyKey(a))-(s.performedOrder||[]).indexOf(buddyKey(b)));
   const completedStrip=completed.length?'<section class="buddy-picker-completed" aria-label="Completed exercises"><div class="buddy-picker-completed-head"><strong>Completed exercises</strong></div><div class="buddy-completed-exercise-strip">'+completed.map(e=>
-    exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-edit-completed',attrs:'data-key="'+esc(buddyKey(e))+'" aria-label="Edit completed '+esc(e.name)+' sets"',modifier:'buddy-exercise buddy-exercise-done',summary:'<span class="buddy-card-set-summaries">'+e.sets.map(set=>'<span>'+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+' · '+(set.difficulty?effortText(set.difficulty):'No effort')+'</span>').join('')+'</span>',trailing:'✓'}))
+    exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-edit-completed',attrs:'data-key="'+esc(buddyKey(e))+'" aria-label="Edit completed '+esc(e.name)+' sets"',modifier:'buddy-exercise buddy-exercise-done',setup:'',summary:'<span class="buddy-card-setup">'+(e.setup?esc(e.setup):'&nbsp;')+'</span><span class="buddy-card-set-summaries">'+e.sets.slice(0,2).map(set=>'<span>'+fmt(set.weight)+' '+esc(data.settings.unit)+' × '+set.reps+' · '+(set.difficulty?effortText(set.difficulty):'No effort')+'</span>').join('')+'</span>',trailing:'✓'}))
    ).join('')+'</div></section>':'';
   return `<div class="buddy-screen">${head}<main class="buddy-main buddy-picker-screen"><div class="buddy-progress"><span>${done}/${total} exercises</span></div>${completedStrip}<div class="buddy-picker-head"><p class="eyebrow">REMAINING EXERCISES</p></div><div class="buddy-exercise-list">${remaining.map(e=>{const prior=buddyPrior(e);return exerciseCardWithMuscles(e,exerciseCardMarkup(e,{action:'buddy-choose',attrs:'data-key="'+esc(buddyKey(e))+'"',modifier:'buddy-exercise',summary:prior?esc('Last: '+buddyLastTwo(prior)):'No previous log'}));}).join('')}</div></main></div>`;
  }
@@ -3594,10 +3593,9 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-edit-completed'){
    const s=data.activeWorkout,e=s&&buddyFind(s,el.dataset.key);
    if(!e||e.status!=='done')return;
-   buddyCompletedEditor={key:buddyKey(e),sets:structuredClone(e.sets),notes:buddySessionNotes(e),setup:e.setup||'',notesOpen:false,setupEditing:false,journalOpen:false,editSetIndex:e.sets.length-1};
+   buddyCompletedEditor={key:buddyKey(e),sets:structuredClone(e.sets),notes:buddySessionNotes(e),setup:e.setup||'',notesOpen:false,setupEditing:false,journalOpen:false};
    buddyOpen();return;
   }
-  if(action==='buddy-completed-set-toggle'){const state=buddyCompletedEditor,i=Number(el.dataset.index);if(!state||!Number.isInteger(i)||i<0||i>=state.sets.length)return;buddyCompletedEditorRead();state.editSetIndex=state.editSetIndex===i?null:i;buddyOpen();return;}
    if(action==='buddy-completed-notes-toggle'){
    const edit=buddyCompletedEditor;if(!edit)return;
    buddyCompletedEditorRead();
@@ -4350,7 +4348,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
