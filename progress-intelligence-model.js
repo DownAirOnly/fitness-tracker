@@ -1,6 +1,7 @@
-/* Everyday v154 — observational progress intelligence.
-   Read-only, conservative estimates; never adjust calorie or exercise targets.
-   A logged day means at least one food entry, NOT a verified complete day. */
+/* Everyday v154.2 — observational progress intelligence.
+   Read-only estimates; never adjust calorie or exercise targets.
+   A day with food entries is treated as a complete logged day.
+   Days without entries remain missing, never zero-calorie days. */
 const dayMs=86400000;
 function utcDate(date){
  if(typeof date!=='string'||!/^(\d{4})-(\d{2})-(\d{2})$/.test(date))return NaN;
