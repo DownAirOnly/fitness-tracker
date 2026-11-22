@@ -1,19 +1,20 @@
-/* v154: compact, theme-aware Progress Intelligence; no workouts changed. */
-.progress-intelligence{display:grid;gap:10px}
-.progress-intelligence .pi-head{margin:0;align-items:center}
-.progress-intelligence .pi-head h2{margin:0}
-.progress-intelligence .pi-head button{white-space:nowrap;flex:0 0 auto;min-height:36px}
-.pi-subtitle{margin:3px 0 0;font-size:11px;color:var(--ap-muted,#7a8c82)}
+/* v154.2: embedded Progress outlook within the Weight trend panel. */
+.progress-trend .pi-embedded{display:grid;gap:9px;padding:13px 0 12px;margin:8px 0 3px;border-top:1px solid var(--ap-border,#d1ddd2);border-bottom:1px solid var(--ap-border,#d1ddd2)}
+.pi-embedded .pi-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0}
+.pi-embedded .pi-heading{font:750 15px/1.2 'Outfit',system-ui,sans-serif;color:var(--ap-on-surface,#274735)}
+.pi-embedded .pi-head button{white-space:nowrap;min-height:32px;flex:0 0 auto}
 .pi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.pi-metric{min-width:0;display:grid;align-content:start;gap:5px;padding:11px 12px;background:var(--ap-raised,#eaf0e9);color:var(--ap-on-surface,#274735);border:1px solid var(--ap-border,#d1ddd2);border-radius:12px}
+.pi-metric{min-width:0;display:grid;align-content:start;gap:4px;padding:10px 11px;background:var(--ap-raised,#eaf0e9);color:var(--ap-on-surface,#274735);border:1px solid var(--ap-border,#d1ddd2);border-radius:12px}
 .pi-metric small{font-size:10px;letter-spacing:.075em;font-weight:800;color:var(--ap-muted,#698171)}
-.pi-metric strong{font:800 clamp(16px,4.3vw,22px)/1.2 'Outfit',system-ui,sans-serif;overflow-wrap:anywhere;letter-spacing:-.02em}
-.pi-metric span{font-size:11px;line-height:1.45;color:var(--ap-muted,#6e8374)}
-.pi-eta{grid-column:1/-1}
+.pi-metric strong{font:800 clamp(15px,4vw,20px)/1.2 'Outfit',system-ui,sans-serif;overflow-wrap:anywhere;letter-spacing:-.02em}
+.pi-metric span{font-size:11px;line-height:1.4;color:var(--ap-muted,#6e8374)}
+.pi-eta{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px}
+.pi-eta small{grid-column:1/-1}
+.pi-eta span{text-align:right}
 .pi-target{margin:0;color:var(--ap-muted,#6e8374);font-size:11px;line-height:1.4}
-.pi-method{border-top:1px solid var(--ap-border,#cddacb);padding-top:8px}
+.pi-method{border-top:1px solid var(--ap-border,#cddacb);padding-top:7px}
 .pi-method summary{cursor:pointer;font-size:12px;font-weight:750;color:var(--ap-on-surface,#294f37);padding:5px 0}
 .pi-method p{margin:7px 0 0;font-size:11px;line-height:1.55;color:var(--ap-muted,#728879)}
 .pi-method p strong{color:var(--ap-on-surface,#315841)}
-@media(min-width:700px){.pi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.pi-eta{grid-column:auto}}
-@media(max-width:350px){.pi-metric{padding:9px}.pi-metric strong{font-size:16px}}
+@media(min-width:700px){.pi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.pi-eta{grid-column:auto;display:grid;grid-template-columns:1fr}.pi-eta small{grid-column:auto}.pi-eta span{text-align:left}}
+@media(max-width:350px){.pi-metric{padding:8px}.pi-metric strong{font-size:15px}.pi-eta{grid-template-columns:1fr}.pi-eta span{text-align:left}}
