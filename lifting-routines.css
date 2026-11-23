@@ -152,3 +152,29 @@
  #buddy-root .buddy-completed-summary{font-size:11px;gap:3px 5px}
  #buddy-root .buddy-previous-edit-panel{padding:8px}
 }
+
+/* v154.5: the selected routine shares the anatomy card's dark blue backdrop. */
+.gym-routine-muscle-map:not(.empty){
+ background:radial-gradient(ellipse at 50% 27%,#234257 0%,#122a3a 48%,#0d1b28 100%);
+ border:1px solid #375d70;border-radius:13px;padding:4px;min-height:99px;
+}
+/* Quiet, expandable setup for the next set while reviewing the completed set. */
+#buddy-root .buddy-next-set-preview{
+ margin:1px 0 8px;border:1px solid var(--ap-border,#405665);
+ border-radius:12px;background:var(--ap-surface,#1b2b3a);overflow:hidden;
+ color:var(--ap-on-surface,#e8f0f5);
+}
+#buddy-root .buddy-next-set-preview>summary{
+ list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+ gap:8px;min-height:51px;padding:9px 11px;
+}
+#buddy-root .buddy-next-set-preview>summary::-webkit-details-marker{display:none}
+#buddy-root .buddy-next-set-summary{display:grid;gap:3px;min-width:0}
+#buddy-root .buddy-next-set-summary b{font-size:13px}
+#buddy-root .buddy-next-set-summary small{font-size:11px;color:var(--ap-muted,#a9b9c5)}
+#buddy-root .buddy-next-set-expand{font-size:11px;font-weight:750;color:var(--ap-primary,#88bdd9);white-space:nowrap}
+#buddy-root .buddy-next-set-preview[open] .buddy-next-set-expand{font-size:0}
+#buddy-root .buddy-next-set-preview[open] .buddy-next-set-expand::after{content:'Done ⌃';font-size:11px}
+#buddy-root .buddy-next-set-editor{padding:10px 11px 12px;border-top:1px solid var(--ap-border,#405665)}
+#buddy-root .buddy-next-set-editor .buddy-set-editor{min-width:0}
+#buddy-root .buddy-next-set-preview>summary:focus-visible{outline:2px solid var(--ap-primary,#88bdd9);outline-offset:-3px}
