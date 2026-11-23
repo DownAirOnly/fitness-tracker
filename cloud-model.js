@@ -259,11 +259,13 @@ export function mergeDeviceData(cloud,device){return planDeviceMigration(cloud,d
 // A session captures an immutable owner UID. Async work from an older account
 // cannot be redirected to a newly signed-in user's document.
 export class CloudSession {
-  constructor(uid,store) {this.uid=uid;this.store=store;this.ready=false;this.busy=false;this.revision=0;this.closed=false;}
+  constructor(uid,store) {this.uid=uid;this.store=store;this.ready=false;this.busy=false;this.revision=0;this.closed=false;this.archiveCleanupRequired=false;}
   async load() {
     if(this.closed||this.busy) throw new Error('Account is busy.');
     this.ready=false;
-    const result=decodeState(await this.store.read(this.uid));
+    const record=await this.store.read(this.uid);
+    const result=decodeState(record);
+    this.archiveCleanupRequired=Boolean(record?.archiveCleanupRequired);
     if(this.closed) throw new Error('Account changed. Please sign in again.');
     this.revision=result.revision;this.ready=true;return result.data;
   }

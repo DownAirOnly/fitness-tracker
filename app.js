@@ -1,4 +1,4 @@
-import {RELEASE_HISTORY} from './release-history.js?v=154.3';
+import {RELEASE_HISTORY} from './release-history.js?v=154.4';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
 import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
@@ -25,7 +25,7 @@ import {latestTopSetComparison} from './lifting-progression-model.js?v=153';
 import {progressIntelligenceHTML} from './progress-intelligence-ui.js?v=154.2';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=151';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=154';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=154.3';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=154.4';
 import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=154.3';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
@@ -4354,7 +4354,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154.4',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
@@ -4417,7 +4417,7 @@ async function loadAccount(){
   if(offlineWorkspace||demoMode)return;const active=session;if(!active)return;const loadingEpoch=userInteractionEpoch;cloudBusy=true;cloudMessage='Loading your cloud logs…';renderFromBackground(loadingEpoch);
   try{
     const cloudLoaded=await active.load();if(session!==active)return;
-    const needsArchivedCleanup=(cloudLoaded.workoutHistory||[]).some(s=>s&&typeof s==='object'&&('undoStack' in s||'undo' in s));
+    const needsArchivedCleanup=Boolean(active.archiveCleanupRequired)||(cloudLoaded.workoutHistory||[]).some(s=>s&&typeof s==='object'&&('undoStack' in s||'undo' in s));
     const loaded=normalizeData(cloudLoaded);
     const recovery=readCloudRecovery(active.uid);cloudRecovery=recovery;cloudRecoveryConflict=null;
     try{cloudConfirmed=writeCloudConfirmed(active.uid,active.revision,loaded);}catch{cloudConfirmed={uid:active.uid,revision:active.revision,updatedAt:isoNow(),data:structuredClone(loaded)};}
@@ -4463,7 +4463,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=154.3');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=154.4');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

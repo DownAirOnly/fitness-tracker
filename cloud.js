@@ -1,6 +1,6 @@
 import {healthBridge} from './health-cloud.js?v=152';
 import {firebaseConfig} from './firebase-config.js';
-import {CloudSession,encodeState} from './cloud-model.js?v=154.3';
+import {CloudSession,encodeState} from './cloud-model.js?v=154.4';
 import {sectionRefs,readAccountServer,readAccountTransaction,commitAccountTransaction} from './account-cloud-store.js?v=154.3';
 
 export async function connectCloud(onUser) {
@@ -17,7 +17,11 @@ export async function connectCloud(onUser) {
   const store={
     async read(uid) {
       const result=await readAccountServer(dbSDK,db,uid);
-      return result.revision?{schemaVersion:1,revision:result.revision,payload:encodeState(result.data)}:null;
+      // Preserve a read-only indication of stale archive payloads BEFORE
+      // the shared normalizer strips them. This enables an automatic resave.
+      const archiveCleanupRequired=Object.entries(result.partPayloads||{}).some(([name,payload])=>
+        name.startsWith('month-')&&typeof payload==='string'&&/"undo(?:Stack)?"\s*:/.test(payload));
+      return result.revision?{schemaVersion:1,revision:result.revision,payload:encodeState(result.data),archiveCleanupRequired}:null;
     },
     async write(uid,expected,payload) {
       return dbSDK.runTransaction(db,async tx=>{
