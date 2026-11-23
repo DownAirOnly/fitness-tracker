@@ -1,4 +1,4 @@
-import {normalizeData,encodeData} from './data.js?v=152';
+import {normalizeData,encodeData} from './data.js?v=154.3';
 
 export const CLOUD_CONFIRMED_PREFIX='everyday-cloud-confirmed-v1:';
 export const CLOUD_RECOVERY_PREFIX='everyday-cloud-recovery-v1:';

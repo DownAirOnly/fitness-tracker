@@ -1,4 +1,4 @@
-import {RELEASE_HISTORY} from './release-history.js?v=154.2';
+import {RELEASE_HISTORY} from './release-history.js?v=154.3';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
 import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
@@ -6,7 +6,7 @@ import {exportRoutineCSV} from './routine-import-model.js?v=151';
 import {PALETTES,SKINS,normalizeAppearance,appearancePalette} from './appearance-model.js?v=151';
 import {calendarMonthMarkup,calendarShiftMonth} from './calendar-ui.js?v=151';
 import {checkInReading,stepCheckInValue} from './weight-checkin-model.js?v=151';
-import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=154';
+import {load,save,id,localDate,trackingDate,foodTrackingDate,foodCalendarDate,foodEntriesNewestFirst,stepFoodDateTime,niceDate,bmi,dailyTotals,weeklyWeights,shouldPrompt,parseFoodCSV,parseCSV,normalizeData,encodeData,templateExercises,round,emptyData,weekDays,startOfWeek,endOfWeek,convertNotebookWeightUnit,resetFinanceData} from './data.js?v=154.3';
 
 import {muscleGuideMarkup,muscleMiniMarkup,muscleRecoveryMarkup,muscleExercisePairMarkup,exerciseMuscleProfile,muscleGroupDetailsMarkup,muscleGroupLabel,muscleSetLevelsMarkup,routinePlannedMusclesMarkup,muscleRegionLabels} from './muscle-map.js?v=151';
 import {completedMuscleSets,plannedMuscleSets} from './muscle-load.js?v=151';
@@ -16,8 +16,8 @@ import {paycheckWindows,combinePaycheckPeriods,paycheckWhatIf} from './paycheck-
 import {financeEnrichmentCSV,inferBofaStatementLabel,financeReviewFlags} from './bank-import.js?v=151';
 import {classificationRuleProposals,normalizeClassificationRules} from './classification-model.js?v=151';
 import {financeInsightPeriods,summarizeFinanceInsights} from './finance-insights-model.js?v=151';
-import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=154';
-import {availableMonths,exportMonth} from './account-monthly.js?v=154';
+import {ACCOUNT_SECTIONS,SECTION_KEYS,exportSection,applySection} from './account-sections.js?v=154.3';
+import {availableMonths,exportMonth} from './account-monthly.js?v=154.3';
 import {normalizeBudgetPlan,budgetForecast,budgetOccurrences,budgetMonthSpending,forecastPurchase} from './budget-model.js?v=151';
 import {financeOverviewSnapshot} from './finance-overview-model.js?v=151';
 import {nextBuddySetDraft,canUndoBuddyTransition} from './buddy-set-model.js?v=151';
@@ -25,8 +25,8 @@ import {latestTopSetComparison} from './lifting-progression-model.js?v=153';
 import {progressIntelligenceHTML} from './progress-intelligence-ui.js?v=154.2';
 import {FINANCE_CATEGORIES,FINANCE_KINDS,parseFinanceAmount,formatFinanceAmount} from './finance-model.js?v=151';
 import {createDemoData,DEMO_LAST_DATE} from './demo-mode.js?v=154';
-import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=154';
-import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=152';
+import {hasRecords,hasDeviceMigrationContent,planDeviceMigration,encodeState,accountSectionUsage,MAX_CLOUD_BYTES} from './cloud-model.js?v=154.3';
+import {readCloudConfirmed,writeCloudConfirmed,readCloudRecovery,writeCloudRecovery,clearCloudRecovery,clearCloudLocal,sameCloudData,requestStorageProtection} from './durability.js?v=154.3';
 const OFFLINE_WORKSPACE_KEY='everyday-offline-workspace-v1';
 const DEMO_WORKSPACE_KEY='everyday-demo-workspace-v1';
 function readDemoWorkspace(){
@@ -1883,6 +1883,11 @@ function buddyReadSetupDraft(){
 }
 // Keep a bounded, flat history of reversible transitions; never nest undo snapshots.
 const BUDDY_UNDO_LIMIT=30;
+function buddyArchiveSession(session){
+ const archived=structuredClone(session);
+ delete archived.undoStack;delete archived.undo;
+ return archived;
+}
 function buddyUndoSteps(s){
  if(!s)return [];
  if(Array.isArray(s.undoStack))return s.undoStack;
@@ -3508,7 +3513,7 @@ document.addEventListener('click',async event=>{
 
   if(action==='buddy-exit'){buddyReadEditor();buddyReadNotes();buddyReadSetupDraft();buddyClose();page='gym';render();void persist();return;}
   if(action==='buddy-end'){if(!data.activeWorkout)return;buddyEndOptions();return;}
-  if(action==='buddy-save-end'){const s=data.activeWorkout;if(!s)return;s.exercises.forEach(e=>buddyUpsertLift(s,e));s.endedAt=isoNow();s.savedEarly=true;data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;close(true);buddyClose();page='gym';render();void persist();return;}
+  if(action==='buddy-save-end'){const s=data.activeWorkout;if(!s)return;s.exercises.forEach(e=>buddyUpsertLift(s,e));s.endedAt=isoNow();s.savedEarly=true;data.workoutHistory.push(buddyArchiveSession(s));data.activeWorkout=null;close(true);buddyClose();page='gym';render();void persist();return;}
   if(action==='buddy-delete-prompt'){if(!data.activeWorkout)return;buddyDeletePrompt();return;}
   if(action==='buddy-delete-confirm'){const s=data.activeWorkout;if(!s)return;data.lifts=data.lifts.filter(l=>l.buddySessionId!==s.id);data.activeWorkout=null;close(true);buddyClose();page='gym';render();void persist();return;}
   if(action==='exercise-library'){exerciseLibrary();return;}
@@ -3714,7 +3719,7 @@ document.addEventListener('click',async event=>{
   if(action==='buddy-picker'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout;if(s){/* Opening Exercises is navigation, never an Undo step. */s.phase='picker';s.selected=null;}await buddyPersist();return;}
   if(action==='buddy-back-picker'){const s=data.activeWorkout;if(s){s.phase='picker';delete s.completedAt;/* Preserve reversible workout transitions. */}await buddyPersist();return;}
   if(action==='buddy-a'){buddyReadEditor();buddyReadNotes();const s=data.activeWorkout,e=s&&s.selected?buddyFind(s,s.selected):null;if(!e||Number.isInteger(e.reviewSetIndex))return;const i=e.sets.length,d=e.draft||buddyDraft(e,i);buddyCaptureUndo(s,e.activeSetStartedAt?`finish set ${i+1}`:`start set ${i+1}`);if(!e.activeSetStartedAt){e.draft=d;e.activeSetStartedAt=isoNow();e.restStartedAt=null;e.status='active';await buddyPersist();return;}const finishedAt=isoNow();e.sets.push({weight:d.weight,reps:d.reps,...(d.difficulty?{difficulty:d.difficulty}:{}),startedAt:e.activeSetStartedAt,finishedAt,durationSeconds:buddySeconds(e.activeSetStartedAt,finishedAt)});delete e.activeSetStartedAt;delete e.draft;e.reviewSetIndex=e.sets.length-1;e.restStartedAt=finishedAt;e.restSeconds=Number.isInteger(e.restSeconds)?e.restSeconds:90;await buddyPersist();return;}
-  if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(structuredClone(s));data.activeWorkout=null;buddyClose();page='gym';render();void persist();return;}
+  if(action==='buddy-confirm-finish'){const s=data.activeWorkout;if(!s)return;s.completedAt=s.completedAt||isoNow();data.workoutHistory.push(buddyArchiveSession(s));data.activeWorkout=null;buddyClose();page='gym';render();void persist();return;}
 
   if(action==='food-progress-period'){foodProgressPeriod=el.dataset.period||'week';foodProgressOffset=0;render();return;}
   if(action==='food-progress-nav'){foodProgressOffset=Math.min(0,foodProgressOffset+Number(el.dataset.delta||0));render();return;}
@@ -4411,7 +4416,9 @@ async function loadAccount(){
   let migratePreferences=false;
   if(offlineWorkspace||demoMode)return;const active=session;if(!active)return;const loadingEpoch=userInteractionEpoch;cloudBusy=true;cloudMessage='Loading your cloud logs…';renderFromBackground(loadingEpoch);
   try{
-    const loaded=await active.load();if(session!==active)return;
+    const cloudLoaded=await active.load();if(session!==active)return;
+    const needsArchivedCleanup=(cloudLoaded.workoutHistory||[]).some(s=>s&&typeof s==='object'&&('undoStack' in s||'undo' in s));
+    const loaded=normalizeData(cloudLoaded);
     const recovery=readCloudRecovery(active.uid);cloudRecovery=recovery;cloudRecoveryConflict=null;
     try{cloudConfirmed=writeCloudConfirmed(active.uid,active.revision,loaded);}catch{cloudConfirmed={uid:active.uid,revision:active.revision,updatedAt:isoNow(),data:structuredClone(loaded)};}
     if(recovery&&sameCloudData(recovery.data,loaded)){
@@ -4422,6 +4429,10 @@ async function loadAccount(){
       data=loaded;cloudRecoveryConflict=recovery;cloudPending=false;cloudMessage='Loaded cloud data · device recovery needs review';
     }else{
       data=loaded;cloudPending=false;cloudMessage='Loaded from your account';
+    }
+    // Automatically resave safely compacted archive history using revision checks.
+    if(needsArchivedCleanup&&!cloudRecoveryConflict&&!cloudPending){
+      cloudPending=true;cloudMessage='Cleaning obsolete workout history · syncing…';
     }
     if(!cloudRecoveryConflict)migratePreferences=adoptLegacyDevicePreferences();
     applyCurrentAccountPreferences();
@@ -4452,7 +4463,7 @@ function promptWeight(){if(demoMode)return;const day=currentTrackingDate();if(sh
 async function startCloud(){
   const startupEpoch=userInteractionEpoch;
   try{
-    const cloud=await import('./cloud.js?v=154');describeCloudError=cloud.cloudError;
+    const cloud=await import('./cloud.js?v=154.3');describeCloudError=cloud.cloudError;
     cloudApi=await cloud.connectCloud(async(user,nextSession)=>{
       const previousUid=account?.uid;
       const previouslyShownUid=previousUid||(!authChecked?startupAccountCache?.uid:null);

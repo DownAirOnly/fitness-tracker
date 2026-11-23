@@ -387,7 +387,13 @@ export function normalizeData(input) {
     usedDays.add(row.day);
     return {day:row.day,routineId:row.routineId};
   }).sort((a,b)=>a.day-b.day);
-  data.workoutHistory=Array.isArray(input.workoutHistory)?input.workoutHistory:[];
+  // Undo controls only belong to an active workout. Historical sessions never
+  // need these large copies, which can make monthly cloud files unsaveable.
+  data.workoutHistory=Array.isArray(input.workoutHistory)?input.workoutHistory.map(session=>{
+    if(!session||typeof session!=='object'||!('undoStack' in session)&&!('undo' in session))return session;
+    const archived={...session};delete archived.undoStack;delete archived.undo;
+    return archived;
+  }):[];
   data.promptDate=validDate(input.promptDate)?input.promptDate:'';
   return data;
 }
