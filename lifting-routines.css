@@ -178,3 +178,20 @@
 #buddy-root .buddy-next-set-editor{padding:10px 11px 12px;border-top:1px solid var(--ap-border,#405665)}
 #buddy-root .buddy-next-set-editor .buddy-set-editor{min-width:0}
 #buddy-root .buddy-next-set-preview>summary:focus-visible{outline:2px solid var(--ap-primary,#88bdd9);outline-offset:-3px}
+
+/* v154.6: exclusive reviewed set forms and visible effort selection margin. */
+#buddy-root .buddy-reviewed-set-preview{display:block;min-width:0;margin:0 0 4px}
+#buddy-root .buddy-reviewed-set-preview>summary{display:flex;align-items:center;gap:7px;min-height:27px;list-style:none;cursor:pointer;color:var(--ap-on-surface,#e8f0f5)}
+#buddy-root .buddy-reviewed-set-preview>summary::-webkit-details-marker{display:none}
+#buddy-root .buddy-reviewed-set-preview>summary b{font-size:13px}
+#buddy-root .buddy-reviewed-set-preview>summary small{font-size:11px;color:var(--ap-muted,#a9b9c5)}
+#buddy-root .buddy-reviewed-expand{margin-left:auto;font-size:11px;font-weight:750;color:var(--ap-primary,#88bdd9)}
+#buddy-root .buddy-reviewed-set-preview[open] .buddy-reviewed-expand{font-size:0}
+#buddy-root .buddy-reviewed-set-preview[open] .buddy-reviewed-expand::after{content:'Done ⌃';font-size:11px}
+#buddy-root .buddy-reviewed-set-preview .buddy-current-set-editor{padding-top:5px}
+#buddy-root .buddy-next-set-preview{margin-top:13px}
+#buddy-root .buddy-exercise-view.buddy-tight-layout .buddy-history-rest-row{display:none}
+#buddy-root .buddy-exercise-view.buddy-tight-layout .buddy-exercise-title{min-height:90px;margin-bottom:1px}
+#buddy-root .buddy-exercise-view.buddy-tight-layout .buddy-notes-wrap{margin:3px 0}
+#buddy-root .buddy-exercise-view.buddy-tight-layout .buddy-next-set-preview{margin-top:10px}
+#buddy-root .buddy-reviewed-set-preview>summary:focus-visible{outline:2px solid var(--ap-primary,#88bdd9);outline-offset:1px}
