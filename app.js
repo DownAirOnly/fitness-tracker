@@ -1,4 +1,4 @@
-import {RELEASE_HISTORY} from './release-history.js?v=154.5';
+import {RELEASE_HISTORY} from './release-history.js?v=154.6';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
 import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
@@ -1319,8 +1319,23 @@ function foodTotals(totals){
 }
 function foodEntryDetail(e){return `${e.t!=null?(currentFoodTrackingDate(e)!==e.date?niceDate(e.date)+' · ':'')+foodTimeLabel(e.t)+' · ':''}${fmt(e.calories*e.quantity)} cal · ${fmt(e.protein*e.quantity)}g protein${e.quantity!==1?` · ${fmt(e.quantity)} servings`:''}`;}
 function foodMatches(name){
- const normalize=value=>value.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),wanted=normalize(name);if(wanted.length<2)return [];const wantedWords=new Set(wanted.split(' ').filter(Boolean));
- return data.foods.map(food=>{const candidate=normalize(food.name),words=new Set(candidate.split(' ').filter(Boolean)),shared=[...wantedWords].filter(word=>words.has(word)).length,union=new Set([...wantedWords,...words]).size;const score=wanted===candidate?1:candidate.startsWith(wanted)?.95:candidate.includes(wanted)?.9:wanted.includes(candidate)?.85:union?shared/union:0;return{food,score};}).filter(x=>x.score>=.35).sort((a,b)=>b.score-a.score||(b.food.lastUsed||'').localeCompare(a.food.lastUsed||'')).slice(0,5).map(x=>x.food);
+ const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+ const wanted=normalize(name);if(wanted.length<2)return [];
+ const tokens=value=>value.split(' ').filter(Boolean);
+ const generic=new Set(['protein','shake','shakes','drink','drinks','bar','bars','food','foods','calorie','calories','low','zero','with','and','the','of','a','an','flavor','flavored']);
+ const distinctive=word=>!generic.has(word)&&!/^(?:\d+(?:g|oz|ml|lb|ct|pk|pack|mg)?|\d+x\d+)$/.test(word);
+ const wantedTokens=tokens(wanted),wantedWords=new Set(wantedTokens);
+ return data.foods.map(food=>{
+  const candidate=normalize(food.name),candidateTokens=tokens(candidate),candidateWords=new Set(candidateTokens);
+  const shared=wantedTokens.filter(word=>candidateWords.has(word));
+  const union=new Set([...wantedWords,...candidateWords]).size;
+  const exact=wanted===candidate;
+  const prefix=candidate.startsWith(wanted+' ')||wanted.startsWith(candidate+' ');
+  const identity=shared.filter(distinctive);
+  // "Oikos Protein Shake 30g" must not suggest "Premier Protein 30g".
+  const score=exact?1:prefix?.96:identity.length&&shared.length>=2&&union?shared.length/union:0;
+  return {food,score};
+ }).filter(x=>x.score>=.48).sort((a,b)=>b.score-a.score||(b.food.lastUsed||'').localeCompare(a.food.lastUsed||'')).slice(0,5).map(x=>x.food);
 }
 function renderFoodMatches(form){
  const box=form.querySelector('.food-matches'),matches=foodMatches(form.elements.name.value);form.elements.cardId.value='';
@@ -1928,6 +1943,22 @@ function buddyUndo(s){
 function buddyUndoControl(s){const allowed=canUndoBuddyTransition(s);return '<button type="button" class="buddy-undo buddy-undo-header" data-action="buddy-undo" aria-label="Undo last workout action" title="Undo last workout action" '+(allowed?'':'disabled aria-disabled="true"')+'>↶ Undo</button>';}
 function buddyDraft(e,index){return nextBuddySetDraft(e,index,buddyPrior(e));}
 function buddyStart(type){const w=workoutByName(type);if(!w)return;buddyBikeUi=null;const order=buddyPreviousOrder(w),rank=new Map(order.map((key,i)=>[key,i]));const exercises=workoutExercises(w).sort((a,b)=>(rank.get(buddyKey(a))??999)-(rank.get(buddyKey(b))??999));data.activeWorkout={id:id(),workoutId:w.id,type:w.name,date:currentTrackingDate(),startedAt:isoNow(),phase:'bike',selected:null,performedOrder:[],exercises:exercises.map(e=>({exerciseId:e.id,name:e.name,equipment:e.equipment,repMin:e.repMin||6,repMax:e.repMax||12,targetSets:e.targetSets||2,restSeconds:e.restSeconds??90,...(e.setup?{setup:e.setup}:{}),notes:'',notesEditedInSession:true,status:'pending',sets:[]}))};persist();}
+function buddyNextSetDescription(e,d){
+ const last=buddyPrior(e)?.sets?.[e.sets.length];
+ const current=fmt(d.weight)+' '+data.settings.unit+' × '+d.reps;
+ return current+(last?' · Last: '+fmt(last.weight)+' '+data.settings.unit+' × '+last.reps:'');
+}
+function buddyRefreshSetSummaries(e){
+ if(!e)return;
+ const review=document.querySelector('#buddy-root [data-buddy-review-summary]');
+ if(review&&Number.isInteger(e.reviewSetIndex)){
+  const set=e.sets[e.reviewSetIndex];
+  if(set)review.textContent=fmt(set.weight)+' '+data.settings.unit+' × '+set.reps;
+ }
+ const next=document.querySelector('#buddy-root [data-buddy-next-summary]');
+ if(next&&e.sets.length<buddyTargetSets(e))
+  next.textContent=buddyNextSetDescription(e,e.draft||buddyDraft(e,e.sets.length));
+}
 function buddyReadEditor(){
  buddyReadPreviousSetEdit();
  const s=data.activeWorkout,root=document.querySelector('#buddy-root .buddy-current-set-editor .buddy-set-editor');
@@ -1950,6 +1981,7 @@ function buddyReadEditor(){
   capture(nextRoot,next);
   e.draft=next;
  }
+ buddyRefreshSetSummaries(e);
 }
 function buddyExerciseHeading(e,showMini=true){
  return '<div class="buddy-exercise-hero"><div class="buddy-hero-copy"><span class="buddy-hero-kicker"><small>'+equipmentLabel(e.equipment)+'</small>'+buddyMovementLabel(e)+'</span><h1>'+esc(e.name)+'</h1></div>'+
@@ -2028,12 +2060,14 @@ function buddyRender(){
   const expanded=e.editPreviousSetIndex===n;
   return `<div class="buddy-previous-set"><button type="button" class="buddy-completed-set" data-action="buddy-previous-set-toggle" data-index="${n}" aria-expanded="${expanded}" aria-label="${expanded?'Close editing':'Edit'} set ${n+1}"><b>Set ${n+1}</b><span class="buddy-completed-summary">${fmt(set.weight)} ${esc(data.settings.unit)} × ${set.reps} · ${set.difficulty?effortText(set.difficulty):'No effort'} · <time>${buddyClock(set.durationSeconds||0)}</time><span class="buddy-previous-edit-affordance">${expanded?'Done':'Edit'} ${expanded?'⌃':'⌄'}</span></span></button>${expanded?`<div class="buddy-previous-edit-panel" data-index="${n}"><div class="buddy-set-entry-label">Edit Set ${n+1}</div>${buddySetControlsMarkup(set)}</div>`:''}</div>`;
  }).join('')}</div>`:'';
- const currentSetEditor=`<div class="buddy-current-set-editor"><div class="buddy-set-entry-label">Set ${i+1}</div>${buddySetControlsMarkup(d)}</div>`;
+ const currentSetEditor=reviewing?
+  `<details class="buddy-reviewed-set-preview" ${Number.isInteger(e.editPreviousSetIndex)?'':'open'}><summary><b>Set ${i+1}</b><small data-buddy-review-summary>${fmt(d.weight)} ${esc(data.settings.unit)} × ${d.reps}</small><span class="buddy-reviewed-expand">Edit ⌄</span></summary><div class="buddy-current-set-editor">${buddySetControlsMarkup(d)}</div></details>`:
+  `<div class="buddy-current-set-editor"><div class="buddy-set-entry-label">Set ${i+1}</div>${buddySetControlsMarkup(d)}</div>`;
  // Following the finished set, the next set can be adjusted before it starts.
  // Keep it collapsed by default to emphasize the set just completed.
  const nextSetPreview=reviewing&&e.sets.length<target?(()=>{
   const next=e.draft||buddyDraft(e,e.sets.length),number=e.sets.length+1;
-  return `<details class="buddy-next-set-preview"><summary><span class="buddy-next-set-summary"><b>Set ${number}</b><small>${fmt(next.weight)} ${esc(data.settings.unit)} × ${next.reps} · ready to adjust</small></span><span class="buddy-next-set-expand">Edit ⌄</span></summary><div class="buddy-next-set-editor">${buddySetControlsMarkup(next)}</div></details>`;
+  return `<details class="buddy-next-set-preview"><summary><span class="buddy-next-set-summary"><b>Set ${number}</b><small data-buddy-next-summary>${esc(buddyNextSetDescription(e,next))}</small></span><span class="buddy-next-set-expand">Edit ⌄</span></summary><div class="buddy-next-set-editor">${buddySetControlsMarkup(next)}</div></details>`;
  })():'';
  const journalButton='<button type="button" class="buddy-journal-chip" data-action="buddy-journal-toggle">Journal ↗</button>';
  const sessionNote=buddySessionNotes(e);
@@ -2051,7 +2085,12 @@ let buddyTicker=null;
 function buddyFitViewport(){
  const view=document.querySelector('#buddy-root .buddy-exercise-view');
  if(!view)return;
- view.classList.remove('buddy-needs-scroll');
+ view.classList.remove('buddy-needs-scroll','buddy-tight-layout');
+ // Keep one expanded set editor in view. Temporarily drop optional history
+ // only if the screen remains too short; retain scroll as an accessibility fallback.
+ if(view.scrollHeight>view.clientHeight+2&&
+    view.querySelector('.buddy-reviewed-set-preview[open],.buddy-next-set-preview[open],.buddy-previous-edit-panel'))
+  view.classList.add('buddy-tight-layout');
  if(view.scrollHeight>view.clientHeight+2)view.classList.add('buddy-needs-scroll');
 }
 // iOS WebKit shrinks the *visual* viewport when its keyboard opens, while a
@@ -3122,6 +3161,26 @@ document.addEventListener('input',event=>{
  if(event.target.name!=='homeFoodSearch')return;
  const query=event.target.value.trim().toLowerCase();
  for(const row of document.querySelectorAll('.home-food-pick'))row.hidden=!row.dataset.search.includes(query);
+});
+document.addEventListener('click',event=>{
+ const summary=event.target.closest('#buddy-root .buddy-reviewed-set-preview>summary,#buddy-root .buddy-next-set-preview>summary');
+ if(!summary)return;
+ event.preventDefault();
+ buddyReadEditor();
+ const panel=summary.parentElement,opening=!panel.open;
+ if(opening){
+  const other=document.querySelector('#buddy-root '+(panel.classList.contains('buddy-next-set-preview')?'.buddy-reviewed-set-preview':'.buddy-next-set-preview'));
+  if(other)other.open=false;
+  const s=data.activeWorkout,e=s?.selected?buddyFind(s,s.selected):null;
+  if(panel.classList.contains('buddy-reviewed-set-preview')&&Number.isInteger(e?.editPreviousSetIndex)){
+   e.editPreviousSetIndex=null;buddyOpen();void persist();return;
+  }
+ }
+ panel.open=opening;
+ const s=data.activeWorkout,e=s?.selected?buddyFind(s,s.selected):null;
+ buddyRefreshSetSummaries(e);
+ buddySyncInputViewport();
+ void persist();
 });
 document.addEventListener('click',async event=>{
   const el=event.target.closest('[data-action]'); if(!el)return;const action=el.dataset.action;if((!authChecked&&!offlineWorkspace&&!demoMode&&action!=='offline-start'&&!canPreviewCachedFoodAction(action,el))||importSaving)return;
@@ -4376,7 +4435,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154.5',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154.6',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
