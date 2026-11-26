@@ -1,4 +1,4 @@
-import {RELEASE_HISTORY} from './release-history.js?v=154.6';
+import {RELEASE_HISTORY} from './release-history.js?v=154.7';
 import {normalizeServing,servingLabel} from './food-portion-model.js?v=151';
 import {createCookingUI} from './cooking-ui.js?v=152';
 import {createRoutineImportUI} from './routine-import-ui.js?v=151';
@@ -1319,23 +1319,20 @@ function foodTotals(totals){
 }
 function foodEntryDetail(e){return `${e.t!=null?(currentFoodTrackingDate(e)!==e.date?niceDate(e.date)+' · ':'')+foodTimeLabel(e.t)+' · ':''}${fmt(e.calories*e.quantity)} cal · ${fmt(e.protein*e.quantity)}g protein${e.quantity!==1?` · ${fmt(e.quantity)} servings`:''}`;}
 function foodMatches(name){
+ // Prefix-match typed words while keeping each word grounded in the saved name.
+ // "curr" matches "Curry"; "chick" matches "Chicken"; an unrelated brand
+ // is never suggested just because "protein shake 30g" overlaps.
  const normalize=value=>String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
  const wanted=normalize(name);if(wanted.length<2)return [];
- const tokens=value=>value.split(' ').filter(Boolean);
- const generic=new Set(['protein','shake','shakes','drink','drinks','bar','bars','food','foods','calorie','calories','low','zero','with','and','the','of','a','an','flavor','flavored']);
- const distinctive=word=>!generic.has(word)&&!/^(?:\d+(?:g|oz|ml|lb|ct|pk|pack|mg)?|\d+x\d+)$/.test(word);
- const wantedTokens=tokens(wanted),wantedWords=new Set(wantedTokens);
+ const typed=wanted.split(' ').filter(Boolean);
  return data.foods.map(food=>{
-  const candidate=normalize(food.name),candidateTokens=tokens(candidate),candidateWords=new Set(candidateTokens);
-  const shared=wantedTokens.filter(word=>candidateWords.has(word));
-  const union=new Set([...wantedWords,...candidateWords]).size;
-  const exact=wanted===candidate;
-  const prefix=candidate.startsWith(wanted+' ')||wanted.startsWith(candidate+' ');
-  const identity=shared.filter(distinctive);
-  // "Oikos Protein Shake 30g" must not suggest "Premier Protein 30g".
-  const score=exact?1:prefix?.96:identity.length&&shared.length>=2&&union?shared.length/union:0;
-  return {food,score};
- }).filter(x=>x.score>=.48).sort((a,b)=>b.score-a.score||(b.food.lastUsed||'').localeCompare(a.food.lastUsed||'')).slice(0,5).map(x=>x.food);
+  const candidate=normalize(food.name),words=candidate.split(' ').filter(Boolean);
+  if(!typed.every(part=>words.some(word=>word.startsWith(part))))return null;
+  const score=candidate===wanted?1:candidate.startsWith(wanted)?.98:
+   words.some(word=>word.startsWith(wanted))?.9:.8;
+  return {food,score,coverage:typed.length/Math.max(words.length,1)};
+ }).filter(Boolean).sort((a,b)=>b.score-a.score||b.coverage-a.coverage||
+  (b.food.lastUsed||'').localeCompare(a.food.lastUsed||'')).slice(0,5).map(x=>x.food);
 }
 function renderFoodMatches(form){
  const box=form.querySelector('.food-matches'),matches=foodMatches(form.elements.name.value);form.elements.cardId.value='';
@@ -4435,7 +4432,7 @@ app.addEventListener('submit',async event=>{
 render();
 startCloud();
 void refreshStorageProtection(true);
-if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154.6',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
+if(!globalThis.Capacitor?.isNativePlatform?.()&&'serviceWorker' in navigator && location.protocol==='https:'){navigator.serviceWorker.register('./sw.js?v=154.7',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(latestRelease)showReleaseNotice();else void checkLatestRelease();});}
 
 function accountBanner(){
   if(demoMode)return '<div class="account-banner demo-banner" role="status"><span>Demo mode<small>Fictional sample records · no account connected</small></span>'+button('Exit demo','demo-exit','outline small')+'</div>';
