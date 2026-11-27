@@ -1,5 +1,5 @@
 // Everyday v154.8.2 — bounded, device-only barcode/OCR image preprocessing.
-import {parseNutritionLabel} from './food-scan-model.js?v=154.8.2';
+import {parseNutritionLabel} from './food-scan-model.js?v=154.8.3';
 const libs=new Map();
 function load(src,name){
  if(globalThis[name])return Promise.resolve();
