@@ -217,6 +217,7 @@ export async function recognizeNutritionImage(file,onProgress=()=>{}){
  recognizer=worker;
  let source=null;
  const scored=[];
+ let focusedCalorieBox=null;
  const add=(text,focused)=>{
   const parsed=parseNutritionLabel(text);
   const score=(parsed.calories!==null?3:0)+(parsed.protein!==null?3:0)+(focused?2:0);
@@ -239,8 +240,14 @@ export async function recognizeNutritionImage(file,onProgress=()=>{}){
    if(recognizer!==worker)throw Error('Scan cancelled.');
    const canvas=cropCanvas(source,box,{minimum:950,threshold:i===1});
    try{
-    const result=await worker.recognize(canvas);
+    const result=await worker.recognize(canvas,{}, {blocks:true});
     add(result.data?.text||'',true);
+    if(!focusedCalorieBox){
+     const local=calorieRowBox(result.data?.blocks,canvas.width,canvas.height,{x:0,y:0,w:1,h:1});
+     if(local&&local.w>.05&&local.h>.008)
+      focusedCalorieBox={x:box.x+local.x*box.w,y:box.y+local.y*box.h,
+       w:local.w*box.w,h:local.h*box.h};
+    }
    }finally{canvas.width=0;canvas.height=0;}
    const last=scored.at(-1);
    if(last?.parsed.calories!==null&&last?.parsed.protein!==null)break;
@@ -248,7 +255,7 @@ export async function recognizeNutritionImage(file,onProgress=()=>{}){
   let calorieCandidate=null;
   const focusedHasCalories=scored.some(x=>x.focused&&x.parsed.calories!==null);
   if(!focusedHasCalories){
-   const row=calorieRowBox(first.data?.blocks,source.width,source.height,detected);
+   const row=focusedCalorieBox||calorieRowBox(first.data?.blocks,source.width,source.height,detected);
    if(row&&row.w>.05&&row.h>.008){
     const canvas=cropCanvas(source,row,{minimum:1550});
     try{
