@@ -23,23 +23,35 @@ export function normalizeBarcodeProduct(p){
  return {name:(brand&&title&&!title.toLowerCase().includes(brand.toLowerCase())?brand+' '+title:title||brand).slice(0,100),calories,protein,basis,note,source:'Open Food Facts'};
 }
 export function parseNutritionLabel(raw){
- const text=String(raw||'').replace(/\r/g,''),lines=text.split('\n').map(x=>x.replace(/[|]/g,' ').trim()).filter(Boolean);
- let calories=null,protein=null;
+ // Only take values next to their Nutrition Facts label; avoid columns that
+ // have been interleaved by OCR on a full-package photo.
+ const text=String(raw||'').replace(/\r/g,'');
+ const lines=text.split('\n').map(x=>x.replace(/[|]/g,' ').trim()).filter(Boolean);
+ let calories=null,protein=null,caloriesUnit=false,proteinUnit=false;
  for(let i=0;i<lines.length;i++){
   const line=lines[i];
   if(calories===null&&/\bcalor(?:ies|y)\b/i.test(line)&&!/calories?\s+from\s+fat/i.test(line)){
-   const tail=line.replace(/^.*?\bcalor(?:ies|y)\b/i,'').trim().replace(/^(?:kcal|:|-)\s*/i,'');
-   let m=tail.match(/^(\d{1,4})(?!\d)/);
-   if(!m&&lines[i+1])m=lines[i+1].match(/^\s*(\d{1,4})(?:\s|$)/);
-   if(m)calories=num(m[1]);
+   const tail=line.slice(line.search(/\bcalor(?:ies|y)\b/i)).replace(/^calor(?:ies|y)\b/i,'').replace(/^\s*(?:kcal|:|-)\s*/i,'');
+   let match=tail.match(/^\s*(\d{1,4})(?![\/\d])/);
+   if(!match&&lines[i+1]&&/^\s*\d{2,4}\s*$/.test(lines[i+1]))
+    match=lines[i+1].match(/^\s*(\d{2,4})\s*$/);
+   if(match){calories=num(match[1]);caloriesUnit=true;}
   }
   if(protein===null&&/\bprotein\b/i.test(line)){
-   const tail=line.replace(/^.*?\bprotein\b/i,'');
-   let m=tail.match(/^\s*(?:\(?g\)?\s*)?[:\-]?\s*(\d+(?:\.\d+)?)\s*g?\b/i);
-   if(!m&&lines[i+1])m=lines[i+1].match(/^\s*(\d+(?:\.\d+)?)\s*g\b/i);
-   if(m)protein=num(m[1]);
+   const tail=line.slice(line.search(/\bprotein\b/i)).replace(/^protein\b/i,'');
+   let match=tail.match(/^\s*[:\-]?\s*(\d{1,3}(?:\.\d+)?)\s*(g|grams?)\b/i);
+   if(match){protein=num(match[1]);proteinUnit=true;}
+   // OCR sometimes omits the g. A unitless number is too ambiguous to import
+   // automatically: on the supplied cookie photo, "2g" was read as "20".
   }
  }
- const serving=text.match(/serving\s+size\s*[:\-]?\s*([^\n]{2,70})/i);
- return {name:'',calories,protein,basis:serving?'Label serving: '+serving[1].trim():'Nutrition Facts label',note:'OCR may misread a digit or column. Verify values against the label.',source:'On-device label OCR'};
+ const servingLine=lines.find(x=>/\bserving\s*size\b/i.test(x))||'';
+ const cleanedServing=servingLine.replace(/^.*?\bserving\s*size\b[:\s-]*/i,'');
+ const size=cleanedServing.match(/^\s*(\d+(?:\/\d+)?(?:\.\d+)?\s+(?:cookie|cookies|bar|bottle|cup|cups|slice|slices|piece|pieces|serving|packet|pouch|tbsp|tsp|oz)\b(?:\s*\(\s*\d+(?:\.\d+)?\s*(?:g|ml|oz)\s*\))?)/i)
+  ||cleanedServing.match(/^\s*(\d+(?:\/\d+)?(?:\.\d+)?\s*(?:g|ml|oz)\b)/i);
+ const serving=size?size[1].trim():'';
+ return {name:'',calories,protein,basis:serving?'Label serving: '+serving:'Nutrition Facts label',
+  note:'Verify both values against the label. OCR can misread digits or columns; missing values stay blank.',
+  source:'On-device label OCR',
+  quality:caloriesUnit&&proteinUnit?'complete':caloriesUnit||proteinUnit?'partial':'unreadable'};
 }
