@@ -13,6 +13,7 @@ function load(src,name){
 }
 const barcodeURL='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
 const ocrURL='https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js';
+const quaggaURL='https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.13.0/dist/quagga.min.js';
 let running=null,recognizer=null;
 function formats(){
  const f=globalThis.Html5QrcodeSupportedFormats;
@@ -69,6 +70,38 @@ export async function startBarcodeCamera(id,onCode){
   session.running=true;
  }catch(error){await stopBarcode();throw error;}
 }
+
+function validRetailBarcode(raw){
+ const code=String(raw||'').trim();
+ if(!/^(?:\d{8}|\d{12}|\d{13})$/.test(code))return false;
+ let sum=0;
+ for(let i=0;i<code.length-1;i++)
+  sum+=Number(code[i])*(((code.length-1-i)%2)===1?3:1);
+ return (10-sum%10)%10===Number(code.at(-1));
+}
+async function nativeBarcode(canvas){
+ if(typeof globalThis.BarcodeDetector!=='function')return null;
+ try{
+  const detector=new globalThis.BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+  const matches=await detector.detect(canvas);
+  return matches.map(x=>x.rawValue).find(validRetailBarcode)||null;
+ }catch{return null;}
+}
+async function quaggaBarcode(canvas){
+ try{
+  await load(quaggaURL,'Quagga');
+  const result=await new Promise(resolve=>{
+   globalThis.Quagga.decodeSingle({
+    src:canvas.toDataURL('image/png'),numOfWorkers:0,
+    inputStream:{size:0,singleChannel:false},locate:true,
+    locator:{patchSize:'medium',halfSample:false},
+    decoder:{readers:['ean_reader','upc_reader','ean_8_reader']}
+   },decoded=>resolve(decoded?.codeResult?.code||null));
+  });
+  return validRetailBarcode(result)?result:null;
+ }catch{return null;}
+}
+
 export async function decodeBarcodeImage(id,file){
  if(!file||!file.type.startsWith('image/'))throw Error('Choose an image.');
  if(file.size>20000000)throw Error('Photo is too large. Use an image under 20 MB.');
@@ -76,23 +109,39 @@ export async function decodeBarcodeImage(id,file){
  const scanner=new globalThis.Html5Qrcode(id,{formatsToSupport:formats(),verbose:false});
  let source=null;
  try{
-  // Full-photo decoding can reduce an otherwise legible barcode to a tiny
-  // fraction of the picture. Retry centered and edge crops at useful scale.
-  try{return await scanner.scanFile(file,false);}catch{}
+  try{
+   const detected=await scanner.scanFile(file,false);
+   if(validRetailBarcode(detected))return detected;
+  }catch{}
   source=await openImage(file);
+  // A package barcode can occupy only a tenth of a full photo. First try
+  // narrow barcode-friendly crops, with a separate 1D-focused decoder.
   const crops=[
-   {x:.25,y:.48,w:.72,h:.50}, // common lower-right package barcode
-   {x:.0,y:.48,w:1,h:.50},
+   {x:.37,y:.66,w:.47,h:.28},
+   {x:.25,y:.53,w:.72,h:.45},
+   {x:.08,y:.46,w:.84,h:.51},
    {x:.08,y:.20,w:.84,h:.60},
-   {x:.0,y:.0,w:.58,h:1},
-   {x:.42,y:.0,w:.58,h:1}
+   {x:0,y:0,w:.58,h:1},
+   {x:.42,y:0,w:.58,h:1}
   ];
-  for(const box of crops){
-   const canvas=cropCanvas(source,box,{minimum:1100});
-   try{return await scanner.scanFile(await canvasFile(canvas),false);}catch{}
-   finally{canvas.width=0;canvas.height=0;}
+  for(const [i,box] of crops.entries()){
+   const canvas=cropCanvas(source,box,{minimum:1200});
+   try{
+    const native=await nativeBarcode(canvas);
+    if(native)return native;
+    try{
+     const decoded=await scanner.scanFile(await canvasFile(canvas),false);
+     if(validRetailBarcode(decoded))return decoded;
+    }catch{}
+    // Quagga specializes in EAN/UPC linear barcodes. Load it only after
+    // the existing decoder fails; bound work on large images.
+    if(i<4){
+     const backup=await quaggaBarcode(canvas);
+     if(backup)return backup;
+    }
+   }finally{canvas.width=0;canvas.height=0;}
   }
-  throw Error('No barcode found in the photo, including closer image regions.');
+  throw Error('Barcode could not be decoded from the image.');
  }finally{
   source?.release();
   try{scanner.clear();}catch{}
@@ -115,6 +164,49 @@ function findPanelRect(blocks,width,height){
  return {x,y,w:Math.min(1-x,imageWidth/width),
   h:Math.min(1-y,(heading?imageWidth*2.65:imageWidth*2.3)/height)};
 }
+
+function allOcrWords(blocks){
+ const words=[];
+ for(const block of blocks||[])
+  for(const paragraph of block.paragraphs||[])
+   for(const line of paragraph.lines||[])
+    for(const word of line.words||[])
+     if(word?.text&&word.bbox)words.push(word);
+ return words;
+}
+function calorieRowBox(blocks,width,height,panel){
+ const words=allOcrWords(blocks);
+ const found=words.find(w=>/^calor(?:ies|y)/i.test(w.text));
+ const title=words.find(w=>/^nutrition\b/i.test(w.text));
+ if(found){
+  const b=found.bbox,letterHeight=Math.max(12,b.y1-b.y0);
+  const rightEdge=panel?Math.min(width,(panel.x+panel.w)*width):b.x0+(b.x1-b.x0)*3.4;
+  const left=Math.max(0,b.x0-letterHeight*.3);
+  const top=Math.max(0,b.y0-letterHeight*.55);
+  return {x:left/width,y:top/height,w:Math.min(1-left/width,(rightEdge-left)/width),
+   h:Math.min(1-top/height,letterHeight*2.25/height)};
+ }
+ if(title&&panel){
+  const b=title.bbox,heightOfTitle=Math.max(20,b.y1-b.y0);
+  const top=b.y0+heightOfTitle*2.6;
+  return {x:panel.x,y:Math.max(0,top/height),
+   w:panel.w,h:Math.min(1-top/height,heightOfTitle*2.15/height)};
+ }
+ return null;
+}
+function calorieFromRow(text,confidence){
+ // Only use standalone 2–4 digit numbers from a Calories-specific row,
+ // never free-floating numbers from the whole photograph.
+ if(!Number.isFinite(confidence)||confidence<42)return null;
+ const normalized=String(text||'').replace(/[,;]/g,' ').trim();
+ const explicit=parseNutritionLabel(normalized);
+ if(explicit.calories!==null)return explicit.calories;
+ const numeric=normalized.match(/\b\d{2,4}\b/g)||[];
+ if(numeric.length!==1)return null;
+ const amount=Number(numeric[0]);
+ return amount>=20&&amount<=999?amount:null;
+}
+
 export async function recognizeNutritionImage(file,onProgress=()=>{}){
  if(!file||!file.type.startsWith('image/'))throw Error('Choose a photo of Nutrition Facts.');
  if(file.size>20000000)throw Error('Photo is too large. Use an image under 20 MB.');
@@ -153,6 +245,23 @@ export async function recognizeNutritionImage(file,onProgress=()=>{}){
    const last=scored.at(-1);
    if(last?.parsed.calories!==null&&last?.parsed.protein!==null)break;
   }
+  let calorieCandidate=null;
+  const focusedHasCalories=scored.some(x=>x.focused&&x.parsed.calories!==null);
+  if(!focusedHasCalories){
+   const row=calorieRowBox(first.data?.blocks,source.width,source.height,detected);
+   if(row&&row.w>.05&&row.h>.008){
+    const canvas=cropCanvas(source,row,{minimum:1550});
+    try{
+     for(const mode of ['7','6']){
+      if(recognizer!==worker)throw Error('Scan cancelled.');
+      await worker.setParameters({tessedit_pageseg_mode:mode});
+      const res=await worker.recognize(canvas);
+      const amount=calorieFromRow(res.data?.text,res.data?.confidence);
+      if(amount!==null){calorieCandidate=amount;break;}
+     }
+    }finally{canvas.width=0;canvas.height=0;}
+   }
+  }
   const focused=scored.filter(x=>x.focused&&(x.parsed.calories!==null||x.parsed.protein!==null))
    .sort((a,b)=>b.score-a.score);
   const original=scored[0];
@@ -161,7 +270,8 @@ export async function recognizeNutritionImage(file,onProgress=()=>{}){
   // example read "2g" as "20g" beside an unrecognized calorie count.
   const best=focused[0]||(original?.parsed.calories!==null&&original?.parsed.protein!==null?original:null);
   return {text:best?.text||'',focused:!!best?.focused,
-   partial:!best||best.parsed.calories===null||best.parsed.protein===null};
+   calorieCandidate,
+   partial:!best||(best.parsed.calories===null&&calorieCandidate===null)||best.parsed.protein===null};
  }finally{
   source?.release();
   if(recognizer===worker)recognizer=null;
