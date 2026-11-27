@@ -1,6 +1,6 @@
 // Everyday v154.8: scanner sheet. All values are reviewed before normal Save.
-import {normalizeBarcodeProduct,parseNutritionLabel} from './food-scan-model.js?v=154.8';
-import {startBarcodeCamera,stopBarcode,decodeBarcodeImage,recognizeNutritionImage,cancelNutritionRecognition} from './food-scan-engines.js?v=154.8';
+import {normalizeBarcodeProduct,parseNutritionLabel} from './food-scan-model.js?v=154.8.1';
+import {startBarcodeCamera,stopBarcode,decodeBarcodeImage,recognizeNutritionImage,cancelNutritionRecognition} from './food-scan-engines.js?v=154.8.1';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=v=>Number.isInteger(v)?String(v):Number(v).toFixed(1).replace(/\.0$/,'');
 let seq=0;
@@ -60,7 +60,7 @@ export function createFoodScanner(onImport){
  }
  async function camera(s){
   if(!live(s)||s.busy)return;
-  busy(s,true);status(s,'Opening rear camera…');
+  s.detected=false;busy(s,true);status(s,'Opening rear camera…');
   try{
    await startBarcodeCamera(s.cameraId,code=>{
     if(!live(s)||s.busy||s.detected)return;
