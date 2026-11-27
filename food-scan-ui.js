@@ -1,6 +1,6 @@
 // Everyday v154.8: scanner sheet. All values are reviewed before normal Save.
-import {normalizeBarcodeProduct,parseNutritionLabel} from './food-scan-model.js?v=154.8.1';
-import {startBarcodeCamera,stopBarcode,decodeBarcodeImage,recognizeNutritionImage,cancelNutritionRecognition} from './food-scan-engines.js?v=154.8.1';
+import {normalizeBarcodeProduct,parseNutritionLabel} from './food-scan-model.js?v=154.8.2';
+import {startBarcodeCamera,stopBarcode,decodeBarcodeImage,recognizeNutritionImage,cancelNutritionRecognition} from './food-scan-engines.js?v=154.8.2';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=v=>Number.isInteger(v)?String(v):Number(v).toFixed(1).replace(/\.0$/,'');
 let seq=0;
@@ -43,15 +43,28 @@ export function createFoodScanner(onImport){
   if(!live(s)||s.busy)return;
   const code=String(raw||'').replace(/[\s-]/g,'');
   if(!/^\d{8,14}$/.test(code)){status(s,'Use a numeric barcode with 8 to 14 digits.',true);return;}
-  s.code=code;busy(s,true);status(s,'Looking up barcode '+code+'…');
+  s.code=code.length===13&&code.startsWith('0')?code.slice(1):code;
+  busy(s,true);status(s,'Barcode '+s.code+' recognized. Looking up its product…');
   await stopBarcode();
   const controller=new AbortController();s.abort=controller;
   try{
-   const url='https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,product_name_en,brands,nutriments,serving_size,serving_quantity';
-   const response=await fetch(url,{signal:controller.signal,headers:{Accept:'application/json'}});
-   if(!response.ok)throw Error('Product lookup failed (HTTP '+response.status+').');
-   const data=await response.json();if(!live(s))return;
-   if(data.status!==1||!data.product){status(s,'Barcode not found. Try a Nutrition Facts label instead.',true);return;}
+   // UPC-A is sometimes detected as EAN-13 with an extra leading zero.
+   // Query both common representations without confusing "not in database"
+   // with "could not scan the photo".
+   const candidates=code.length===13&&code.startsWith('0')?[code.slice(1),code]:
+    code.length===12?[code,'0'+code]:[code];
+   let data=null;
+   for(const candidate of candidates){
+    const url='https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(candidate)+'.json?fields=product_name,product_name_en,brands,nutriments,serving_size,serving_quantity';
+    const response=await fetch(url,{signal:controller.signal,headers:{Accept:'application/json'}});
+    if(!response.ok)throw Error('Product lookup failed (HTTP '+response.status+').');
+    data=await response.json();if(!live(s))return;
+    if(data.status===1&&data.product)break;
+   }
+   if(!data||data.status!==1||!data.product){
+    status(s,'Barcode '+s.code+' was read successfully, but no product details were found in Open Food Facts. Scan its Nutrition Facts label instead.',true);
+    return;
+   }
    const result=normalizeBarcodeProduct(data.product);
    if(!result.name&&result.calories===null&&result.protein===null){status(s,'Product has no usable details. Try the nutrition label.',true);return;}
    preview(s,result);
@@ -73,9 +86,9 @@ export function createFoodScanner(onImport){
  }
  async function barcodePhoto(s,file){
   if(!live(s)||s.busy)return;
-  busy(s,true);status(s,'Reading barcode photo…');let code=null;
+  busy(s,true);status(s,'Reading barcode photo and checking closer image regions…');let code=null;
   try{code=await decodeBarcodeImage(s.cameraId,file);}
-  catch{status(s,'No barcode found in that image. Try a closer picture or enter the digits.',true);}
+  catch{status(s,'No barcode detected after trying several closer regions. Take a sharper barcode photo or enter the printed digits.',true);}
   finally{if(live(s))busy(s,false);}
   if(code&&live(s))void lookup(s,code);
  }
@@ -83,10 +96,14 @@ export function createFoodScanner(onImport){
   if(!live(s)||s.busy)return;
   busy(s,true);status(s,'Preparing label recognition. The first use downloads an OCR engine…');
   try{
-   const text=await recognizeNutritionImage(file,pct=>status(s,'Reading the Nutrition Facts label… '+pct+'%'));
+   const recognition=await recognizeNutritionImage(file,pct=>status(s,'Reading the Nutrition Facts label… '+pct+'%'));
    if(!live(s))return;
-   const result=parseNutritionLabel(text);
-   if(result.calories===null&&result.protein===null){status(s,'Could not read Calories or Protein. Try a sharper, straight-on photo.',true);return;}
+   const result=parseNutritionLabel(recognition.text);
+   if(result.calories===null&&result.protein===null){
+    status(s,'Could not confidently read Calories or Protein. Try a closer photo of only the Nutrition Facts box.',true);return;
+   }
+   if(recognition.partial||!recognition.focused)
+    result.note+=' Some values could not be confirmed from a focused label region. Compare carefully with the package.';
    preview(s,result);
   }catch(error){if(live(s))status(s,'Label scan failed: '+(error.message||'Unknown error'),true);}
   finally{if(live(s))busy(s,false);}
