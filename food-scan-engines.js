@@ -153,12 +153,15 @@ export async function recognizeNutritionImage(file,onProgress=()=>{}){
    const last=scored.at(-1);
    if(last?.parsed.calories!==null&&last?.parsed.protein!==null)break;
   }
-  const ranked=scored.slice().sort((a,b)=>b.score-a.score);
-  const best=ranked[0];
-  // Do not manufacture a value from other image regions if a field
-  // cannot be reliably read from the selected Nutrition Facts panel.
+  const focused=scored.filter(x=>x.focused&&(x.parsed.calories!==null||x.parsed.protein!==null))
+   .sort((a,b)=>b.score-a.score);
+  const original=scored[0];
+  // If the full package suggests just one isolated number but no cropped
+  // Nutrition Facts region confirms it, suppress it. The original cookie
+  // example read "2g" as "20g" beside an unrecognized calorie count.
+  const best=focused[0]||(original?.parsed.calories!==null&&original?.parsed.protein!==null?original:null);
   return {text:best?.text||'',focused:!!best?.focused,
-   partial:best?.parsed?.calories===null||best?.parsed?.protein===null};
+   partial:!best||best.parsed.calories===null||best.parsed.protein===null};
  }finally{
   source?.release();
   if(recognizer===worker)recognizer=null;
