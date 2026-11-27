@@ -1,6 +1,6 @@
 // Everyday v154.8: scanner sheet. All values are reviewed before normal Save.
-import {normalizeBarcodeProduct,parseNutritionLabel} from './food-scan-model.js?v=154.8.2';
-import {startBarcodeCamera,stopBarcode,decodeBarcodeImage,recognizeNutritionImage,cancelNutritionRecognition} from './food-scan-engines.js?v=154.8.2';
+import {normalizeBarcodeProduct,parseNutritionLabel} from './food-scan-model.js?v=154.8.3';
+import {startBarcodeCamera,stopBarcode,decodeBarcodeImage,recognizeNutritionImage,cancelNutritionRecognition} from './food-scan-engines.js?v=154.8.3';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=v=>Number.isInteger(v)?String(v):Number(v).toFixed(1).replace(/\.0$/,'');
 let seq=0;
@@ -99,6 +99,10 @@ export function createFoodScanner(onImport){
    const recognition=await recognizeNutritionImage(file,pct=>status(s,'Reading the Nutrition Facts label… '+pct+'%'));
    if(!live(s))return;
    const result=parseNutritionLabel(recognition.text);
+   if(result.calories===null&&Number.isFinite(recognition.calorieCandidate)){
+    result.calories=recognition.calorieCandidate;
+    result.note+=' Calories were extracted from a close-up of the calorie line; confirm the number before importing.';
+   }
    if(result.calories===null&&result.protein===null){
     status(s,'Could not confidently read Calories or Protein. Try a closer photo of only the Nutrition Facts box.',true);return;
    }
