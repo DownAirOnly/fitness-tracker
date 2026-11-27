@@ -28,7 +28,7 @@ export function parseNutritionLabel(raw){
  for(let i=0;i<lines.length;i++){
   const line=lines[i];
   if(calories===null&&/\bcalor(?:ies|y)\b/i.test(line)&&!/calories?\s+from\s+fat/i.test(line)){
-   const tail=line.replace(/^.*?\bcalor(?:ies|y)\b/i,'').replace(/^\s*(?:kcal|:|-)\s*/i,'');
+   const tail=line.replace(/^.*?\bcalor(?:ies|y)\b/i,'').trim().replace(/^(?:kcal|:|-)\s*/i,'');
    let m=tail.match(/^(\d{1,4})(?!\d)/);
    if(!m&&lines[i+1])m=lines[i+1].match(/^\s*(\d{1,4})(?:\s|$)/);
    if(m)calories=num(m[1]);
